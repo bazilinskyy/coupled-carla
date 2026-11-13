@@ -1,5 +1,7 @@
 # coupled-carla
 
+[![tests](https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml/badge.svg)](https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml)
+
 **A human-factors driving simulator for real places.** coupled-carla builds a drivable [CARLA](https://carla.org)
 world for any bounding box on Earth from OpenStreetMap, fills it with traffic from [SUMO](https://eclipse.dev/sumo/)
 (cars, cyclists, buses with proper car-following and lane-change models), puts a participant at the wheel
@@ -37,6 +39,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Traffic](#traffic)
 - [Traffic lights](#traffic-lights)
 - [Logging and data](#logging-and-data)
+- [Analysis](#analysis)
 - [Trial viewer](#trial-viewer)
 - [Performance](#performance)
 - [coupled-sim features in coupled-carla](#coupled-sim-features-in-coupled-carla)
@@ -172,7 +175,8 @@ Headless test drive (autopilot, saves a chase-camera frame every 10 s):
 .venv/bin/python -m coupledcarla.run experiments/eindhoven_centre.yaml --input autopilot --headless --view chase --duration 120 --frames-every 10
 ```
 
-The figure and screenshot tools need `requirements-tools.txt` as well.
+The figure and screenshot tools need `requirements-tools.txt` as well. The unit tests need no CARLA or SUMO:
+`pip install numpy pyyaml pytest && python -m pytest tests`.
 
 The cities: write their experiment files and build every map (Overpass is slow, a few minutes per city), then
 smoke-test them all:
@@ -282,7 +286,7 @@ participants:
     view: driver           # driver | chase | hood
     spawn: {lat: 51.44453, lon: 5.47883}   # optional; also heading (compass degrees); else a random lane
 pois:
-  - {name: eindhoven_centraal, lat: 51.4433, lon: 5.4797}
+  - {name: eindhoven_centraal, lat: 51.4433, lon: 5.4797, heading: 0, radius_m: 10}   # heading, radius: optional
 logging:
   radius_m: 150            # AI actors within this distance of a participant are logged every frame
   # udp: {host: 127.0.0.1, port: 40131, interval: 0.2}, carla_recorder: true, frames_every_s: 0
@@ -530,13 +534,18 @@ Each trial writes to `logs/<experiment>/<YYYYmmdd-HHMMSS>_trial<k>/`:
 | File | Content |
 |---|---|
 | `config.yaml` | The merged configuration of this trial. |
-| `frames.csv` | Semicolon-separated like coupled-sim's CSV; one row per actor per frame at the simulation rate (50 Hz). Participants every frame; AI vehicles, cyclists and buses every frame while within `logging.radius_m` of a participant. |
+| `frames.csv` | Semicolon-separated like coupled-sim's CSV; one row per actor per frame at the simulation rate (50 Hz). Participants and scripted agents every frame; SUMO vehicles, cyclists, buses and crowd walkers every frame while within `logging.radius_m` of a participant. |
 | `events.csv` | `trial_start`, `spawn` (with SUMO id), `next_light`, `collision`, `left_road`, `reset_to_lane`, `trial_end` (with a summary). Line-buffered, so it survives a crash. |
 | `summary.json` | Ticks, simulated and wall time, real-time factor, rows, collisions, SUMO vehicles shown. |
+| `analysis/` | Encounter measures, POI passes and a timeline plot, written after the trial (see [Analysis](#analysis)). |
 | `sumo/` | The trial's demand and SUMO config, `sumo_fcd.xml.gz` (**every** vehicle on the map at 10 Hz with lat/lon and signals), `sumo_tripinfo.xml`, `sumo.log`. |
 | `view_*.jpg` | Snapshots of the first participant's view when `--frames-every` is set. |
 | CARLA recorder | `coupledcarla_<experiment>_<time>_trial<k>.log` on the server machine, for replay from any viewpoint with CARLA's replayer. |
 | UDP 40131 | Every 0.2 s a JSON frame shaped like coupled-sim's live data (`Driver [i]`, `Pedestrian [i]`, `CarLight [id]` entries with position, rotation, lat/lon, speed, lights). |
+
+Both CSV files time rows in seconds of trial time (0 at the first tick), so a frame and an event line up by
+`timestamp` or by `frame`. (Logs before 2026-11-14 wrote CARLA's server time in `frames.csv`; the analysis
+lines them up by frame.)
 
 `frames.csv` columns: `timestamp; frame; actor_id; kind` (participant, car, bike, bus, walker)`; role; type_id;
 pos_x; pos_y; pos_z` (CARLA metres: x east, y south, z up)`; rot_pitch; rot_yaw; rot_roll; lat; lon; vel_x;
@@ -548,6 +557,43 @@ logged every frame like participants.
 Unlike coupled-sim's wide CSV (one column block per agent, fixed agents), this is a long table: SUMO spawns
 and removes hundreds of vehicles, so one row per actor per frame is the shape that works (and loads directly
 into pandas or R).
+
+## Analysis
+
+After every trial the host measures each encounter between a pedestrian (the participant's and the scripted
+walkers) and a vehicle (the driver, scripted cars, SUMO traffic) that came within 30 m, and writes
+`analysis/encounters.csv`, `analysis/poi.csv` and `analysis/timeline.png` next to the logs. The same runs by hand
+on one trial or on a whole experiment, which also collects every trial in `logs/<experiment>/analysis.csv`:
+
+```bash
+.venv/bin/python -m coupledcarla.analysis logs/eindhoven_crossing
+.venv/bin/python -m coupledcarla.analysis logs/eindhoven_crowd/<time>_trial0 --all-walkers --poi-frames
+```
+
+| Column | Meaning |
+|---|---|
+| `min_gap_m`, `t_min_gap` | Closest distance between the pedestrian (a 0.3 m disc) and the vehicle's box (size by blueprint: car, van, bus, bicycle). |
+| `min_ttc_s`, `t_min_ttc` | Shortest time to collision, both keeping their velocity, while the vehicle moves (under 10 s, else empty). |
+| `pet_s`, `first` | Post-encroachment time: the shortest time between the pedestrian being at a spot and the vehicle's box covering it (10 Hz); who was there first. |
+| `t_in_path`, `veh_speed_in_path_kmh`, `veh_dist_in_path_m`, `ehmi_in_path` | When the pedestrian first stepped into the vehicle's path (its width plus 0.5 m, ahead, within 60 m), and the vehicle's speed, distance and eHMI then: the gap the pedestrian accepted. |
+| `stopped`, `t_stop`, `stop_gap_m` | Whether the vehicle came to a stop with the pedestrian ahead, when, and how far away. |
+| `eye_contact_s`, `t_eye_contact` | Total eye contact (the `eye_contact_*` events) and when it began. |
+| `ehmi_states`, `collision` | The vehicle's eHMI changes (`time:state`), and whether the two collided. |
+
+`poi.csv` gives, for every participant and scripted agent, its closest distance to each point of interest and
+the first time within the POI's radius (`radius_m`, default 10 m); with `--poi-frames`, `frames_poi.csv` has
+the participants' positions in each POI's reference frame (x forward along its `heading`, compass degrees,
+y to its left), as coupled-sim's reference frames.
+
+From the coupled test of the Eindhoven crossing (trial 1): when the participant pedestrian stepped into av1's
+path, av1 was 21.9 m away at 28.8 km/h with its eHMI on "yielding"; it stopped 10.2 m before the pedestrian,
+who crossed first (PET 5.6 s, shortest time to collision 4.97 s), after 5.2 s of eye contact. The pedestrian
+also crossed before the human-driven car (PET 7.6 s), which stopped 18.8 m away.
+
+![Analysis timeline: gap, time to collision and speeds per encounter, with eHMI changes, stops and eye contact](docs/img/analysis_timeline.png)
+
+*`analysis/timeline.png`: one panel per conflict, the gap (blue), time to collision (red), the vehicle's and the
+pedestrian's speed, eHMI changes (orange), the scripted car's stop and go (dotted) and eye contact (yellow).*
 
 ## Trial viewer
 
@@ -600,15 +646,16 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 | Output: HMD (VR) | OpenXR / DReyeVR-style | phase 3 |
 | AI cars on waypoint circuits with speed/yield triggers | scripted agents on lat/lon routes with triggers (speed, accel, yield, blinker, eHMI) + SUMO traffic | done |
 | AI pedestrians on waypoint circuits | scripted walkers on lat/lon paths (no navigation mesh needed) | done; SUMO persons as walkers: to do |
-| eHMI on the AV (top, windshield, hood) | light bar + line-font text on the front, set by passenger, triggers or automatically | done (front only) |
+| eHMI on the AV (top, windshield, hood) | light bar + line-font text on the front or rear, a roof ring, text projected on the road, or "eyes" that look at the nearest pedestrian; set by passenger, triggers or automatically | done |
 | Traffic lights, switchable | SUMO signal programs, drawn in the world | done (default programs) |
 | Day/night | weather presets, sun altitude | done |
 | Networking host + 3 clients | host + one station per human on the LAN, no fixed limit | done; multi-GPU secondaries: to do |
 | Binary log 50 Hz + CSV conversion | `frames.csv` at 50 Hz directly | done |
 | Live data UDP 40131 | JSON frames on UDP 40131 | done |
-| Driver eye contact | – | to do |
-| Round-trip time in the log | `station_stats` events + per-frame station logs | done |
-| Points of interest as CSV reference frames | `pois` in lat/lon | stored; reference-frame conversion: to do |
+| Driver eye contact | `eye_contact_start` / `_end` events when a pedestrian and a vehicle face each other (vehicle heading; no head tracking yet) | done |
+| Round-trip time in the log | `station_stats` events + per-frame station logs, with tick-to-station and tick-to-image latency | done |
+| Points of interest as CSV reference frames | `pois` in lat/lon with `heading` and `radius_m`; passes in `poi.csv`, positions per POI frame in `frames_poi.csv` | done |
+| Analysis scripts | `coupledcarla.analysis` after every trial: gaps, time to collision, PET, accepted gaps, stops, eye contact per encounter, timeline plot | done |
 | Visual sync (red bar) | red bar on every station, scheduled or on F, logged with the frame | done |
 | Video recording | CARLA recorder + re-render from any viewpoint | recorder done |
 | A small fictional US town | any place on Earth, 19 cities ready | done |
@@ -718,6 +765,7 @@ coupledcarla/
   inputs/            keyboard, G25 wheel (steering_wheel.py), autopilot
   display.py         participant view (pygame window or saved frames)
   logger.py          frames.csv, events.csv, UDP
+  analysis.py        encounter measures (gap, TTC, PET, stops, eye contact), POI passes, timeline plot
   geo.py             WGS84 <-> CARLA coordinates
   export_trial.py    trial -> trial.json for the viewer
 experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhoven_crowd.yaml (coupled),
@@ -726,6 +774,7 @@ viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, run_coupled_test.sh, plot_maps.py, viewer_shots.py,
                      render_twin_buildings.py
 docs/                city_tests.md, img/
+tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
 ```
 

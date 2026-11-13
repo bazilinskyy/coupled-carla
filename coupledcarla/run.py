@@ -23,7 +23,7 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import compat, config, inputs, mapbuild, traffic
+from . import analysis, compat, config, inputs, mapbuild, traffic
 from .ai import DEFAULT_EHMI, Crowd, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
@@ -360,6 +360,8 @@ def run_trial(cfg, trial_idx, args, control=None):
                 control.broadcast({"type": "tick", "frame": carla_sim.tick_frame, "t": carla_sim.tick_wall})
             sim_t = snap.timestamp.elapsed_seconds
             sim0 = sim_t if sim0 is None else sim0
+            if logger.sim0 is None:
+                logger.sim0 = sim0
             t = sim_t - sim0
             summary["ticks"] += 1
 
@@ -401,6 +403,9 @@ def run_trial(cfg, trial_idx, args, control=None):
                 ai[cid] = types[cid]
                 sa = sync.sumo.get_actor(sid)
                 sumo_signals[cid] = sa.signals if sa else 0
+            if crowd is not None:
+                for w in crowd.walkers:
+                    ai[w.id] = ("walker", w.type_id)
             for part in parts:   # an event whenever the light a participant faces changes
                 key = (part.light[0], part.light[2]) if part.light else None
                 if key != part.light_key:
@@ -518,6 +523,12 @@ def run_trial(cfg, trial_idx, args, control=None):
                 log(f"bridge close: {err}")
         server.stop()
         (out / "summary.json").write_text(json.dumps(summary, indent=2))
+        if tc["logging"].get("analyse", True) and (out / "frames.csv").exists():
+            try:
+                rows = analysis.analyse_trial(out)
+                log(f"analysis: {len(rows)} pedestrian-vehicle encounters in {out / 'analysis'}")
+            except Exception as err:  # noqa: BLE001 - the trial's logs are written; analysis can be re-run
+                log(f"analysis failed ({err}); run python -m coupledcarla.analysis {out}")
     return summary
 
 

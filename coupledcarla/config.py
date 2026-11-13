@@ -69,6 +69,7 @@ DEFAULTS = {
         "udp": {"host": "127.0.0.1", "port": 40131, "interval": 0.2},
         "carla_recorder": True,      # CARLA's own .log for replay (written on the server machine)
         "frames_every_s": 0.0,       # >0: save the driver camera every so many seconds (headless checks)
+        "analyse": True,             # encounter measures in <trial>/analysis/ after each trial (coupledcarla/analysis.py)
     },
     "trials": [{"duration_s": 300}],
 }

@@ -54,6 +54,7 @@ class TrialLogger:
             self.udp_every = max(1, round(lc["udp"]["interval"] / step))
         self.tl_state = {}
         self.rows = 0
+        self.sim0 = None    # server time of the trial's first tick: frames.csv and events.csv use trial time
 
     def event(self, ts, frame, name, actor_id="", detail=""):
         self.ew.writerow([f"{ts:.3f}", frame, name, actor_id, detail])
@@ -61,7 +62,9 @@ class TrialLogger:
     def log(self, snap, participants, ai, sumo_signals, traffic_lights):
         """participants: [{actor, role, kind (participant|agent), ctl, light, ehmi}] logged every frame;
         ai: {actor_id: (kind, type_id)} logged near participants; sumo_signals: {id: bits}."""
-        ts, frame = snap.timestamp.elapsed_seconds, snap.frame
+        if self.sim0 is None:
+            self.sim0 = snap.timestamp.elapsed_seconds
+        ts, frame = snap.timestamp.elapsed_seconds - self.sim0, snap.frame
         centres = []
         udp_frame = {"timestamp": ts, "roundtrip": 0.0} if self.udp and frame % self.udp_every == 0 else None
         for i, p in enumerate(participants):
