@@ -1,0 +1,29 @@
+# Tokyo (Shibuya), Japan (Asia, large, ~37,000,000 people, left-hand traffic). Generated from experiments/cities.yaml.
+name: tokyo_shibuya
+city:
+  name: Tokyo (Shibuya)
+  country: Japan
+  continent: Asia
+  size: large
+  population: 37000000
+  lat: 35.658
+  lon: 139.7016
+  drive: left
+map:
+  bbox:
+  - 35.65171
+  - 139.69386
+  - 35.66429
+  - 139.70934
+  lefthand: true
+traffic:
+  cars_per_hour: 3000
+  bikes_per_hour: 300
+  buses_per_hour: 20
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>coupled-carla viewer</title>
+<style>
+  :root { --bg: #dfe7ee; --panel: rgba(255,255,255,0.92); --ink: #1d2733; --muted: #5b6b7c; --accent: #c8102e; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+  #c { display: block; width: 100vw; height: 100vh; }
+  .panel { position: absolute; background: var(--panel); border-radius: 8px; padding: 10px 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+  #info { top: 12px; left: 12px; max-width: 340px; }
+  #info h1 { font-size: 15px; margin: 0 0 4px; }
+  #info .muted { color: var(--muted); }
+  #hud { top: 12px; right: 12px; min-width: 190px; font-variant-numeric: tabular-nums; }
+  #hud .big { font-size: 22px; font-weight: 600; }
+  .lamp { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  #bar { left: 12px; right: 12px; bottom: 12px; display: flex; gap: 10px; align-items: center; }
+  #bar input[type=range] { flex: 1; }
+  button, select { font: inherit; padding: 4px 10px; border-radius: 6px; border: 1px solid #b8c4d0; background: #fff; cursor: pointer; }
+  #events { bottom: 64px; left: 12px; max-width: 460px; max-height: 120px; overflow: auto; font-size: 12px; }
+  #legend { bottom: 64px; right: 12px; font-size: 12px; }
+  #legend span { display: inline-block; width: 12px; height: 12px; margin: 0 5px -2px 12px; border-radius: 2px; }
+  #legend span:first-child { margin-left: 0; }
+  #drop { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(29,39,51,0.6); color: #fff; font-size: 20px; }
+  @media (max-width: 640px) { #events, #legend { display: none; } #info { max-width: 60vw; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="info" class="panel"><h1 id="title">coupled-carla viewer</h1>
+  <div class="muted" id="sub">Load a trial.json (exported with <code>python -m coupledcarla.export_trial</code>): pass
+    <code>?file=…</code> or drop the file here.</div></div>
+<div id="hud" class="panel"><div class="muted">participant</div><div class="big" id="speed">–</div>
+  <div id="light" class="muted">no light ahead</div><div class="muted" id="clock">t = 0.0 s</div></div>
+<div id="events" class="panel"></div>
+<div id="legend" class="panel"><span style="background:#c8102e"></span>participant<span style="background:#2f6db5"></span>car
+  <span style="background:#2e9e5b"></span>bike<span style="background:#e08a00"></span>bus<span style="background:#a8483a"></span>cycleway</div>
+<div id="bar" class="panel">
+  <button id="play">▶</button>
+  <select id="rate"><option>0.5</option><option selected>1</option><option>2</option><option>4</option><option>8</option></select>
+  <input id="time" type="range" min="0" max="1" step="0.01" value="0">
+  <select id="cam"><option value="follow">follow</option><option value="orbit">free</option><option value="top">top</option></select>
+</div>
+<div id="drop">drop trial.json</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+
+const canvas = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.shadowMap.enabled = true;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfdbe6);
+scene.fog = new THREE.Fog(0xcfdbe6, 900, 2600);
+const camera = new THREE.PerspectiveCamera(55, 1, 1, 6000);
+const controls = new OrbitControls(camera, canvas);
+controls.maxPolarAngle = Math.PI * 0.49;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x6b7f5a, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-400, 700, -300);
+sun.castShadow = true;
+Object.assign(sun.shadow.camera, { left: -900, right: 900, top: 900, bottom: -900, far: 3000 });
+sun.shadow.mapSize.set(4096, 4096);
+scene.add(sun, sun.target);
+
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+
+// CARLA (x east, y south) -> three (x, y up, z): (x, 0, y)
+function ribbon(points, width, y) {
+  const pos = [], idx = [];
+  for (let i = 0; i < points.length; i++) {
+    const [x, z] = points[i];
+    const [ax, az] = points[Math.max(0, i - 1)], [bx, bz] = points[Math.min(points.length - 1, i + 1)];
+    let dx = bx - ax, dz = bz - az; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
+    pos.push(x - dz * width / 2, y, z + dx * width / 2, x + dz * width / 2, y, z - dx * width / 2);
+    if (i > 0) { const k = 2 * i; idx.push(k - 2, k - 1, k, k - 1, k + 1, k); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+
+let data = null, actors = [], tEnd = 1, t = 0, playing = false, participant = null;
+const world = new THREE.Group(); scene.add(world);
+
+function build(d) {
+  data = d; world.clear(); actors = [];
+  const city = d.city ? `${d.city.name}, ${d.city.country} · ${d.city.continent}` : "";
+  document.getElementById("title").textContent = d.experiment || d.map || "map";
+  document.getElementById("sub").innerHTML = `${city ? city + "<br>" : ""}${d.lanes.length} lanes · ${d.buildings.length} buildings` +
+    (d.lefthand ? " · left-hand traffic" : "") + (d.tracks ? ` · ${Object.keys(d.tracks).length} actors logged` : "");
+  // extent
+  let minx = 1e9, maxx = -1e9, minz = 1e9, maxz = -1e9;
+  for (const l of d.lanes) for (const [x, z] of l.p) { minx = Math.min(minx, x); maxx = Math.max(maxx, x); minz = Math.min(minz, z); maxz = Math.max(maxz, z); }
+  const cx = (minx + maxx) / 2, cz = (minz + maxz) / 2, span = Math.max(maxx - minx, maxz - minz, 200);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(span * 3, span * 3), new THREE.MeshLambertMaterial({ color: 0x9fb08a }));
+  ground.rotation.x = -Math.PI / 2; ground.position.set(cx, -0.05, cz); ground.receiveShadow = true; world.add(ground);
+  const roads = d.lanes.filter(l => l.k === "road").map(l => ribbon(l.p, l.w, 0.02));
+  const bikes = d.lanes.filter(l => l.k === "bike").map(l => ribbon(l.p, l.w, 0.03));
+  if (roads.length) { const m = new THREE.Mesh(mergeGeometries(roads), new THREE.MeshLambertMaterial({ color: 0x4a4f57, side: THREE.DoubleSide })); m.receiveShadow = true; world.add(m); }
+  if (bikes.length) world.add(new THREE.Mesh(mergeGeometries(bikes), new THREE.MeshLambertMaterial({ color: 0xa8483a, side: THREE.DoubleSide })));
+  const bgeo = [];
+  for (const b of d.buildings) {
+    const shape = new THREE.Shape(b.p.map(([x, z]) => new THREE.Vector2(x, -z)));
+    const g = new THREE.ExtrudeGeometry(shape, { depth: Math.max(3, Math.min(b.h, 300)), bevelEnabled: false });
+    g.rotateX(-Math.PI / 2); bgeo.push(g);
+  }
+  if (bgeo.length) { const m = new THREE.Mesh(mergeGeometries(bgeo), new THREE.MeshLambertMaterial({ color: 0xe9e4da })); m.castShadow = m.receiveShadow = true; world.add(m); }
+  sun.position.set(cx - 400, 700, cz - 300); sun.target.position.set(cx, 0, cz);
+  camera.position.set(cx - span * 0.35, span * 0.45, cz + span * 0.55); controls.target.set(cx, 0, cz); controls.update();
+  // actors
+  const colours = { participant: 0xc8102e, car: 0x2f6db5, bike: 0x2e9e5b, bus: 0xe08a00, walker: 0x7a4bb5 };
+  const sizes = { participant: [4.9, 1.5, 2.0], car: [4.4, 1.5, 1.8], bike: [1.8, 1.6, 0.6], bus: [12, 3.0, 2.5], walker: [0.5, 1.8, 0.5] };
+  tEnd = 1;
+  for (const [id, tr] of Object.entries(d.tracks || {})) {
+    const [l, h, w] = sizes[tr.kind] || sizes.car;
+    const g = new THREE.BoxGeometry(l, h, w); g.translate(0, h / 2, 0);
+    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: colours[tr.kind] || colours.car }));
+    m.castShadow = true; m.visible = false; world.add(m);
+    actors.push({ id, tr, m });
+    tEnd = Math.max(tEnd, tr.s[tr.s.length - 1][0] - (d.t0 || 0));
+    if (tr.kind === "participant" && !participant) participant = actors[actors.length - 1];
+  }
+  const slider = document.getElementById("time"); slider.max = tEnd; slider.value = 0; t = 0;
+  document.getElementById("cam").value = participant ? "follow" : "orbit";
+}
+
+function sampleAt(s, tt) {
+  if (tt < s[0][0] || tt > s[s.length - 1][0]) return null;
+  let lo = 0, hi = s.length - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (s[mid][0] <= tt) lo = mid; else hi = mid; }
+  const a = s[lo], b = s[hi], f = b[0] > a[0] ? (tt - a[0]) / (b[0] - a[0]) : 0;
+  let dy = b[3] - a[3]; dy = ((dy + 540) % 360) - 180;
+  return { x: a[1] + (b[1] - a[1]) * f, z: a[2] + (b[2] - a[2]) * f, yaw: a[3] + dy * f, v: a[4] + (b[4] - a[4]) * f, raw: a };
+}
+
+const lampColour = { g: "#1fae4b", G: "#1fae4b", y: "#f0b400", Y: "#f0b400", r: "#d0021b", R: "#d0021b" };
+function update() {
+  if (!data) return;
+  const tt = t + (data.t0 || 0);
+  for (const a of actors) {
+    const p = sampleAt(a.tr.s, tt);
+    a.m.visible = !!p;
+    if (p) { a.m.position.set(p.x, 0, p.z); a.m.rotation.y = -p.yaw * Math.PI / 180; a.cur = p; }
+  }
+  document.getElementById("clock").textContent = `t = ${t.toFixed(1)} s / ${tEnd.toFixed(0)} s`;
+  if (participant && participant.cur && participant.m.visible) {
+    const p = participant.cur;
+    document.getElementById("speed").textContent = `${p.v.toFixed(0)} km/h`;
+    const [st, dist] = [p.raw[5], p.raw[6]];
+    document.getElementById("light").innerHTML = st ? `<span class="lamp" style="background:${lampColour[st] || "#888"}"></span>light ${st} in ${(+dist).toFixed(0)} m` : "no light ahead";
+    const mode = document.getElementById("cam").value;
+    if (mode === "follow") {
+      const yaw = p.yaw * Math.PI / 180, back = 14, up = 6;
+      const want = new THREE.Vector3(p.x - Math.cos(yaw) * back, up, p.z - Math.sin(yaw) * back);
+      camera.position.lerp(want, 0.15); controls.target.set(p.x, 1.5, p.z);
+    } else if (mode === "top") {
+      camera.position.set(p.x, 320, p.z + 1); controls.target.set(p.x, 0, p.z);
+    }
+  }
+  const ev = (data.events || []).filter(e => e[0] - (data.t0 || 0) <= t).slice(-6).reverse();
+  document.getElementById("events").innerHTML = ev.map(e => `<div><b>${(e[0] - (data.t0 || 0)).toFixed(1)} s</b> ${e[1]} <span class="muted">${e[2]}</span></div>`).join("") || "<span class='muted'>no events yet</span>";
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = (now - last) / 1000; last = now;
+  if (playing && data) { t = Math.min(tEnd, t + dt * +document.getElementById("rate").value); document.getElementById("time").value = t; if (t >= tEnd) playing = false; }
+  update(); controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+document.getElementById("play").onclick = () => { playing = !playing; document.getElementById("play").textContent = playing ? "❚❚" : "▶"; };
+document.getElementById("time").oninput = e => { t = +e.target.value; };
+addEventListener("keydown", e => { if (e.code === "Space") { e.preventDefault(); document.getElementById("play").click(); } });
+const drop = document.getElementById("drop");
+addEventListener("dragover", e => { e.preventDefault(); drop.style.display = "flex"; });
+addEventListener("dragleave", () => { drop.style.display = "none"; });
+addEventListener("drop", async e => { e.preventDefault(); drop.style.display = "none"; const f = e.dataTransfer.files[0]; if (f) build(JSON.parse(await f.text())); });
+
+// For scripted screenshots: render the moment t (s) with a camera mode, without the animation loop.
+window.viewer = {
+  load: async url => build(await (await fetch(url)).json()),
+  renderAt(tt, cam = "follow", view = null) {
+    t = Math.min(tEnd, Math.max(0, tt)); document.getElementById("time").value = t;
+    document.getElementById("cam").value = cam;
+    for (let i = 0; i < 60; i++) update();   // let the follow camera settle
+    if (view) { camera.position.set(...view.pos); controls.target.set(...view.target); }
+    controls.update(); renderer.render(scene, camera);
+    return { t, actors: actors.filter(a => a.m.visible).length };
+  },
+};
+
+const params = new URLSearchParams(location.search);
+const file = params.get("file");
+if (file) fetch(file).then(r => r.json()).then(d => { build(d); if (params.get("t")) { t = +params.get("t"); document.getElementById("time").value = t; } if (params.get("cam")) document.getElementById("cam").value = params.get("cam"); if (params.get("play")) document.getElementById("play").click(); });
+</script>
+</body>
+</html>

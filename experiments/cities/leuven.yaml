@@ -1,0 +1,29 @@
+# Leuven, Belgium (Europe, small, ~100,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: leuven
+city:
+  name: Leuven
+  country: Belgium
+  continent: Europe
+  size: small
+  population: 100000
+  lat: 50.8789
+  lon: 4.7005
+  drive: right
+map:
+  bbox:
+  - 50.87261
+  - 4.69053
+  - 50.88519
+  - 4.71047
+  lefthand: false
+traffic:
+  cars_per_hour: 900
+  bikes_per_hour: 1200
+  buses_per_hour: 4
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

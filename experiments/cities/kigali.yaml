@@ -1,0 +1,29 @@
+# Kigali, Rwanda (Africa, medium, ~1,700,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: kigali
+city:
+  name: Kigali
+  country: Rwanda
+  continent: Africa
+  size: medium
+  population: 1700000
+  lat: -1.9441
+  lon: 30.0619
+  drive: right
+map:
+  bbox:
+  - -1.95039
+  - 30.05561
+  - -1.93781
+  - 30.06819
+  lefthand: false
+traffic:
+  cars_per_hour: 2000
+  bikes_per_hour: 300
+  buses_per_hour: 10
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

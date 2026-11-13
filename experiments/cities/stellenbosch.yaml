@@ -1,0 +1,29 @@
+# Stellenbosch, South Africa (Africa, small, ~200,000 people, left-hand traffic). Generated from experiments/cities.yaml.
+name: stellenbosch
+city:
+  name: Stellenbosch
+  country: South Africa
+  continent: Africa
+  size: small
+  population: 200000
+  lat: -33.9346
+  lon: 18.861
+  drive: left
+map:
+  bbox:
+  - -33.94089
+  - 18.85342
+  - -33.92831
+  - 18.86858
+  lefthand: true
+traffic:
+  cars_per_hour: 900
+  bikes_per_hour: 300
+  buses_per_hour: 4
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

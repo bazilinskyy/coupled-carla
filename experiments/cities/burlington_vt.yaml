@@ -1,0 +1,29 @@
+# Burlington, Vermont, USA (North America, small, ~45,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: burlington_vt
+city:
+  name: Burlington, Vermont
+  country: USA
+  continent: North America
+  size: small
+  population: 45000
+  lat: 44.4778
+  lon: -73.2121
+  drive: right
+map:
+  bbox:
+  - 44.47151
+  - -73.22091
+  - 44.48409
+  - -73.20329
+  lefthand: false
+traffic:
+  cars_per_hour: 900
+  bikes_per_hour: 300
+  buses_per_hour: 4
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

@@ -1,0 +1,29 @@
+# Portland, Oregon, USA (North America, medium, ~650,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: portland_or
+city:
+  name: Portland, Oregon
+  country: USA
+  continent: North America
+  size: medium
+  population: 650000
+  lat: 45.5189
+  lon: -122.6793
+  drive: right
+map:
+  bbox:
+  - 45.51261
+  - -122.68827
+  - 45.52519
+  - -122.67033
+  lefthand: false
+traffic:
+  cars_per_hour: 2000
+  bikes_per_hour: 300
+  buses_per_hour: 10
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

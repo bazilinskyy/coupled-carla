@@ -1,0 +1,36 @@
+# Eindhoven city centre: station, Vestdijk, 18 Septemberplein, the inner ring and the TU/e campus edge.
+name: eindhoven_centre
+
+map:
+  bbox: [51.4360, 5.4700, 51.4500, 5.4930]   # south, west, north, east (about 1.6 x 1.6 km)
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02            # 50 Hz
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 2400
+  bikes_per_hour: 1200
+  buses_per_hour: 12
+  walkers: 0             # needs sidewalks, which crash SUMO for now
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard     # keyboard | wheel | autopilot
+    view: driver        # driver | chase | hood
+    spawn: {lat: 51.44453, lon: 5.47883}   # Fellenoord by the station (Vestdijk is closed to cars)
+
+pois:
+  - {name: eindhoven_centraal, lat: 51.4433, lon: 5.4797}
+  - {name: 18_septemberplein, lat: 51.4385, lon: 5.4780}
+
+logging:
+  radius_m: 150
+
+trials:
+  - {duration_s: 300}
+  - {duration_s: 300, simulation: {weather: WetCloudySunset, sun_altitude: 4}, traffic: {cars_per_hour: 3600}}

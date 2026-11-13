@@ -1,0 +1,12 @@
+carla==0.9.16
+eclipse-sumo>=1.20
+sumolib
+traci
+lxml
+networkx
+shapely
+numpy
+pygame
+pyyaml
+requests
+pyproj

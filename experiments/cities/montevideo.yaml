@@ -1,0 +1,29 @@
+# Montevideo, Uruguay (South America, medium, ~1,300,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: montevideo
+city:
+  name: Montevideo
+  country: Uruguay
+  continent: South America
+  size: medium
+  population: 1300000
+  lat: -34.9064
+  lon: -56.199
+  drive: right
+map:
+  bbox:
+  - -34.91269
+  - -56.20667
+  - -34.90011
+  - -56.19133
+  lefthand: false
+traffic:
+  cars_per_hour: 2000
+  bikes_per_hour: 300
+  buses_per_hour: 10
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

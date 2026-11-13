@@ -1,0 +1,29 @@
+# Nouméa, New Caledonia (Oceania, small, ~100,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: noumea
+city:
+  name: Nouméa
+  country: New Caledonia
+  continent: Oceania
+  size: small
+  population: 100000
+  lat: -22.2758
+  lon: 166.458
+  drive: right
+map:
+  bbox:
+  - -22.28209
+  - 166.4512
+  - -22.26951
+  - 166.4648
+  lefthand: false
+traffic:
+  cars_per_hour: 900
+  bikes_per_hour: 300
+  buses_per_hour: 4
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

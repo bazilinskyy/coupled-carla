@@ -1,0 +1,29 @@
+# Ushuaia, Argentina (South America, small, ~80,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: ushuaia
+city:
+  name: Ushuaia
+  country: Argentina
+  continent: South America
+  size: small
+  population: 80000
+  lat: -54.8069
+  lon: -68.3073
+  drive: right
+map:
+  bbox:
+  - -54.81319
+  - -68.31821
+  - -54.80061
+  - -68.29639
+  lefthand: false
+traffic:
+  cars_per_hour: 900
+  bikes_per_hour: 300
+  buses_per_hour: 4
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

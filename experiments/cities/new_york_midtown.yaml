@@ -1,0 +1,29 @@
+# New York (Midtown), USA (North America, large, ~8,300,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: new_york_midtown
+city:
+  name: New York (Midtown)
+  country: USA
+  continent: North America
+  size: large
+  population: 8300000
+  lat: 40.7549
+  lon: -73.984
+  drive: right
+map:
+  bbox:
+  - 40.74861
+  - -73.9923
+  - 40.76119
+  - -73.9757
+  lefthand: false
+traffic:
+  cars_per_hour: 3000
+  bikes_per_hour: 300
+  buses_per_hour: 20
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

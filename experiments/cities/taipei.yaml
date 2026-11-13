@@ -1,0 +1,29 @@
+# Taipei (Main Station), Taiwan (Asia, medium, ~2,600,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: taipei
+city:
+  name: Taipei (Main Station)
+  country: Taiwan
+  continent: Asia
+  size: medium
+  population: 2600000
+  lat: 25.0478
+  lon: 121.517
+  drive: right
+map:
+  bbox:
+  - 25.04151
+  - 121.51006
+  - 25.05409
+  - 121.52394
+  lefthand: false
+traffic:
+  cars_per_hour: 2000
+  bikes_per_hour: 300
+  buses_per_hour: 10
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

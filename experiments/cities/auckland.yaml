@@ -1,0 +1,29 @@
+# Auckland (CBD), New Zealand (Oceania, medium, ~1,700,000 people, left-hand traffic). Generated from experiments/cities.yaml.
+name: auckland
+city:
+  name: Auckland (CBD)
+  country: New Zealand
+  continent: Oceania
+  size: medium
+  population: 1700000
+  lat: -36.8485
+  lon: 174.7633
+  drive: left
+map:
+  bbox:
+  - -36.85479
+  - 174.75544
+  - -36.84221
+  - 174.77116
+  lefthand: true
+traffic:
+  cars_per_hour: 2000
+  bikes_per_hour: 300
+  buses_per_hour: 10
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

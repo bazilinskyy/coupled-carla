@@ -1,0 +1,29 @@
+# Luang Prabang, Laos (Asia, small, ~60,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: luang_prabang
+city:
+  name: Luang Prabang
+  country: Laos
+  continent: Asia
+  size: small
+  population: 60000
+  lat: 19.8856
+  lon: 102.1347
+  drive: right
+map:
+  bbox:
+  - 19.87931
+  - 102.12801
+  - 19.89189
+  - 102.14139
+  lefthand: false
+traffic:
+  cars_per_hour: 900
+  bikes_per_hour: 300
+  buses_per_hour: 4
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

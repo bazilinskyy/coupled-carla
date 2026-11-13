@@ -1,0 +1,29 @@
+# Sydney (CBD), Australia (Oceania, large, ~5,300,000 people, left-hand traffic). Generated from experiments/cities.yaml.
+name: sydney
+city:
+  name: Sydney (CBD)
+  country: Australia
+  continent: Oceania
+  size: large
+  population: 5300000
+  lat: -33.8731
+  lon: 151.2065
+  drive: left
+map:
+  bbox:
+  - -33.87939
+  - 151.19893
+  - -33.86681
+  - 151.21407
+  lefthand: true
+traffic:
+  cars_per_hour: 3000
+  bikes_per_hour: 300
+  buses_per_hour: 20
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

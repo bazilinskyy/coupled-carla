@@ -1,0 +1,29 @@
+# Cairo (Tahrir), Egypt (Africa, large, ~22,000,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: cairo
+city:
+  name: Cairo (Tahrir)
+  country: Egypt
+  continent: Africa
+  size: large
+  population: 22000000
+  lat: 30.0444
+  lon: 31.2357
+  drive: right
+map:
+  bbox:
+  - 30.03811
+  - 31.22844
+  - 30.05069
+  - 31.24296
+  lefthand: false
+traffic:
+  cars_per_hour: 3000
+  bikes_per_hour: 300
+  buses_per_hour: 20
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

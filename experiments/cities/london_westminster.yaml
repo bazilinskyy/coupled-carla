@@ -1,0 +1,29 @@
+# London (Westminster), United Kingdom (Europe, large, ~9,000,000 people, left-hand traffic). Generated from experiments/cities.yaml.
+name: london_westminster
+city:
+  name: London (Westminster)
+  country: United Kingdom
+  continent: Europe
+  size: large
+  population: 9000000
+  lat: 51.508
+  lon: -0.1281
+  drive: left
+map:
+  bbox:
+  - 51.50171
+  - -0.1382
+  - 51.51429
+  - -0.118
+  lefthand: true
+traffic:
+  cars_per_hour: 3000
+  bikes_per_hour: 300
+  buses_per_hour: 20
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

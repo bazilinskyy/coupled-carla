@@ -1,0 +1,36 @@
+# Cities beyond Eindhoven: three per inhabited continent, from megacity to small town, each a ~1.4 km square
+# around a central point. Populations are approximate (city or metro area, as commonly cited) and only order
+# the cities by size. `python -m coupledcarla.cities` writes experiments/cities/<slug>.yaml for each and
+# builds their maps. drive: right- or left-hand traffic.
+size_km: 1.4
+defaults:
+  traffic: {cars_per_hour: 2000, bikes_per_hour: 300, buses_per_hour: 10}
+size_traffic:               # demand by size class
+  large: {cars_per_hour: 3000, buses_per_hour: 20}
+  medium: {cars_per_hour: 2000}
+  small: {cars_per_hour: 900, buses_per_hour: 4}
+cities:
+  # Africa
+  - {slug: cairo, name: "Cairo (Tahrir)", country: Egypt, continent: Africa, size: large, population: 22000000, lat: 30.0444, lon: 31.2357, drive: right}
+  - {slug: kigali, name: Kigali, country: Rwanda, continent: Africa, size: medium, population: 1700000, lat: -1.9441, lon: 30.0619, drive: right}
+  - {slug: stellenbosch, name: Stellenbosch, country: South Africa, continent: Africa, size: small, population: 200000, lat: -33.9346, lon: 18.8610, drive: left}
+  # Asia
+  - {slug: tokyo_shibuya, name: "Tokyo (Shibuya)", country: Japan, continent: Asia, size: large, population: 37000000, lat: 35.6580, lon: 139.7016, drive: left}
+  - {slug: taipei, name: "Taipei (Main Station)", country: Taiwan, continent: Asia, size: medium, population: 2600000, lat: 25.0478, lon: 121.5170, drive: right}
+  - {slug: luang_prabang, name: Luang Prabang, country: Laos, continent: Asia, size: small, population: 60000, lat: 19.8856, lon: 102.1347, drive: right}
+  # Europe (besides Eindhoven, experiments/eindhoven_centre.yaml)
+  - {slug: london_westminster, name: "London (Westminster)", country: United Kingdom, continent: Europe, size: large, population: 9000000, lat: 51.5080, lon: -0.1281, drive: left}
+  - {slug: lyon, name: "Lyon (Bellecour)", country: France, continent: Europe, size: medium, population: 520000, lat: 45.7578, lon: 4.8320, drive: right}
+  - {slug: leuven, name: Leuven, country: Belgium, continent: Europe, size: small, population: 100000, lat: 50.8789, lon: 4.7005, drive: right, traffic: {bikes_per_hour: 1200}}
+  # North America
+  - {slug: new_york_midtown, name: "New York (Midtown)", country: USA, continent: North America, size: large, population: 8300000, lat: 40.7549, lon: -73.9840, drive: right}
+  - {slug: portland_or, name: "Portland, Oregon", country: USA, continent: North America, size: medium, population: 650000, lat: 45.5189, lon: -122.6793, drive: right}
+  - {slug: burlington_vt, name: "Burlington, Vermont", country: USA, continent: North America, size: small, population: 45000, lat: 44.4778, lon: -73.2121, drive: right}
+  # South America
+  - {slug: sao_paulo, name: "São Paulo (Sé)", country: Brazil, continent: South America, size: large, population: 12000000, lat: -23.5503, lon: -46.6340, drive: right}
+  - {slug: montevideo, name: Montevideo, country: Uruguay, continent: South America, size: medium, population: 1300000, lat: -34.9064, lon: -56.1990, drive: right}
+  - {slug: ushuaia, name: Ushuaia, country: Argentina, continent: South America, size: small, population: 80000, lat: -54.8069, lon: -68.3073, drive: right}
+  # Oceania
+  - {slug: sydney, name: "Sydney (CBD)", country: Australia, continent: Oceania, size: large, population: 5300000, lat: -33.8731, lon: 151.2065, drive: left}
+  - {slug: auckland, name: "Auckland (CBD)", country: New Zealand, continent: Oceania, size: medium, population: 1700000, lat: -36.8485, lon: 174.7633, drive: left}
+  - {slug: noumea, name: Nouméa, country: New Caledonia, continent: Oceania, size: small, population: 100000, lat: -22.2758, lon: 166.4580, drive: right}

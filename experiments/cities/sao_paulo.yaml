@@ -1,0 +1,29 @@
+# São Paulo (Sé), Brazil (South America, large, ~12,000,000 people, right-hand traffic). Generated from experiments/cities.yaml.
+name: sao_paulo
+city:
+  name: São Paulo (Sé)
+  country: Brazil
+  continent: South America
+  size: large
+  population: 12000000
+  lat: -23.5503
+  lon: -46.634
+  drive: right
+map:
+  bbox:
+  - -23.55659
+  - -46.64086
+  - -23.54401
+  - -46.62714
+  lefthand: false
+traffic:
+  cars_per_hour: 3000
+  bikes_per_hour: 300
+  buses_per_hour: 20
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300
