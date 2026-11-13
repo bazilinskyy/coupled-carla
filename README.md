@@ -146,7 +146,7 @@ flowchart LR
 Needs CARLA 0.9.16 (the release package; the UE 5 line has no SUMO co-simulation), Python 3.12, a GPU.
 
 ```bash
-git clone <this repo> coupled-carla && cd coupled-carla
+git clone https://github.com/bazilinskyy/coupled-carla.git && cd coupled-carla
 uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.txt
 export CARLA_ROOT=~/carla-eindhoven/CARLA_0.9.16          # the extracted CARLA 0.9.16 release
 export SUMO_HOME=$(.venv/bin/python -c "import sumo; print(sumo.SUMO_HOME)")
@@ -618,6 +618,8 @@ maps/, logs/         built maps and trial logs (not in git)
 ```
 
 ## Credits, data and licences
+
+- coupled-carla's own code is released under the [MIT License](LICENSE).
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL. Built maps and
   `buildings.json` are derived databases under the ODbL.
