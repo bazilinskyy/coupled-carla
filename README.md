@@ -145,6 +145,8 @@ Headless test drive (autopilot, saves a chase-camera frame every 10 s):
 .venv/bin/python -m coupledcarla.run experiments/eindhoven_centre.yaml --input autopilot --headless --view chase --duration 120 --frames-every 10
 ```
 
+The figure and screenshot tools need `requirements-tools.txt` as well.
+
 The cities: write their experiment files and build every map (Overpass is slow, a few minutes per city), then
 smoke-test them all:
 
