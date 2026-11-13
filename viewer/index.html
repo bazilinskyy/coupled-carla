@@ -38,7 +38,7 @@
   <div id="light" class="muted">no light ahead</div><div class="muted" id="clock">t = 0.0 s</div></div>
 <div id="events" class="panel"></div>
 <div id="legend" class="panel"><span style="background:#c8102e"></span>participant<span style="background:#2f6db5"></span>car
-  <span style="background:#2e9e5b"></span>bike<span style="background:#e08a00"></span>bus<span style="background:#a8483a"></span>cycleway</div>
+  <span style="background:#2e9e5b"></span>bike<span style="background:#e08a00"></span>bus<span style="background:#1b2f6b"></span>AI agent<span style="background:#7a4bb5"></span>AI walker<span style="background:#a8483a"></span>cycleway</div>
 <div id="bar" class="panel">
   <button id="play">▶</button>
   <select id="rate"><option>0.5</option><option selected>1</option><option>2</option><option>4</option><option>8</option></select>
@@ -124,15 +124,22 @@ function build(d) {
   sun.position.set(cx - 400, 700, cz - 300); sun.target.position.set(cx, 0, cz);
   camera.position.set(cx - span * 0.35, span * 0.45, cz + span * 0.55); controls.target.set(cx, 0, cz); controls.update();
   // actors
-  const colours = { participant: 0xc8102e, car: 0x2f6db5, bike: 0x2e9e5b, bus: 0xe08a00, walker: 0x7a4bb5 };
+  const colours = { participant: 0xc8102e, agent: 0x1b2f6b, car: 0x2f6db5, bike: 0x2e9e5b, bus: 0xe08a00, walker: 0x7a4bb5 };
   const sizes = { participant: [4.9, 1.5, 2.0], car: [4.4, 1.5, 1.8], bike: [1.8, 1.6, 0.6], bus: [12, 3.0, 2.5], walker: [0.5, 1.8, 0.5] };
   tEnd = 1;
   for (const [id, tr] of Object.entries(d.tracks || {})) {
-    const [l, h, w] = sizes[tr.kind] || sizes.car;
+    const isWalker = (tr.type || "").startsWith("walker");
+    const [l, h, w] = isWalker ? sizes.walker : (sizes[tr.kind] || sizes.car);
     const g = new THREE.BoxGeometry(l, h, w); g.translate(0, h / 2, 0);
-    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: colours[tr.kind] || colours.car }));
+    const colour = tr.kind === "agent" && isWalker ? colours.walker : (colours[tr.kind] || colours.car);
+    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: colour }));
     m.castShadow = true; m.visible = false; world.add(m);
-    actors.push({ id, tr, m });
+    let bar = null;
+    if (tr.kind === "agent" && !isWalker) {      // eHMI: a light bar across the front, coloured by its state
+      bar = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.25, w * 0.9), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+      bar.position.set(l / 2 + 0.1, h * 0.75, 0); bar.visible = false; m.add(bar);
+    }
+    actors.push({ id, tr, m, bar });
     tEnd = Math.max(tEnd, tr.s[tr.s.length - 1][0] - (d.t0 || 0));
     if (tr.kind === "participant" && !participant) participant = actors[actors.length - 1];
   }
@@ -157,6 +164,11 @@ function update() {
     const p = sampleAt(a.tr.s, tt);
     a.m.visible = !!p;
     if (p) { a.m.position.set(p.x, 0, p.z); a.m.rotation.y = -p.yaw * Math.PI / 180; a.cur = p; }
+    if (p && a.bar) {
+      const spec = (data.ehmi || {})[p.raw[7]];
+      a.bar.visible = !!(spec && p.raw[7] !== "off");
+      if (a.bar.visible) a.bar.material.color.setRGB(...spec.color.map(c => c / 255));
+    }
   }
   document.getElementById("clock").textContent = `t = ${t.toFixed(1)} s / ${tEnd.toFixed(0)} s`;
   if (participant && participant.cur && participant.m.visible) {

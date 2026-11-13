@@ -56,7 +56,8 @@ def main():
         ok = proc.returncode == 0 and summary.get("sim_s", 0) >= args.duration - 0.5
         rows.append([name, continent, size, drive, meta["xodr"]["lane_links"], meta.get("buildings", 0),
                      summary.get("sumo_vehicles_spawned", "–"), summary.get("rtf", "–"),
-                     events.count(";left_road;"), events.count(";stuck;"), events.count(";reset_to_lane;"),
+                     events.count(";left_road;"), events.count(";stuck;"),
+                     events.count(";reset_to_lane;") + events.count(";respawn;"),
                      summary.get("collisions", "–"),
                      "ok" if ok else "FAILED"])
         print(f"{slug}: {rows[-1][-1]} in {time.time() - t0:.0f}s", file=sys.stderr, flush=True)

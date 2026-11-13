@@ -22,7 +22,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("json")
     ap.add_argument("out_prefix")
-    ap.add_argument("--at", action="append", default=[], help="seconds:follow|top|oblique|overview")
+    ap.add_argument("--at", action="append", default=[], help="seconds:follow|top|oblique|overview|close")
     ap.add_argument("--size", default="1400x860")
     args = ap.parse_args()
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(ROOT))
@@ -43,15 +43,17 @@ def main():
             sec, mode = spec.split(":")
             sec = float(sec)
             view = None
-            if mode in ("oblique", "overview") and ego:
+            if mode in ("oblique", "overview", "close") and ego:
                 s = min(ego["s"], key=lambda q: abs(q[0] - data.get("t0", 0) - sec))
                 if mode == "oblique":
                     view = {"pos": [s[1] - 140, 150, s[2] + 160], "target": [s[1], 0, s[2]]}
+                elif mode == "close":
+                    view = {"pos": [s[1] + 28, 22, s[2] + 26], "target": [s[1] - 4, 0, s[2] - 3]}
                 else:
                     view = {"pos": [s[1] - 500, 700, s[2] + 650], "target": [s[1] + 100, 0, s[2] - 80]}
             elif mode == "overview":
                 view = None
-            cam = "orbit" if mode in ("oblique", "overview") else mode
+            cam = "orbit" if mode in ("oblique", "overview", "close") else mode
             page.evaluate("([t, cam, view]) => window.viewer.renderAt(t, cam, view)", [sec, cam, view])
             page.wait_for_timeout(500)
             page.evaluate("([t, cam, view]) => window.viewer.renderAt(t, cam, view)", [sec, cam, view])

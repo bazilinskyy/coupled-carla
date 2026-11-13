@@ -38,15 +38,15 @@ def trial_layers(trial_dir, every_participant=0.1, every_ai=0.2):
     with open(trial_dir / "frames.csv", newline="") as f:
         for r in csv.DictReader(f, delimiter=";"):
             t, aid, kind = float(r["timestamp"]), r["actor_id"], r["kind"]
-            step = every_participant if kind == "participant" else every_ai
+            step = every_participant if kind in ("participant", "agent") else every_ai
             if aid in last and t - last[aid] < step - 1e-6:
                 continue
             last[aid] = t
             tr = tracks.setdefault(aid, {"kind": kind, "type": r["type_id"], "role": r["role"], "s": []})
             sample = [round(t, 2), round(float(r["pos_x"]), 2), round(float(r["pos_y"]), 2),
                       round(float(r["rot_yaw"]), 1), round(float(r["speed_kmh"]), 1)]
-            if kind == "participant":
-                sample += [r["next_tl_state"] or "", r["next_tl_dist"] or ""]
+            if kind in ("participant", "agent"):
+                sample += [r["next_tl_state"] or "", r["next_tl_dist"] or "", r.get("ehmi") or ""]
             tr["s"].append(sample)
     t0 = min((tr["s"][0][0] for tr in tracks.values()), default=0.0)
     events = []
@@ -68,6 +68,8 @@ def main():
         cfg = yaml.safe_load((trial / "config.yaml").read_text())
         data = map_layers(ROOT / "maps" / cfg["map"]["name"])
         data["experiment"] = cfg["name"]
+        from .ai import DEFAULT_EHMI
+        data["ehmi"] = (cfg.get("ehmi") or {}).get("states") or DEFAULT_EHMI
         data["city"] = cfg.get("city")
         data.update(trial_layers(trial))
         out = trial / "trial.json"

@@ -1,7 +1,7 @@
 """Trial logging, after coupled-sim's: one row per actor per frame at the simulation rate (50 Hz by default),
 semicolon-separated like coupled-sim's CSV, plus a live UDP stream and an events file.
 
-frames.csv  participants every frame; AI vehicles, cyclists and pedestrians every frame while within
+frames.csv  participants and scripted agents every frame; AI vehicles, cyclists and pedestrians every frame while within
             logging.radius_m of a participant. Positions in CARLA metres (x east, y south, z up) and WGS84.
 events.csv  trial start/end, actor spawn/despawn, traffic-light changes near participants, collisions.
 UDP         every logging.udp.interval seconds, a JSON frame shaped like coupled-sim's live data
@@ -18,7 +18,7 @@ import carla
 COLUMNS = ["timestamp", "frame", "actor_id", "kind", "role", "type_id", "pos_x", "pos_y", "pos_z",
            "rot_pitch", "rot_yaw", "rot_roll", "lat", "lon", "vel_x", "vel_y", "vel_z", "speed_kmh",
            "acc_x", "acc_y", "acc_z", "blinkers", "front_lights", "stop_lights", "throttle", "steer", "brake",
-           "reverse", "hand_brake", "next_tl", "next_tl_dist", "next_tl_state"]
+           "reverse", "hand_brake", "next_tl", "next_tl_dist", "next_tl_state", "ehmi"]
 
 LS = carla.VehicleLightState
 # SUMO signal bits (traci): right blinker 1, left 2, emergency 4, brake light 8, front light 16
@@ -59,23 +59,30 @@ class TrialLogger:
         self.ew.writerow([f"{ts:.3f}", frame, name, actor_id, detail])
 
     def log(self, snap, participants, ai, sumo_signals, traffic_lights):
-        """participants: [(actor, role, control, next light)], ai: {actor_id: (kind, type_id)},
-        sumo_signals: {id: bits}."""
+        """participants: [{actor, role, kind (participant|agent), ctl, light, ehmi}] logged every frame;
+        ai: {actor_id: (kind, type_id)} logged near participants; sumo_signals: {id: bits}."""
         ts, frame = snap.timestamp.elapsed_seconds, snap.frame
         centres = []
         udp_frame = {"timestamp": ts, "roundtrip": 0.0} if self.udp and frame % self.udp_every == 0 else None
-        for i, (actor, role, ctl, light) in enumerate(participants):
+        for i, p in enumerate(participants):
+            actor = p["actor"]
             s = snap.find(actor.id)
             if s is None:
                 continue
-            centres.append(s.get_transform().location)
-            ls = actor.get_light_state() if actor.type_id.startswith("vehicle.") else LS.NONE
-            row = self._row(ts, frame, actor.id, "participant", role, actor.type_id, s,
+            if p.get("kind", "participant") == "participant":
+                centres.append(s.get_transform().location)
+            is_vehicle = actor.type_id.startswith("vehicle.")
+            ls = actor.get_light_state() if is_vehicle else LS.NONE
+            ctl = p.get("ctl")
+            if ctl is None and is_vehicle:
+                ctl = actor.get_control()        # station-driven: the control the station applied
+            row = self._row(ts, frame, actor.id, p.get("kind", "participant"), p["role"], actor.type_id, s,
                             blinkers_from_carla(ls), bool(ls & (LS.LowBeam | LS.Position)), bool(ls & LS.Brake),
-                            ctl, light)
+                            ctl if is_vehicle else None, p.get("light"), p.get("ehmi", ""))
             self.w.writerow(row)
             if udp_frame is not None:
-                udp_frame[f"Driver [{i}]"] = self._udp_entry(row)
+                key = "Driver" if is_vehicle else "Pedestrian"
+                udp_frame[f"{key} [{p['role']}]"] = self._udp_entry(row)
         for aid, (kind, type_id) in ai.items():
             s = snap.find(aid)
             if s is None:
@@ -85,7 +92,7 @@ class TrialLogger:
                 continue
             sig = sumo_signals.get(aid, 0)
             row = self._row(ts, frame, aid, kind, "", type_id, s, blinkers_from_sumo(sig), bool(sig & SUMO_FRONT),
-                            bool(sig & SUMO_BRAKE), None, None)
+                            bool(sig & SUMO_BRAKE), None, None, "")
             self.w.writerow(row)
             if udp_frame is not None:
                 key = "Pedestrian" if kind == "walker" else "Driver"
@@ -106,7 +113,7 @@ class TrialLogger:
             except OSError:
                 pass
 
-    def _row(self, ts, frame, aid, kind, role, type_id, s, blink, front, stop, ctl, light):
+    def _row(self, ts, frame, aid, kind, role, type_id, s, blink, front, stop, ctl, light, ehmi=""):
         t = s.get_transform()
         v, a = s.get_velocity(), s.get_acceleration()
         lat, lon = self.geo.to_latlon(t.location.x, t.location.y)
@@ -119,7 +126,7 @@ class TrialLogger:
                 f"{a.x:.3f}", f"{a.y:.3f}", f"{a.z:.3f}", blink, int(front), int(stop),
                 *((f"{ctl.throttle:.3f}", f"{ctl.steer:.3f}", f"{ctl.brake:.3f}", int(ctl.reverse),
                    int(ctl.hand_brake)) if ctl is not None else ("", "", "", "", "")),
-                *((light[0], f"{light[1]:.1f}", light[2]) if light else ("", "", ""))]
+                *((light[0], f"{light[1]:.1f}", light[2]) if light else ("", "", "")), ehmi or ""]
 
     @staticmethod
     def _udp_entry(row):
@@ -128,7 +135,7 @@ class TrialLogger:
                 "rotation": (float(r["rot_pitch"]), float(r["rot_yaw"]), float(r["rot_roll"])),
                 "latlon": (float(r["lat"]), float(r["lon"])), "speed": float(r["speed_kmh"]),
                 "blinker": r["blinkers"], "front": bool(r["front_lights"]), "stop": bool(r["stop_lights"]),
-                "kind": r["kind"], "type": r["type_id"]}
+                "kind": r["kind"], "type": r["type_id"], "ehmi": r["ehmi"]}
 
     def close(self):
         self.f.close()

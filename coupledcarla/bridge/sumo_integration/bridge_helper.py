@@ -162,22 +162,27 @@ class BridgeHelper(object):
         """
         Creates an appropriate vtype based on the given carla_actor.
         """
-        type_id = carla_actor.type_id
+        blueprint_id = carla_actor.type_id
+        # coupled-carla: SUMO's own fleet uses blueprint ids as vehicle types, and SUMO rejects a second type
+        # with the same id (even one not yet listed by getIDList), so CARLA-driven cars get their own type.
+        type_id = 'carla:' + blueprint_id
         attrs = carla_actor.attributes
         extent = carla_actor.bounding_box.extent
+        if type_id in traci.vehicletype.getIDList():
+            return type_id
 
         if int(attrs['number_of_wheels']) == 2:
             traci.vehicletype.copy('DEFAULT_BIKETYPE', type_id)
         else:
             traci.vehicletype.copy('DEFAULT_VEHTYPE', type_id)
 
-        if type_id in BridgeHelper._VTYPES:
-            if 'vClass' in BridgeHelper._VTYPES[type_id]:
-                _class = BridgeHelper._VTYPES[type_id]['vClass']
+        if blueprint_id in BridgeHelper._VTYPES:
+            if 'vClass' in BridgeHelper._VTYPES[blueprint_id]:
+                _class = BridgeHelper._VTYPES[blueprint_id]['vClass']
                 traci.vehicletype.setVehicleClass(type_id, _class)
 
-            if 'guiShape' in BridgeHelper._VTYPES[type_id]:
-                shape = BridgeHelper._VTYPES[type_id]['guiShape']
+            if 'guiShape' in BridgeHelper._VTYPES[blueprint_id]:
+                shape = BridgeHelper._VTYPES[blueprint_id]['guiShape']
                 traci.vehicletype.setShapeClass(type_id, shape)
 
         if 'color' in attrs:
@@ -219,9 +224,6 @@ class BridgeHelper(object):
                 type_id)
             return None
 
-        if type_id in traci.vehicletype.getIDList():
-            logging.debug('[BridgeHelper] blueprint %s found in sumo vtypes', type_id)
-            return type_id
         return BridgeHelper._create_sumo_vtype(carla_actor)
 
     @staticmethod

@@ -15,7 +15,6 @@ traffic:
   cars_per_hour: 2400
   bikes_per_hour: 1200
   buses_per_hour: 12
-  walkers: 0             # needs sidewalks, which crash SUMO for now
 
 participants:
   - role: driver

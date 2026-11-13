@@ -7,9 +7,11 @@ world for any bounding box on Earth from OpenStreetMap, fills it with traffic fr
 spirit of [coupled-sim](https://github.com/bazilinskyy/coupled-sim). Eindhoven is the reference city; 18 more
 cities, three per inhabited continent from megacity to small town, are ready to drive.
 
-This is **phase 1** of the plan to bring coupled-sim's experiments to CARLA: one human (or autopilot) and
-SUMO traffic in any city. Coupled experiments with 2+ humans and n AI participants in the same world are
-phase 2 (see [Roadmap](#roadmap)).
+**Phase 1** brought one human (or autopilot) and SUMO traffic to any city. **Phase 2** adds coupled
+experiments in coupled-sim's sense: 2+ humans at their own stations (driver, pedestrian, AV passenger with
+eHMI controls) and n AI participants (scripted cars with coupled-sim-style triggers and eHMIs, scripted
+walkers) in the same world, with visual sync, latency logging and stations on other machines (see
+[Coupled experiments](#coupled-experiments-phase-2)).
 
 ![Eindhoven centre in the trial viewer: OSM buildings, roads, cycleways (red), the participant (red) and SUMO cars (blue)](docs/img/eindhoven_overview_127.png)
 
@@ -27,6 +29,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Cities](#cities)
 - [Experiment files](#experiment-files)
 - [Participants, inputs and views](#participants-inputs-and-views)
+- [Coupled experiments (phase 2)](#coupled-experiments-phase-2)
 - [Traffic](#traffic)
 - [Traffic lights](#traffic-lights)
 - [Logging and data](#logging-and-data)
@@ -53,6 +56,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 | **Logging** | coupled-sim-style per-frame CSV at 50 Hz (participants always, AI actors near them), events, live JSON over UDP 40131, SUMO's trajectory output for the whole network, CARLA's recorder for replay. |
 | **Trial viewer** | Browser replay of any trial in 3D with the OSM buildings, timeline, follow camera, light state and events. |
 | **Experiment files** | YAML: map, server, simulation, traffic, participants, points of interest, logging, a trial sequence with per-trial overrides. |
+| **Coupled experiments** | Stations for a driver, a pedestrian and an AV passenger on any machine of the LAN; scripted AI cars (routes, coupled-sim-style triggers, eHMI) and walkers; SUMO traffic yields to pedestrians; visual sync; round trips logged. |
 
 ## Screenshots
 
@@ -77,6 +81,24 @@ the street grid with SUMO traffic.
 | Overview | Oblique |
 |---|---|
 | ![viewer New York overview](docs/img/new_york_overview_30.png) | ![viewer New York oblique](docs/img/new_york_oblique_30.png) |
+
+**Coupled experiment (phase 2)**, Eindhoven: a pedestrian crosses while an automated vehicle approaches; the
+AV yields and its passenger switches the eHMI from "I'M STOPPING" (cyan) to "GO AHEAD" (green); a manual
+driver follows. Each view below was rendered by a separate station process, the pedestrian's on another PC.
+
+| Pedestrian station: the AV stops, "I'M STOPPING" | Pedestrian station: "GO AHEAD" (dusk trial) |
+|---|---|
+| ![pedestrian sees the AV yield](docs/img/station_pedestrian_stopping.jpg) | ![pedestrian sees GO AHEAD](docs/img/station_pedestrian_go.jpg) |
+
+| AV passenger station: their eHMI, seen from inside | Driver station: following the yielding AV at dusk |
+|---|---|
+| ![passenger view with GO AHEAD](docs/img/station_passenger_go.jpg) | ![driver behind the AV](docs/img/station_driver_dusk.jpg) |
+
+The same moment in the trial viewer: the pedestrian (red) crossing, the AV (dark blue) stopped with its cyan
+eHMI bar, an AI walker further down the street; the event list shows the AV stopping, the passenger's eHMI
+command and the stations' frame rates and round trips.
+
+![viewer: the crossing](docs/img/crossing_close_15.png)
 
 **All 19 maps** (drivable roads, cycleways, OSM buildings; 1.4 km squares, north up):
 
@@ -282,6 +304,101 @@ Spawning: a `spawn: {lat, lon}` snaps to the nearest driving lane (1.5 m off for
 without it a random driving lane outside junctions is used. A car that leaves the road (falls onto the ground
 plane) is logged (`left_road`) and, for the autopilot, put back on the nearest lane (`reset_to_lane`).
 
+## Coupled experiments (phase 2)
+
+Several humans and AI participants share one world, as in coupled-sim. The **host**
+(`python -m coupledcarla.run`) owns the CARLA world, SUMO, the AI agents and the log; each human sits at a
+**station** (`python -m coupledcarla.station`) on any machine of the LAN.
+
+```mermaid
+flowchart LR
+  subgraph Host machine
+    HOST[host: coupledcarla.run<br>world, SUMO, AI agents,<br>eHMI, yielding, log]
+    CS[(CARLA server<br>2000-2002)]
+    HOST <--> CS
+  end
+  ST1[pedestrian station] -- control 2100 --> HOST
+  ST2[AV passenger station] -- control 2100 --> HOST
+  ST3[driver station<br>G25 wheel] -- control 2100 --> HOST
+  ST1 -- own camera + controls --> CS
+  ST2 -- own camera --> CS
+  ST3 -- own camera + controls --> CS
+```
+
+- **Stations** connect twice: to the CARLA server, to render their own camera and apply their own controls
+  directly (no detour through the host), and to the host's **control channel** (TCP, JSON lines, port 2100) for
+  everything else: their role and actor, trial start and end, visual-sync flashes, eHMI commands, round trips.
+  The host waits for every `station: true` participant before a trial starts; stations stay connected across
+  the trial sequence (each trial runs in a fresh child process, see [Lessons learned](#lessons-learned-gotchas)).
+- **Roles** (`participants[].kind`): `driver` (a manual car: keyboard or G25 wheel, R puts the car back on its
+  lane), `pedestrian` (a walker: W/S/A/D, mouse or arrows to look, Shift to run; camera at eye height) and
+  `av_passenger` (rides in a scripted AV, front passenger seat; keys 1-9 choose the eHMI message, 0 switches it
+  off). Every station has F for a visual sync and Esc to leave.
+- **AI participants** (`agents`, [`coupledcarla/ai.py`](coupledcarla/ai.py)):
+  - `kind: car`: follows a route through lat/lon points, planned on the lanes, at a speed profile set by
+    **triggers** along the route, after coupled-sim's SpeedSettings: `{at: [lat, lon] | at_m: metres,
+    speed_kmh, accel, yield_s, blinker: left|right|hazard, ehmi: state}`. It stops for SUMO red lights and, with
+    `yield_to_pedestrians`, for pedestrians (human or AI) in its path, braking to rest ~4 m short and holding
+    until the path has been clear for 0.8 s. Its eHMI is `manual` (set by an AV-passenger station or by
+    triggers), `auto` ("I'M STOPPING" while it yields, "DRIVING" otherwise) or `off`.
+  - `kind: walker`: walks a path of lat/lon points (`speed`, `start_s`, `loop`) with direct walker control,
+    so it needs no CARLA navigation mesh.
+- **eHMI** states and colours are configurable (`ehmi.states`). The eHMI is drawn on the front of the car as a
+  light bar plus the text in a small line font, readable by a pedestrian in front of it; CARLA renders debug
+  *text* only in the spectator view, so the text is drawn with debug *lines*, which every camera sees.
+- **SUMO traffic yields to pedestrians**: SUMO vehicles near a pedestrian brake for one in their path and drive
+  on when it is clear (`sumo_yields` events). SUMO itself only yields to persons on crossings, and CARLA
+  pedestrians are not in SUMO.
+- **Visual sync**: `coupling.visual_sync_at_s` (or F at any station) shows a red bar on every station for 1 s
+  and logs `visual_sync` with the frame, to align screen recordings, eye trackers or physiology afterwards.
+- **Logging**: agents get rows every frame (`kind = agent`, with an `ehmi` column), and the events include
+  `station_joined`, `station_left`, `station_stats` (round trip to the host and rendered fps, every 5 s),
+  `ehmi` (with who set it), `trigger`, `agent_stops` / `agent_goes` (with the reason), `sumo_yields`,
+  `visual_sync`, and `collision` for every participant and agent. Each station also writes
+  `logs/stations/<role>_<time>.csv`: one row per rendered frame with wall-clock time, CARLA frame, simulation
+  time, round trip, visual-sync flag, speed and eHMI.
+
+### Running the Eindhoven crossing
+
+[`experiments/eindhoven_crossing.yaml`](experiments/eindhoven_crossing.yaml): a straight two-way street east of
+the station (OSM way 7157413, 392 m, no lights). The AV starts 130 m before the crossing at 30 km/h; the
+pedestrian waits at the north kerb; the driver starts 38 m behind the AV; an oncoming AI car with an automatic
+eHMI, two AI walkers and SUMO traffic fill the street; two trials (day, dusk).
+
+```bash
+# host (the machine with the GPU)
+.venv/bin/python -m coupledcarla.run experiments/eindhoven_crossing.yaml
+# one station per human, on any machine of the LAN (needs only the carla client, pygame, numpy)
+.venv/bin/python -m coupledcarla.station --host <host ip> --role pedestrian
+.venv/bin/python -m coupledcarla.station --host <host ip> --role av_passenger
+.venv/bin/python -m coupledcarla.station --host <host ip> --role driver --input wheel
+```
+
+`--input bot` runs a station without a human (the experiment's `bot` entry: the pedestrian's path and gaze
+target, the passenger's eHMI schedule, the driver on autopilot), with `--headless --frames-every 0.5` to save
+its view; `run ... --local` runs every station role as a bot on the host, for a quick test without stations.
+
+**Test run** (13 Nov 2026): host and CARLA on lin4080 (RTX 4080 SUPER, shared with another job); driver and AV
+passenger stations on lin4080; the pedestrian station on a different PC (wsl5090, wired LAN), all as bots;
+both trials:
+
+| | |
+|---|---|
+| Stations | all three joined in ~3 s, rejoined for trial 2, left cleanly at the end |
+| Round trip to the host | 0.3-20 ms (local stations), 12-23 ms (other PC) |
+| Station frame rate | ~35 fps each (the host's tick rate) |
+| Real-time factor | 0.69-0.70 (host plus three cameras at 50 Hz on the shared GPU) |
+| AV | stopped for the pedestrian at 14.9 s, drove on at 19.5 s; eHMI yielding 13.0 s, go 16.0 s, driving 21.0 s (passenger station) |
+| Oncoming AI car | stopped for AI walker 1 at 9.1 s, drove on at 11.8 s; its automatic eHMI followed |
+| Collisions | 0 in both trials |
+
+**Network**: stations need the host's ports 2000-2002 (CARLA) and 2100 (control) on a wired LAN. A station on
+Wi-Fi (lin5080) could talk to the host but received no camera frames: its path dropped packets above ~1,350
+bytes without telling the sender (a path-MTU black hole), so CARLA's image stream stalled. A remote station
+receives its camera as raw images over the network (960x540 at 35 fps is about 70 MB/s), so gigabit Ethernet
+carries about one full-HD remote station; CARLA's multi-GPU secondary servers, rendering on the station's own
+GPU, are the next step for more.
+
 ## Traffic
 
 - **Models.** SUMO's Extended IDM (EIDM) for car following (human-like reaction and drive-off) with
@@ -330,7 +447,8 @@ Each trial writes to `logs/<experiment>/<YYYYmmdd-HHMMSS>_trial<k>/`:
 pos_x; pos_y; pos_z` (CARLA metres: x east, y south, z up)`; rot_pitch; rot_yaw; rot_roll; lat; lon; vel_x;
 vel_y; vel_z; speed_kmh; acc_x; acc_y; acc_z; blinkers` (0 none, 1 left, 2 right, 3 hazard)`; front_lights;
 stop_lights; throttle; steer; brake; reverse; hand_brake` (participants)`; next_tl; next_tl_dist;
-next_tl_state` (participants).
+next_tl_state` (participants and agents)`; ehmi` (agents). `kind` is `agent` for scripted AI cars and walkers,
+logged every frame like participants.
 
 Unlike coupled-sim's wide CSV (one column block per agent, fixed agents), this is a long table: SUMO spawns
 and removes hundreds of vehicles, so one row per actor per frame is the shape that works (and loads directly
@@ -350,8 +468,9 @@ python3 -m http.server 8765
 # open http://localhost:8765/viewer/?file=/logs/eindhoven_centre/<time>_trial0/trial.json
 ```
 
-Two demo trials are included: `http://localhost:8765/viewer/?file=data/eindhoven_centre.json` (180 s) and
-`?file=data/new_york_midtown.json` (40 s). A file can also be
+Three demo trials are included: `http://localhost:8765/viewer/?file=data/eindhoven_centre.json` (180 s),
+`?file=data/new_york_midtown.json` (40 s) and `?file=data/eindhoven_crossing.json` (the coupled crossing,
+45 s: agents in dark blue with their eHMI bar, AI walkers in purple). A file can also be
 dropped onto the page. `window.viewer.renderAt(t, camera)` renders a given moment;
 [`tools/viewer_shots.py`](tools/viewer_shots.py) uses it to make the screenshots in this README in headless
 Chromium.
@@ -367,6 +486,7 @@ Measured on lin4080 (RTX 4080 SUPER 16 GB, **shared with another job using ~60 %
 | Same, no level of detail (all ~100 SUMO vehicles in CARLA) | 0.26 |
 | 20 Hz, cars only (no cyclists), all in CARLA | 1.00 |
 | The 19 maps, 40 s each (table above) | 0.55-0.99 (small towns fastest) |
+| Coupled crossing: host + 3 stations with 50 Hz cameras + 4 agents | 0.69-0.70 |
 
 Each SUMO vehicle in CARLA costs server time every tick: about 0.4 ms for a car and **about 3 ms for a
 cyclist** (the bike carries an animated rider), which is why the level of detail matters. The base frame time at
@@ -377,22 +497,24 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 
 | coupled-sim | coupled-carla | Status |
 |---|---|---|
-| Roles: manual driver, AV passenger, pedestrian | `participants` with role, vehicle, input, view | driver: done; AV passenger and pedestrian: phase 2 |
+| Roles: manual driver, AV passenger, pedestrian | `participants` with kind driver / av_passenger / pedestrian, each host-local or at a station | done |
 | Experiment definitions, trial sequence, run automatically | YAML experiment, `trials` with overrides, run in order | done |
 | Input: keyboard, steering wheel | keyboard, G25 with force feedback | done |
-| Input: Xsens motion suit | walker bone control | phase 2 |
+| Input: Xsens motion suit | walker bone control | to do |
 | Output: screen | pygame window, driver/hood/chase | done |
 | Output: HMD (VR) | OpenXR / DReyeVR-style | phase 3 |
-| AI cars on waypoint circuits with speed/yield triggers | SUMO traffic (EIDM, sublane) + autopilot | SUMO done; scripted waypoint agents: phase 2 |
-| AI pedestrians | CARLA walkers / SUMO persons | phase 2 (see Known limits) |
-| eHMI on the AV | runtime texture on an eHMI mesh | phase 2 |
+| AI cars on waypoint circuits with speed/yield triggers | scripted agents on lat/lon routes with triggers (speed, accel, yield, blinker, eHMI) + SUMO traffic | done |
+| AI pedestrians on waypoint circuits | scripted walkers on lat/lon paths (no navigation mesh needed) | done; SUMO persons as walkers: to do |
+| eHMI on the AV (top, windshield, hood) | light bar + line-font text on the front, set by passenger, triggers or automatically | done (front only) |
 | Traffic lights, switchable | SUMO signal programs, drawn in the world | done (default programs) |
 | Day/night | weather presets, sun altitude | done |
-| Networking host + 3 clients | one CARLA server + one station per human (multi-GPU secondaries) | phase 2 |
+| Networking host + 3 clients | host + one station per human on the LAN, no fixed limit | done; multi-GPU secondaries: to do |
 | Binary log 50 Hz + CSV conversion | `frames.csv` at 50 Hz directly | done |
 | Live data UDP 40131 | JSON frames on UDP 40131 | done |
-| Points of interest as CSV reference frames | `pois` in lat/lon | stored; reference-frame conversion: phase 2 |
-| Visual sync (red bar) | – | phase 2 |
+| Driver eye contact | – | to do |
+| Round-trip time in the log | `station_stats` events + per-frame station logs | done |
+| Points of interest as CSV reference frames | `pois` in lat/lon | stored; reference-frame conversion: to do |
+| Visual sync (red bar) | red bar on every station, scheduled or on F, logged with the frame | done |
 | Video recording | CARLA recorder + re-render from any viewpoint | recorder done |
 | A small fictional US town | any place on Earth, 19 cities ready | done |
 
@@ -401,25 +523,32 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 - **Looks:** CARLA shows only the road meshes generated from OpenDRIVE, on a pale ground plane: no
   buildings, markings, vegetation or signs. The buildings exist (OSM footprints in the viewer); bringing them
   and real terrain into CARLA needs the UE 5.8 Digital Twin route (phase 3).
-- **Pedestrians:** none in phase 1. CARLA's walkers need sidewalk lanes; with netconvert's guessed sidewalks,
-  SUMO 1.24 and 1.28 crash when the bridge moves the participant's twin with `moveToXY`, so sidewalks are off.
-  Planned: SUMO persons mirrored as CARLA walkers.
+- **Pedestrians:** human pedestrians and scripted AI walkers work (they walk by direct control and need no
+  navigation mesh), but there is no background pedestrian traffic: CARLA's own walker AI needs sidewalk lanes,
+  and with netconvert's guessed sidewalks SUMO 1.24 and 1.28 crash when the bridge moves a car with
+  `moveToXY`, so sidewalks are off. Planned: SUMO persons mirrored as CARLA walkers. Walkers off the road walk
+  on the ground plane, 0.3 m below the road surface.
+- **eHMI:** drawn with debug lines, so it glows (bloom) and the passenger sees it mirrored through the
+  windshield; front position only (coupled-sim also had top and hood slots).
+- **Remote stations** receive their camera as raw images (about one full-HD station per gigabit link) and need a
+  wired LAN; multi-GPU secondaries are not used yet.
 - **Signal programs:** CARLA's converter replaces SUMO's OSM-derived, junction-coordinated programs with one
   default program per approach (green 42 s, yellow 3 s, red 3 s). Real programs are a follow-up.
 - **Buses** run on random routes, not the real lines (GTFS feeds are the follow-up).
-- **Autopilot:** CARLA's GlobalRoutePlanner can loop forever on these maps, so it follows random lanes; on a
-  few lane drops it leaves the road and is put back (logged).
-- **One human** per trial (phase 2 adds 2+ humans).
+- **Autopilot:** the test autopilot follows random lanes; on a few lane drops it leaves the road and is put back
+  (logged). Scripted agents use routes (CARLA's route planner with a bounded topology walk, see Lessons
+  learned); on some maps (New York) a route between two given points is not found and the agent follows lanes.
 - **CARLA 0.9.16 only:** the UE 5 line (0.10 / ue58-dev) has no SUMO co-simulation; porting the vendored
   bridge is part of phase 3.
 
 ## Roadmap
 
-1. **Phase 1 (this):** any OSM area, single driver, SUMO traffic, logging, viewer, 19 cities.
-2. **Phase 2, coupled:** 2+ humans and n AI participants in one world: a station per human (driver,
-   pedestrian with keyboard/Xsens, AV passenger with eHMI controls), CARLA multi-GPU secondaries for rendering,
-   scripted AI agents (coupled-sim's waypoint circuits and speed/yield triggers, readable from its CSV), SUMO
-   persons as walkers, visual sync, latency measurement.
+1. **Phase 1 (done):** any OSM area, single driver, SUMO traffic, logging, viewer, 19 cities.
+2. **Phase 2 (done):** coupled experiments: stations for driver, pedestrian and AV passenger on any machine
+   of the LAN, scripted AI cars and walkers with coupled-sim-style triggers, eHMI, SUMO traffic yielding to
+   pedestrians, visual sync, round-trip logging. **Still open from phase 2:** CARLA multi-GPU secondaries for
+   station rendering, Xsens suit, SUMO persons as walkers, input-to-photon latency measurement, top/hood eHMI
+   slots, driver eye contact, a human (not bot) pilot study.
 3. **Phase 3, looks:** CARLA on UE 5.8 with the Digital Twin pipeline (OSM -> baked level with buildings,
    Traffic Manager cache, pedestrian navigation), Dutch national data for Eindhoven (3DBAG buildings, AHN
    terrain, BGT road surfaces), the SUMO bridge ported, VR.
@@ -428,7 +557,7 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 
 ## Lessons learned (gotchas)
 
-What cost time while building phase 1, so it does not again:
+What cost time while building phases 1 and 2, so it does not again:
 
 - `carla.Osm2Odr.convert` segfaults in CARLA 0.9.16 on real city extracts (Linux and Windows); call SUMO's
   `netconvert` directly (it is what Osm2Odr wraps).
@@ -447,6 +576,17 @@ What cost time while building phase 1, so it does not again:
   off unless `simulation.traffic_manager: true` (SUMO drives the traffic anyway).
 - A camera that renders every few seconds never adapts its auto-exposure (dark frames): use manual exposure.
 - CARLA's spawn points in OpenDRIVE-generated worlds do not always face along the lane.
+- CARLA's GlobalRoutePlanner walks each topology segment until it reaches the segment's exit, always taking the
+  first successor; on OSM maps that walk can branch away and never end (out of memory). `routing.py` bounds it.
+- The bridge names the SUMO type of a CARLA-driven car after its blueprint, which clashes (fatally) with SUMO's
+  own fleet types of the same name; CARLA-driven cars get `carla:<blueprint>` types.
+- `world.debug.draw_string` shows only in the spectator view, never in camera sensors; draw text with lines.
+- A CARLA client whose server goes away (the host restarts the server for every trial) can hang or abort the
+  whole process; stations run each trial in a child process that exits as soon as the trial ends.
+- A station on Wi-Fi received no camera frames: a path-MTU black hole (packets above ~1,350 bytes dropped
+  silently) stalls CARLA's image stream while the small RPC packets still pass. Use wired stations.
+- A scripted car that stops for a pedestrian only while the pedestrian is within its (speed-dependent)
+  look-ahead flickers stop/go; hold the stop until the path has been clear for a moment.
 
 ## Project layout
 
@@ -456,7 +596,11 @@ coupledcarla/
   mapbuild.py        OSM -> pruned SUMO net -> OpenDRIVE -> CARLA-consistent SUMO net, buildings
   cities.py          experiment files and maps for experiments/cities.yaml
   traffic.py         SUMO vehicle types and demand per trial
-  run.py             the trial loop
+  run.py             the host: trial loop, participants, agents, stations
+  station.py         a participant's station (driver, pedestrian, AV passenger; keyboard, wheel or bot)
+  coupling.py        host <-> station control channel (TCP, JSON lines)
+  ai.py              scripted AI cars and walkers, eHMI drawing, SUMO yielding to pedestrians
+  routing.py         CARLA's route planner with a bounded topology walk
   server.py          start / attach to the CARLA server
   bridge/            SUMO <-> CARLA bridge, vendored from CARLA 0.9.16 (MIT) with fixes (batching,
                      level of detail, traffic lights, offsets, TM port)
@@ -466,7 +610,7 @@ coupledcarla/
   logger.py          frames.csv, events.csv, UDP
   geo.py             WGS84 <-> CARLA coordinates
   export_trial.py    trial -> trial.json for the viewer
-experiments/         eindhoven_centre.yaml, cities.yaml, cities/<slug>.yaml
+experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml (coupled), cities.yaml, cities/<slug>.yaml
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, plot_maps.py, viewer_shots.py
 docs/                city_tests.md, img/

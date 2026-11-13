@@ -46,7 +46,6 @@ DEFAULTS = {
         "cars_per_hour": 2400,
         "bikes_per_hour": 1200,
         "buses_per_hour": 12,
-        "walkers": 0,                # CARLA pedestrians need sidewalk lanes (see map.sidewalks)
         "car_following": "EIDM",
         "car_types": {               # CARLA blueprint -> share of the car fleet
             "vehicle.toyota.prius": 3, "vehicle.volkswagen.t2_2021": 1, "vehicle.audi.a2": 2,
@@ -59,6 +58,9 @@ DEFAULTS = {
         "bus_type": "vehicle.mitsubishi.fusorosa",
     },
     "participants": [],
+    "agents": [],                    # scripted AI cars and walkers (coupledcarla/ai.py)
+    "coupling": {"port": 2100, "wait_for_stations_s": 600, "visual_sync_at_s": []},
+    "ehmi": {},                      # {states: {name: {text, color}}}; default in coupledcarla/ai.py
     "pois": [],
     "logging": {
         "dir": "logs",
@@ -92,7 +94,8 @@ def load(path):
 
 def trial_config(cfg, trial):
     """The experiment config with one trial's overrides merged in."""
-    over = {k: v for k, v in trial.items() if k in ("simulation", "traffic", "participants", "logging")}
+    over = {k: v for k, v in trial.items() if k in ("simulation", "traffic", "participants", "agents", "logging",
+                                                      "coupling", "ehmi")}
     return _merge(cfg, over)
 
 
