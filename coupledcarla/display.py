@@ -4,6 +4,8 @@ import queue
 import carla
 import numpy as np
 
+from .compat import set_manual_exposure
+
 VIEWS = {  # camera mounts relative to the vehicle centre
     "chase": carla.Transform(carla.Location(x=-6.5, z=2.8), carla.Rotation(pitch=-10)),
     "driver": carla.Transform(carla.Location(x=-0.05, y=-0.38, z=1.22)),   # left-hand drive, eye height
@@ -25,8 +27,7 @@ class View:
             bp.set_attribute("sensor_tick", str(save_every_s))   # render only the frames that are kept
             # Auto exposure adapts over consecutive frames; a camera rendering once every few seconds never
             # adapts and its frames come out dark, so headless snapshots use a fixed daylight exposure.
-            bp.set_attribute("exposure_mode", "manual")
-            bp.set_attribute("shutter_speed", "400")   # default 200 overexposes the pale ground
+            set_manual_exposure(bp, 400)   # default shutter 200 overexposes the pale ground
         self.camera = None
         if window or save_every_s > 0:
             self.camera = world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=vehicle,

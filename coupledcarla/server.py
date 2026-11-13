@@ -27,7 +27,9 @@ class Server:
         sc = self.sc
         if sc["launch"] and not _port_open(sc["host"], sc["port"]):
             root = Path(os.environ["CARLA_ROOT"])
-            exe = root / ("CarlaUE4.exe" if WINDOWS else "CarlaUE4.sh")
+            # CARLA 0.9.x ships CarlaUE4.sh, CARLA 1.0 (UE 5.8) CarlaUnreal.sh
+            names = ["CarlaUE4.exe", "CarlaUnreal.exe"] if WINDOWS else ["CarlaUE4.sh", "CarlaUnreal.sh"]
+            exe = next((root / n for n in names if (root / n).exists()), root / names[0])
             args = [str(exe), f"-carla-rpc-port={sc['port']}", f"-quality-level={sc['quality']}", "-nosound",
                     *(["-RenderOffScreen"] if sc["offscreen"] else []), *sc["extra_args"]]
             self.proc = subprocess.Popen(args, **({} if WINDOWS else {"start_new_session": True}))

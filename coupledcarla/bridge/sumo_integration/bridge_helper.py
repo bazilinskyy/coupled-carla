@@ -18,6 +18,8 @@ import os
 import random
 
 import carla  # pylint: disable=import-error
+
+from coupledcarla import compat
 import traci  # pylint: disable=import-error
 
 from .sumo_simulation import SumoSignalState, SumoVehSignal
@@ -125,7 +127,9 @@ class BridgeHelper(object):
             blueprint = blueprint_library.filter(type_id)[0]
             logging.debug('[BridgeHelper] sumo vtype %s found in carla blueprints', type_id)
         else:
-            blueprint = BridgeHelper._get_recommended_carla_blueprint(sumo_actor)
+            # coupled-carla: the closest blueprint on this server (CARLA 1.0 renamed most of them)
+            blueprint = compat.blueprint(blueprint_library, type_id, sumo_actor.vclass.value)
+            blueprint = blueprint or BridgeHelper._get_recommended_carla_blueprint(sumo_actor)
             if blueprint is not None:
                 logging.warning(
                     'sumo vtype %s not found in carla. The following blueprint will be used: %s',

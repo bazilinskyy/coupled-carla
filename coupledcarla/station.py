@@ -32,6 +32,7 @@ from pathlib import Path
 import carla
 import numpy as np
 
+from .compat import set_manual_exposure
 from .coupling import ControlClient
 
 VIEWS = {
@@ -64,11 +65,14 @@ class Station:
         self.frames = 0
         self.fps_t0, self.fps_n, self.fps = time.time(), 0, 0.0
         self.t0_sim = None
+        self.trial = None
+        self.tick_lag, self.image_lag, self.seen = [], [], {}      # ms after the host's tick: snapshot seen, camera image here
         out = Path(args.out) / "stations"
         out.mkdir(parents=True, exist_ok=True)
         self.log_f = open(out / f"{args.role}_{time.strftime('%Y%m%d-%H%M%S')}.csv", "w", newline="", buffering=1)
         self.log_w = csv.writer(self.log_f, delimiter=";")
-        self.log_w.writerow(["wall_time", "frame", "sim_time", "trial", "rtt_ms", "flash", "speed_kmh", "ehmi"])
+        self.log_w.writerow(["wall_time", "frame", "sim_time", "trial", "rtt_ms", "flash", "speed_kmh", "ehmi",
+                             "clock_offset_ms", "tick_lag_ms", "image_lag_ms"])
         if not args.headless:
             import pygame
             pygame.init()
@@ -137,6 +141,7 @@ class Station:
         self.client = carla.Client(args.host, args.port)
         self.client.set_timeout(30.0)
         self.world = self.client.get_world()
+        self.trial = msg.get("trial")       # before the camera exists: its callback names the frames folder by it
         for _ in range(100):
             self.actor = self.world.get_actor(msg["actor_id"])
             if self.actor:
@@ -149,8 +154,8 @@ class Station:
         bp.set_attribute("fov", str(args.fov))
         if args.headless:
             bp.set_attribute("sensor_tick", str(args.frames_every or 1.0))
-            bp.set_attribute("exposure_mode", "manual")   # few frames: auto exposure would never adapt
-            bp.set_attribute("shutter_speed", {"pedestrian": "400", "av_passenger": "500"}.get(self.welcome.get("kind"), "220"))
+            # few frames: auto exposure would never adapt
+            set_manual_exposure(bp, {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220))
         if kind == "pedestrian":
             self.heading = self.actor.get_transform().rotation.yaw
             self.camera = self.world.spawn_actor(bp, self._eye_transform())       # moved every tick
@@ -206,6 +211,14 @@ class Station:
             snap = self.world.wait_for_tick(10.0)
         except RuntimeError:
             return True      # host busy (or between ticks): keep listening to the control channel
+        # the snapshot usually arrives before the host's tick message for it: keep the time, pair it up later
+        self.seen[snap.frame] = time.time()
+        lag = None
+        for f in [f for f in self.seen if f < snap.frame - 5]:
+            lag_f = self.control.lag_ms(f, self.seen.pop(f))
+            if lag_f is not None:
+                self.tick_lag = (self.tick_lag + [lag_f])[-500:]
+                lag = lag_f
         if self.actor is None:
             return True
         t_sim = snap.timestamp.elapsed_seconds
@@ -246,16 +259,23 @@ class Station:
         self.render(t)
         v = self.actor.get_velocity()
         rtt = self.control.rtt()
+        off = self.control.clock_offset()
         self.log_w.writerow([f"{time.time():.4f}", snap.frame, f"{t:.3f}", self.trial,
                              f"{rtt:.1f}" if rtt is not None else "", int(time.time() < self.flash_until),
-                             f"{3.6 * math.hypot(v.x, v.y):.2f}", self.ehmi])
+                             f"{3.6 * math.hypot(v.x, v.y):.2f}", self.ehmi,
+                             f"{1000 * off:.2f}" if off is not None else "",
+                             f"{lag:.1f}" if lag is not None else "",
+                             f"{self.image_lag[-1]:.1f}" if self.image_lag else ""])
         self.frames += 1
         self.fps_n += 1
+        if kind == "pedestrian" and self.frames % 10 == 0:      # where the pedestrian looks (eye contact)
+            self.control.send({"type": "gaze", "yaw": round(self.heading, 1)})
         if time.time() - self.fps_t0 >= 5.0:
             self.fps = self.fps_n / (time.time() - self.fps_t0)
             self.fps_t0, self.fps_n = time.time(), 0
             self.control.send({"type": "stats", "rtt_ms": round(rtt, 2) if rtt is not None else None,
-                               "fps": round(self.fps, 1), "frames": self.frames, "host": socket.gethostname()})
+                               "fps": round(self.fps, 1), "frames": self.frames, "host": socket.gethostname(),
+                               "latency": self.latency()})
         return True
 
     def _eye_transform(self):
@@ -303,8 +323,21 @@ class Station:
         self.actor.set_transform(tf)
         self.input.reset = False
 
+    def latency(self):
+        """Median and 95th percentile of the lags so far (ms), and the clock offset used."""
+        def q(xs):
+            xs = sorted(xs)
+            return {"median": round(xs[len(xs) // 2], 1), "p95": round(xs[int(0.95 * (len(xs) - 1))], 1),
+                    "n": len(xs)} if xs else None
+        off = self.control.clock_offset()
+        return {"clock_offset_ms": round(1000 * off, 2) if off is not None else None,
+                "tick_to_station_ms": q(self.tick_lag), "tick_to_image_ms": q(self.image_lag)}
+
     # -- drawing ----------------------------------------------------------------------------------------------
     def _on_image(self, image):
+        lag = self.control.lag_ms(image.frame, time.time())
+        if lag is not None:
+            self.image_lag = (self.image_lag + [lag])[-500:]
         if self.screen is None:
             if self.args.frames_every:
                 out = Path(self.args.out) / "stations" / f"{self.args.role}_trial{self.trial}_frames"

@@ -1,0 +1,96 @@
+# The Eindhoven crossing with a pedestrian crowd: the scene of eindhoven_crossing.yaml plus 30 pedestrians
+# walking up and down beside the roads near the participants.
+# Coupled experiment in Eindhoven (phase 2): a pedestrian crosses a straight two-way street east of the
+# station while an automated vehicle (AV) approaches; a passenger in the AV sets its eHMI; a manual driver
+# follows the AV. Three humans at three stations, plus AI: the AV, an oncoming AI car, two AI walkers, and
+# SUMO traffic around. The street is OSM way 7157413 (392 m, one lane each way, no traffic lights).
+#
+#   host:      python -m coupledcarla.run experiments/eindhoven_crossing.yaml
+#   stations:  python -m coupledcarla.station --host <host> --role pedestrian
+#              python -m coupledcarla.station --host <host> --role av_passenger
+#              python -m coupledcarla.station --host <host> --role driver --input wheel
+#   (--input bot runs a role without a human; `run ... --local` runs every role as a bot on the host)
+name: eindhoven_crowd
+
+map:
+  name: eindhoven_centre
+  bbox: [51.4360, 5.4700, 51.4500, 5.4930]
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  walkers: {count: 30, radius_m: 120}   # background pedestrians beside the roads (ai.Crowd)
+  cars_per_hour: 1800
+  bikes_per_hour: 900
+  buses_per_hour: 6
+
+coupling:
+  port: 2100
+  wait_for_stations_s: 600
+  visual_sync_at_s: [2]            # red bar on every station, for aligning recordings
+
+ehmi:
+  states:
+    yielding: {text: "I'M STOPPING", color: [0, 190, 255]}
+    go: {text: "GO AHEAD", color: [0, 230, 120]}
+    driving: {text: "DRIVING", color: [255, 170, 0]}
+    wait: {text: "WAIT", color: [255, 40, 40]}
+  slots: [front]                   # default for every car: front, rear, roof, road, eyes (see README)
+
+eye_contact: {angle_deg: 20, distance_m: 30}   # logs eye_contact_start/_end between pedestrians and vehicles
+
+participants:
+  - role: pedestrian
+    kind: pedestrian
+    station: true
+    spawn: {lat: 51.4428727, lon: 5.4889750, heading: 165}     # kerb on the north side, facing the street
+    bot: {path: [[51.4427501, 5.4890203]], start_s: 12, speed: 1.4, look: av1}   # across, watching the AV
+  - role: av_passenger
+    kind: av_passenger
+    station: true
+    agent: av1
+    bot: {ehmi: [[13, yielding], [16, go], [21, driving]]}
+  - role: driver
+    kind: driver
+    station: true
+    vehicle: vehicle.lincoln.mkz_2020
+    spawn: {lat: 51.4431683, lon: 5.4913458, heading: 255}     # 38 m behind the AV, same lane
+
+agents:
+  - id: av1                          # the AV the passenger rides in
+    kind: car
+    vehicle: vehicle.tesla.model3
+    color: "20,60,140"
+    route: [[51.4430915, 5.4908132], [51.4428289, 5.4889912], [51.4424551, 5.4863984]]
+    speed_kmh: 30
+    accel: 2.0
+    yield_to_pedestrians: true
+    ehmi: manual                     # set by the av_passenger station
+    ehmi_slots: [front, roof, road, eyes]
+    triggers:
+      - {at_m: 230, speed_kmh: 20, blinker: right}
+  - id: car2                         # oncoming AI car with an automatic eHMI
+    kind: car
+    vehicle: vehicle.audi.a2
+    route: [[51.4424729, 5.4867262], [51.4431396, 5.4913512]]
+    speed_kmh: 25
+    yield_to_pedestrians: true
+    ehmi: auto
+  - id: walker1                      # crosses further down the street, in front of car2
+    kind: walker
+    path: [[51.4425625, 5.4876872], [51.4426808, 5.4876436], [51.4427057, 5.4875606]]
+    speed: 1.3
+    start_s: 4
+  - id: walker2                      # walks along the north kerb
+    kind: walker
+    path: [[51.4430273, 5.4900988], [51.4427445, 5.4881367]]
+    speed: 1.2
+
+logging:
+  radius_m: 150
+
+trials:
+  - {duration_s: 45}
+  - {duration_s: 45, simulation: {weather: WetCloudySunset, sun_altitude: 4}}

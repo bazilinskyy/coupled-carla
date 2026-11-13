@@ -12,6 +12,7 @@
 # ==================================================================================================
 
 import logging
+import time
 
 import carla  # pylint: disable=import-error
 
@@ -178,7 +179,8 @@ class CarlaSimulation(object):
         if self._pending:
             self.client.apply_batch(self._pending)
             self._pending = []
-        self.world.tick()
+        self.tick_frame = self.world.tick()
+        self.tick_wall = time.time()      # coupled-carla: when this frame's tick returned (station latency)
 
         # Update data structures for the current frame. coupled-carla: from the local snapshot, asking the
         # server only about actors not seen before (get_actors() every tick was another bottleneck).

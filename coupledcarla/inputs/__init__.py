@@ -10,6 +10,8 @@ import sys
 
 import carla
 
+from .. import compat
+
 
 class Autopilot:
     needs_display = False
@@ -50,7 +52,7 @@ class Autopilot:
     def _plan_from(self, wp):
         import random
         from agents.navigation.local_planner import RoadOption
-        for cand in (wp, wp.get_left_lane(), wp.get_right_lane()):
+        for cand in (wp, compat.left_lane(wp), compat.right_lane(wp)):
             if cand is None or cand.lane_type != carla.LaneType.Driving or cand.lane_id * wp.lane_id < 0:
                 continue
             plan, w = [], cand

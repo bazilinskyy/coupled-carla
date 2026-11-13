@@ -14,9 +14,14 @@ SumoYield     makes SUMO vehicles stop for pedestrians in their path (SUMO itsel
               crossings, and CARLA pedestrians are not in SUMO).
 """
 import math
+import random
+import time
+import zlib
 
 import carla
 import traci
+
+from . import compat
 
 DEFAULT_EHMI = {
     "off": {"text": "", "color": [0, 0, 0]},
@@ -82,9 +87,24 @@ def stroke_text(debug, centre, along, up, text, height, colour, life, thickness=
                 debug.draw_line(a, b, thickness=thickness, color=colour, life_time=life)
 
 
-def draw_ehmi(debug, vehicle, state, states, life):
-    """eHMI on the front of the car: a light bar across the front and the state's text above it, readable from
-    in front (a pedestrian facing the car)."""
+SLOTS = ("front", "rear", "roof", "road", "eyes")
+
+
+def _facing(d):
+    """Letters advance to the right of a reader looking along d (CARLA's yaw turns clockwise seen from above)."""
+    return carla.Location(-d.y, d.x, 0.0)
+
+
+def draw_ehmi(debug, vehicle, state, states, life, slots=("front",), look_at=None):
+    """Draws the eHMI of `vehicle` in its current state on the chosen slots:
+
+    front  light bar across the front, the state's text above it (read by someone in front of the car)
+    rear   the same on the back (read by a cyclist or driver behind)
+    roof   a light ring round the roof and the text on all four sides of it (read from anywhere)
+    road   the text projected on the road 3 m ahead, readable from in front
+    eyes   two eyes on the front whose pupils follow `look_at` (a location: the nearest pedestrian), coloured
+           by the state: the "eyes on a car" concept for eye contact with an automated vehicle
+    """
     spec = states.get(state) or {}
     rgb = spec.get("color", [0, 0, 0])
     if not state or state == "off" or rgb == [0, 0, 0]:
@@ -92,16 +112,108 @@ def draw_ehmi(debug, vehicle, state, states, life):
     tf = vehicle.get_transform()
     ext = vehicle.bounding_box.extent
     fwd, right = tf.get_forward_vector(), tf.get_right_vector()
+    fwd, right = carla.Location(fwd.x, fwd.y, 0.0), carla.Location(right.x, right.y, 0.0)
     up = carla.Location(z=1.0)
-    front = tf.location + fwd * (ext.x + 0.06) + carla.Location(z=ext.z * 1.05)
     colour = carla.Color(*rgb)
     dim = carla.Color(*(int(c * 0.55) for c in rgb))     # debug lines glow (bloom); text a little dimmer stays legible
-    debug.draw_line(front - right * (ext.y * 0.8), front + right * (ext.y * 0.8), thickness=0.12, color=colour,
-                    life_time=life)
-    if spec.get("text"):
-        # seen from in front of the car, its left side is the reader's right: letters advance along -right
-        stroke_text(debug, front + up * 0.42 - fwd * 0.05, carla.Location(-right.x, -right.y, -right.z),
-                    up, spec["text"], height=0.32, colour=dim, life=life, thickness=0.035)
+    text = spec.get("text", "")
+
+    def bar(a, b, thick=0.12):
+        debug.draw_line(a, b, thickness=thick, color=colour, life_time=life)
+
+    for slot in slots:
+        if slot in ("front", "rear"):
+            d = fwd if slot == "front" else fwd * -1.0
+            c = tf.location + d * (ext.x + 0.06) + carla.Location(z=ext.z * 1.05)
+            bar(c - right * (ext.y * 0.8), c + right * (ext.y * 0.8))
+            if text:
+                stroke_text(debug, c + up * 0.42 - d * 0.05, _facing(d * -1.0), up, text, height=0.32,
+                            colour=dim, life=life, thickness=0.035)
+        elif slot == "roof":
+            z = carla.Location(z=2 * ext.z + 0.08)
+            corners = [tf.location + fwd * (sx * ext.x * 0.45) + right * (sy * ext.y * 0.85) + z
+                       for sx, sy in ((1, 1), (1, -1), (-1, -1), (-1, 1))]
+            for a, b in zip(corners, corners[1:] + corners[:1]):
+                bar(a, b, 0.08)
+            if text:
+                for d, half in ((fwd, ext.x * 0.45), (fwd * -1.0, ext.x * 0.45),
+                                (right, ext.y * 0.85), (right * -1.0, ext.y * 0.85)):
+                    stroke_text(debug, tf.location + z + up * 0.22 + d * (half + 0.02), _facing(d * -1.0), up,
+                                text, height=0.22, colour=dim, life=life, thickness=0.03)
+        elif slot == "road" and text:
+            c = tf.location + fwd * (ext.x + 3.0) + carla.Location(z=0.06)    # a vehicle's origin is at road level
+            # read by someone in front looking back along -fwd: the top of the letters is towards the car
+            stroke_text(debug, c, _facing(fwd * -1.0), fwd * -1.0, text, height=0.55, colour=dim, life=life,
+                        thickness=0.035)
+        elif slot == "eyes":
+            c = tf.location + fwd * (ext.x + 0.05) + carla.Location(z=ext.z * 1.0)
+            target = None
+            if look_at is not None:
+                target = carla.Location(look_at.x - c.x, look_at.y - c.y, look_at.z - c.z)
+                n = math.sqrt(target.x ** 2 + target.y ** 2 + target.z ** 2)
+                target = target * (1.0 / n) if n > 1e-6 else None
+            for side in (-1, 1):
+                eye = c + right * (side * ext.y * 0.45)
+                r = 0.16
+                pts = [eye + right * (r * math.cos(a)) + up * (r * math.sin(a))
+                       for a in (2 * math.pi * k / 16 for k in range(17))]
+                for a, b in zip(pts, pts[1:]):
+                    bar(a, b, 0.04)
+                # pupil: shifted inside the eye towards the target (or straight ahead)
+                dx = (target.x * right.x + target.y * right.y) if target else 0.0
+                dz = target.z if target else 0.0
+                pupil = eye + right * (0.08 * dx) + up * (0.08 * dz) + fwd * 0.02
+                debug.draw_point(pupil, size=0.09, color=carla.Color(20, 20, 20), life_time=life)
+                debug.draw_point(pupil + fwd * 0.01, size=0.05, color=colour, life_time=life)
+
+
+class MutualGaze:
+    """Logs eye contact between pedestrians and vehicles: both face each other within `angle_deg` and closer than
+    `distance_m`. A pedestrian faces where its station's camera looks (the station sends its yaw), else where the
+    walker faces; a vehicle faces along its heading (no head tracking yet). Events eye_contact_start / _end with
+    the pair, the distance and both angles."""
+
+    def __init__(self, logger, angle_deg=20.0, distance_m=30.0):
+        self.logger, self.angle, self.dist = logger, float(angle_deg), float(distance_m)
+        self.on = {}
+
+    @staticmethod
+    def _off(yaw, a, b):
+        want = math.degrees(math.atan2(b.y - a.y, b.x - a.x))
+        return abs((want - yaw + 180) % 360 - 180)
+
+    def update(self, t, frame, parts, agents, station_gaze):
+        peds = [(p.role, p.actor, station_gaze.get(p.role)) for p in parts if p.kind == "pedestrian"]
+        if not peds:
+            return
+        cars = [(a.id, a.vehicle) for a in agents if isinstance(a, ScriptedCar)]
+        cars += [(p.role, p.actor) for p in parts if p.actor.type_id.startswith("vehicle.")]
+        seen, unique = set(), []
+        for name, actor in cars:          # an AV passenger's actor is the AV agent's car: count it once
+            if actor.id not in seen:
+                seen.add(actor.id)
+                unique.append((name, actor))
+        cars = unique
+        for prole, pact, pyaw in peds:
+            try:
+                ptf = pact.get_transform()
+            except RuntimeError:
+                continue
+            pyaw = ptf.rotation.yaw if pyaw is None else pyaw
+            for crole, cact in cars:
+                try:
+                    ctf = cact.get_transform()
+                except RuntimeError:
+                    continue
+                d = ptf.location.distance(ctf.location)
+                a_p = self._off(pyaw, ptf.location, ctf.location)
+                a_c = self._off(ctf.rotation.yaw, ctf.location, ptf.location)
+                now = d < self.dist and a_p < self.angle and a_c < self.angle
+                key = (prole, crole)
+                if now != self.on.get(key, False):
+                    self.on[key] = now
+                    self.logger.event(t, frame, "eye_contact_start" if now else "eye_contact_end", "",
+                                      f"{prole}<->{crole} {d:.1f} m, pedestrian {a_p:.0f} deg, vehicle {a_c:.0f} deg")
 
 
 class ScriptedCar:
@@ -114,7 +226,7 @@ class ScriptedCar:
         self.world, cmap = world, world.get_map()
         pts = [carla.Location(*geo.to_carla(lat, lon)) for lat, lon in cfg["route"]]
         start = cmap.get_waypoint(pts[0], project_to_road=True, lane_type=carla.LaneType.Driving)
-        bp = world.get_blueprint_library().find(cfg.get("vehicle", "vehicle.tesla.model3"))
+        bp = compat.find(world, cfg.get("vehicle", "vehicle.tesla.model3"), "passenger")
         bp.set_attribute("role_name", self.id)
         if bp.has_attribute("color") and cfg.get("color"):
             bp.set_attribute("color", cfg["color"])
@@ -288,8 +400,9 @@ class ScriptedWalker:
     def __init__(self, world, geo, cfg):
         self.cfg, self.id = cfg, cfg["id"]
         pts = [carla.Location(*geo.to_carla(lat, lon)) for lat, lon in cfg["path"]]
-        bps = world.get_blueprint_library().filter(cfg.get("blueprint", "walker.pedestrian.*"))
-        bp = bps[hash(self.id) % len(bps)]
+        want = cfg.get("blueprint", "walker.pedestrian.*")
+        bps = sorted(world.get_blueprint_library().filter(want), key=lambda b: b.id) if "*" in want else []
+        bp = bps[zlib.crc32(self.id.encode()) % len(bps)] if bps else compat.find(world, want)
         bp.set_attribute("role_name", self.id)
         if bp.has_attribute("is_invincible"):
             bp.set_attribute("is_invincible", "false")
@@ -300,6 +413,91 @@ class ScriptedWalker:
 
     def step(self, t, dt, walkers=()):
         self.follow.step(t)
+
+
+class Crowd:
+    """Background pedestrians walking up and down beside the roads near the participants: on the sidewalk lanes
+    when the OpenDRIVE has them, else 1.5 m beyond the outermost lane (on the ground plane, where the
+    participants' pedestrians walk too). They never step onto the road, so neither SUMO nor the scripted cars
+    yield to them, and SUMO does not know them.
+
+    Not CARLA's walker AI: CARLA 0.9.16 never serves a navigation mesh for an OpenDRIVE world (it writes
+    OpenDriveMap.bin, but get_random_location_from_navigation() stays None, even after reloading the world), and
+    walkers fall through its generated sidewalk meshes. So each follows a path with PathWalker, out and back.
+
+    traffic.walkers: {count: 0, radius_m: 120, seed: 1}
+    """
+
+    def __init__(self, world, centres, count, radius_m=120.0, seed=1, log=print, path_m=150.0, kerb_m=1.5):
+        rng = random.Random(seed)
+        self.walkers, self.follow = [], []
+        if count <= 0:
+            return
+        cmap = world.get_map()
+
+        def outer(w):
+            """The kerbside lane of w's side of the road, and whether it is a sidewalk."""
+            side = w
+            for _ in range(6):
+                nxt = compat.right_lane(side)
+                if nxt is None or nxt.lane_id * w.lane_id <= 0 or nxt.lane_type in (
+                        carla.LaneType.NONE, carla.LaneType.Border, carla.LaneType.Median):
+                    return side, False
+                side = nxt
+                if side.lane_type == carla.LaneType.Sidewalk:
+                    return side, True
+            return side, False
+
+        def spot(w, sidewalk):
+            if sidewalk:
+                return w.transform.location
+            r = w.transform.get_right_vector()
+            off = w.lane_width / 2 + kerb_m
+            return w.transform.location + carla.Location(r.x * off, r.y * off, 0.0)
+
+        starts = []
+        for w in cmap.generate_waypoints(8.0):
+            if w.lane_type != carla.LaneType.Driving or w.is_junction:
+                continue
+            if centres and min(w.transform.location.distance(c) for c in centres) > radius_m:
+                continue
+            starts.append(outer(w))
+        rng.shuffle(starts)
+        bps = sorted(world.get_blueprint_library().filter("walker.pedestrian.*"), key=lambda b: b.id)
+        on_sidewalks = 0
+        for start, sidewalk in starts:
+            if len(self.walkers) >= count:
+                break
+            pts, w = [spot(start, sidewalk)], start
+            for _ in range(int(path_m / 2.5)):
+                nxt = [n for n in w.next(2.5) if n.lane_type == start.lane_type and not n.is_junction]
+                if not nxt:
+                    break
+                w = nxt[0]
+                pts.append(spot(w, sidewalk))
+            if len(pts) < 8:
+                continue
+            bp = rng.choice(bps)
+            if bp.has_attribute("is_invincible"):
+                bp.set_attribute("is_invincible", "false")
+            bp.set_attribute("role_name", "crowd")
+            i0 = rng.randrange(len(pts) // 2)
+            walker = world.try_spawn_actor(bp, carla.Transform(pts[i0] + carla.Location(z=1.0)))
+            if walker is None:
+                continue
+            path = pts[i0 + 1:] + pts[::-1] + pts[1:i0 + 1]      # on to the end, back, and round again
+            self.walkers.append(walker)
+            self.follow.append(PathWalker(walker, path, rng.uniform(1.0, 1.6), rng.uniform(0, 3), loop=True))
+            on_sidewalks += sidewalk
+        log(f"crowd: {len(self.walkers)} walkers beside the roads within {radius_m:.0f} m "
+            f"({on_sidewalks} on sidewalk lanes)")
+
+    def step(self, t):
+        for f in self.follow:
+            try:
+                f.step(t)
+            except RuntimeError:
+                pass
 
 
 class SumoYield:

@@ -13,8 +13,8 @@ DEFAULTS = {
                        "secondary", "secondary_link", "tertiary", "tertiary_link", "unclassified",
                        "residential", "living_street"],
         "cycleways": True,           # keep highway=cycleway (SUMO cyclists ride them)
-        "sidewalks": False,          # guessed sidewalks make SUMO (1.24, 1.28) crash when the bridge moves the
-                                     # participant's car with moveToXY, so they stay off for now
+        "sidewalks": False,          # guessed sidewalks in the OpenDRIVE (CARLA walkers, traffic.walkers); the
+                                     # SUMO net never has them (SUMO crashes on moveToXY with sidewalks)
         "trim_dead_ends": True,      # drop dead-end chains and keep the largest strongly connected road graph
         "lefthand": False,           # left-hand traffic (UK, Japan, Australia, ...)
         "buildings": True,           # also fetch OSM building footprints (trial viewer, figures)
@@ -56,6 +56,7 @@ DEFAULTS = {
         "bike_types": {"vehicle.gazelle.omafiets": 4, "vehicle.bh.crossbike": 1,
                        "vehicle.diamondback.century": 1},
         "bus_type": "vehicle.mitsubishi.fusorosa",
+        "walkers": {"count": 0, "radius_m": 120, "seed": 1},   # pedestrians on the sidewalks (ai.Crowd)
     },
     "participants": [],
     "agents": [],                    # scripted AI cars and walkers (coupledcarla/ai.py)
@@ -95,7 +96,7 @@ def load(path):
 def trial_config(cfg, trial):
     """The experiment config with one trial's overrides merged in."""
     over = {k: v for k, v in trial.items() if k in ("simulation", "traffic", "participants", "agents", "logging",
-                                                      "coupling", "ehmi")}
+                                                      "coupling", "ehmi", "eye_contact")}
     return _merge(cfg, over)
 
 

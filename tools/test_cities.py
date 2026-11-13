@@ -44,7 +44,8 @@ def main():
                 os.killpg(proc.pid, signal.SIGKILL)
                 proc.wait()
                 # the CARLA server runs in its own process group
-                subprocess.call(["pkill", "-9", "-f", "CarlaUE4-Linux-Shipping.*carla-rpc-port=2000"])
+                subprocess.call(["pkill", "-9", "-f",
+                                 "(CarlaUE4|CarlaUnreal)-Linux-Shipping.*carla-rpc-port=2000"])
                 time.sleep(5)
                 log_file.write("\nTIMEOUT\n")
         out = log_path.read_text(errors="replace")

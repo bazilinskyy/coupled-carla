@@ -6,8 +6,13 @@ controls directly, and to the host on this channel, for everything else: which a
 starts and ends, visual-sync flashes, eHMI commands from an AV passenger, and latency.
 
 Messages are JSON objects, one per line. Station -> host: hello {role}, ping {t}, ehmi {state}, sync {},
-stats {rtt_ms, fps, frames}, bye. Host -> station: welcome {role, ...}, state {state, actor_id, ...},
-pong {t}, flash {frame}, ehmi {state} (echo to the passenger).
+stats {rtt_ms, fps, frames, latency}, bye. Host -> station: welcome {role, ...}, state {state, actor_id, ...},
+pong {t, th}, tick {frame, t}, flash {frame}, ehmi {state} (echo to the passenger).
+
+Latency: every pong carries the host's clock (th), so the station estimates the clock offset from the ping with
+the shortest round trip (NTP's rule: offset = th - (sent + received) / 2). The host sends `tick` (frame number,
+host time when the world tick returned) a few times a second; the station times when it sees that frame's
+snapshot and when that frame's camera image arrives, both on the host's clock.
 """
 import json
 import queue
@@ -54,7 +59,7 @@ class ControlServer:
                 msg = json.loads(line)
                 kind = msg.get("type")
                 if kind == "ping":                      # answered here, at once
-                    _send(conn, lock, {"type": "pong", "t": msg.get("t")})
+                    _send(conn, lock, {"type": "pong", "t": msg.get("t"), "th": time.time()})
                     continue
                 if kind == "hello":
                     role = msg["role"]
@@ -132,6 +137,8 @@ class ControlClient:
         self.on_message = on_message      # called in the reader thread, before the message is queued
         self.inbox = queue.Queue()
         self.rtt_ms = []
+        self.clock = []                   # (rtt s, host minus station clock s), last 60 pings
+        self.host_ticks = {}              # frame -> host time when its tick returned (host clock)
         self.lock = threading.Lock()
         t0 = time.time()
         while True:
@@ -153,8 +160,18 @@ class ControlClient:
             for line in self.sock.makefile("r"):
                 msg = json.loads(line)
                 if msg.get("type") == "pong":
-                    self.rtt_ms.append(1000.0 * (time.time() - msg["t"]))
+                    now = time.time()
+                    self.rtt_ms.append(1000.0 * (now - msg["t"]))
                     self.rtt_ms = self.rtt_ms[-30:]
+                    if msg.get("th") is not None:
+                        self.clock.append((now - msg["t"], msg["th"] - (msg["t"] + now) / 2.0))
+                        self.clock = self.clock[-60:]
+                    continue
+                if msg.get("type") == "tick":
+                    self.host_ticks[msg["frame"]] = msg["t"]
+                    if len(self.host_ticks) > 400:
+                        for f in sorted(self.host_ticks)[:200]:
+                            self.host_ticks.pop(f, None)
                     continue
                 if self.on_message:
                     self.on_message(msg)
@@ -184,3 +201,15 @@ class ControlClient:
 
     def rtt(self):
         return sum(self.rtt_ms) / len(self.rtt_ms) if self.rtt_ms else None
+
+    def clock_offset(self):
+        """Host clock minus this station's clock (s), from the ping with the shortest round trip; None at first."""
+        clock = list(self.clock)
+        return min(clock)[1] if clock else None
+
+    def lag_ms(self, frame, t_local):
+        """How long after the host's tick of `frame` (host clock) something happened here at t_local."""
+        th, off = self.host_ticks.get(frame), self.clock_offset()
+        if th is None or off is None:
+            return None
+        return 1000.0 * (t_local + off - th)

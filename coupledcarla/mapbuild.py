@@ -156,7 +156,6 @@ def build(cfg, force=False):
     mc = cfg["map"]
     out = config.map_dir(cfg)
     out.mkdir(parents=True, exist_ok=True)
-    carla_root = Path(os.environ["CARLA_ROOT"])
     if (out / "meta.json").exists() and not force:
         log(f"{out} already built (use --force to rebuild)")
         return out
@@ -190,8 +189,9 @@ def build(cfg, force=False):
     name_signals(xodr)
     stats = check_xodr(xodr)
 
-    subprocess.check_call([sys.executable, str(carla_root / "Co-Simulation/Sumo/util/netconvert_carla.py"),
-                           str(xodr), "--output", str(out / "map.net.xml"), "--guess-tls"])
+    # vendored (CARLA 1.0 does not ship it); the SUMO net never gets the sidewalks (see config.py)
+    subprocess.check_call([sys.executable, str(Path(__file__).parent / "bridge" / "util" / "netconvert_carla.py"),
+                           str(xodr), "--output", str(out / "map.net.xml"), "--guess-tls", "--no-sidewalks"])
     log("OpenDRIVE -> CARLA-consistent SUMO net")
 
     n_buildings = fetch_buildings(mc["bbox"], geo_net, out / "buildings.json") if mc.get("buildings") else 0

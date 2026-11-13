@@ -34,6 +34,9 @@ ehmi:
     go: {text: "GO AHEAD", color: [0, 230, 120]}
     driving: {text: "DRIVING", color: [255, 170, 0]}
     wait: {text: "WAIT", color: [255, 40, 40]}
+  slots: [front]                   # default for every car: front, rear, roof, road, eyes (see README)
+
+eye_contact: {angle_deg: 20, distance_m: 30}   # logs eye_contact_start/_end between pedestrians and vehicles
 
 participants:
   - role: pedestrian
@@ -62,6 +65,7 @@ agents:
     accel: 2.0
     yield_to_pedestrians: true
     ehmi: manual                     # set by the av_passenger station
+    ehmi_slots: [front, roof, road, eyes]
     triggers:
       - {at_m: 230, speed_kmh: 20, blinker: right}
   - id: car2                         # oncoming AI car with an automatic eHMI

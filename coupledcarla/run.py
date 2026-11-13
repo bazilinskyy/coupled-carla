@@ -23,8 +23,8 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import config, inputs, mapbuild, traffic
-from .ai import DEFAULT_EHMI, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
+from . import compat, config, inputs, mapbuild, traffic
+from .ai import DEFAULT_EHMI, Crowd, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -80,7 +80,7 @@ def set_weather(world, sc):
 
 def spawn_vehicle(world, geo, p, log):
     cmap = world.get_map()
-    bp = world.get_blueprint_library().find(p.get("vehicle", "vehicle.lincoln.mkz_2020"))
+    bp = compat.find(world, p.get("vehicle", "vehicle.lincoln.mkz_2020"), "passenger")
     bp.set_attribute("role_name", p["role"])
     sp = p.get("spawn") or {}
     if "lat" in sp:
@@ -91,7 +91,7 @@ def spawn_vehicle(world, geo, p, log):
         candidates = [wp.transform]
         if "heading" in sp:
             yaw = heading_to_yaw(sp["heading"])
-            opp = wp.get_left_lane()
+            opp = compat.left_lane(wp)
             if opp and abs((opp.transform.rotation.yaw - yaw + 180) % 360 - 180) < \
                     abs((wp.transform.rotation.yaw - yaw + 180) % 360 - 180):
                 candidates = [opp.transform]
@@ -112,7 +112,7 @@ def spawn_vehicle(world, geo, p, log):
 
 
 def spawn_pedestrian(world, geo, p):
-    bp = world.get_blueprint_library().find(p.get("blueprint", "walker.pedestrian.0001"))
+    bp = compat.find(world, p.get("blueprint", "walker.pedestrian.0001"))
     bp.set_attribute("role_name", p["role"])
     if bp.has_attribute("is_invincible"):
         bp.set_attribute("is_invincible", "false")
@@ -167,6 +167,7 @@ def run_trial(cfg, trial_idx, args, control=None):
     step = tc["simulation"]["step"]
     duration = float(trial.get("duration_s", 300))
     ehmi_states = (tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)
+    ehmi_slots = tuple((tc.get("ehmi") or {}).get("slots", ["front"]))
     coupling = tc.get("coupling") or {}
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -273,6 +274,12 @@ def run_trial(cfg, trial_idx, args, control=None):
                 part.input.restart(world.get_map().get_waypoint(part.actor.get_location()))
         walkers_all = [p.actor for p in parts if p.kind == "pedestrian"] + \
                       [a.walker for a in agents if isinstance(a, ScriptedWalker)]
+        wc = tc["traffic"].get("walkers") or {}
+        crowd = None
+        if int(wc.get("count", 0)) > 0:
+            crowd = Crowd(world, [p.actor.get_location() for p in parts], int(wc["count"]),
+                          float(wc.get("radius_m", 120)), int(wc.get("seed", 1)), log=log)
+            # not in walkers_all: they stay on the sidewalks, so no car has to yield to them
         sumo_yield = SumoYield()
 
         if tc["logging"]["carla_recorder"]:
@@ -297,7 +304,8 @@ def run_trial(cfg, trial_idx, args, control=None):
 
         types = {}
         prof = {"sync": 0.0, "log": 0.0, "ticks0": 0}
-        was_off, stuck_since = {}, {}
+        was_off, stuck_since, station_stats, station_gaze = {}, {}, {}, {}
+        gaze = MutualGaze(logger, **(tc.get("eye_contact") or {}))
         sync_at = sorted(float(x) for x in coupling.get("visual_sync_at_s", []))
         t_wall0, sim0, next_status, seen_col, t = time.time(), None, 0.0, 0, 0.0
         snap = world.get_snapshot()
@@ -318,6 +326,8 @@ def run_trial(cfg, trial_idx, args, control=None):
                     part.agent.set_ehmi(part.ehmi_schedule.pop(0)[1], part.role)
             for ag in agents:
                 ag.step(t, step, walkers_all)
+            if crowd is not None and summary["ticks"] % 4 == 0:     # a walker keeps its last control
+                crowd.step(t)
             t_a = time.time()
             sync.tick()
             t_b = time.time()
@@ -334,9 +344,20 @@ def run_trial(cfg, trial_idx, args, control=None):
                 if isinstance(ag, ScriptedCar):
                     sid = sync.carla2sumo_ids.get(ag.vehicle.id)
                     ag.light = signals.next_light(sid) if sid else None
-                    if summary["ticks"] % 2 == 0:
-                        draw_ehmi(world.debug, ag.vehicle, ag.ehmi, ehmi_states, life=step * 3)
+                    if summary["ticks"] % 2 == 0 and ag.ehmi not in ("", "off"):
+                        here = ag.vehicle.get_location()
+                        near = [w.get_location() for w in walkers_all]
+                        look = min(near, key=lambda l: l.distance(here)) if near else None
+                        if look is not None and look.distance(here) > 40.0:
+                            look = None
+                        draw_ehmi(world.debug, ag.vehicle, ag.ehmi, ehmi_states, life=step * 3,
+                                  slots=tuple(ag.cfg.get("ehmi_slots") or ehmi_slots),
+                                  look_at=look + carla.Location(z=0.7) if look is not None else None)
+            if summary["ticks"] % 5 == 0:
+                gaze.update(t, snap.frame, parts, agents, station_gaze)
             snap = world.get_snapshot()
+            if control is not None:          # every tick, for the stations' latency measurement
+                control.broadcast({"type": "tick", "frame": carla_sim.tick_frame, "t": carla_sim.tick_wall})
             sim_t = snap.timestamp.elapsed_seconds
             sim0 = sim_t if sim0 is None else sim0
             t = sim_t - sim0
@@ -348,11 +369,14 @@ def run_trial(cfg, trial_idx, args, control=None):
                     kind, role = msg.get("type"), msg.get("role")
                     if kind == "ehmi" and role in by_role and by_role[role].agent:
                         by_role[role].agent.set_ehmi(msg.get("state", "off"), role)
+                    elif kind == "gaze":
+                        station_gaze[role] = msg.get("yaw")
                     elif kind == "sync":
                         sync_at.insert(0, t)
                     elif kind == "stats":
-                        logger.event(t, snap.frame, "station_stats", "", json.dumps(
-                            {k: msg.get(k) for k in ("role", "rtt_ms", "fps", "frames", "host")}))
+                        stats = {k: msg.get(k) for k in ("role", "rtt_ms", "fps", "frames", "host", "latency")}
+                        station_stats[role] = stats
+                        logger.event(t, snap.frame, "station_stats", "", json.dumps(stats))
                     elif kind in ("hello", "bye"):
                         logger.event(t, snap.frame, f"station_{'joined' if kind == 'hello' else 'left'}", "", role)
                         if kind == "hello" and role in by_role:
@@ -465,7 +489,8 @@ def run_trial(cfg, trial_idx, args, control=None):
         wall = time.time() - t_wall0
         summary.update({"sim_s": round(t, 2), "wall_s": round(wall, 2), "rtf": round(t / max(wall, 1e-6), 3),
                         "rows": logger.rows, "collisions": len(collisions), "agents": len(agents),
-                        "stations": station_roles, "sumo_vehicles_spawned": len(types)})
+                        "stations": station_roles, "sumo_vehicles_spawned": len(types),
+                        "station_stats": station_stats})
         logger.event(t, snap.frame, "trial_end", "", json.dumps(summary))
         log(f"trial done: {summary}")
     finally:
