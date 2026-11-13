@@ -113,20 +113,20 @@ command and the stations' frame rates and round trips.
 
 ```mermaid
 flowchart LR
-  OSM[(OpenStreetMap<br>Overpass)] --> NC[netconvert<br>OSM -> SUMO net]
-  NC --> PR[prune: no dead ends,<br>largest strongly<br>connected graph]
-  PR --> XODR[OpenDRIVE<br>map.xodr]
-  XODR --> NCC[CARLA netconvert_carla<br>-> map.net.xml]
-  OSM --> BLD[buildings.json]
-  subgraph Trial loop, one process, 50 Hz
-    IN[participant input<br>keyboard / G25 / autopilot] --> CAR[CARLA server<br>world from map.xodr]
-    SUMO[SUMO<br>map.net.xml + demand] <-->|bridge, level of detail| CAR
-    CAR --> LOG[frames.csv, events.csv,<br>UDP 40131, recorder]
-    SUMO --> FCD[sumo_fcd.xml.gz]
+  OSM[("OpenStreetMap<br>Overpass")] --> NC["netconvert<br>OSM → SUMO net"]
+  NC --> PR["prune: no dead ends,<br>largest strongly<br>connected graph"]
+  PR --> XODR["OpenDRIVE<br>map.xodr"]
+  XODR --> NCC["CARLA netconvert_carla<br>→ map.net.xml"]
+  OSM --> BLD["buildings.json"]
+  subgraph LOOP["Trial loop, one process, 50 Hz"]
+    IN["participant input<br>keyboard / G25 / autopilot"] --> CAR["CARLA server<br>world from map.xodr"]
+    SUMO["SUMO<br>map.net.xml + demand"] <-->|"bridge, level of detail"| CAR
+    CAR --> LOG["frames.csv, events.csv,<br>UDP 40131, recorder"]
+    SUMO --> FCD["sumo_fcd.xml.gz"]
   end
   XODR --> CAR
   NCC --> SUMO
-  LOG --> VIEW[export_trial -> trial viewer]
+  LOG --> VIEW["export_trial → trial viewer"]
   BLD --> VIEW
 ```
 
@@ -317,17 +317,17 @@ Several humans and AI participants share one world, as in coupled-sim. The **hos
 
 ```mermaid
 flowchart LR
-  subgraph Host machine
-    HOST[host: coupledcarla.run<br>world, SUMO, AI agents,<br>eHMI, yielding, log]
-    CS[(CARLA server<br>2000-2002)]
+  subgraph HOSTM["Host machine"]
+    HOST["host: coupledcarla.run<br>world, SUMO, AI agents,<br>eHMI, yielding, log"]
+    CS[("CARLA server<br>2000-2002")]
     HOST <--> CS
   end
-  ST1[pedestrian station] -- control 2100 --> HOST
-  ST2[AV passenger station] -- control 2100 --> HOST
-  ST3[driver station<br>G25 wheel] -- control 2100 --> HOST
-  ST1 -- own camera + controls --> CS
-  ST2 -- own camera --> CS
-  ST3 -- own camera + controls --> CS
+  ST1["pedestrian station"] -- "control 2100" --> HOST
+  ST2["AV passenger station"] -- "control 2100" --> HOST
+  ST3["driver station<br>G25 wheel"] -- "control 2100" --> HOST
+  ST1 -- "own camera + controls" --> CS
+  ST2 -- "own camera" --> CS
+  ST3 -- "own camera + controls" --> CS
 ```
 
 - **Stations** connect twice: to the CARLA server, to render their own camera and apply their own controls
