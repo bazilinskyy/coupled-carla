@@ -80,9 +80,12 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     except Exception as err:  # noqa: BLE001 - counts are a refinement: never fail the trial for them
         log(f"counts: not used ({type(err).__name__}: {err})")
         cars_per_hour = 2400 if cars_per_hour == "auto" else cars_per_hour
+    from . import cycling
+    bikes = cycling.demand(cfg, map_dir, work, types, end, log)   # along the cycle network, at counted volumes
+    routes += bikes or []
     for name, per_hour, vclass, vtype, extra in (
             ("car", cars_per_hour, "passenger", "cars", ["--fringe-factor", "5"]),
-            ("bike", tc["bikes_per_hour"], "bicycle", "bikes", ["--fringe-factor", "3"]),
+            ("bike", 0 if bikes is not None else tc["bikes_per_hour"], "bicycle", "bikes", ["--fringe-factor", "3"]),
             ("bus", 0 if pt else tc["buses_per_hour"], "bus", tc["bus_type"], ["--min-distance", "1000"])):
         if not per_hour:
             continue

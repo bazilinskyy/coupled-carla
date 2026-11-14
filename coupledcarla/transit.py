@@ -221,9 +221,9 @@ def _heading(shape, x, y):
     return best
 
 
-def _nearest_edges(trace, net, radius=12.0, max_angle=45.0):
+def _nearest_edges(trace, net, radius=12.0, max_angle=45.0, vclass="bus"):
     """The edge under each trace point that runs the trace's way (the net was built from the same OSM ways, so
-    the track lies on its edges, a lane's width away); consecutive repeats removed."""
+    the track lies on its edges, a lane's width away) and that vclass may use; consecutive repeats removed."""
     cos_max = math.cos(math.radians(max_angle))
     seq = []
     for i, (x, y) in enumerate(trace):
@@ -235,7 +235,7 @@ def _nearest_edges(trace, net, radius=12.0, max_angle=45.0):
         hx, hy = hx / hn, hy / hn
         best = None
         for e, _ in net.getNeighboringEdges(x, y, radius):
-            if not any(ln.allows("bus") for ln in e.getLanes()):
+            if not any(ln.allows(vclass) for ln in e.getLanes()):
                 continue
             h = _heading(e.getShape(), x, y)
             if h is None:
@@ -259,8 +259,8 @@ def _nearest_edges(trace, net, radius=12.0, max_angle=45.0):
     return out
 
 
-def _connected(seq, net):
-    """Close gaps between consecutive edges with the shortest bus path (no long detours); cut where that fails.
+def _connected(seq, net, vclass="bus"):
+    """Close gaps between consecutive edges with the shortest vclass path (no long detours); cut where that fails.
     Returns the connected parts."""
     if not seq:
         return []
@@ -272,7 +272,7 @@ def _connected(seq, net):
         if e in prev.getOutgoing():
             cur.append(e)
             continue
-        path, cost = net.getShortestPath(prev, e, vClass="bus")
+        path, cost = net.getShortestPath(prev, e, vClass=vclass)
         (ax, ay), (bx, by) = prev.getShape()[-1], e.getShape()[0]
         if path and len(path) <= 8 and cost - prev.getLength() - e.getLength() <= 2 * math.hypot(bx - ax, by - ay) + 60:
             cur.extend(path[1:])

@@ -74,6 +74,17 @@ DEFAULTS = {
             "default_headway_min": 10,
             "live": "auto",          # start with the real buses where they are now (GTFS-Realtime): "auto" when
         },                           # simulation.time is "now", true, or false
+        "cycling": {                 # where and how many cyclists ride (coupledcarla/cycling.py)
+            "routes": "auto",        # "auto": bike trips follow the OSM cycle routes (LCN/RCN/NCN, knooppunten) and
+                                     # cycle tracks and lanes of the map; false: uniform random trips only
+            "counts": "auto",        # "auto": bikes_per_hour from open bike counters in or near the box (Lyon, NYC,
+                                     # London, Flanders, Sydney) at the trial's hour and day type; false: as set
+            "route_share": 0.7,      # share of bike trips that start and end on the cycle network (the rest: random)
+            "od_weight": 10,         # how much more a cycle-route edge draws those trips' ends than a street
+            "prefer_route": 0.5,     # cyclists' perceived travel time on a cycle route, relative to the real one
+            "prefer_infra": 0.7,     # the same on other cycle tracks and lanes
+            "max_bikes_per_hour": 3000,   # cap on the counted demand (a cyclist in CARLA costs ~3 ms per tick)
+        },
         "fleet": "auto",             # "auto": car body types and colours from the open vehicle register where
                                      # there is one (fleet.py: RDW for NL, NY DMV for New York, Waka Kotahi
                                      # for New Zealand, Senatran for Brazilian cities); else car_types
