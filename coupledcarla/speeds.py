@@ -419,16 +419,17 @@ NETCONVERT_DEFAULT = {"trunk": 27.78, "trunk_link": 27.78, "primary": 27.78, "pr
 # NL 50 (RVV 1990 art. 20), BE 50 (Flanders, Wallonia), FR and NC 50 (Code de la route), GB 30 mph on restricted
 # roads, AU (NSW) and NZ 50, ZA 60, EG 60, RW 40, UY 45. The US has no national one: 25 mph, the usual posted
 # city value and the legal default of New York City (since 2014), Oregon's residence districts and Burlington.
-# Brazil's CTB by road function (arterial 60, collector 40, local 30); Argentina avenues 60, streets 40. Japan 60
-# on general roads with a centre line and 30 on the others (Road Traffic Act order, art. 11, since 2026-09); Taiwan
-# 50, 30 on roads without a centre line: OSM's residential and unclassified streets stand for those. Countries not
-# in the table (LA) get 50, the most common urban limit and WHO's recommended maximum.
+# Brazil's CTB by road function (arterial 60, collector 40, local 30); Argentina avenues 60, streets 40 (busways
+# run along the arterials and avenues). Japan 60 on general roads with a centre line and 30 on the others (Road
+# Traffic Act order, art. 11, since 2026-09); Taiwan 50, 30 on roads without a centre line: OSM's residential and
+# unclassified streets stand for those. Countries not in the table (LA) get 50, the most common urban limit and
+# WHO's recommended maximum.
 URBAN_KMH = {
     "NL": {"*": 50}, "BE": {"*": 50}, "FR": {"*": 50}, "NC": {"*": 50}, "GB": {"*": 48.3}, "US": {"*": 40.2},
     "TW": {"residential": 30, "unclassified": 30, "*": 50}, "JP": {"residential": 30, "unclassified": 30, "*": 60},
     "AU": {"*": 50}, "NZ": {"*": 50}, "ZA": {"*": 60}, "UY": {"*": 45}, "EG": {"*": 60}, "RW": {"*": 40},
-    "BR": {"trunk": 60, "primary": 60, "secondary": 60, "tertiary": 40, "*": 30},
-    "AR": {"trunk": 60, "primary": 60, "secondary": 60, "*": 40},
+    "BR": {"trunk": 60, "primary": 60, "secondary": 60, "busway": 60, "tertiary": 40, "*": 30},
+    "AR": {"trunk": 60, "primary": 60, "secondary": 60, "busway": 60, "*": 40},
 }
 GENERIC_URBAN_KMH = 50.0
 COUNTRY_CODE = {"Netherlands": "NL", "Belgium": "BE", "France": "FR", "New Caledonia": "NC",
