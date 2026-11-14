@@ -1167,6 +1167,14 @@ class Scenery:
             if lit:
                 self.lit.add(key)
                 self.n_lights += len(self.lamps[key])
+                if self.lamps[key]:
+                    # the server switches street lights on only when the sun goes down: lamps spawned after that
+                    # (every trial at night) stay dark unless switched on here
+                    try:
+                        lm = self.world.get_lightmanager()
+                        lm.turn_on(lm.get_all_lights(carla.LightGroup.Street))
+                    except Exception as err:  # noqa: BLE001 - lamps without light still stand
+                        self.log(f"scenery: street lights not switched on ({err})")
         self.loaded.setdefault(key, []).extend(ids)
         self.n += len(ids)
         if self.on_spawn:

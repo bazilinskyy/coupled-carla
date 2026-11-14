@@ -386,6 +386,9 @@ street-light blueprints in the blueprint library (coupled-carla adds `-carla-pac
 at night the scenery lamps within `lights_radius_m` (200 m) of a participant are spawned as those blueprints and
 the server lights them when the sun sets. Headless: 225 lit lamps add 0.2 ms per tick, 781 add 0.7 ms (the cost to
 rendering is not measured). CARLA 1.0's OpenDRIVE worlds also bring generic lamps of their own along every road.
+On the packaged server at the twin, 198 lamps spawn with their light blueprints at night (spawned 100 m up and moved
+into place, as their collision touches the level's ground), but the rendered frames stay dark apart from car
+lights, even after switching the street lights on through the light manager: not working yet.
 
 ### Parked cars
 
@@ -795,6 +798,17 @@ bridge needs profiling on 1.0.
 *The baked Eindhoven twin in CARLA 1.0 on win5090: lane markings, a zebra crossing, yield signs, a CARLA traffic
 light, snapped scenery, SUMO's bus, 3DBAG buildings with CARLA's plain facade material (the twin's facades are
 slabs; `--buildings procedural` would use the modular facade generator).*
+
+**Styled buildings (2026-11-14).** `EhvCentreFacades` is the same twin with every 3DBAG building styled by its BAG
+construction year and use (brick of three periods, render, concrete and glass offices, industrial cladding, shopfront
+ground floors, plain party walls) and roofs textured with the PDOK aerial photo: 791 building and roof meshes, 85
+materials, 113 textures, 239 MB, baked in 6 minutes ([`experiments/eindhoven_twin_facades.yaml`](experiments/eindhoven_twin_facades.yaml)).
+The facade textures and styles are made by the carla-digitaltwins NL branch (`twinmodel/export/facades.py`,
+`threedbag_buildings.py`). A packaged server needs the scenery's folders in the cook
+(`+DirectoriesToAlwaysCook` for `/Game/Carla/Static/Vegetation`, `StreetLight`, `Static`, `TrafficSign`, `Pole`,
+`Bicycle`, `Motorcycle`): without them trees render as black leaf cards and the lamp blueprints do not exist.
+
+![The styled Eindhoven twin rendered by the packaged CARLA 1.0 server: brick and office facades, real trees, a zebra crossing and a yield sign](docs/img/twin_facades_trees.jpg)
 
 **Real time on CARLA 1.0.** CARLA 1.0 builds rpclib without TCP_NODELAY (0.9.16's rpclib set it on both ends):
 two fire-and-forget calls in a row (debug draws, `apply_control`, `set_light_state`) then hold up the next
