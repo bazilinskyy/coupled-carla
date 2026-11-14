@@ -25,7 +25,7 @@ car fleet is (buses run as their own lines).
 Elsewhere (`traffic.cars_per_hour: auto`) the car demand follows the road network: the lane-kilometres of each road
 class times a typical daily flow per lane of that class (ADT_PER_LANE, the median over the counters matched on the
 maps above) gives the vehicle-kilometres in the trial's hour, and dividing by the mean length of a random trip on
-the map gives the cars per hour.
+the map gives the cars per hour (at most AUTO_MAX_PER_HOUR, above which random trips jam SUMO).
 """
 import csv
 import io
