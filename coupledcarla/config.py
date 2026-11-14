@@ -65,7 +65,8 @@ DEFAULTS = {
             "live": "auto",          # start with the real buses where they are now (GTFS-Realtime): "auto" when
         },                           # simulation.time is "now", true, or false
         "fleet": "auto",             # "auto": car body types and colours from the open vehicle register where
-                                     # there is one (fleet.py: RDW for NL, NY DMV for New York); else car_types
+                                     # there is one (fleet.py: RDW for NL, NY DMV for New York, Waka Kotahi
+                                     # for New Zealand, Senatran for Brazilian cities); else car_types
         "car_following": "EIDM",
         "car_types": {               # CARLA blueprint -> share of the car fleet
             "vehicle.toyota.prius": 3, "vehicle.volkswagen.t2_2021": 1, "vehicle.audi.a2": 2,
