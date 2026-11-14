@@ -271,6 +271,7 @@ def run_trial(cfg, trial_idx, args, control=None):
             # high up, looking at the sky, so it costs nothing (it rendered the whole city's scenery otherwise)
             world.get_spectator().set_transform(carla.Transform(carla.Location(z=3000.0), carla.Rotation(pitch=90.0)))
         log(f"world ready: {len(world.get_map().get_spawn_points())} spawn points")
+        level_stream = bool(tc["map"].get("carla_level"))
 
         sumo = SumoSimulation(str(cfg_file), step)
         carla_sim = CarlaSimulation(tc["server"]["host"], tc["server"]["port"], step)
@@ -425,6 +426,12 @@ def run_trial(cfg, trial_idx, args, control=None):
             signals.draw([a.get_location() for a in focus_actors])
             if scenery is not None and summary["ticks"] % 50 == 25:
                 scenery.update([a.get_location() for a in focus_actors])
+            if level_stream and focus_actors and summary["ticks"] % 50 == 0:
+                # a baked World Partition level streams its cells (ground, roads, buildings, with their collision)
+                # around the spectator: keep it over the first participant, high up and looking at the sky
+                loc = focus_actors[0].get_location()
+                world.get_spectator().set_transform(carla.Transform(carla.Location(x=loc.x, y=loc.y, z=loc.z + 60.0),
+                                                                    carla.Rotation(pitch=90.0)))
             for part in parts:
                 if part.actor.type_id.startswith("vehicle."):
                     sid = sync.carla2sumo_ids.get(part.actor.id)

@@ -218,12 +218,22 @@ def prune(net_file):
 
 def name_signals(xodr):
     """netconvert writes <signal> without a name, and netconvert_carla.py skips every unnamed traffic light,
-    so SUMO would get none; give each signal its id as name."""
+    so SUMO would get none; give each signal a name. Ids longer than 32 characters (netconvert joins junction ids:
+    up to 158 in Eindhoven) become short ones, sig<n>: CARLA 1.0 warns about every long id on every lookup, which
+    filled its log with gigabytes. Nothing refers to the ids (no signalReference; SUMO's traffic lights are named
+    after junctions)."""
     import re
     text = xodr.read_text(encoding="utf-8")
-    text, n = re.subn(r'<signal id="([^"]*)"(?![^>]*\bname=)', r'<signal id="\1" name="\1"', text)
+    short = {}
+
+    def repl(m):
+        sid = m.group(1)
+        if len(sid) > 32:
+            sid = short.setdefault(sid, f"sig{len(short)}")
+        return f'<signal id="{sid}" name="{sid}"'
+    text, n = re.subn(r'<signal id="([^"]*)"(?: name="[^"]*")?', repl, text)
     xodr.write_text(text, encoding="utf-8")
-    log(f"named {n} OpenDRIVE signals")
+    log(f"named {n} OpenDRIVE signals ({len(short)} long ids shortened)")
 
 
 def check_xodr(xodr):
