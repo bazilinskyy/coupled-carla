@@ -21,7 +21,7 @@ simulation:
   weather: CloudyNoon
 
 traffic:
-  walkers: {count: 30, radius_m: 120}   # background pedestrians beside the roads (ai.Crowd)
+  walkers: {count: 30, radius_m: 120}   # background pedestrians, calibrated with CROWD for the Netherlands (crowdpeds.py)
   cars_per_hour: 1800
   bikes_per_hour: 900
   buses_per_hour: 6

@@ -785,6 +785,64 @@ def gap_ok(a, b, vehicles, t_c, marked=False, decel=3.0, react=1.0):
     return True
 
 
+def replay(segments, walkers, frames, duration_s, dt=0.5):
+    """Walks the planned walkers through recorded traffic without CARLA: frames = sorted [(t, [(x, y, vx, vy)])] in
+    CARLA coordinates (e.g. SUMO's FCD). Returns one dict per crossing started within duration_s: kind, the wait at
+    the kerb (s), whether the walker gave up waiting before the trial ended (then wait is censored), the gap that
+    was accepted (time until the nearest approaching vehicle reached the crossing line, s; None: no vehicle came)."""
+    times = [f[0] for f in frames]
+
+    def at(t):
+        k = max(0, min(len(frames) - 1, _bisect.bisect_right(times, t) - 1))
+        return frames[k][1] if frames else []
+
+    def xy(seg, side, i):
+        x, y = segments[seg].sides[side][i]
+        return x, -y
+
+    out = []
+    for w in walkers:
+        t, v = 0.0, w["speed"]
+        for leg in w["legs"]:
+            if t > duration_s:
+                break
+            s = segments[leg[1]]
+            if leg[0] == "walk":
+                t += abs(leg[4] - leg[3]) * s.step / v
+                continue
+            a, b = xy(leg[1], leg[2], leg[3]), xy(leg[1], 1 - leg[2], leg[3])
+            marked = leg[4] in ("crosswalk", "junction")
+            t0 = t
+            while t <= duration_s and not gap_ok(a, b, at(t), critical_gap(s.width(leg[3]), v, t - t0), marked):
+                t += dt
+            if t > duration_s:
+                out.append({"kind": leg[4], "wait": t - t0, "censored": True, "gap": None})
+                break
+            out.append({"kind": leg[4], "wait": round(t - t0, 2), "censored": False,
+                        "gap": _next_arrival(a, b, at(t))})
+            t += s.width(leg[3]) / v
+    return out
+
+
+def _next_arrival(a, b, vehicles):
+    """Seconds until the first vehicle heading for the crossing line a-b reaches it (None: none within 120 m)."""
+    ax, ay = a
+    ux, uy = b[0] - ax, b[1] - ay
+    L = math.hypot(ux, uy) or 1.0
+    ux, uy = ux / L, uy / L
+    best = None
+    for x, y, vx, vy in vehicles:
+        off = -(x - ax) * uy + (y - ay) * ux
+        closing = -(vx * -uy + vy * ux) * (1 if off > 0 else -1)
+        if closing <= 0.3 or abs(off) > 120:
+            continue
+        tta = abs(off) / closing
+        hit = (x - ax) * ux + (y - ay) * uy + (vx * ux + vy * uy) * tta
+        if -3.0 <= hit <= L + 3.0 and (best is None or tta < best):
+            best = tta
+    return round(best, 2) if best is not None else None
+
+
 # --- set-up for a trial ---------------------------------------------------------------------------------------------
 
 def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fetch=True):

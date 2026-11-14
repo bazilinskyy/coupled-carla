@@ -360,3 +360,14 @@ def test_crowdsim_waits_for_a_gap_then_crosses_and_counts_as_on_the_road(monkeyp
         t += 0.1
         tick(t)
     assert sim.on_road() == [] and w.loc.y < -7.0 and w.loc.x > 12.0     # across, walking on along the far kerb
+
+
+def test_replay_waits_for_traffic_and_reports_the_gap():
+    seg = _street(n=9, width=8.0, crossings=(4,))
+    plan = [{"seg": 0, "side": 0, "i": 4, "speed": 1.6, "legs": [("cross", 0, 0, 4, "midblock")]}]
+    # CARLA y = -geo y: the crossing runs from (10, 0) to (10, -8); a car at 13 m/s on y = -4 passes x = 10 at 3 s
+    frames = [(t / 2, [(-29.0 + 13.0 * t / 2, -4.0, 13.0, 0.0)] if t / 2 < 3.0 else []) for t in range(0, 40)]
+    (r,) = cp.replay([seg], plan, frames, 30.0)
+    assert not r["censored"] and r["kind"] == "midblock" and 2.5 <= r["wait"] <= 3.5 and r["gap"] is None
+    (r,) = cp.replay([seg], plan, [(0.0, [(-60.0, -4.0, 0.5, 0.0)])], 30.0)       # a crawling car far off
+    assert r["wait"] == 0.0 and r["gap"] > 60
