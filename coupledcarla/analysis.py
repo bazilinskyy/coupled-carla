@@ -12,8 +12,11 @@ The host runs it after every trial. Per trial it writes <trial>/analysis/:
                   reference frames: x forward along the POI's heading, y to its left, metres
   timeline.png    gap, speeds and time to collision per encounter, with eHMI changes, stops and eye contact
                   (when matplotlib is installed)
+  responses.csv   per responding participant: button held (s, share), presses, first press, slider mean/range/end
+  takeovers.csv   per take-over request: source, how, reaction time, no reaction
 
-and for an experiment folder also <experiment>/analysis.csv, every trial's encounters in one table.
+and for an experiment folder also <experiment>/analysis.csv, every trial's encounters in one table (and
+study_responses.csv, study_takeovers.csv with each trial's participant, position and condition).
 
 Geometry: a vehicle is a box (half length and width by blueprint, see DIMS) around its logged position, a
 pedestrian a disc of PED_R. Time to collision (TTC) assumes both keep their current velocity, and counts only
@@ -399,6 +402,8 @@ def analyse_trial(trial_dir, radius=30.0, all_walkers=False, poi_frames=False, p
     out = trial_dir / "analysis"
     out.mkdir(exist_ok=True)
     _write(out / "encounters.csv", FIELDS, enc)
+    from .studytools import analyse as study_tables     # responses.csv, takeovers.csv (the study tools)
+    study_tables(trial_dir, out)
     cfg_path = trial_dir / "config.yaml"
     pois = []
     if cfg_path.exists():
@@ -458,6 +463,10 @@ def main(argv=None):
     if len(dirs) > 1:
         _write(Path(args.path) / "analysis.csv", ["trial_dir"] + FIELDS, allrows)
         print(f"wrote {Path(args.path) / 'analysis.csv'}")
+        from .studytools import collect
+        res, tor = collect(dirs, Path(args.path))
+        if res or tor:
+            print(f"wrote study_responses.csv ({len(res)} rows) and study_takeovers.csv ({len(tor)} rows)")
 
 
 if __name__ == "__main__":

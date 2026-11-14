@@ -55,7 +55,8 @@ def trial_layers(trial_dir, every_participant=0.1, every_ai=0.2):
             if r["event"] not in ("spawn",):
                 # events.csv times are seconds since the trial started; frames.csv has simulator time
                 events.append([round(float(r["timestamp"]) + t0, 2), r["event"], r["detail"][:120]])
-    return {"t0": t0, "tracks": tracks, "events": events}
+    from .responses import series      # the participants' button and slider (study tools), if any
+    return {"t0": t0, "tracks": tracks, "events": events, "responses": series(trial_dir, t0)}
 
 
 def main():
