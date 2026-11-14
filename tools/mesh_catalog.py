@@ -38,7 +38,9 @@ PROFILES = {
         "skip_cat": {"building": ("Building_pieces", "Procedural")},
         "extra": [("furniture", "Static/Materials/BusStop/SM_BusStop"), ("ground", "SideWalk/SideWalkCube"),
                   ("furniture", "Dynamic/00_Opt/SM_Container_Opt"), ("furniture", "Dynamic/00_Opt/SM_Dumpster_Opt"),
-                  ("sign", "Pole/SM_PoleCylinder"), ("sign", "Pole/SM_RoadSigns01"), ("sign", "Pole/SM_Pole_Add_02")],
+                  ("sign", "Pole/SM_PoleCylinder"), ("sign", "Pole/SM_RoadSigns01"), ("sign", "Pole/SM_Pole_Add_02"),
+                  # parked shared bikes and scooters (gbfs.py)
+                  ("furniture", "Bicycle/Roadbike/SM_RoadBike"), ("furniture", "Motorcycle/Vespa/SM_Vespa")],
         "water": True,
     },
     # CARLA 1.0 moved and renamed most of these: trees and bushes under Vegetation/{Trees,Bushes} and
@@ -91,7 +93,10 @@ PROFILES = {
                   ("sign", "Pole/SM_Pole01"), ("sign", "Pole/SM_Pole05"), ("sign", "Pole/SM_Pole06"),
                   ("sign", "Pole/SM_Pole07"), ("sign", "Pole/SM_Pole08"), ("sign", "Pole/SM_Pole09"),
                   ("sign", "Pole/SM_UabSign_Pole_01"), ("sign", "Pole/00_LegacyAssets/SM_Pole02"),
-                  ("sign", "Pole/00_LegacyAssets/SM_Pole03"), ("sign", "Pole/00_LegacyAssets/SM_Pole04")],
+                  ("sign", "Pole/00_LegacyAssets/SM_Pole03"), ("sign", "Pole/00_LegacyAssets/SM_Pole04"),
+                  # parked shared bikes and scooters (gbfs.py; SM_Ebike is a Town_C prop)
+                  ("furniture", "Bicycle/Roadbike/SM_RoadBike"), ("furniture", "Motorcycle/Vespa/SM_Vespa"),
+                  ("furniture", "Static/Town_C/Props/SM_Ebike")],
         "water": True,
     },
 }
