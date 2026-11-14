@@ -68,18 +68,19 @@ under CC0, CC BY 4.0, Licence Ouverte, ODbL or their open data terms). See
 | | |
 |---|---|
 | **Any place** | `map.bbox: [south, west, north, east]` -> OSM download -> pruned road graph -> OpenDRIVE for CARLA + matching SUMO network, in seconds (2.6 s for 1.6 km of central Eindhoven, plus the download). Left- and right-hand traffic. |
-| **Real-world scenery** | Every map is filled from free open data: real terrain on the roads (AHN lidar in the Netherlands, AWS Terrain Tiles elsewhere), buildings at their real footprints and heights (3DBAG, IGN BD TOPO, NYC Open Data, Overture Maps), OSM street trees by species and height, parks, water, lamps, benches, bus shelters, bollards and road signs, and the weather and sun of a real place and time (Open-Meteo) ([Real-world scenery](#real-world-scenery-terrain-and-weather)). |
+| **Real-world scenery** | Every map is filled from free open data: real terrain on the roads (AHN lidar in the Netherlands, AWS Terrain Tiles elsewhere), buildings at their real footprints and heights (3DBAG, IGN BD TOPO, NYC Open Data, PLATEAU, Overture Maps), OSM street trees by species and height (sized from Meta/WRI canopy heights where OSM has none), the Dutch BGT's ground surfaces and street furniture, parks, water, lamps, benches, bus shelters, bollards and road signs, and the weather and sun of a real place and time (Open-Meteo) ([Real-world scenery](#real-world-scenery-terrain-and-weather)). |
 | **19 cities** | Eindhoven plus 18 cities on six continents, from Tokyo and Cairo to Luang Prabang and Ushuaia ([Cities](#cities)). |
-| **Traffic models** | SUMO drives everything that is not a participant: EIDM car following, the sublane lane-change model (cyclists and cars share and overtake), a Dutch-flavoured fleet with Gazelle bikes and buses, random car and bike demand by city size. The participant's car is mirrored into SUMO, so traffic reacts to them. |
+| **Traffic models** | SUMO drives everything that is not a participant: EIDM car following, the sublane lane-change model (cyclists and cars share and overtake), a Dutch-flavoured fleet with Gazelle bikes and buses, car demand fitted to open traffic counts where cities publish them (7 maps, SUMO's routeSampler), cyclists on the real cycle network at counted volumes. The participant's car is mirrored into SUMO, so traffic reacts to them. |
 | **Real public transport** | The bus lines of OpenStreetMap run on their real streets and stop at their real stops (16 of the 19 maps have OSM bus lines); where the city publishes a GTFS timetable (10 maps) they come as often as that timetable says for the trial's hour and day; at `time: now` the real buses start where they are at that moment (GTFS-Realtime, e.g. all of the Netherlands) ([Public transport](#public-transport)). |
-| **Real car fleet** | Car body types and colours from open vehicle registers (RDW for the Netherlands, NY DMV for Manhattan with its yellow cabs), mapped onto CARLA's models; each SUMO car's colour is the CARLA car's ([Traffic](#traffic)). |
+| **Real car fleet** | Car body types and colours from open vehicle registers (RDW for the Netherlands, NY DMV for Manhattan with its yellow cabs, Waka Kotahi for New Zealand, Senatran for Brazil), mapped onto CARLA's models; each SUMO car's colour is the CARLA car's ([Traffic](#traffic)). |
 | **City-scale, real time** | SUMO simulates the whole map; only actors within 250 m of a participant exist in CARLA (level of detail), which keeps a city real time on one GPU. |
 | **Participants** | Keyboard, Logitech G25 wheel with force feedback, or autopilot; driver, hood or chase view. |
 | **Logging** | coupled-sim-style per-frame CSV at 50 Hz (participants always, AI actors near them), events, live JSON over UDP 40131, SUMO's trajectory output for the whole network, CARLA's recorder for replay. |
 | **Trial viewer** | Browser replay of any trial in 3D with the OSM buildings, timeline, follow camera, light state and events. |
 | **Experiment files** | YAML: map, server, simulation, traffic, participants, points of interest, logging, a trial sequence with per-trial overrides. |
 | **Coupled experiments** | Stations for a driver, a pedestrian and an AV passenger on any machine of the LAN; scripted AI cars (routes, coupled-sim-style triggers, eHMI on the front, rear, roof, road or as "eyes") and walkers; a pedestrian crowd; SUMO traffic yields to pedestrians; eye-contact events; visual sync; round trips and frame latency logged. |
-| **Two CARLA generations** | The same experiment files for CARLA 0.9.16 (UE 4.26) and CARLA 1.0 (UE 5.8): renamed blueprints are mapped to their closest stand-ins. |
+| **Two CARLA generations** | The same experiment files for CARLA 0.9.16 (UE 4.26) and CARLA 1.0 (UE 5.8): renamed blueprints are mapped to their closest stand-ins, and the scenery has a mesh catalogue per version. |
+| **Eindhoven digital twin** | Central Eindhoven baked into a CARLA 1.0 level from Dutch open data (AHN terrain, 3DBAG buildings, OSM roads with lane markings, kerbs and sidewalks), driven with SUMO traffic on its own OpenDRIVE ([The Eindhoven digital twin](#the-eindhoven-digital-twin)). |
 
 ## Screenshots
 
@@ -291,11 +292,14 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | Roads, lanes, speed limits, signals | OpenStreetMap via Overpass | OpenDRIVE and SUMO net (as before) |
 | Terrain | [AHN4](https://www.ahn.nl) 0.5 m DTM via PDOK (Netherlands); [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (worldwide: SRTM, USGS 3DEP, national lidar) | road heights in the OpenDRIVE and the SUMO net, ground, building and tree bases |
 | Building footprints | [Overture Maps](https://overturemaps.org) (OSM, Microsoft and Google ML buildings, Esri), GeoParquet on S3 read with DuckDB | building stand-ins, the trial viewer |
-| Building heights | [3DBAG](https://3dbag.nl) (Netherlands, lidar), [IGN BD TOPO](https://geoservices.ign.fr/bdtopo) (France), [NYC Open Data](https://data.cityofnewyork.us) (New York City); else Overture/OSM heights and floors; else a height by building kind | the height of each stand-in |
+| Building heights | [3DBAG](https://3dbag.nl) (Netherlands, lidar), [IGN BD TOPO](https://geoservices.ign.fr/bdtopo) (France), [NYC Open Data](https://data.cityofnewyork.us) (New York City), [MLIT PLATEAU](https://www.mlit.go.jp/plateau/) (Japan, via Pacific Spatial Solutions' GeoParquet on Source Cooperative); else Overture/OSM heights and floors; else a height by building kind | the height of each stand-in |
 | Trees | OSM `natural=tree` with genus, species, leaf type and height; `tree_row`; parks, gardens, woods | a matching CARLA tree (plane, lime, oak, pine, palm, ...) at the mapped size; planting at a density per kind of green |
 | Street furniture | OSM lamps, benches, bins, bus shelters, bollards, post boxes, bicycle racks, hydrants, fountains, ad columns, cabinets | the matching CARLA prop at the mapped spot, parallel to the road |
 | Road signs | OSM `highway=stop/give_way`, `traffic_sign` (NL, DE, FR, US codes; speed limits) | a sign on a post at the edge of the lane it governs, facing its traffic |
 | Ground cover | OSM landuse, leisure, natural, water | grass, water or paving tiles |
+| Ground cover (NL) | [BGT](https://www.pdok.nl/introductie/-/article/basisregistratie-grootschalige-topografie-bgt-) via PDOK's OGC API (CC0) | what covers the ground beside the roads: grass, bricks or tiles, asphalt or concrete, gravel or sand, water; mixed 40 m tiles split in four |
+| Street furniture (NL) | BGT plus objects (IMGeo, from the municipalities) | benches, bicycle racks, bins, waste containers, bollards, cabinets, parking meters, boards, play equipment, and lamps and trees where the city has no register; they replace OSM objects of the same kind within 3-8 m |
+| Tree heights | [Meta/WRI 1 m canopy height map](https://registry.opendata.aws/dataforgood-fb-forests/) (Tolan et al. 2024) | the size of trees without a mapped height (OSM nodes and rows, park planting), corrected against Eindhoven's register |
 | City registers | Eindhoven's open data ([bomen](https://data.eindhoven.nl/explore/dataset/bomen/): 127,911 trees with species and height class; [openbare verlichting](https://data.eindhoven.nl/explore/dataset/data-openbare-verlichting/): 58,430 lamps with mast height); NYC's [2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) | every public tree and street light where the city lists them (OSM trees within 3 m of one are dropped; register lamps replace OSM and guessed ones) |
 | Weather | [Open-Meteo](https://open-meteo.com) forecast and ERA5 archive (back to 1940) | clouds, rain, wet roads, wind and fog of that hour |
 | Sun | computed (NOAA solar position) | the sun's altitude and direction for the place and local time; headlights on after dark |
@@ -328,6 +332,17 @@ How it is placed (`coupledcarla/scenery.py`, `coupledcarla/realworld.py`):
   kinds; church meshes only where the data says church), turned to the footprint, scaled (0.6 to 1.5) and repeated along long blocks, standing on
   the terrain. Positions, footprints and heights are the real ones; the facades are CARLA's (mostly North
   American towns). Exact geometry and textures are the job of the UE 5.8 digital twin (phase 3).
+- **Dutch ground (BGT).** In the Netherlands each ground tile takes the kind of surface that covers most of it
+  beside the roads, from the BGT: grass, bricks or tiles (CARLA's sidewalk paving: the 0.9.16 catalogue has no
+  brick ground mesh), asphalt or concrete, gravel or sand, water. Tiles with mixed ground are split into four 20 m
+  tiles. In central Eindhoven 582 of 2,538 tiles changed kind, and 1,654 pieces of BGT street furniture joined
+  OSM's 480, replacing 237 OSM objects. The first build fetches the BGT in about 25 s and caches it in
+  `real/bgt.json`; later scenery builds take 4.4 s instead of 3.4 s. `map.scenery.bgt: false` turns it off.
+- **Tree sizes.** Where OSM gives no height, a tree takes its size from Meta and WRI's 1 m canopy height map at
+  its spot, read from AWS open data (only the needed rows, by HTTP range requests; cached in `real/canopy.npz`).
+  The map reads urban trees about 6.5 m low and misses most under 8 m, so its values are corrected with a line
+  fitted to Eindhoven's tree register (6 m + 1.1 x canopy, r = 0.34: a rough guide, unproven outside Europe).
+  Where it sees no tree, the size stays a guess. `map.scenery.canopy: false` turns it off.
 - **Nothing on the lanes.** Every placement is checked against CARLA's map: nothing stands on a lane that is
   driven, ridden, parked or walked; a building that would reach into one is shrunk or dropped.
 - **Ground.** 40 m tiles (20 m on maps with more than 40 m of relief), tilted to the terrain and kept under
@@ -354,6 +369,27 @@ Built from these sources (the test maps of central Eindhoven, Lyon, Kigali and N
 
 Where OSM maps few street lamps, lamps line the roads every 32 m (on by default, `guess_lamps`). The lamp
 meshes give no light at night: CARLA 0.9.16 cannot add lights at run time.
+
+### Scenery on CARLA 1.0 and on baked levels
+
+CARLA 1.0 (Unreal Engine 5.8) renamed and moved most of the meshes the scenery uses (738 of the 969 in the 0.9.16
+catalogue), so each CARLA version has its own mesh catalogue (`coupledcarla/data/meshes_0.9.16.json`,
+`meshes_1.0.json`, made by `tools/mesh_catalog.py` on a running server), and `coupledcarla/meshes10.py` holds 1.0's
+choices: the same trees, lamps, signs and furniture where 1.0 still has them (most under new names, with identical
+sizes), plus 1.0's own closed buildings (narrow town houses, new houses and blocks). `map.scenery.catalog: auto`
+builds with the catalogue of the CARLA in use; a trial on the other version rebuilds `scenery.json` first (seconds,
+from the cached data in `real/`). 0.9.16's scenery is byte for byte what it was. The new UE5 trees are left out
+(millions of triangles, 10-170 s each to build on first use).
+
+On a baked level (`map.carla_level`, e.g. the Eindhoven twin) the scenery adds only trees, bushes, lamps, street
+furniture and signs (9,578 in the twin), at the terrain model's absolute heights (AHN, base 0).
+`python tools/snap_scenery.py <experiment>` then stands them on the level's own ground (needs a server with the
+level; run it again after `mapbuild --scenery`). `python tools/scenery_check.py <experiment>` checks scenery
+heights on a headless (`-nullrhi`) server: meshes the server refuses, and how far each mesh stands from the ground.
+Measured headless on lin5080: every mesh within 1 cm of its planned place; RTF 0.69 with and 1.10 without
+scenery on `eindhoven_centre` (no real-time sleep), 0.49 / 0.69 on the twin. Still visible in the numbers:
+furniture on Eindhoven station's platforms stands at platform height (about 4 m) with no platform under it, and
+objects beside lowered ground tiles at sunken roads float.
 
 ## Public transport
 
@@ -631,8 +667,8 @@ about 15 minutes once the UE 5.8 engine fork is built (`cmake --preset Release`,
 `build` installed). The server is the editor binary in `-game` mode; the first start spends a few minutes building
 derived data. The first coupled-carla run on it: `eindhoven_centre.yaml`, 40 s, autopilot driver with SUMO traffic,
 RTF 0.82, 0 collisions, every 0.9 blueprint mapped to a 1.0 stand-in. That run used `-nullrhi` (no rendering, so no
-cameras or stations), because the RTX 5080 was full with other jobs. The real-world scenery of the 0.9.16 maps is
-not used on 1.0 (it is made of 0.9.16 meshes); there the twin takes its place. Install the 1.0 wheel after
+cameras or stations), because the RTX 5080 was full with other jobs. The real-world scenery has its own 1.0 mesh
+catalogue ([Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). Install the 1.0 wheel after
 `requirements.txt`, which pins `carla==0.9.16`.
 
 ### The Eindhoven digital twin
@@ -666,9 +702,30 @@ validates in CARLA (98,920 waypoints). Bake input: 623 meshes, 0.9 M triangles.*
 *Buildings near the Eindhoven crossing: OSM footprints extruded to a guessed height (left) and 3DBAG LoD 2.2
 with the real roof shapes (right). The centre twin has 3,654 3DBAG buildings (274k triangles in 63 tiles).*
 
-**Still to do in phase 3:** bake the twin into a UE 5.8 level (`bake_level.py`, needs the CARLA source build,
-built on lin5080), a rendering 1.0 run with stations, load it as the map instead of an OpenDRIVE world (the SUMO network then comes from the
-twin's OpenDRIVE), BGT road surfaces, VR.
+**Baked into a CARLA 1.0 level (2026-11-14).** Stage 3 of the pipeline imports the bake input into the UE 5.8
+source tree as the World Partition level `/Game/Carla/Maps/Twins/EhvCentre/EhvCentre`, headless on lin5080 in
+7 minutes: 623 Nanite meshes (roads, lane markings, kerbs and risers, sidewalks, crossings, parking, islands,
+3DBAG buildings, ground) with CARLA's road, sidewalk, marking and facade materials, 400 vehicle spawn points, the
+OpenDRIVE and the Traffic Manager cache next to the level; 65 MB of content.
+
+```bash
+UnrealEditor-Cmd <carla>/Unreal/CarlaUnreal/CarlaUnreal.uproject -run=pythonscript -unattended -nosplash -nullrhi \
+    -script="<carla-digitaltwins>/TwinModel/ue/bake_level.py --manifest <abs>/build/ehv_centre/ue/manifest.json \
+             --name EhvCentre --python-bin <venv with the carla 1.0 wheel>/bin/python"
+```
+
+The baked level's folders (`Content/Carla/Maps/Twins/EhvCentre`, `Content/Carla/Static/*/Twins/EhvCentre` and the
+level's `__ExternalActors__`) are plain uasset files: copied into another CARLA 1.0 tree (win5090) the level loads
+there too, and `-DCARLA_MAPS_TO_COOK=.../Twins/EhvCentre/EhvCentre` cooks it into a package.
+
+coupled-carla drives it with [`experiments/eindhoven_twin.yaml`](experiments/eindhoven_twin.yaml):
+`map.opendrive` names the twin's OpenDRIVE (copy `build/ehv_centre/EhvCentre.xodr` to `twins/`) and
+`map.carla_level` the level. `mapbuild` then makes the SUMO net from that same OpenDRIVE (so SUMO and the level
+share their roads; the real bus lines and GTFS timetables are matched onto it as on any map), and the trial
+loads the level by name instead of generating an OpenDRIVE-only world. First run, headless on lin5080 (no
+GPU): 90 s, 35 SUMO vehicles shown in CARLA, 0 collisions, RTF 0.72 with the machine's other jobs running.
+
+**Still to do in phase 3:** a rendering 1.0 run with stations, VR.
 
 ## Traffic
 
@@ -678,14 +735,56 @@ twin's OpenDRIVE), BGT road surfaces, VR.
 - **Fleet.** Where an open vehicle register covers the map (`traffic.fleet: auto`, `coupledcarla/fleet.py`),
   the car body types and colours are the register's: the RDW's 9.9 M insured Dutch passenger cars (hatchback
   38%, estate 31%, MPV 22%; grey, black, white, blue) and the NY DMV's Manhattan registrations (SUV 67%, sedan
-  22%, 3% yellow cabs). Body types are spread over the CARLA models that look like them; each SUMO car gets a
+  22%, 3% yellow cabs), Waka Kotahi's Motor Vehicle Register for New Zealand (Auckland: 1.4 M light vehicles, SUV
+  30%, hatchback 31%, utes 8.5%; station wagons split into SUV, MPV and estate by model) and Senatran's monthly
+  fleet for São Paulo, Rio and Brasília (car 81%, SUV 8%, pickup 7%; colours of all vehicles). Body types are spread over the CARLA models that look like them; each SUMO car gets a
   colour drawn from the register's shares and the bridge gives it to the CARLA car. A register counts the fleet
   that is registered, not the mix on the street. Elsewhere a weighted mix of compact European-style CARLA models
   with a world colour mix. Gazelle omafiets, BH crossbike and Diamondback bikes (cyclists at about 5 m/s with
   spread); buses in their line's OSM colour.
 - **Demand.** Random trips (`randomTrips.py --validate`) per class and hour, with a fringe factor so traffic
-  enters at the edges of the map; the cities scale demand by size. Buses run the real lines (see
-  [Public transport](#public-transport)).
+  enters at the edges of the map. Buses run the real lines (see [Public transport](#public-transport)).
+- **Measured counts.** Where open traffic counts cover the map (`traffic.counts: auto`, `coupledcarla/counts.py`),
+  the cars follow them: each counter is matched to the SUMO edge it counts (position, direction, OSM name or road
+  number), its count becomes the flow of the trial's local hour and day type, and SUMO's `routeSampler` picks car
+  routes from many random candidates so that the counted edges carry those flows, then tops up to `cars_per_hour`
+  with routes that pass no counter. Daily totals are spread over the day with a typical urban profile (after DfT
+  TRA0307; within 0.5 percentage points per hour of Montevideo's weekday detectors). Cached in `real/counts.json`;
+  `python tools/counts_check.py <experiment>` measures the fit in a SUMO-only run. At 08:00 on a weekday:
+
+  | Map | Counts (source) | Counters matched | Median GEH, random trips -> counts |
+  |---|---|---|---|
+  | Montevideo | Intendencia video detectors | 19 of 25 | 25.5 -> 2.2 |
+  | Burlington, Vermont | VTrans AADT stations | 62 of 101 | 15.0 -> 2.2 |
+  | Portland, Oregon | PBOT counts | 149 of 278 | 19.4 -> 3.6 |
+  | Auckland | Auckland Transport counts | 452 of 661 | 13.3 -> 4.6 |
+  | Lyon | Criter loops | 27 of 34 | 20.4 -> 6.2 |
+  | London (Westminster) | DfT AADF by direction | 34 of 42 | 22.7 -> 6.9 |
+  | New York (Midtown) | NYC DOT automated counts | 16 of 20 | 38.6 -> 9.6 |
+
+  New York and London stay higher because a trial starts with empty streets and the inner counters fill in its
+  first minutes. None open for Eindhoven (NDW's nearest site is 3.6 km away), Leuven (motorway loops only),
+  Tokyo, Taipei (live feed only), São Paulo (PDF reports) or Sydney (needs a key).
+- **Demand without counts.** `traffic.cars_per_hour: auto` derives the cars per hour from the map: lane-km by road
+  class x the median daily flow per lane measured on the counted maps (primary 3,400, secondary and tertiary
+  2,600, other 1,000 cars) x the hour's share / the mean trip length, capped at 5,000 cars/h (above that random
+  trips jam SUMO's junctions). The city files keep their explicit numbers.
+- **Cyclists** (`coupledcarla/cycling.py`, `traffic.cycling`). Bike trips follow the real cycle network: OSM
+  bicycle route relations (LCN/RCN/NCN, the Dutch and Belgian knooppunten) and cycle tracks, lanes and cycle
+  streets are laid on the SUMO net's bike lanes (cached as `cycling.json`). 70% of bike trips start and end on
+  that network, and every cyclist prefers cycle routes and tracks when choosing a route; the rest are random
+  trips, so side streets keep their cyclists. Where open bike counters lie in or near the box, `bikes_per_hour` is
+  fitted to their typical count for the trial's day type and hour (capped at `max_bikes_per_hour`, 3000: a
+  cyclist costs CARLA about 3 ms per tick).
+
+  | Map | Cycle routes matched | Bike-km on cycle routes (random -> cycling) | Counters | Bikes/h at 08:00 weekday |
+  |---|---|---|---|---|
+  | Eindhoven | 19 (11 knooppunten) | 22% -> 34% | none keyless (NDW needs an account) | 1200 (as set) |
+  | Lyon | 9 | 11% -> 21% | 6 (Métropole de Lyon) | 3000 (counted 4277, capped) |
+  | New York | 14 | 49% -> 70% | 1 (NYC DOT, 8th Ave) | 300, 107 of them entering on 8th Ave |
+  | Sydney | 8 | 13% -> 45% | 13 (City of Sydney) | 1503 |
+  | Leuven | 9 (5 knooppunten) | 22% -> 27% | 2 nearby (AWV), outside the net | 1200 (as set) |
+
 - **Interaction.** The participant's car is mirrored into SUMO each tick (`moveToXY`), so SUMO vehicles brake
   for it, queue behind it and yield to it.
 - **Level of detail.** SUMO simulates the whole map; a SUMO vehicle exists in CARLA only within
@@ -883,18 +982,18 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
    events, tick-to-station and tick-to-image latency, a pedestrian crowd. **Still open from phase 2:** CARLA
    multi-GPU secondaries for station rendering, Xsens suit, SUMO persons, head tracking for the driver's gaze,
    a human (not bot) pilot study.
-3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8 (coupled-carla runs on it headless; the source build for the
-   Digital Twin baker is done on lin5080), the Digital Twin pipeline with Dutch national data for
-   Eindhoven (AHN terrain, PDOK aerial photos and 3DBAG buildings done, BGT road surfaces next), the baked
-   level loaded with the SUMO bridge, VR.
-4. **Phase 4, more real data:** done so far: real bus lines at timetable frequencies, live bus positions
-   (GTFS-RT), register fleets, municipal trees and lights. Next, from a survey of free sources (2026-11-14):
-   measured hourly counts calibrating demand with SUMO's `routeSampler` (NDW v3 for NL, before its v2.3 files
-   stop on 9 Feb 2027, though its nearest site is 3.6 km from the Eindhoven centre box, on the A2; Telraam for cars, bikes and pedestrians in Leuven and Eindhoven; DfT for London, NYC DOT,
-   JARTIC for Tokyo, Criter for Lyon), Overture's roof and facade attributes, leaf state by date (Copernicus
-   HR-VPP) and Meta's 1 m canopy heights, GBFS bike-share docks for cyclist density, BGT road surfaces (NL),
-   PLATEAU buildings for Tokyo, night radiance (NASA Black Marble). Real signal timings (SPaT) are not open in
-   the Netherlands or Flanders (UDAP and Mobilidata admit certified parties only).
+3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8: coupled-carla runs on it with scenery (its own mesh
+   catalogue), the Eindhoven digital twin (AHN terrain, PDOK aerial photos, 3DBAG buildings) is baked into a
+   CARLA 1.0 level and driven with the SUMO bridge on its own OpenDRIVE, and CARLA 1.0 builds and renders on
+   Windows (win5090). Next: a rendering run of the twin with stations, VR.
+4. **Phase 4, more real data:** done: real bus lines at timetable frequencies, live bus positions (GTFS-RT),
+   register fleets (NL, NYC, NZ, Brazil), municipal trees and lights, BGT ground and street furniture (NL), PLATEAU
+   buildings (Tokyo), canopy tree heights, cyclists on the real cycle network with counted volumes, car demand
+   fitted to open counts with `routeSampler` (7 cities). Next, from a survey of free sources (2026-11-14): NDW and
+   Telraam (token) for counts in NL and Leuven, JARTIC once a counter falls inside the Tokyo box, an archive of
+   Taipei's live detectors, Overture's roof and facade attributes, leaf state by date (Copernicus HR-VPP), GBFS
+   bike-share docks, night radiance (NASA Black Marble), a brick ground mesh for Dutch klinkers. Real signal timings
+   (SPaT) are not open in the Netherlands or Flanders (UDAP and Mobilidata admit certified parties only).
 
 ## Lessons learned (gotchas)
 
@@ -965,6 +1064,21 @@ What cost time while building phases 1 and 2, so it does not again:
 - GTFS line names need Unicode folding to match OSM (Tokyo writes `都０１（Ｔ０１）`, OSM `都01(T01)`), and the
   Mobility Database files some feeds under a wrong country or box (OVapi's gtfs-nl as AT; Sydney's box covers
   Taipei): sort feeds by box size and count a feed only when it has stops inside the map.
+- netconvert reads OpenDRIVE as right-hand traffic: the SUMO net it re-made from a left-hand map's OpenDRIVE fell
+  apart (Auckland's largest strongly connected part: 8 of 582 car edges; London 21 of 530), so those maps got
+  almost no SUMO cars (24 of 400 trips passed validation). CARLA's own graph of the same file was fine. Left-hand
+  maps now run SUMO on `geo.net.xml`, the net the OpenDRIVE was written from.
+- netconvert joins junction ids into OpenDRIVE signal ids of up to 158 characters; CARLA 1.0 warns about every id
+  over 32 characters on every lookup (2.7 GB of server log in 20 minutes). Signals get short ids now.
+- A CARLA 1.0 package cook on a content checkout with LFS pointers (maps whose content was never pulled: Town11-15,
+  the content repo's demo twins) reports each pointer as an unloadable package (527,000 errors) and fails on the
+  count: move those `__ExternalActors__` folders out of the tree. On Windows it also compiles D3D11 SM5 shaders,
+  where CARLA's `M_RoadMaster` exceeds 16 samplers; the server runs D3D12 SM6, so drop
+  `D3D11TargetedShaderFormats=PCD3D_SM5`.
+- A baked World Partition level streams its cells (ground and roads with their collision) around the spectator;
+  the off-screen run loop parked it over the origin, so it now follows the first participant.
+- A CARLA 1.0 editor server (`-game`) grows with every world it loads: one reached 40.9 GB and was OOM-killed.
+  Restart it between maps, or watch it.
 
 ## Project layout
 
@@ -975,8 +1089,13 @@ coupledcarla/
   realworld.py       real-world data: OSM features, Overture, 3DBAG, BD TOPO, NYC, AHN, Terrain Tiles, Open-Meteo, sun
   scenery.py         buildings, trees, furniture, signs and ground placed from it; streamed in at run time
   transit.py         bus lines and stops from OSM on the SUMO net, GTFS frequencies (Mobility Database), live positions
-  fleet.py           car body types and colours from open vehicle registers (RDW, NY DMV)
-  data/              meshes_0.9.16.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
+  fleet.py           car body types and colours from open vehicle registers (RDW, NY DMV, Waka Kotahi, Senatran)
+  counts.py          open traffic counts -> SUMO edges -> routeSampler car routes; demand estimate without counts
+  cycling.py         cyclists on the OSM cycle network, fitted to open bike counters
+  bgt.py             the Dutch BGT: ground surfaces and municipal street furniture
+  canopy.py          tree heights from Meta/WRI's 1 m canopy height map
+  meshes10.py        CARLA 1.0's mesh choices for scenery.py
+  data/              meshes_0.9.16.json, meshes_1.0.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
   traffic.py         SUMO vehicle types and demand per trial
   run.py             the host: trial loop, participants, agents, stations
@@ -995,11 +1114,11 @@ coupledcarla/
   analysis.py        encounter measures (gap, TTC, PET, stops, eye contact), POI passes, timeline plot
   geo.py             WGS84 <-> CARLA coordinates
   export_trial.py    trial -> trial.json for the viewer
-experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhoven_crowd.yaml (coupled),
+experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhoven_crowd.yaml (coupled), eindhoven_twin.yaml,
                      cities.yaml, cities/<slug>.yaml
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
-                     render_twin_buildings.py
+                     render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py
 docs/                city_tests.md, img/
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
@@ -1017,6 +1136,21 @@ maps/, logs/         built maps and trial logs (not in git)
 - Vehicle registers: [RDW open data](https://opendata.rdw.nl) (CC0), [NY DMV registrations](https://data.ny.gov/d/w4pv-hbkt)
   (NY Open Data). City registers: [Gemeente Eindhoven open data](https://data.eindhoven.nl) (public domain),
   [NYC 2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) (NYC Open Data).
+- More registers: [Waka Kotahi Motor Vehicle Register](https://opendata-nzta.opendata.arcgis.com) (CC BY 4.0),
+  [Senatran frota de veículos](https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran) (gov.br,
+  CC BY-ND 3.0 site terms; only aggregate counts are used, nothing is redistributed).
+- Traffic counts: [NYC DOT Automated Traffic Volume Counts](https://data.cityofnewyork.us/d/7ym2-wayt) (NYC Open
+  Data), [DfT road traffic statistics](https://roadtraffic.dft.gov.uk) (OGL v3.0), [Métropole de Lyon
+  Criter](https://data.grandlyon.com) (Licence Ouverte 2.0), [Intendencia de Montevideo](https://catalogodatos.gub.uy)
+  (Licencia de Datos Abiertos de Uruguay), Auckland Transport traffic counts (CC BY 4.0), City of Portland PBOT
+  counts, VTrans AADT stations.
+- Bicycle counts: [Métropole de Lyon](https://data.grandlyon.com) comptages (ODbL), [NYC DOT Bicycle and
+  Pedestrian Counts](https://data.cityofnewyork.us/d/ct66-47at) (NYC Open Data), [TfL Active Travel Counts
+  Programme](https://cycling.data.tfl.gov.uk) (TfL Open Data), [AWV fietstellingen](https://opendata.apps.mow.vlaanderen.be/fietstellingen/)
+  (Modellicentie Gratis Hergebruik v1.0), [City of Sydney cycling counts](https://data.cityofsydney.nsw.gov.au) (CC BY 4.0).
+- More scenery data: [BGT](https://www.pdok.nl) via PDOK (CC0), PLATEAU (MLIT, PLATEAU terms of use) via
+  [Flateau](https://source.coop/pacificspatial/flateau) by Pacific Spatial Solutions (CC BY 4.0), [Meta/WRI canopy
+  heights](https://registry.opendata.aws/dataforgood-fb-forests/) (CC BY 4.0).
 - Live bus positions: GTFS-Realtime feeds of the agencies (OVapi for the Netherlands).
 - Public transport: the GTFS feeds of the transit agencies (each feed's licence is recorded in the map's
   `transit.json`), found through the [Mobility Database](https://mobilitydatabase.org) catalogue (MobilityData).
