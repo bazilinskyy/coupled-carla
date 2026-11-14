@@ -234,6 +234,7 @@ class ScriptedCar:
         tf = start.transform
         tf.location.z += 0.5
         self.vehicle = world.spawn_actor(bp, tf)
+        self.apply = self.vehicle.apply_control   # the runner sends it with the tick's batch instead (run.py)
         self.planner = planner or SafeGlobalRoutePlanner(cmap, 2.0)
         plan = []
         for a, b in zip([start.transform.location] + pts[1:-1], pts[1:]):
@@ -357,7 +358,7 @@ class ScriptedCar:
             self.set_ehmi("yielding" if (reason or "").startswith("pedestrian") else "driving", "auto")
         if self.agent.done() and self.cfg.get("at_end", "stop") == "stop":
             ctl = carla.VehicleControl(throttle=0.0, brake=1.0)
-        self.vehicle.apply_control(ctl)
+        self.apply(ctl)
         return ctl
 
     def set_ehmi(self, state, by):
@@ -371,11 +372,12 @@ class PathWalker:
 
     def __init__(self, walker, points, speed=1.4, start_s=0.0, loop=False):
         self.walker, self.points, self.speed = walker, points, speed
+        self.apply = walker.apply_control   # the runner sends it with the tick's batch instead (run.py)
         self.start_s, self.loop, self.i, self.done = start_s, loop, 0, False
 
     def step(self, t):
         if self.done or t < self.start_s or not self.points:
-            self.walker.apply_control(carla.WalkerControl(speed=0.0))
+            self.apply(carla.WalkerControl(speed=0.0))
             return
         loc = self.walker.get_location()
         target = self.points[self.i]
@@ -388,10 +390,10 @@ class PathWalker:
                     self.i = 0
                 else:
                     self.done = True
-                    self.walker.apply_control(carla.WalkerControl(speed=0.0))
+                    self.apply(carla.WalkerControl(speed=0.0))
                     return
             return
-        self.walker.apply_control(carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0),
+        self.apply(carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0),
                                                       speed=self.speed))
 
 

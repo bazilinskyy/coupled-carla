@@ -21,9 +21,10 @@ RANK = {"G": 5, "g": 4, "y": 3, "Y": 3, "u": 2, "r": 1, "R": 1, "s": 1, "o": 0, 
 
 
 class Signals:
-    def __init__(self, world, net, offset, radius=120.0, every=5, step=0.02):
-        """net: the sumolib net SUMO runs (map.net.xml); offset: the bridge's SUMO->CARLA shift."""
-        self.debug = world.debug
+    def __init__(self, world, net, offset, radius=120.0, every=5, step=0.02, debug=None):
+        """net: the sumolib net SUMO runs (map.net.xml); offset: the bridge's SUMO->CARLA shift; debug: where to
+        draw (the runner passes the side connection's, see side.py), else world.debug."""
+        self.debug = world.debug if debug is None else debug
         cmap = world.get_map()
         self.radius, self.every = radius, every
         self.life = every * step * 1.6

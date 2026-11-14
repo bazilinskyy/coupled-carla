@@ -60,7 +60,8 @@ class TrialLogger:
         self.ew.writerow([f"{ts:.3f}", frame, name, actor_id, detail])
 
     def log(self, snap, participants, ai, sumo_signals, traffic_lights):
-        """participants: [{actor, role, kind (participant|agent), ctl, light, ehmi}] logged every frame;
+        """participants: [{actor, role, kind (participant|agent), ctl, light, ehmi, lights (light state if known)}]
+        logged every frame;
         ai: {actor_id: (kind, type_id)} logged near participants; sumo_signals: {id: bits}."""
         if self.sim0 is None:
             self.sim0 = snap.timestamp.elapsed_seconds
@@ -75,7 +76,9 @@ class TrialLogger:
             if p.get("kind", "participant") == "participant":
                 centres.append(s.get_transform().location)
             is_vehicle = actor.type_id.startswith("vehicle.")
-            ls = actor.get_light_state() if is_vehicle else LS.NONE
+            ls = p.get("lights") if is_vehicle else LS.NONE
+            if ls is None:       # not read by the bridge this frame: ask the server
+                ls = actor.get_light_state()
             ctl = p.get("ctl")
             if ctl is None and is_vehicle:
                 ctl = actor.get_control()        # station-driven: the control the station applied

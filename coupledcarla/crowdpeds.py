@@ -900,6 +900,7 @@ class CrowdSim:
     Walkers on the road are returned by on_road(), so SUMO traffic and scripted cars yield to them."""
 
     def __init__(self, world, geo, segments, walkers, params, seed=1, log=_log):
+        self.send = None   # (actor, WalkerControl) -> None; the runner sends them with the tick's batch
         import carla
         self.carla, self.world = carla, world
         self.params, self.events = params, []
@@ -953,11 +954,12 @@ class CrowdSim:
 
     def step(self, t):
         carla = self.carla
+        send = self.send or (lambda actor, ctl: actor.apply_control(ctl))
         vehicles = None
         for actor, st in zip(self.walkers, self.state):
             try:
                 if st["leg"] >= len(st["route"]):
-                    actor.apply_control(carla.WalkerControl(speed=0.0))
+                    send(actor, carla.WalkerControl(speed=0.0))
                     continue
                 kind, pts, width, marked = st["route"][st["leg"]]
                 loc = actor.get_location()
@@ -969,7 +971,7 @@ class CrowdSim:
                         vehicles = self._vehicles()
                     t_c = critical_gap(width, st["speed"], t - st["wait_from"])
                     if not gap_ok(pts[0], pts[1], vehicles, t_c, marked):
-                        actor.apply_control(carla.WalkerControl(speed=0.0))
+                        send(actor, carla.WalkerControl(speed=0.0))
                         continue
                     self.events.append(("crowd_crosses", f"{actor.id} {'marked' if marked else 'mid-block'} "
                                         f"{width:.1f} m after {t - st['wait_from']:.1f} s"))
@@ -982,7 +984,7 @@ class CrowdSim:
                     if st["pt"] >= len(pts):
                         st["leg"], st["pt"], st["crossing"] = st["leg"] + 1, 0, False
                     continue
-                actor.apply_control(carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0),
+                send(actor, carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0),
                                                         speed=st["speed"]))
             except RuntimeError:
                 pass

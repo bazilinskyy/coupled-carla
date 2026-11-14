@@ -33,7 +33,38 @@ from .logger import TrialLogger
 from .routing import SafeGlobalRoutePlanner
 from .scenery import Scenery
 from .server import Server
+from .side import Side
 from .signals import Signals
+
+
+class Laps:
+    """Wall time per part of the loop (simulation.profile prints it every 10 s and puts the trial's totals in
+    summary.json). laps(name) adds the time since the previous lap or start() to `name`."""
+
+    def __init__(self):
+        self.acc, self.total = {}, {}
+        self.t = time.perf_counter()
+
+    def start(self):
+        self.t = time.perf_counter()
+
+    def __call__(self, name):
+        now = time.perf_counter()
+        self.acc[name] = self.acc.get(name, 0.0) + now - self.t
+        self.t = now
+
+    def line(self, n):
+        return "  ".join(f"{k} {1000 * v / n:.2f}" for k, v in self.acc.items()) + \
+            f"  = {1000 * sum(self.acc.values()) / n:.1f}"
+
+    def reset(self):
+        for k, v in self.acc.items():
+            self.total[k] = self.total.get(k, 0.0) + v
+        self.acc = {}
+
+    def totals(self, n):
+        self.reset()
+        return {k: round(1000 * v / max(1, n), 3) for k, v in self.total.items()}
 
 
 class Log:
@@ -277,6 +308,9 @@ def run_trial(cfg, trial_idx, args, control=None):
 
         sumo = SumoSimulation(str(cfg_file), step)
         carla_sim = CarlaSimulation(tc["server"]["host"], tc["server"]["port"], step)
+        # drawings, traffic-light states and the spectator on a connection of their own (see side.py)
+        side = Side(tc["server"]["host"], tc["server"]["port"])
+        carla_sim.use_side(side.world)
         focus_actors = []   # SUMO actors appear in CARLA only near these (the participants)
         sync = SimulationSynchronization(
             sumo, carla_sim, tc["simulation"]["tls_manager"], sync_vehicle_lights=True,
@@ -290,7 +324,7 @@ def run_trial(cfg, trial_idx, args, control=None):
         # is the difference between map.net.xml's and geo.net.xml's offsets (CARLA x,y = geo.net x,-y).
         mo, go = sumo.net.getLocationOffset(), geo.net.getLocationOffset()
         BridgeHelper.offset = (mo[0] - go[0], mo[1] - go[1])
-        signals = Signals(world, sumo.net, BridgeHelper.offset, step=step)
+        signals = Signals(world, sumo.net, BridgeHelper.offset, step=step, debug=side.debug)
         log(f"traffic lights: {len(signals.heads)} signalled lanes from SUMO drawn near participants")
         world.tick()
 
@@ -381,6 +415,24 @@ def run_trial(cfg, trial_idx, args, control=None):
         crowd = crowdpeds.make_crowd(world, geo, tc, mdir, [p.actor.get_location() for p in parts], wx["night"],
                                      duration, log)
         sumo_yield = SumoYield()
+        # Controls and light states of the host's participants, agents and crowd go with the tick's batch (one
+        # call per tick; on CARLA 1.0 several separate ones stall the tick, see side.py).
+        queue = carla_sim.queue
+        walker_cmd = carla.command.ApplyWalkerControl
+        for part in parts:
+            if hasattr(part.input, "send"):
+                part.input.send = queue
+            if part.bot is not None:
+                part.bot.apply = lambda c, i=part.actor.id: queue(walker_cmd(i, c))
+        for ag in agents:
+            if isinstance(ag, ScriptedCar):
+                ag.apply = lambda c, i=ag.vehicle.id: queue(carla.command.ApplyVehicleControl(i, c))
+            else:
+                ag.follow.apply = lambda c, i=ag.walker.id: queue(walker_cmd(i, c))
+        for f in getattr(crowd, "follow", None) or []:        # ai.Crowd (behaviour off)
+            f.apply = lambda c, i=f.walker.id: queue(walker_cmd(i, c))
+        if crowd is not None and hasattr(crowd, "send"):      # crowdpeds.CrowdSim
+            crowd.send = lambda actor, c: queue(walker_cmd(actor.id, c))
 
         if tc["logging"]["carla_recorder"]:
             recorder = client.start_recorder(f"coupledcarla_{tc['name']}_{stamp}_trial{trial_idx}.log", True)
@@ -404,6 +456,9 @@ def run_trial(cfg, trial_idx, args, control=None):
 
         types = {}
         prof = {"sync": 0.0, "log": 0.0, "ticks0": 0}
+        laps = Laps()
+        sync.laps = laps
+        profile = bool(tc["simulation"].get("profile"))
         was_off, stuck_since, station_stats, station_gaze = {}, {}, {}, {}
         gaze = MutualGaze(logger, **(tc.get("eye_contact") or {}))
         sync_at = sorted(float(x) for x in coupling.get("visual_sync_at_s", []))
@@ -411,6 +466,7 @@ def run_trial(cfg, trial_idx, args, control=None):
         snap = world.get_snapshot()
         while True:
             t_tick = time.time()
+            laps.start()
             events = view.events() if view else []
             for part in parts:            # host-local participants
                 if part.station:
@@ -418,23 +474,28 @@ def run_trial(cfg, trial_idx, args, control=None):
                 if part.input is not None:
                     ctl = part.input.control(part.actor, events)
                     if ctl is not None:
-                        part.actor.apply_control(ctl)
+                        queue(carla.command.ApplyVehicleControl(part.actor.id, ctl))
                         part.ctl = ctl
                 elif part.bot is not None:
                     part.bot.step(t)
                 while part.ehmi_schedule and part.ehmi_schedule[0][0] <= t:
                     part.agent.set_ehmi(part.ehmi_schedule.pop(0)[1], part.role)
+            laps("inputs")
             walkers_now = walkers_all + crowd.on_road() if crowd is not None else walkers_all
             for ag in agents:
                 ag.step(t, step, walkers_now)
             if crowd is not None and summary["ticks"] % 4 == 0:     # a walker keeps its last control
                 crowd.step(t)
+            laps("agents")
             t_a = time.time()
             sync.tick()
             t_b = time.time()
             prof["sync"] += t_b - t_a
+            laps.start()      # sync.tick() timed its own parts
             sumo_yield.step(sync, world, walkers_now)
+            laps("yield")
             signals.draw([a.get_location() for a in focus_actors])
+            laps("signals")
             if scenery is not None and summary["ticks"] % 50 == 25:
                 scenery.update([a.get_location() for a in focus_actors])
             if parked is not None and summary["ticks"] % 50 == 35:
@@ -443,8 +504,9 @@ def run_trial(cfg, trial_idx, args, control=None):
                 # a baked World Partition level streams its cells (ground, roads, buildings, with their collision)
                 # around the spectator: keep it over the first participant, high up and looking at the sky
                 loc = focus_actors[0].get_location()
-                world.get_spectator().set_transform(carla.Transform(carla.Location(x=loc.x, y=loc.y, z=loc.z + 60.0),
-                                                                    carla.Rotation(pitch=90.0)))
+                side.spectator.set_transform(carla.Transform(carla.Location(x=loc.x, y=loc.y, z=loc.z + 60.0),
+                                                             carla.Rotation(pitch=90.0)))
+            laps("scenery")
             for part in parts:
                 if part.actor.type_id.startswith("vehicle."):
                     sid = sync.carla2sumo_ids.get(part.actor.id)
@@ -461,11 +523,12 @@ def run_trial(cfg, trial_idx, args, control=None):
                         look = min(near, key=lambda l: l.distance(here)) if near else None
                         if look is not None and look.distance(here) > 40.0:
                             look = None
-                        draw_ehmi(world.debug, ag.vehicle, ag.ehmi, ehmi_states, life=step * 3,
+                        draw_ehmi(side.debug, ag.vehicle, ag.ehmi, ehmi_states, life=step * 3,
                                   slots=tuple(ag.cfg.get("ehmi_slots") or ehmi_slots),
                                   look_at=look + carla.Location(z=0.7) if look is not None else None)
             if summary["ticks"] % 5 == 0:
                 gaze.update(t, snap.frame, parts, agents, station_gaze)
+            laps("next_light_ehmi")
             snap = world.get_snapshot()
             if control is not None:          # every tick, for the stations' latency measurement
                 control.broadcast({"type": "tick", "frame": carla_sim.tick_frame, "t": carla_sim.tick_wall})
@@ -542,7 +605,11 @@ def run_trial(cfg, trial_idx, args, control=None):
                 logger.event(t, snap.frame, name, "", detail)
             if crowd is not None:
                 crowd.events.clear()
+            for r in records:     # the light states the bridge read this frame (saves a round trip each)
+                r["lights"] = carla_sim.frame_lights.get(r["actor"].id)
+            laps("stations_events")
             logger.log(snap, records, ai, sumo_signals, [])
+            laps("log")
             prof["log"] += time.time() - t_b
             for c in collisions[seen_col:]:
                 logger.event(t, c[1], "collision", c[3], f"{c[2]} hit {c[4]}")
@@ -561,6 +628,9 @@ def run_trial(cfg, trial_idx, args, control=None):
                                    for p in parts) or "-"
                 log(f"t {t:6.1f}s  sumo {len(sync.sumo2carla_ids):3d}  km/h: {speeds}  RTF {rtf:.2f}  "
                     f"rows {logger.rows}  ms/tick sync {1000 * prof['sync'] / n:.1f} log {1000 * prof['log'] / n:.1f}")
+                if profile:
+                    log("  ms/tick " + laps.line(n))
+                laps.reset()
                 prof.update(sync=0.0, log=0.0, ticks0=summary["ticks"])
                 next_status += 10.0
             if t >= duration or any(getattr(p.input, "quit", False) for p in parts):
@@ -604,9 +674,12 @@ def run_trial(cfg, trial_idx, args, control=None):
                         veh.set_transform(tf)
                         ctl_in.restart(w)
                         logger.event(t, snap.frame, "respawn", veh.id, f"{part.role} road {w.road_id} lane {w.lane_id}")
+            laps("rest")
             if tc["simulation"]["real_time"]:
                 time.sleep(max(0.0, step - (time.time() - t_tick)))
         wall = time.time() - t_wall0
+        if profile:
+            summary["ms_per_tick"] = laps.totals(summary["ticks"])
         summary.update({"sim_s": round(t, 2), "wall_s": round(wall, 2), "rtf": round(t / max(wall, 1e-6), 3),
                         "rows": logger.rows, "collisions": len(collisions), "agents": len(agents),
                         "stations": station_roles, "sumo_vehicles_spawned": len(types),

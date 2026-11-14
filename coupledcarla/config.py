@@ -58,6 +58,7 @@ DEFAULTS = {
     "simulation": {
         "step": 0.02,                # 50 Hz, as coupled-sim's fixed-time log
         "real_time": True,           # sleep so that simulated time follows the wall clock
+        "profile": False,            # print ms per tick by part of the loop every 10 s (the trial's in summary.json)
         "weather": "CloudyNoon",     # a carla.WeatherParameters preset name, a dict of its fields, or "real"
         "sun_altitude": None,
         "tls_manager": "sumo",       # who runs the traffic lights: sumo | carla | none
