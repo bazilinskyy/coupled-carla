@@ -568,11 +568,15 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     reg = fleet.registry(bbox) if tc.get("fleet", "auto") == "auto" else None
     choose = Chooser(cars, reg, tc.get("car_types"))
     LT = carla.LaneType
-    blocking = LT.Driving | LT.Biking | LT.Bidirectional | LT.Sidewalk | LT.Restricted
     passable = {LT.Driving, LT.Biking, LT.Parking, LT.Bidirectional, LT.Restricted}
 
+    blocking_types = [LT.Driving, LT.Biking, LT.Bidirectional, LT.Sidewalk, LT.Restricted]
+
     def on_lane(x, y, z):
-        return cmap.get_waypoint(carla.Location(x=x, y=y, z=z), project_to_road=False, lane_type=blocking) is not None
+        # one query per lane type: with the types OR-ed into one query, a point in a parking lane that another
+        # road's driving lane overlaps (the twin has such overlaps) comes back as on no blocking lane
+        loc = carla.Location(x=x, y=y, z=z)
+        return any(cmap.get_waypoint(loc, project_to_road=False, lane_type=t) is not None for t in blocking_types)
 
     # what to keep clear of: scenery objects, buildings, and the stalls already placed
     names = {i: m for m, i in placer.mesh_index.items()}
@@ -858,7 +862,9 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                 if no_park.hits(fp):
                     counts["skip_crossing_stop_signals"] += 1
                     continue
-                body = _rect(cx, cy, L, W, yaw) if on_parking_lane else fp
+                # in a parking lane the car fills its lane: its own footprint (2 cm out, for the rounding of the
+                # stored transform) must stay off the lanes beside, not one 5 cm bigger all round
+                body = _rect(cx, cy, L + 0.04, W + 0.04, yaw) if on_parking_lane else fp
                 if any(on_lane(px, py, z) for px, py in list(body.exterior.coords)[:4] + _edge_mids(body) + [(cx, cy)]):
                     counts["skip_lane"] += 1
                     continue
