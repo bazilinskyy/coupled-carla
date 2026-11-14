@@ -27,6 +27,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 
 ## Contents
 
+- [License](#license)
 - [What you get](#what-you-get)
 - [Screenshots](#screenshots)
 - [How it works](#how-it-works)
@@ -52,6 +53,15 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Credits, data and licences](#credits-data-and-licences)
 
 ---
+
+## License
+
+The source code of coupled-carla is released under the [MIT License](LICENSE). Third-party code and data used by
+it are not covered by this license and remain under the licenses of their developers: the SUMO bridge vendored in
+`coupledcarla/bridge` (CARLA, MIT, © CVC), CARLA and Eclipse SUMO themselves (MIT, EPL-2.0), and the map and
+city data (OpenStreetMap under the ODbL, so built maps are derived databases under the ODbL; the other sources
+under CC0, CC BY 4.0, Licence Ouverte, ODbL or their open data terms). See
+[Credits, data and licences](#credits-data-and-licences) for each.
 
 ## What you get
 
