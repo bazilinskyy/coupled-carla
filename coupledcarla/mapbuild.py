@@ -253,10 +253,27 @@ def build_scenery(cfg, out, meta, cmap=None):
     return meta
 
 
+def _lefthand(net_file):
+    import re
+    head = Path(net_file).read_text(encoding="utf-8", errors="ignore")[:4000] if Path(net_file).exists() else ""
+    m = re.search(r"<net [^>]*>", head)
+    return bool(m and 'lefthand="true"' in m.group(0))
+
+
 def sumo_net(out):
     """OpenDRIVE -> map.net.xml with CARLA's road ids, by the vendored netconvert_carla.py (CARLA 1.0 does not ship
     it). The SUMO net never gets the sidewalks (see config.py); bus-only lanes (OpenDRIVE "restricted") are open to
-    buses, taxis and emergency vehicles (bridge/util/data/*.typ.xml)."""
+    buses, taxis and emergency vehicles (bridge/util/data/*.typ.xml).
+
+    Left-hand maps keep geo.net.xml as SUMO's net instead: netconvert reads OpenDRIVE as right-hand traffic, and the
+    net it re-made from a left-hand map's OpenDRIVE fell apart (Auckland: the largest strongly connected part had
+    8 of 582 car edges, against 604 of 608 in geo.net.xml), so randomTrips found almost no valid trips. geo.net.xml
+    is the net the OpenDRIVE was written from, so its lanes lie where CARLA's do (the bridge offset is then 0); only
+    the road ids differ, which matters only for CARLA-run traffic lights (tls_manager: carla)."""
+    if _lefthand(out / "geo.net.xml"):
+        (out / "map.net.xml").write_bytes((out / "geo.net.xml").read_bytes())
+        log("left-hand map: SUMO runs geo.net.xml (the OpenDRIVE's source net)")
+        return
     subprocess.check_call([sys.executable, str(Path(__file__).parent / "bridge" / "util" / "netconvert_carla.py"),
                            str(out / "map.xodr"), "--output", str(out / "map.net.xml"), "--guess-tls",
                            "--no-sidewalks"])
