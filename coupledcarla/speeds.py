@@ -40,7 +40,7 @@ is then relative to these limits.
 
 Nothing open gives accelerations or headways (EIDM's accel, decel, tau), so those stay at their defaults.
 Checked: no keyless street speeds for New York (NYC DOT's real-time speeds cover only highways, bridges and
-tunnels: FDR, West Side Highway, Lincoln Tunnel), London (TfL's need a key; DfT's average speeds are per local
+tunnels: FDR, West Side Highway, Lincoln Tunnel), London (TfL publishes no link speeds; DfT's average speeds are per local
 authority), Lyon (Criter speeds need an account; only multi-km journey times are open), Leuven (the nearest
 Flemish loops are on the E314, 1.9 km away), Auckland, Sydney (key), Tokyo, Burlington; Uber Movement is gone.
 """
