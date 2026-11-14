@@ -180,6 +180,11 @@ class SumoTLManager(object):
             self._current_phase[tlid] = traci.trafficlight.getPhase(tlid)
 
         self._off = False
+        # coupled-carla: the light ids never change during a run, and the landmark -> signals index only when a
+        # light switches program. Rebuilding both for every landmark every tick (each landmark scanned all ~140
+        # lights of the twin) cost 7 ms per tick.
+        self._tl_ids = list(self._tls)
+        self._index = None    # {landmark_id: [(tlid, link_index)]} for the current programs
 
     @staticmethod
     def subscribe(tlid):
@@ -210,31 +215,35 @@ class SumoTLManager(object):
             signals.update(self._tls[tlid][program_id].get_all_signals())
         return signals
 
+    def _landmark_index(self):
+        # coupled-carla: built once per set of current programs (see __init__)
+        if self._index is None:
+            index = {}
+            for tlid, program_id in self._current_program.items():
+                for landmark_id, signals in self._tls[tlid][program_id]._landmark2link.items():
+                    index.setdefault(landmark_id, set()).update(signals)
+            self._index = index
+        return self._index
+
     def get_all_landmarks(self):
         """
         Returns all the landmarks associated with a traffic light in the simulation.
         """
-        landmarks = set()
-        for tlid, program_id in self._current_program.items():
-            landmarks.update(self._tls[tlid][program_id].get_all_landmarks())
-        return landmarks
+        return set(self._landmark_index())
 
     def get_all_associated_signals(self, landmark_id):
         """
         Returns all the signals associated with the given landmark.
             :returns list: [(tlid, link_index), (tlid, link_index), ...]
         """
-        signals = set()
-        for tlid, program_id in self._current_program.items():
-            signals.update(self._tls[tlid][program_id].get_associated_signals(landmark_id))
-        return signals
+        return set(self._landmark_index().get(landmark_id, ()))
 
     def get_state(self, landmark_id):
         """
         Returns the traffic light state of the signals associated with the given landmark.
         """
         states = set()
-        for tlid, link_index in self.get_all_associated_signals(landmark_id):
+        for tlid, link_index in self._landmark_index().get(landmark_id, ()):
             current_program = self._current_program[tlid]
             current_phase = self._current_phase[tlid]
 
@@ -271,12 +280,14 @@ class SumoTLManager(object):
         Tick to traffic light manager
         """
         if self._off is False:
-            for tl_id in traci.trafficlight.getIDList():
+            for tl_id in self._tl_ids:     # coupled-carla: was traci.trafficlight.getIDList(), a round trip
                 results = traci.trafficlight.getSubscriptionResults(tl_id)
                 current_program = results[traci.constants.TL_CURRENT_PROGRAM]
                 current_phase = results[traci.constants.TL_CURRENT_PHASE]
 
                 if current_program != 'online':
+                    if self._current_program.get(tl_id) != current_program:
+                        self._index = None
                     self._current_program[tl_id] = current_program
                     self._current_phase[tl_id] = current_phase
 
@@ -383,6 +394,35 @@ class SumoSimulation(object):
             traci.constants.VAR_POSITION3D, traci.constants.VAR_ANGLE, traci.constants.VAR_SLOPE,
             traci.constants.VAR_SPEED, traci.constants.VAR_SPEED_LAT, traci.constants.VAR_SIGNALS
         ])
+
+    # coupled-carla: a SUMO vehicle that is not (yet) in CARLA is only needed for where it is (the level-of-detail
+    # check); all twelve variables of every vehicle in the network cost 3 ms of parsing per tick in the twin.
+    POSE_VARS = [traci.constants.VAR_POSITION3D, traci.constants.VAR_ANGLE, traci.constants.VAR_SLOPE,
+                 traci.constants.VAR_LENGTH]
+
+    @staticmethod
+    def subscribe_pose(actor_id):
+        """
+        Subscribe the given actor to its pose only (subscribe() adds the rest). SUMO adds variables to an existing
+        subscription, so going back from subscribe() to this needs unsubscribe() first.
+        """
+        traci.vehicle.subscribe(actor_id, SumoSimulation.POSE_VARS)
+
+    @staticmethod
+    def get_pose(actor_id):
+        """
+        (transform, extent) of an actor subscribed with subscribe() or subscribe_pose(), as get_actor() gives
+        them (extent carries the half length only), or None when SUMO sent nothing for it.
+        """
+        results = traci.vehicle.getSubscriptionResults(actor_id)
+        try:
+            x, y, z = results[traci.constants.VAR_POSITION3D]
+            transform = carla.Transform(carla.Location(x, y, z),
+                                        carla.Rotation(results[traci.constants.VAR_SLOPE],
+                                                       results[traci.constants.VAR_ANGLE], 0.0))
+            return transform, carla.Vector3D(results[traci.constants.VAR_LENGTH] / 2.0, 0.0, 0.0)
+        except (KeyError, TypeError, ValueError):
+            return None
 
     @staticmethod
     def unsubscribe(actor_id):

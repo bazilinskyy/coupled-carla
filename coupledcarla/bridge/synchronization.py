@@ -9,7 +9,9 @@
 SUMO <-> CARLA synchronisation, vendored from CARLA 0.9.16 Co-Simulation/Sumo/run_synchronization.py.
 
 Changes for coupled-carla: imported as a module (no CLI, no SUMO_HOME path hack; traci and sumolib come from
-pip), and the Traffic Manager port is configurable because port 8000 is often taken.
+pip), and the Traffic Manager port is configurable because port 8000 is often taken. Level of detail (SUMO actors
+in CARLA only near the participants, far ones subscribed to their pose only), batched CARLA updates, light states
+from the bridge's own cache and a cached traffic-light index keep a tick within a few ms of the server's own.
 """
 
 # ==================================================================================================
@@ -72,6 +74,9 @@ class SimulationSynchronization(object):
         self.radius = radius
         self._sumo_live = set()   # SUMO-controlled actors currently in SUMO (subscribed)
         self._lod_tick = 0
+        self._common_landmarks = None   # coupled-carla: traffic lights both sides know (cached, see tick())
+        # coupled-carla: laps(name) is called after each part of tick() (run.py times them for its profile line)
+        self.laps = lambda name: None
 
         # Mapped actor ids.
         self.sumo2carla_ids = {}  # Contains only actors controlled by sumo.
@@ -97,16 +102,22 @@ class SimulationSynchronization(object):
         """
         Tick to simulation synchronization
         """
+        laps = self.laps
+        lod = bool(self.focus and self.radius)
         # -----------------
         # sumo-->carla sync
         # -----------------
         self.sumo.tick()
+        laps("sumo_step")
 
         # New sumo actors (not controlled by carla) are subscribed; whether they appear in carla is decided
-        # by the level-of-detail pass below.
+        # by the level-of-detail pass below. coupled-carla: with level of detail, to their pose only until then.
         sumo_spawned_actors = self.sumo.spawned_actors - set(self.carla2sumo_ids.values())
         for sumo_actor_id in sumo_spawned_actors:
-            self.sumo.subscribe(sumo_actor_id)
+            if lod:
+                self.sumo.subscribe_pose(sumo_actor_id)
+            else:
+                self.sumo.subscribe(sumo_actor_id)
             self._sumo_live.add(sumo_actor_id)
 
         # Destroying sumo arrived actors in carla.
@@ -121,10 +132,10 @@ class SimulationSynchronization(object):
         centres = self.focus() if (self.focus and self.radius) else None
         check = self._sumo_live if self._lod_tick % 5 == 0 else sumo_spawned_actors & self._sumo_live
         for sumo_actor_id in list(check):
-            sumo_actor = self.sumo.get_actor(sumo_actor_id)
-            if sumo_actor is None:
+            pose = self.sumo.get_pose(sumo_actor_id)
+            if pose is None:
                 continue
-            carla_transform = BridgeHelper.get_carla_transform(sumo_actor.transform, sumo_actor.extent)
+            carla_transform = BridgeHelper.get_carla_transform(*pose)
             loc = carla_transform.location
             if centres is None:
                 near = far = None
@@ -133,6 +144,9 @@ class SimulationSynchronization(object):
                 near, far = d <= self.radius, d > self.radius + 30.0
             in_carla = sumo_actor_id in self.sumo2carla_ids
             if not in_carla and (centres is None or near):
+                if lod:   # everything about it now (traci fills the results at once, without a step)
+                    self.sumo.subscribe(sumo_actor_id)
+                sumo_actor = self.sumo.get_actor(sumo_actor_id)
                 carla_blueprint = BridgeHelper.get_carla_blueprint(sumo_actor, self.sync_vehicle_color)
                 if carla_blueprint is None:
                     self.sumo.unsubscribe(sumo_actor_id)
@@ -141,39 +155,53 @@ class SimulationSynchronization(object):
                 carla_actor_id = self.carla.spawn_actor(carla_blueprint, carla_transform)
                 if carla_actor_id != INVALID_ACTOR_ID:
                     self.sumo2carla_ids[sumo_actor_id] = carla_actor_id
+                elif lod:
+                    self.sumo.unsubscribe(sumo_actor_id)   # SUMO adds to a subscription: drop it first
+                    self.sumo.subscribe_pose(sumo_actor_id)
             elif in_carla and far:
                 self.carla.destroy_actor(self.sumo2carla_ids.pop(sumo_actor_id))
+                if lod:
+                    self.sumo.unsubscribe(sumo_actor_id)
+                    self.sumo.subscribe_pose(sumo_actor_id)
+        laps("lod")
 
         # Updating sumo actors in carla.
         for sumo_actor_id in self.sumo2carla_ids:
             carla_actor_id = self.sumo2carla_ids[sumo_actor_id]
 
             sumo_actor = self.sumo.get_actor(sumo_actor_id)
-            carla_actor = self.carla.get_actor(carla_actor_id)
 
             carla_transform = BridgeHelper.get_carla_transform(sumo_actor.transform,
                                                                sumo_actor.extent)
             if self.sync_vehicle_lights:
-                carla_lights = BridgeHelper.get_carla_lights_state(carla_actor.get_light_state(),
+                # coupled-carla: the lights the bridge last gave it, instead of asking the server for every car
+                # every tick (a blocking round trip each)
+                carla_lights = BridgeHelper.get_carla_lights_state(self.carla.current_lights(carla_actor_id),
                                                                    sumo_actor.signals)
             else:
                 carla_lights = None
 
             self.carla.synchronize_vehicle(carla_actor_id, carla_transform, carla_lights)
+        laps("sumo_to_carla")
 
         # Updates traffic lights in carla based on sumo information.
         if self.tls_manager == 'sumo':
-            common_landmarks = self.sumo.traffic_light_ids & self.carla.traffic_light_ids
-            for landmark_id in common_landmarks:
+            # coupled-carla: both id sets are fixed (SUMO's changes only with a light's program)
+            sumo_ids = self.sumo.traffic_light_ids
+            if self._common_landmarks is None or self._common_landmarks[0] != sumo_ids:
+                self._common_landmarks = (sumo_ids, sumo_ids & self.carla.traffic_light_ids)
+            for landmark_id in self._common_landmarks[1]:
                 sumo_tl_state = self.sumo.get_traffic_light_state(landmark_id)
                 carla_tl_state = BridgeHelper.get_carla_traffic_light_state(sumo_tl_state)
 
                 self.carla.synchronize_traffic_light(landmark_id, carla_tl_state)
+        laps("lights")
 
         # -----------------
         # carla-->sumo sync
         # -----------------
         self.carla.tick()
+        laps("carla_tick")
 
         # Spawning new carla actors (not controlled by sumo)
         carla_spawned_actors = self.carla.spawned_actors - set(self.sumo2carla_ids.values())
@@ -204,6 +232,7 @@ class SimulationSynchronization(object):
                                                              carla_actor.bounding_box.extent)
             if self.sync_vehicle_lights:
                 carla_lights = self.carla.get_actor_light_state(carla_actor_id)
+                self.carla.frame_lights[carla_actor_id] = carla_lights   # coupled-carla: the logger reuses it
                 if carla_lights is not None:
                     sumo_lights = BridgeHelper.get_sumo_lights_state(sumo_actor.signals,
                                                                      carla_lights)
@@ -223,6 +252,7 @@ class SimulationSynchronization(object):
 
                 # Updates all the sumo links related to this landmark.
                 self.sumo.synchronize_traffic_light(landmark_id, sumo_tl_state)
+        laps("carla_to_sumo")
 
     def close(self):
         """

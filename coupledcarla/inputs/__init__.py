@@ -84,6 +84,7 @@ class Keyboard:
         self.reset = False
         self.lights = carla.VehicleLightState.NONE
         self.steer = 0.0
+        self.send = None   # the runner's command queue: the light state goes with the tick's batch (run.py)
 
     def control(self, vehicle, events=()):
         import pygame
@@ -106,8 +107,11 @@ class Keyboard:
         self.steer += max(-0.05, min(0.05, 0.6 * target - self.steer)) if target else -self.steer * 0.3
         self.ctl.steer = max(-1.0, min(1.0, self.steer))
         self.ctl.hand_brake = bool(k[pygame.K_SPACE])
-        lights = self.lights | (carla.VehicleLightState.Brake if self.ctl.brake > 0 else 0)
-        vehicle.set_light_state(carla.VehicleLightState(lights))
+        lights = carla.VehicleLightState(self.lights | (carla.VehicleLightState.Brake if self.ctl.brake > 0 else 0))
+        if self.send is not None:
+            self.send(carla.command.SetVehicleLightState(vehicle.id, lights))
+        else:
+            vehicle.set_light_state(lights)
         return self.ctl
 
 

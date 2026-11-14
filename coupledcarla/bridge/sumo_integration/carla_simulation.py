@@ -39,6 +39,8 @@ class CarlaSimulation(object):
         self._active_actors = set()
         # coupled-carla: batched updates and caches, see synchronize_vehicle() and tick()
         self._pending, self._lights, self._kinds, self._tl_states = [], {}, {}, {}
+        self.frame_lights = {}   # coupled-carla: light state of each CARLA-driven vehicle at this frame (logger)
+        self._side_tls = {}      # coupled-carla: the light actors on the side connection (use_side)
         self.spawned_actors = set()
         self.destroyed_actors = set()
 
@@ -79,6 +81,36 @@ class CarlaSimulation(object):
             return actor.get_light_state()
         except RuntimeError:
             return None
+
+    def current_lights(self, actor_id):
+        """
+        coupled-carla: the light state of a SUMO-driven vehicle, as the bridge last set it; asked from the server
+        only the first time (nothing else changes those lights).
+        """
+        lights = self._lights.get(actor_id)
+        if lights is None:
+            lights = self.get_actor_light_state(actor_id)
+            if lights is None:
+                return carla.VehicleLightState.NONE
+            self._lights[actor_id] = lights
+        return lights
+
+    def queue(self, command):
+        """
+        coupled-carla: a carla.command sent with this tick's batch, just before the world ticks. On CARLA 1.0 two
+        fire-and-forget calls in a row stall the next blocking one by ~40 ms (its rpclib lost TCP_NODELAY, so
+        Nagle's algorithm waits for a delayed ACK); one batch per tick never does.
+        """
+        self._pending.append(command)
+
+    def use_side(self, side_world):
+        """
+        coupled-carla: send traffic-light states over a second connection (see coupledcarla.side), where several
+        in a row cannot stall the ticks. Fetches the light actors there once, now.
+        """
+        ids = [tl.id for tl in self._tls.values()]
+        by_id = {a.id: a for a in side_world.get_actors(ids)} if ids else {}
+        self._side_tls = {lid: by_id[tl.id] for lid, tl in self._tls.items() if tl.id in by_id}
 
     @property
     def traffic_light_ids(self):
@@ -168,7 +200,9 @@ class CarlaSimulation(object):
         if self._tl_states.get(landmark_id) == state:   # coupled-carla: only send changes
             return True
         self._tl_states[landmark_id] = state
-        traffic_light = self._tls[landmark_id]
+        traffic_light = self._side_tls.get(landmark_id)
+        if traffic_light is None:
+            traffic_light = self._tls[landmark_id]
         traffic_light.set_state(state)
         return True
 
@@ -181,6 +215,7 @@ class CarlaSimulation(object):
             self._pending = []
         self.tick_frame = self.world.tick()
         self.tick_wall = time.time()      # coupled-carla: when this frame's tick returned (station latency)
+        self.frame_lights = {}
 
         # Update data structures for the current frame. coupled-carla: from the local snapshot, asking the
         # server only about actors not seen before (get_actors() every tick was another bottleneck).
