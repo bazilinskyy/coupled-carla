@@ -57,13 +57,11 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     routes, additional = [], []
     pc = tc.get("public_transport") or {}
     pt = None
+    from . import transit
+    when = transit.trial_time(cfg["simulation"].get("time"), ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2),
+                              Path(map_dir) / "real")
     if pc.get("enabled", True):
         import sumolib
-        from . import transit
-        import json
-        bb = json.loads((Path(map_dir) / "meta.json").read_text())["bbox"]
-        when = transit.trial_time(cfg["simulation"].get("time"), ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2),
-                                  Path(map_dir) / "real")
         live = pc.get("live", "auto")
         live = live is True or (live == "auto" and str(cfg["simulation"].get("time")).strip() == "now")
         pt = transit.routes(map_dir, work, end, tc["bus_type"], _bus_vtype(tc), when, pc, tc["seed"],
@@ -75,13 +73,26 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
             s = pt[2]
             log(f"public transport ({s['day']} {s['hour']:02d}:00): {s['lines_running']} of {s['lines']} OSM bus "
                 f"lines running, {s['buses']} buses")
+    cars_per_hour, flows = tc["cars_per_hour"], None
+    try:   # measured counts and the road-network demand estimate (counts.py)
+        from . import counts
+        cars_per_hour, flows, _, _ = counts.plan(tc, map_dir, bbox, when, log)
+    except Exception as err:  # noqa: BLE001 - counts are a refinement: never fail the trial for them
+        log(f"counts: not used ({type(err).__name__}: {err})")
+        cars_per_hour = 2400 if cars_per_hour == "auto" else cars_per_hour
     for name, per_hour, vclass, vtype, extra in (
-            ("car", tc["cars_per_hour"], "passenger", "cars", ["--fringe-factor", "5"]),
+            ("car", cars_per_hour, "passenger", "cars", ["--fringe-factor", "5"]),
             ("bike", tc["bikes_per_hour"], "bicycle", "bikes", ["--fringe-factor", "3"]),
             ("bus", 0 if pt else tc["buses_per_hour"], "bus", tc["bus_type"], ["--min-distance", "1000"])):
         if not per_hour:
             continue
         rou = work / f"{name}.rou.xml"
+        if name == "car" and flows and counts.car_routes(net, work, types, end, per_hour, flows, tc["seed"], log):
+            painter = fleet.Painter(reg, tc["seed"])
+            painter.taxis = bool(reg and reg["body"].get("taxi"))
+            fleet.paint_routes(rou, painter)
+            routes.append(rou.name)
+            continue
         subprocess.check_call(
             [sys.executable, str(random_trips), "-n", str(net), "-r", str(rou), "-o", str(work / f"{name}.trips.xml"),
              "-b", "0", "-e", str(end), "-p", f"{3600.0 / per_hour:.3f}", "--seed", str(tc["seed"]),
