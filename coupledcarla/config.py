@@ -25,6 +25,7 @@ DEFAULTS = {
         "scenery": {                 # CARLA meshes placed from real-world data (coupledcarla/scenery.py)
             "enabled": True, "buildings": True, "trees": True, "furniture": True, "guess_lamps": True, "signs": True,
             "ground": True, "catalog": "0.9.16",
+            "canopy": True,          # trees without a mapped height: sized by Meta/WRI's 1 m canopy height map
         },
         "lane_width": 3.2,
         "carla": {"vertex_distance": 2.0, "max_road_length": 500.0, "wall_height": 0.0,

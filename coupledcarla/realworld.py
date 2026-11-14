@@ -51,6 +51,7 @@ SOURCES = {
     "eindhoven": ("Gemeente Eindhoven open data: trees (bomen) and street lights (openbare verlichting)",
                   "public domain"),
     "nyc": ("NYC Parks 2015 Street Tree Census", "NYC Open Data terms of use"),
+    "canopy": ("Meta and WRI High Resolution Canopy Height Maps (Tolan et al. 2024), AWS open data", "CC BY 4.0"),
     "gtfs": ("GTFS timetables of the local transit agencies, found via the Mobility Database catalogue",
              "per feed (see transit.json)"),
 }

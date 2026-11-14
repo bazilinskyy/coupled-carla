@@ -9,7 +9,8 @@ static.prop.mesh actors around the participants and removes them behind, in 100 
   turned to the footprint and scaled to it, standing on the terrain. The shapes and facades are CARLA's; the
   positions, footprints and heights are the real ones.
 - Trees: OSM street trees with their genus, leaf type and height pick a matching mesh and size; tree rows get
-  a tree every 8 m, and parks, gardens and woods are planted at a density for their kind.
+  a tree every 8 m, and parks, gardens and woods are planted at a density for their kind. Trees without a mapped
+  height take the canopy height of Meta/WRI's 1 m map at their spot (canopy.py) where it sees a tree.
 - Road signs: OSM stop, give-way and speed-limit signs on a post at the edge of the lane they govern, facing
   its traffic.
 - Street furniture: OSM lamps, benches, bins, bus shelters, bollards, post boxes, bicycle racks, hydrants,
@@ -600,6 +601,20 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
         return all(not pl.on_lane(x + dx, y + dy) for dx, dy in ((r, 0), (-r, 0), (0, r), (0, -r)))
 
     tree_pts = []
+    can = None   # Meta/WRI 1 m canopy heights: the size of trees whose height OSM does not give (canopy.py)
+    if sc.get("trees", True) and sc.get("canopy", True):
+        from . import canopy as canopy_mod
+        can = canopy_mod.canopy(mc["bbox"], rdir / "canopy.npz")
+        if can is not None and can.z.size:
+            sources.add("canopy")
+
+    def canopy_h(x, y):
+        """A tree's height at a CARLA position from the canopy map, or None where it sees no tree."""
+        h = can.tree_height(*geo.to_latlon(x, y)) if can is not None else None
+        if h is not None:
+            pl.counts["tree_canopy"] += 1
+        return h
+
     if sc.get("trees", True):
         for el in els:
             t = el.get("tags", {})
@@ -608,7 +623,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                 if not free(x, y, 0.4):
                     pl.counts["tree_dropped"] += 1
                     continue
-                h = _number(t.get("height"))
+                h = _number(t.get("height")) or canopy_h(x, y)
                 mesh, s = _tree(cat, _tree_family(t, el["lat"]), h, el["id"])
                 pl.add("tree", mesh, x, y, _h(el["id"]) % 360, s, sink=0.1)
                 tree_pts.append((x, y))
@@ -620,7 +635,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                     p = line.interpolate(d)
                     if not free(p.x, p.y, 0.4):
                         continue
-                    mesh, s = _tree(cat, fam, _number(t.get("height")), (el["id"], 0))   # one size per row
+                    mesh, s = _tree(cat, fam, _number(t.get("height")) or canopy_h(p.x, p.y),
+                                    (el["id"], 0))   # one size per row, unless the canopy map says otherwise
                     pl.add("tree", mesh, p.x, p.y, _h(el["id"], i) % 360, s, sink=0.1)
                     tree_pts.append((p.x, p.y))
                     pl.counts["tree_row"] += 1
@@ -648,12 +664,13 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                         if mesh in cat:
                             pl.add("bush", mesh, x, y, rng.uniform(0, 360), rng.uniform(0.7, 1.2))
                         continue
-                    mesh, s = _tree(cat, fam, None, (round(x), round(y)))
+                    mesh, s = _tree(cat, fam, canopy_h(x, y), (round(x), round(y)))
                     pl.add("tree", mesh, x, y, rng.uniform(0, 360), s, sink=0.1)
                     planted += 1
         pl.counts["tree_planted"] = planted
         log(f"scenery: {pl.counts['tree']} trees ({pl.counts['tree_osm']} street trees (OSM and registers), "
-            f"{pl.counts['tree_row']} in rows, {planted} planted in parks and woods), {pl.counts['bush']} bushes")
+            f"{pl.counts['tree_row']} in rows, {planted} planted in parks and woods), {pl.counts['bush']} bushes"
+            + (f"; {pl.counts['tree_canopy']} sized by the canopy height map" if can is not None else ""))
 
     # street furniture and lamps
     if sc.get("furniture", True):
