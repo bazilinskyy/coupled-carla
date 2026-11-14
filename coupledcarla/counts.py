@@ -72,11 +72,15 @@ _PROFILE_PCT = {
 PROFILE = {d: [v / sum(p) for v in p] for d, p in _PROFILE_PCT.items()}
 # a day's traffic relative to the annual average day (5 weekdays + Saturday + Sunday = 7)
 DAY_FACTOR = {"weekday": 1.05, "saturday": 0.95, "sunday": 0.80}
-LIGHT_SHARE = 0.9            # cars and vans in counts of all motor vehicles (DfT, Westminster: see the README)
+LIGHT_SHARE = 0.9            # cars and vans in counts of all motor vehicles: about nine in ten on urban roads;
+                             # 0.77 on the 42 DfT counts in central Westminster (many buses and motorcycles)
 # Typical annual average daily flow of cars and vans per lane by OSM road class, for the network estimate: the
 # medians over 1,080 counter-edge pairs matched on seven maps (NYC, London, Lyon, Montevideo, Auckland, Portland,
 # Burlington; primary 3,371, secondary 2,437, tertiary 2,982, minor 1,056; secondary and tertiary pooled).
 ADT_PER_LANE = {"primary": 3400, "secondary": 2600, "tertiary": 2600, "minor": 1000}
+AUTO_MAX_PER_HOUR = 5000     # random trips crowd onto a few junctions: at 6,000 cars/h Taipei teleported 66 and Tokyo
+                             # 29 vehicles in 300 s (12,000 and 10,600 uncapped: 114 and 38); fitted routes spread
+                             # better and are not capped
 TRIP_KM_PER_BOX_KM = 0.72    # mean random-trip length / side of the map box (randomTrips, fringe factor 5; 0.61 to
                              # 0.86 on eight maps)
 
@@ -722,7 +726,7 @@ def auto_cars_per_hour(edges, bbox, day, hour):
     vkt = sum(km * ADT_PER_LANE[k] for k, km in lane_km(edges).items()) * day_weight(day, hour)
     s, w, n, e = bbox
     side_km = math.sqrt(abs(n - s) * 111.2 * abs(e - w) * 111.2 * math.cos(math.radians((s + n) / 2)))
-    return vkt / (TRIP_KM_PER_BOX_KM * side_km)
+    return min(AUTO_MAX_PER_HOUR, vkt / (TRIP_KM_PER_BOX_KM * side_km))
 
 
 def car_routes(net_file, work, types, end, rate, flows, seed, log=print):

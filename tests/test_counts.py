@@ -142,6 +142,7 @@ def test_auto_cars_per_hour_scales_with_lane_km(grid_net):
     a = C.auto_cars_per_hour(grid_net, bbox, "weekday", 8)
     b = C.auto_cars_per_hour(grid_net + [dict(e, id=e["id"] + "x") for e in grid_net], bbox, "weekday", 8)
     assert b == pytest.approx(2 * a) and C.auto_cars_per_hour(grid_net, bbox, "weekday", 3) < a / 5
+    assert C.auto_cars_per_hour(grid_net * 400, bbox, "weekday", 8) == C.AUTO_MAX_PER_HOUR
 
 
 def test_load_caches_and_falls_back(tmp_path, monkeypatch):
