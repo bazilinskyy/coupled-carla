@@ -725,7 +725,25 @@ share their roads; the real bus lines and GTFS timetables are matched onto it as
 loads the level by name instead of generating an OpenDRIVE-only world. First run, headless on lin5080 (no
 GPU): 90 s, 35 SUMO vehicles shown in CARLA, 0 collisions, RTF 0.72 with the machine's other jobs running.
 
-**Still to do in phase 3:** a rendering 1.0 run with stations, VR.
+**Rendered on Windows (2026-11-14).** CARLA 1.0 also builds natively on Windows 11 (win5090: VS 2022, the
+engine fork with `GenerateProjectFiles` and msbuild, CARLA with CMake and Ninja) and packages: a Shipping
+server cooked with `-DCARLA_MAPS_TO_COOK=.../Town10HD_Opt+.../OpenDriveMap+.../TestMaps/EmptyMap+.../Twins/EhvCentre/EhvCentre`
+(9.9 GB; copy the twin's `OpenDrive/` and `TM/` folders next to the package's `Content/Carla/Maps/Twins/EhvCentre/`,
+since the cook stages only CARLA's own towns' OpenDRIVE). The packaged server starts in 30 s and uses 9.7 GB of RAM
+and 2.6 GB of GPU memory (the editor in `-game` mode: 21.6 GB and 7.5 GB); at the twin it ticks in 15 ms, 16 ms with
+a 1280x720 camera. A coupled trial with the client in WSL on the same machine (`server.host: 127.0.0.1`, mirrored
+networking): 120 s, SUMO traffic on the twin, 0 collisions, but RTF 0.32: the server takes 16 ms of the 55 ms per
+tick and the SUMO bridge's calls over the CARLA 1.0 API the rest (the same loop runs at 0.99 on 0.9.16), so the
+bridge needs profiling on 1.0.
+
+![The Eindhoven twin rendered by the packaged CARLA 1.0 server, with SUMO traffic](docs/img/twin_render_crossing.jpg)
+
+*The baked Eindhoven twin in CARLA 1.0 on win5090: lane markings, a zebra crossing, yield signs, a CARLA traffic
+light, snapped scenery, SUMO's bus, 3DBAG buildings with CARLA's plain facade material (the twin's facades are
+slabs; `--buildings procedural` would use the modular facade generator).*
+
+**Still to do in phase 3:** profile the bridge on CARLA 1.0 for real time, stations on the rendering server, facade
+textures for the 3DBAG buildings, VR.
 
 ## Traffic
 
@@ -985,7 +1003,8 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8: coupled-carla runs on it with scenery (its own mesh
    catalogue), the Eindhoven digital twin (AHN terrain, PDOK aerial photos, 3DBAG buildings) is baked into a
    CARLA 1.0 level and driven with the SUMO bridge on its own OpenDRIVE, and CARLA 1.0 builds and renders on
-   Windows (win5090). Next: a rendering run of the twin with stations, VR.
+   Windows (win5090), where a packaged server rendered a coupled trial on the twin. Next: real time on 1.0
+   (profile the bridge), stations on the rendering server, facade textures, VR.
 4. **Phase 4, more real data:** done: real bus lines at timetable frequencies, live bus positions (GTFS-RT),
    register fleets (NL, NYC, NZ, Brazil), municipal trees and lights, BGT ground and street furniture (NL), PLATEAU
    buildings (Tokyo), canopy tree heights, cyclists on the real cycle network with counted volumes, car demand
