@@ -11,8 +11,12 @@ that agrees with the register's bearing, else the bearing itself. Signs of one p
 for the same traffic) are stacked, the lowest plate's bottom at 2.2 m (the Dutch rule over pavements and cycle
 paths; a second post in line with the first makes the post that tall). A sign gets CARLA's own mesh where CARLA
 has the same sign (stop, give way, the speed limits it has, no entry), else on CARLA 1.0 a blank plate of the
-sign's shape (round, triangle, square, ...), else none. OSM's stop, give-way and speed signs within DEDUP_M of a
-register sign of the same kind are left out.
+sign's shape (round, triangle, square, ...), else none. On CARLA 1.0 with the CoupledCarla content cooked into
+the server (/Game/CoupledCarla/Signs/NL, made by tools/nl_sign_faces.py and tools/ue_nl_signs.py), a sign whose
+RVV design exists as a face (data/nl_sign_faces.json: the official drawings from Wikimedia Commons, public domain)
+gets that face on a plate of its shape instead, also in place of CARLA's US-style speed limit plates; a server
+without that content spawns the blank plate of the same shape (scenery.Scenery). OSM's stop, give-way and speed
+signs within DEDUP_M of a register sign of the same kind are left out.
 
 speed_check() compares the SUMO net's speeds with the Wegkenmerkendatabase's maximum speeds per NWB road section
 (Rijkswaterstaat, CC0, an OGC API that takes a box): `python -m coupledcarla.ndwsigns maps/<name>`.
@@ -23,6 +27,8 @@ import re
 import time
 from collections import Counter, defaultdict
 from datetime import date
+from functools import lru_cache
+from pathlib import Path
 
 import requests
 
@@ -62,11 +68,11 @@ def shape_of(code):
     if s == "E":
         return "round" if n <= 3 else "square"
     if s == "F":
-        return {6: "square", 10: "octagon"}.get(n, "round" if n <= 9 else "rect_v")
+        return {6: "square", 9: "rect_h"}.get(n, "round")      # as the RVV drawings are (data/nl_sign_faces.json)
     if s == "G":
         return "round" if 7 <= n <= 12 else "rect_v"
     if s == "J":
-        return "triangle"
+        return "rect_v" if n in (12, 13) else "triangle"        # J12/J13: beacons on a post
     if s == "L":
         return "square"
     if s == "OB":
@@ -114,9 +120,73 @@ def _major(cat):
     return major(cat.version)
 
 
-def choose(sign, cat):
-    """(mesh, plate width, tier) for a register sign on this catalogue: tier "real" (CARLA has the sign), "generic"
-    (a blank plate of its shape) or "skipped" (mesh None; also for unknown codes)."""
+# --- Dutch sign faces (CARLA 1.0) ---------------------------------------------------------------------------------
+FACES_FILE = Path(__file__).resolve().parent / "data" / "nl_sign_faces.json"
+NUMBERED = {"A1", "A2", "A4"}      # speed signs: only the face with the sign's own number will do
+ZONES = {"ZB": "ZB", "ZH": "ZB", "ZE": "ZE"}     # register zone codes -> the board: begin (and repeat), end
+KEEP_REAL = {"stop", "give_way", "no_entry"}    # CARLA's own meshes of these stay (its speed plates are US-style)
+
+
+@lru_cache(maxsize=None)
+def faces():
+    """{face key: face} of data/nl_sign_faces.json ({} without it)."""
+    try:
+        return json.loads(FACES_FILE.read_text())["faces"]
+    except (OSError, ValueError, KeyError):
+        return {}
+
+
+def face_keys(sign):
+    """The face keys that would show a register sign, best first: the zone board with its number (A1-30-ZB), the
+    zone board (E1-ZB), the sign with its number (A1-50), the sign (B6, then C4-R for the signs drawn left and
+    right). Speed signs (NUMBERED) only with their own number."""
+    p = parse(sign.get("c"))
+    if p is None:
+        return []
+    base = f"{p[0]}{p[1]}{p[2]}"
+    zone = ZONES.get(str(sign.get("z") or "").upper())
+    v = None
+    m = re.fullmatch(r"\s*(\d{1,3})(?:\.0)?\s*", str(sign.get("k") or "")) or \
+        re.search(r"[A-L]0*\d+\s*-\s*0*(\d{1,3})", str(sign.get("c")))
+    if m:
+        v = int(m.group(1))
+    keys = []
+    if v is not None and zone:
+        keys.append(f"{base}-{v}-{zone}")
+    if base in NUMBERED:
+        if v is not None:
+            keys.append(f"{base}-{v}")
+        return keys
+    if zone:
+        keys.append(f"{base}-{zone}")
+    return keys + [base, f"{base}-R"]
+
+
+def face_of(sign, cat):
+    """The face (data/nl_sign_faces.json entry) for a register sign whose plate mesh is in this catalogue, or
+    None (CARLA 0.9.16, no such design)."""
+    if _major(cat) < 1:
+        return None
+    fs = faces()
+    for k in face_keys(sign):
+        f = fs.get(k)
+        if f and f["mesh"] in cat:
+            return f
+    return None
+
+
+def fallbacks(names, cat):
+    """{face mesh path: CARLA blank plate path} for the face meshes among `names` (scenery.json "fallbacks": what
+    a server without the CoupledCarla content spawns instead, the same plate without the face)."""
+    plate = {f["mesh"]: f["plate"] for f in faces().values()}
+    return {cat.path(n): cat.path(plate[n]) for n in names if n in plate and plate[n] in cat and n in cat}
+
+
+def choose(sign, cat, use_faces=True):
+    """(mesh, plate width, tier) for a register sign on this catalogue: tier "real" (CARLA has the sign), "face"
+    (CARLA 1.0: the Dutch design on a plate of its shape, data/nl_sign_faces.json), "generic" (a blank plate of its
+    shape) or "skipped" (mesh None; also for unknown codes). CARLA's stop, give-way and no-entry meshes go before
+    a face, a face before CARLA's speed plates (on 1.0 US-style, rectangular "SPEED LIMIT")."""
     k = kind_of(sign)
     if k is None:
         return None, None, "skipped"
@@ -131,6 +201,9 @@ def choose(sign, cat):
         real = ms.SPEED.format(value)       # only the posted speed: 20 or 15 get a blank round plate
     elif kind == "no_entry":
         real = NO_ENTRY.get(major)
+    face = face_of(sign, cat) if use_faces else None
+    if face and not (kind in KEEP_REAL and real in cat):
+        return face["mesh"], face["width_m"], "face"
     if real and real in cat:
         return real, WIDTH[kind], "real"
     shape = shape_of(sign["c"])
@@ -140,15 +213,15 @@ def choose(sign, cat):
     return None, None, "skipped"
 
 
-def coverage(signs, cat):
-    """{"real": n, "generic": n, "skipped": n, "by_code": {code: {tier: n}}} for a catalogue."""
+def coverage(signs, cat, use_faces=True):
+    """{"real": n, "face": n, "generic": n, "skipped": n, "by_code": {code: {tier: n}}} for a catalogue."""
     out, by = Counter(), defaultdict(Counter)
     for s in signs:
-        tier = choose(s, cat)[2]
+        tier = choose(s, cat, use_faces)[2]
         out[tier] += 1
         p = parse(s["c"])
         by[f"{p[0]}{p[1]}{p[2]}" if p else "unknown"][tier] += 1
-    return {**{t: out[t] for t in ("real", "generic", "skipped")},
+    return {**{t: out[t] for t in ("real", "face", "generic", "skipped")},
             "by_code": {c: dict(v) for c, v in sorted(by.items(), key=lambda kv: -sum(kv[1].values()))}}
 
 
@@ -289,20 +362,20 @@ def _free_spot(on_lane, x, y, z, away, step=0.5, reach=5.0, clear=0.4):
     return None
 
 
-def place(pl, cat, signs, xy, roads, log=print):
+def place(pl, cat, signs, xy, roads, log=print, use_faces=True):
     """Place the register's signs (posts and plates) with the scenery Placer. Returns [(x, y, kind)] of the stop,
     give-way and speed signs placed (scenery.py drops OSM's duplicates of them) and fills pl.counts:
-    sign_ndw (plates), sign_ndw_real, sign_ndw_generic, sign_ndw_posts, sign_ndw_skipped (no mesh or unknown
-    code), sign_ndw_unplaced (no free spot, or no bearing and no road), sign_ndw_offroad (plates placed with no
-    lane of theirs: pedestrian streets, cycle paths, streets the map leaves out), sign_ndw_far (left out: more
-    than NEAR_M from any driving lane)."""
+    sign_ndw (plates), sign_ndw_real, sign_ndw_face, sign_ndw_generic, sign_ndw_posts, sign_ndw_skipped (no mesh
+    or unknown code), sign_ndw_unplaced (no free spot, or no bearing and no road), sign_ndw_offroad (plates placed
+    with no lane of theirs: pedestrian streets, cycle paths, streets the map leaves out), sign_ndw_far (left out:
+    more than NEAR_M from any driving lane). use_faces False: no Dutch faces (blank plates as before)."""
     ms = cat.m
     post_h = cat.size(ms.POST)[2]
     placed = []
     for group in posts(signs, xy):
         plates = []
         for s, _ in group:
-            mesh, width, tier = choose(s, cat)
+            mesh, width, tier = choose(s, cat, use_faces)
             if mesh is None:
                 pl.counts["sign_ndw_skipped"] += 1
                 continue
@@ -475,7 +548,8 @@ def main(argv=None):
     print(f"{len(signs)} register signs in {mdir.name}")
     for v in ("0.9.16", "1.0"):
         cov = coverage(signs, Catalog(v))
-        print(f"CARLA {v}: {cov['real']} real, {cov['generic']} generic, {cov['skipped']} skipped")
+        print(f"CARLA {v}: {cov['real']} real, {cov['face']} Dutch faces, {cov['generic']} generic, "
+              f"{cov['skipped']} skipped")
         print("  " + ", ".join(f"{c} {sum(t.values())} ({'/'.join(f'{k[0]}{n}' for k, n in sorted(t.items()))})"
                                for c, t in cov["by_code"].items()))
     if not args.no_speeds:

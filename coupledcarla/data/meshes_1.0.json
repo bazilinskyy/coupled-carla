@@ -10439,6 +10439,3230 @@
 -617.67,
 -0.3
 ]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1.SM_NL_A1": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_100.SM_NL_A1_100": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_120.SM_NL_A1_120": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_130.SM_NL_A1_130": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_15.SM_NL_A1_15": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_15_ZB.SM_NL_A1_15_ZB": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_20.SM_NL_A1_20": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_20_ZB.SM_NL_A1_20_ZB": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_30.SM_NL_A1_30": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_30_ZB.SM_NL_A1_30_ZB": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_30_ZE.SM_NL_A1_30_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_40.SM_NL_A1_40": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_5.SM_NL_A1_5": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_50.SM_NL_A1_50": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_50_ZB.SM_NL_A1_50_ZB": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_60.SM_NL_A1_60": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_60_ZB.SM_NL_A1_60_ZB": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_70.SM_NL_A1_70": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_80.SM_NL_A1_80": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A1_90.SM_NL_A1_90": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A2.SM_NL_A2": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A2_15_ZE.SM_NL_A2_15_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A2_20_ZE.SM_NL_A2_20_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A2_30_ZE.SM_NL_A2_30_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A2_50_ZE.SM_NL_A2_50_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A2_60_ZE.SM_NL_A2_60_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A3.SM_NL_A3": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.21
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A4.SM_NL_A4": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_A5.SM_NL_A5": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_B1.SM_NL_B1": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_B2.SM_NL_B2": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_B3.SM_NL_B3": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_B4.SM_NL_B4": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_B5.SM_NL_B5": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_B6.SM_NL_B6": {
+"cat": "sign",
+"ext": [
+0.53,
+0.01,
+0.47
+],
+"off": [
+0.0,
+0.01,
+-0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_B7.SM_NL_B7": {
+"cat": "sign",
+"ext": [
+0.21,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_BB1.SM_NL_BB1": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.19
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_BB3.SM_NL_BB3": {
+"cat": "sign",
+"ext": [
+0.15,
+0.0,
+0.29
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_BB6.SM_NL_BB6": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_BW111.SM_NL_BW111": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C1.SM_NL_C1": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C10.SM_NL_C10": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C11.SM_NL_C11": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C12.SM_NL_C12": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C12_ZB.SM_NL_C12_ZB": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C12_ZE.SM_NL_C12_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C13.SM_NL_C13": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C14.SM_NL_C14": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C15.SM_NL_C15": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C16.SM_NL_C16": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C17.SM_NL_C17": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C18.SM_NL_C18": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C19.SM_NL_C19": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C1_ZB.SM_NL_C1_ZB": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C1_ZE.SM_NL_C1_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C2.SM_NL_C2": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C20.SM_NL_C20": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C21.SM_NL_C21": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22.SM_NL_C22": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a.SM_NL_C22a": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a1.SM_NL_C22a1": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a2.SM_NL_C22a2": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a3.SM_NL_C22a3": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a4.SM_NL_C22a4": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a5.SM_NL_C22a5": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a6.SM_NL_C22a6": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a7.SM_NL_C22a7": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a8.SM_NL_C22a8": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22a9.SM_NL_C22a9": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22b.SM_NL_C22b": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22c.SM_NL_C22c": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22c1.SM_NL_C22c1": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C22d.SM_NL_C22d": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C23_1.SM_NL_C23_1": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.21
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C23_2.SM_NL_C23_2": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.21
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C23_3.SM_NL_C23_3": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.21
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C3.SM_NL_C3": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C4_L.SM_NL_C4_L": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.2
+],
+"off": [
+-0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C4_R.SM_NL_C4_R": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.2
+],
+"off": [
+-0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C5.SM_NL_C5": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C6.SM_NL_C6": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C7.SM_NL_C7": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C7a.SM_NL_C7a": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C7b.SM_NL_C7b": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C8.SM_NL_C8": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_C9.SM_NL_C9": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_D1.SM_NL_D1": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_D2.SM_NL_D2": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_D3.SM_NL_D3": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_D4.SM_NL_D4": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_D5.SM_NL_D5": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_D6.SM_NL_D6": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_D7.SM_NL_D7": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E1.SM_NL_E1": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E10.SM_NL_E10": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E11.SM_NL_E11": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E12.SM_NL_E12": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E13.SM_NL_E13": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E1_ZB.SM_NL_E1_ZB": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E1_ZE.SM_NL_E1_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E2.SM_NL_E2": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E3.SM_NL_E3": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E4.SM_NL_E4": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E5.SM_NL_E5": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E6.SM_NL_E6": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E7.SM_NL_E7": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E8.SM_NL_E8": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E9.SM_NL_E9": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F1.SM_NL_F1": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F10.SM_NL_F10": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F11.SM_NL_F11": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F12.SM_NL_F12": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F13.SM_NL_F13": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F14.SM_NL_F14": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F15.SM_NL_F15": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F16.SM_NL_F16": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F17.SM_NL_F17": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F18.SM_NL_F18": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F19.SM_NL_F19": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F2.SM_NL_F2": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F20.SM_NL_F20": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F21.SM_NL_F21": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F22.SM_NL_F22": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F3.SM_NL_F3": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F4.SM_NL_F4": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F5.SM_NL_F5": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F6.SM_NL_F6": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F7.SM_NL_F7": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F8.SM_NL_F8": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_F9.SM_NL_F9": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.21
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G1.SM_NL_G1": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G10.SM_NL_G10": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G11.SM_NL_G11": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G12.SM_NL_G12": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G12a.SM_NL_G12a": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G12b.SM_NL_G12b": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G13.SM_NL_G13": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G14.SM_NL_G14": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G2.SM_NL_G2": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G3.SM_NL_G3": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G4.SM_NL_G4": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G5.SM_NL_G5": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.2
+],
+"off": [
+-0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G6.SM_NL_G6": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.2
+],
+"off": [
+-0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G7.SM_NL_G7": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G7_ZB.SM_NL_G7_ZB": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G7_ZE.SM_NL_G7_ZE": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.2
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G8.SM_NL_G8": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_G9.SM_NL_G9": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_H1.SM_NL_H1": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_H1a.SM_NL_H1a": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_H1b.SM_NL_H1b": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.11
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_H1c.SM_NL_H1c": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.11
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_H2.SM_NL_H2": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_H2a.SM_NL_H2a": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_H2b.SM_NL_H2b": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.11
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_H2c.SM_NL_H2c": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.11
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J1.SM_NL_J1": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J10.SM_NL_J10": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J11.SM_NL_J11": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J14.SM_NL_J14": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J15.SM_NL_J15": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J16.SM_NL_J16": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J17.SM_NL_J17": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J18.SM_NL_J18": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J19.SM_NL_J19": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J2.SM_NL_J2": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J20.SM_NL_J20": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J21.SM_NL_J21": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J22.SM_NL_J22": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J23.SM_NL_J23": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J24.SM_NL_J24": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J25.SM_NL_J25": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J26.SM_NL_J26": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J27.SM_NL_J27": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J28.SM_NL_J28": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J29.SM_NL_J29": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J3.SM_NL_J3": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J30.SM_NL_J30": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J31.SM_NL_J31": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J32.SM_NL_J32": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J33.SM_NL_J33": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J34.SM_NL_J34": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J35.SM_NL_J35": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J36.SM_NL_J36": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J37.SM_NL_J37": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J38.SM_NL_J38": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J39.SM_NL_J39": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J4.SM_NL_J4": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J5.SM_NL_J5": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J6.SM_NL_J6": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J7.SM_NL_J7": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J8.SM_NL_J8": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_J9.SM_NL_J9": {
+"cat": "sign",
+"ext": [
+0.57,
+0.01,
+0.46
+],
+"off": [
+-0.0,
+0.0,
+0.14
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K1.SM_NL_K1": {
+"cat": "sign",
+"ext": [
+0.24,
+0.01,
+0.13
+],
+"off": [
+0.0,
+-0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K10.SM_NL_K10": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.3
+],
+"off": [
+0.0,
+-0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K11.SM_NL_K11": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K12.SM_NL_K12": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K13.SM_NL_K13": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K14.SM_NL_K14": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K2.SM_NL_K2": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.19
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K3.SM_NL_K3": {
+"cat": "sign",
+"ext": [
+0.27,
+0.0,
+0.21
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K5.SM_NL_K5": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K8.SM_NL_K8": {
+"cat": "sign",
+"ext": [
+0.85,
+0.01,
+0.56
+],
+"off": [
+-0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_K9.SM_NL_K9": {
+"cat": "sign",
+"ext": [
+0.17,
+0.0,
+0.24
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L1.SM_NL_L1": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L10.SM_NL_L10": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L11.SM_NL_L11": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L12.SM_NL_L12": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L13.SM_NL_L13": {
+"cat": "sign",
+"ext": [
+0.17,
+0.0,
+0.24
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L14.SM_NL_L14": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L1407.SM_NL_L1407": {
+"cat": "sign",
+"ext": [
+0.41,
+0.01,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L15.SM_NL_L15": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L16.SM_NL_L16": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L17.SM_NL_L17": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L18.SM_NL_L18": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L19_L.SM_NL_L19_L": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L19_R.SM_NL_L19_R": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L2.SM_NL_L2": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L20.SM_NL_L20": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L21.SM_NL_L21": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L3.SM_NL_L3": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.19
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L3a.SM_NL_L3a": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L3b.SM_NL_L3b": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L3c.SM_NL_L3c": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L4.SM_NL_L4": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.19
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L401.SM_NL_L401": {
+"cat": "sign",
+"ext": [
+0.16,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L403.SM_NL_L403": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L5.SM_NL_L5": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L51.SM_NL_L51": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L6.SM_NL_L6": {
+"cat": "sign",
+"ext": [
+0.85,
+0.01,
+0.56
+],
+"off": [
+-0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L7.SM_NL_L7": {
+"cat": "sign",
+"ext": [
+0.3,
+0.01,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L8.SM_NL_L8": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_L9.SM_NL_L9": {
+"cat": "sign",
+"ext": [
+0.2,
+0.0,
+0.3
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB1.SM_NL_OB1": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB13.SM_NL_OB13": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB14.SM_NL_OB14": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB504.SM_NL_OB504": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB51.SM_NL_OB51": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB59.SM_NL_OB59": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB60.SM_NL_OB60": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB61.SM_NL_OB61": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB62.SM_NL_OB62": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB63.SM_NL_OB63": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB64.SM_NL_OB64": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB65.SM_NL_OB65": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB66.SM_NL_OB66": {
+"cat": "sign",
+"ext": [
+0.28,
+0.0,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB705.SM_NL_OB705": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_OB9.SM_NL_OB9": {
+"cat": "sign",
+"ext": [
+0.29,
+0.0,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
 }
 },
 "server": "1.0-38b72cc52"

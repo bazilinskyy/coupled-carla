@@ -35,20 +35,49 @@ def test_choose_meshes_both_catalogues():
     assert ndwsigns.choose(S("B7"), C09)[::2] == ("SM_stopSign", "real")
     assert ndwsigns.choose(S("B6"), C10)[::2] == ("SM_Yield01", "real")
     assert ndwsigns.choose(S("A1", "50"), C09)[::2] == ("SM_SpeedSign50", "real")
-    assert ndwsigns.choose(S("A1", "30"), C10)[::2] == ("SM_SpeedLimit30", "real")
+    assert ndwsigns.choose(S("A1", "30"), C10, False)[::2] == ("SM_SpeedLimit30", "real")
     # the posted speed or nothing like it: no 20 km/h plate in CARLA
     assert ndwsigns.choose(S("A1", "20"), C09)[2] == "skipped"
-    assert ndwsigns.choose(S("A1", "20"), C10)[::2] == ("SM_CircleShape", "generic")
+    assert ndwsigns.choose(S("A1", "20"), C10, False)[::2] == ("SM_CircleShape", "generic")
     assert ndwsigns.choose(S("C2"), C09)[2] == "skipped"
     assert ndwsigns.choose(S("C2"), C10)[::2] == ("SM_DoNoEnter01", "real")
-    assert ndwsigns.choose(S("E4"), C10)[::2] == ("SM_SquareShape", "generic")
-    assert ndwsigns.choose(S("J24"), C10)[::2] == ("SM_DangerSignShape", "generic")
+    assert ndwsigns.choose(S("E4"), C10, False)[::2] == ("SM_SquareShape", "generic")
+    assert ndwsigns.choose(S("J24"), C10, False)[::2] == ("SM_DangerSignShape", "generic")
     assert ndwsigns.choose(S("onbekend"), C10)[2] == "skipped"
     for shape, mesh in ndwsigns.GENERIC[1].items():
         assert mesh in C10, mesh
-    cov = ndwsigns.coverage([S("B7"), S("E4"), S("E4"), S("onbekend")], C10)
+    cov = ndwsigns.coverage([S("B7"), S("E4"), S("E4"), S("onbekend")], C10, False)
     assert (cov["real"], cov["generic"], cov["skipped"]) == (1, 2, 1)
     assert cov["by_code"]["E4"] == {"generic": 2}
+
+
+def test_dutch_faces_on_carla_1():
+    # CARLA's stop, give way and no entry stay; its (US-style) speed plates and the blank plates give way to faces
+    assert ndwsigns.choose(S("B6"), C10)[::2] == ("SM_Yield01", "real")
+    assert ndwsigns.choose(S("C2"), C10)[::2] == ("SM_DoNoEnter01", "real")
+    assert ndwsigns.choose(S("A1", "30"), C10)[::2] == ("SM_NL_A1_30", "face")
+    assert ndwsigns.choose(S("A1", "20"), C10)[::2] == ("SM_NL_A1_20", "face")
+    assert ndwsigns.choose(S("E4"), C10) == ("SM_NL_E4", 0.6, "face")
+    assert ndwsigns.choose(S("J24"), C10)[::2] == ("SM_NL_J24", "face")
+    assert ndwsigns.choose(S("A4", "15"), C10)[2] == "generic"     # no face with that number: a blank plate
+    assert ndwsigns.choose(S("E4"), C09)[2] == "skipped" and ndwsigns.choose(S("A1", "50"), C09)[2] == "real"
+    zone = dict(S("A1", "30"), z="ZB")
+    assert ndwsigns.face_keys(zone) == ["A1-30-ZB", "A1-30"]
+    assert ndwsigns.choose(zone, C10)[::2] == ("SM_NL_A1_30_ZB", "face")
+    assert ndwsigns.face_keys(dict(S("A2", "30"), z="ZE"))[0] == "A2-30-ZE"
+    assert ndwsigns.face_keys(dict(S("E1"), z="ZH")) == ["E1-ZB", "E1", "E1-R"]
+    assert ndwsigns.face_keys(S("A1-50")) == ["A1-50"] and ndwsigns.face_keys(S("A1")) == []
+    assert ndwsigns.face_keys(S("C17", "11.0")) == ["C17", "C17-R"]
+    assert ndwsigns.choose(S("C4"), C10)[::2] == ("SM_NL_C4_R", "face")       # drawn left and right: right
+    assert ndwsigns.choose(S("G07"), C10)[::2] == ("SM_NL_G7", "face")
+    cov = ndwsigns.coverage([S("B7"), S("E4"), S("G11"), S("onbekend")], C10)
+    assert (cov["real"], cov["face"], cov["generic"], cov["skipped"]) == (1, 2, 0, 1)
+    # every face is in the 1.0 catalogue with its plate's size, and has a blank plate to fall back to
+    for f in ndwsigns.faces().values():
+        assert f["mesh"] in C10 and C10.size(f["mesh"]) == C10.size(f["plate"])
+    fb = ndwsigns.fallbacks(["SM_NL_E4", "SM_Pole01"], C10)
+    assert fb == {C10.path("SM_NL_E4"): C10.path("SM_SquareShape")}
+    assert C10.path("SM_NL_E4") == "/Game/CoupledCarla/Signs/NL/Meshes/SM_NL_E4.SM_NL_E4"
 
 
 class FakeResponse:
@@ -131,11 +160,12 @@ def test_place_stacks_plates_facing_the_traffic():
     post, post2, top, low = pl.items[:4]
     assert post[1] == post2[1] == cat.m.POST and abs(post[3]) >= 4.0 and post[6] == 1.0
     assert post2[2:4] == post[2:4] and post2[5] == post[5] == 1.0 and post2[6] > post[6]   # a taller post
-    assert top[1] == "SM_Yield01" and low[1] == "SM_SpeedLimit30"     # priority sign on top
+    assert top[1] == "SM_Yield01" and low[1] == "SM_NL_A1_30"     # priority sign on top
     assert post[4] == pytest.approx(90.0) and top[4] == pytest.approx(90.0)   # face (+y) to the west: oncoming
     assert top[6] > low[6] and low[6] >= 1.0 + ndwsigns.CLEAR_M - 0.01
     assert top[2] < post[2] and top[3] == post[3]   # plates in front of the post: +y of yaw 90 is -x, the west
-    assert pl.counts["sign_ndw"] == 2 and pl.counts["sign_ndw_real"] == 2 and pl.counts["sign_ndw_skipped"] == 1
+    assert pl.counts["sign_ndw"] == 2 and pl.counts["sign_ndw_real"] == 1 and pl.counts["sign_ndw_face"] == 1
+    assert pl.counts["sign_ndw_skipped"] == 1
     assert pl.counts["sign_ndw_posts"] == 1 and len(placed) == 2
     assert ndwsigns.near_same(placed, 12.0, 6.0, "give_way") and not ndwsigns.near_same(placed, 12, 6, "stop")
     assert ndwsigns.osm_kind("SM_Stop01", cat.m) == "stop" and ndwsigns.osm_kind("SM_SpeedLimit50", cat.m) == "speed"
@@ -268,7 +298,49 @@ def test_place_off_the_map_roads():
     assert post[2:4] == (3.0, 7.0) and post[6] == 2.0          # where the register has it, on the ground
     assert plate[6] == pytest.approx(2.0 + ndwsigns.CLEAR_M)   # its bottom 2.2 m up: a taller post
     assert post[4] == pytest.approx(0.0)       # read northwards (yaw -90): faces south, the traffic coming
-    assert plate[1] == "SM_CircleShape" and pl.counts["sign_ndw_offroad"] == 1
+    assert plate[1] == "SM_NL_G11" and pl.counts["sign_ndw_offroad"] == 1
     pl = FakePlacer(C10, lambda x, y: False)
     ndwsigns.place(pl, C10, [S("G11", b=0)], lambda s: (s["lon"], s["lat"]), NoLaneRoads(ndwsigns.NEAR_M + 1))
     assert pl.items == [] and pl.counts["sign_ndw_far"] == 1
+
+
+def test_scenery_spawns_the_blank_plate_without_our_content(monkeypatch, tmp_path):
+    """A server without the CoupledCarla content refuses a face mesh: the same blank plate goes in its place, and
+    from then on without asking again."""
+    import sys
+    import types
+    m = types.ModuleType("carla")
+    m.Location = lambda x=0.0, y=0.0, z=0.0: SimpleNamespace(x=x, y=y, z=z)
+    m.Rotation = lambda pitch=0.0, yaw=0.0, roll=0.0: SimpleNamespace(pitch=pitch, yaw=yaw, roll=roll)
+    m.Transform = lambda loc, rot: SimpleNamespace(location=loc, rotation=rot)
+    m.command = SimpleNamespace(SpawnActor=lambda bp, tf: SimpleNamespace(attrs=dict(bp.attrs), tf=tf))
+    monkeypatch.setitem(sys.modules, "carla", m)
+
+    class BP:
+        attrs = {}
+
+        def set_attribute(self, k, v):
+            self.attrs = dict(self.attrs, **{k: v})
+
+    class Client:
+        tried = []
+
+        def apply_batch_sync(self, cmds, _due=False):
+            self.tried += [c.attrs["mesh_path"] for c in cmds]
+            return [SimpleNamespace(actor_id=0 if c.attrs["mesh_path"].startswith("/Game/CoupledCarla") else i + 1,
+                                    error="failed to load mesh" if c.attrs["mesh_path"].startswith("/Game/Coupled")
+                                    else "") for i, c in enumerate(cmds)]
+
+    world = SimpleNamespace(get_blueprint_library=lambda: SimpleNamespace(find=lambda k: BP()))
+    face, pole = C10.path("SM_NL_E4"), C10.path("SM_Pole01")
+    data = {"meshes": [pole, face], "cell_m": 100.0, "fallbacks": ndwsigns.fallbacks(["SM_NL_E4"], C10),
+            "items": [[0, 1.0, 1.0, 0.0, 0.0, 1.0, "sign"], [1, 1.0, 1.0, 2.5, 90.0, 2.0, "sign"],
+                      [1, 250.0, 1.0, 2.5, 90.0, 2.0, "sign"]]}
+    msgs, client = [], Client()
+    sc = scenery.Scenery(client, world, tmp_path, {"radius_m": 100.0}, msgs.append, data=data)
+    sc.update([SimpleNamespace(x=0.0, y=0.0)])
+    plate = C10.path("SM_SquareShape")
+    assert client.tried == [pole, face, plate] and sc.n == 2 and any("blank plates" in s for s in msgs)
+    client.tried = []
+    sc.update([SimpleNamespace(x=250.0, y=0.0)])        # the next cell: the plate at once
+    assert client.tried == [plate]

@@ -929,11 +929,12 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         if ndw:     # the national register's signs first; OSM's stop/give-way/speed signs near them are dropped
             from . import ndwsigns
             ndw_placed = ndwsigns.place(pl, cat, ndw, lambda s_: geo.to_carla(s_["lat"], s_["lon"]),
-                                        ndwsigns.Roads(cmap, carla, lefthand), log)
+                                        ndwsigns.Roads(cmap, carla, lefthand), log, sc.get("ndw_faces", True))
             sources.add("ndw")
             c_ = pl.counts
             log(f"scenery: NDW register {len(ndw)} signs -> {c_['sign_ndw']} plates on {c_['sign_ndw_posts']} posts "
-                f"({c_['sign_ndw_real']} CARLA's own sign, {c_['sign_ndw_generic']} blank plates of its shape); "
+                f"({c_['sign_ndw_real']} CARLA's own sign, {c_['sign_ndw_face']} Dutch faces, "
+                f"{c_['sign_ndw_generic']} blank plates of its shape); "
                 f"{c_['sign_ndw_offroad']} of them on streets without a lane in the map; {c_['sign_ndw_skipped']} "
                 f"without a mesh, {c_['sign_ndw_far']} far from the map's roads, {c_['sign_ndw_unplaced']} without "
                 f"a free spot")
@@ -1084,6 +1085,9 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
     out = {"version": 1, "catalog": cat.version, "cell_m": CELL, "meshes": [cat.path(m) for m in meshes],
            "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources), "leaf": leaf}
+    from .ndwsigns import fallbacks
+    if fallbacks(meshes, cat):      # Dutch sign faces: the blank plate where the server lacks our content
+        out["fallbacks"] = fallbacks(meshes, cat)
     (mdir / "scenery.json").write_text(json.dumps(out, separators=(",", ":")))
     log(f"scenery: {len(pl.items)} placements -> {mdir / 'scenery.json'}")
     return out
@@ -1133,6 +1137,7 @@ class Scenery:
                 cx, cy = it[8] if len(it) > 8 else it[1:3]      # the mesh's centre where its pivot is far off
                 self.cells[(int(cx // self.cell), int(cy // self.cell))].append(it)
         self.loaded = {}
+        self.fallbacks = dict(data.get("fallbacks") or {})     # mesh path -> spawned instead when it fails
         self.bp = world.get_blueprint_library().find("static.prop.mesh")
         self.n = 0
         if self.always:
@@ -1158,6 +1163,8 @@ class Scenery:
                 cmds.append(carla.command.SpawnActor(self.bp, tf))
             lamp.append(it[6] == "lamp" and it[0] in self.light_bp)
         res = self.client.apply_batch_sync(cmds, False)
+        if self.fallbacks:
+            res = self._fall_back(items, res)
         if moves:
             self.client.apply_batch_sync([carla.command.ApplyTransform(res[i].actor_id, tf)
                                           for i, tf in moves.items() if not res[i].error], False)
@@ -1179,6 +1186,33 @@ class Scenery:
         self.n += len(ids)
         if self.on_spawn:
             self.on_spawn(ids)
+
+    def _fall_back(self, items, res):
+        """A failed mesh that has a fallback (a Dutch sign face on a server without the CoupledCarla content):
+        every such mesh is swapped for its fallback (the same blank plate) from then on, and the failed ones are
+        spawned again. items and res are aligned (one spawn per item)."""
+        import carla
+        redo = [k for k, r in enumerate(res) if r.error and self.meshes[items[k][0]] in self.fallbacks]
+        if not redo:
+            return res
+        n = sum(m in self.fallbacks for m in self.meshes)
+        self.meshes = [self.fallbacks.get(m, m) for m in self.meshes]
+        self.fallbacks = {}
+        self.log(f"scenery: the server has no Dutch sign faces (the CoupledCarla content is not cooked in): "
+                 f"{n} face meshes spawn as blank plates")
+        res = list(res)
+        again = []
+        for k in redo:
+            it = items[k]
+            pitch, roll = (it[7] if len(it) > 7 else (0.0, 0.0))
+            tf = carla.Transform(carla.Location(x=it[1], y=it[2], z=it[3]),
+                                 carla.Rotation(pitch=pitch, yaw=it[4], roll=roll))
+            self.bp.set_attribute("mesh_path", self.meshes[it[0]])
+            self.bp.set_attribute("scale", str(it[5]))
+            again.append(carla.command.SpawnActor(self.bp, tf))
+        for k, r in zip(redo, self.client.apply_batch_sync(again, False)):
+            res[k] = r
+        return res
 
     def _relight(self, key):
         """A loaded cell that came within lights_radius_m: its lamps again as light blueprints."""
