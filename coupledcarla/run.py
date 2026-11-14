@@ -267,6 +267,7 @@ def run_trial(cfg, trial_idx, args, control=None):
         focus_actors = []   # SUMO actors appear in CARLA only near these (the participants)
         sync = SimulationSynchronization(
             sumo, carla_sim, tc["simulation"]["tls_manager"], sync_vehicle_lights=True,
+            sync_vehicle_color=True,     # each SUMO car's colour (traffic.py: from the vehicle register) on its CARLA car
             tm_port=tc["server"]["tm_port"] if tc["simulation"].get("traffic_manager") else None,
             radius=tc["simulation"]["lod_radius_m"],
             focus=lambda: [a.get_location() for a in focus_actors] or None)

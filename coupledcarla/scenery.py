@@ -515,6 +515,26 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
     # OSM features
     osm = rw.osm_scenery(mc["bbox"], rdir / "osm_scenery.json")
     els = osm.get("elements", [])
+    # the city's own tree and street-light registers (fuller than OSM where they exist): they replace OSM's
+    # trees within 3 m of one of theirs, and all OSM and guessed lamps
+    muni = rw.municipal_scenery(mc["bbox"], rdir / "municipal.json") if sc.get("municipal", True) else {}
+    m_els = muni.get("elements", [])
+    m_trees = [e for e in m_els if e["tags"].get("natural") == "tree"]
+    m_lamps = any(e["tags"].get("highway") == "street_lamp" for e in m_els)
+    if m_trees:
+        tpts = [Point(geo.to_carla(e["lat"], e["lon"])) for e in m_trees]
+        ttree = STRtree(tpts)
+
+        def dup(el):
+            p = Point(geo.to_carla(el["lat"], el["lon"]))
+            return any(tpts[i].distance(p) < 3.0 for i in ttree.query(p.buffer(3.0)))
+        els = [el for el in els if not (el["type"] == "node" and el.get("tags", {}).get("natural") == "tree"
+                                        and dup(el))]
+    if m_lamps:
+        els = [el for el in els if el.get("tags", {}).get("highway") != "street_lamp"]
+    els = els + m_els
+    for src in muni.get("sources", []):
+        sources.add(src)
     green, water, tunnels = [], [], []
     for el in els:
         t = el.get("tags", {})
@@ -611,7 +631,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                     pl.add("tree", mesh, x, y, rng.uniform(0, 360), s, sink=0.1)
                     planted += 1
         pl.counts["tree_planted"] = planted
-        log(f"scenery: {pl.counts['tree']} trees ({pl.counts['tree_osm']} OSM street trees, "
+        log(f"scenery: {pl.counts['tree']} trees ({pl.counts['tree_osm']} street trees (OSM and registers), "
             f"{pl.counts['tree_row']} in rows, {planted} planted in parks and woods), {pl.counts['bush']} bushes")
 
     # street furniture and lamps
@@ -635,6 +655,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                 _, towards = road_yaw(x, y)
                 wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
                 far = wp is None or wp.transform.location.distance(carla.Location(x=x, y=y)) > 9
+                far = far or (_number(t.get("height")) or 99) <= 4.5      # a low mast (register): a park lamp
                 pl.add("lamp", PARK_LAMP if far else LAMP, x, y, 0.0 if far or towards is None else towards, 1.0)
                 lamps += 1
                 continue
@@ -655,7 +676,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
             pl.add("furniture", meshes[_h(el["id"]) % len(meshes)], x, y, yaw, 1.0)
         # lamps along the roads where OSM maps few
         lane_km = sum(1 for w in cmap.generate_waypoints(10.0) if w.lane_type == carla.LaneType.Driving) / 100.0
-        if sc.get("guess_lamps", True) and lamps < 8 * lane_km:
+        if sc.get("guess_lamps", True) and lamps < 8 * lane_km and not m_lamps:
             spacing = 32.0
             done = 0
             seen = set()
@@ -686,6 +707,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                 pl.add("lamp", LAMP, x, y, tf.rotation.yaw + 90.0 + 180.0, 1.0)     # arm over the road
                 done += 1
             log(f"scenery: OSM maps {lamps} street lamps; {done} more along the roads")
+        elif m_lamps:
+            log(f"scenery: {lamps} street lamps from the city's register")
         log(f"scenery: {pl.counts['furniture']} pieces of street furniture, {pl.counts['lamp']} lamps")
 
     # road signs

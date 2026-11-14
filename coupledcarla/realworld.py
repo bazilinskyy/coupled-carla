@@ -46,6 +46,9 @@ SOURCES = {
     "ahn": ("AHN4 DTM 0.5 m via PDOK (Rijkswaterstaat)", "CC0 1.0"),
     "terrarium": ("AWS Terrain Tiles (Mapzen Terrarium: SRTM, 3DEP, national lidar, ...)", "see their attribution"),
     "open-meteo": ("Open-Meteo.com weather API (national weather services, ERA5)", "CC BY 4.0"),
+    "eindhoven": ("Gemeente Eindhoven open data: trees (bomen) and street lights (openbare verlichting)",
+                  "public domain"),
+    "nyc": ("NYC Parks 2015 Street Tree Census", "NYC Open Data terms of use"),
     "gtfs": ("GTFS timetables of the local transit agencies, found via the Mobility Database catalogue",
              "per feed (see transit.json)"),
 }
@@ -102,6 +105,106 @@ out geom tags;"""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, separators=(",", ":")))
     log(f"OSM scenery: {len(data.get('elements', []))} features")
+    return data
+
+
+# --- municipal registers (trees, street lights) ------------------------------------------------------------------
+
+EHV = "https://data.eindhoven.nl/api/explore/v2.1/catalog/datasets/{}/exports/json"
+EHV_HEIGHTS = {"0-6": 4.5, "6-9": 7.5, "9-12": 10.5, "12-15": 13.5, "15-18": 16.5, "18-24": 21.0, ">24": 26.0}
+NYC_TREES = "https://data.cityofnewyork.us/resource/uvpi-gqnh.json"
+
+
+def _ehv(bbox):
+    s, w, n, e = bbox
+    where = f"in_bbox(geo_point_2d,{s},{w},{n},{e})"
+    out = []
+    trees = requests.get(EHV.format("bomen"), params={"where": where, "select": "boomsoort,hoogte,geo_point_2d"},
+                         headers=UA, timeout=180).json()
+    for i, t in enumerate(trees):
+        g = t.get("geo_point_2d") or {}
+        if "lat" not in g:
+            continue
+        latin = (t.get("boomsoort") or "").strip()
+        tags = {"natural": "tree", "genus": latin.split(" ")[0] if latin else "", "species": latin,
+                "source": "eindhoven-bomen"}
+        if EHV_HEIGHTS.get(t.get("hoogte")):
+            tags["height"] = str(EHV_HEIGHTS[t["hoogte"]])
+        out.append({"type": "node", "id": -1_000_000 - i, "lat": g["lat"], "lon": g["lon"], "tags": tags})
+    lights = requests.get(EHV.format("data-openbare-verlichting"),
+                          params={"where": where, "select": "geo_point_2d,lph_armatuur,soort_lamp,kleur_lamp"},
+                          headers=UA, timeout=180).json()
+    seen = set()
+    for i, lt in enumerate(lights):
+        g = lt.get("geo_point_2d") or {}
+        if "lat" not in g:
+            continue
+        key = (round(g["lat"], 6), round(g["lon"], 6))      # a mast with two lamps is listed twice
+        if key in seen:
+            continue
+        seen.add(key)
+        tags = {"highway": "street_lamp", "source": "eindhoven-openbare-verlichting",
+                "lamp_type": lt.get("soort_lamp") or "", "light:colour": lt.get("kleur_lamp") or ""}
+        if lt.get("lph_armatuur"):
+            tags["height"] = f"{float(lt['lph_armatuur']) / 100:.1f}"      # light point height, cm
+        out.append({"type": "node", "id": -2_000_000 - i, "lat": g["lat"], "lon": g["lon"], "tags": tags})
+    return out
+
+
+def _nyc_trees(bbox):
+    s, w, n, e = bbox
+    rows = requests.get(NYC_TREES, params={
+        "$select": "spc_latin,tree_dbh,latitude,longitude", "$limit": 50000,
+        "$where": f"latitude between {s} and {n} AND longitude between {w} and {e} AND status='Alive'"},
+        headers=UA, timeout=180).json()
+    out = []
+    for i, t in enumerate(rows):
+        try:
+            lat, lon, dbh = float(t["latitude"]), float(t["longitude"]), float(t.get("tree_dbh") or 0)
+        except (KeyError, ValueError):
+            continue
+        latin = (t.get("spc_latin") or "").strip()
+        # no heights in the census: a street tree's height from its trunk diameter (inches), capped
+        h = min(25.0, 2.0 + 0.55 * dbh) if dbh else None
+        tags = {"natural": "tree", "genus": latin.split(" ")[0] if latin else "", "species": latin,
+                "source": "nyc-street-tree-census-2015"}
+        if h:
+            tags["height"] = f"{h:.1f}"
+        out.append({"type": "node", "id": -3_000_000 - i, "lat": lat, "lon": lon, "tags": tags})
+    return out
+
+
+def _in_box(bbox, s, w, n, e):
+    lat, lon = (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2
+    return s <= lat <= n and w <= lon <= e
+
+
+MUNICIPAL = [   # (name, area (s, w, n, e) the register covers, fetch, what it has)
+    ("eindhoven", (51.38, 5.38, 51.50, 5.57), _ehv, "Gemeente Eindhoven open data: bomen, openbare verlichting"),
+    ("nyc", (40.49, -74.27, 40.92, -73.68), _nyc_trees, "NYC Parks 2015 Street Tree Census"),
+]
+
+
+def municipal_scenery(bbox, path):
+    """Trees and street lights from the city's own registers, as OSM-like nodes ({elements, sources}); empty where
+    no register is known. Cached in path."""
+    if path.exists():
+        return json.loads(path.read_text())
+    els, used = [], []
+    for name, area, fetch, what in MUNICIPAL:
+        if _in_box(bbox, *area):
+            try:
+                got = fetch(bbox)
+            except Exception as err:  # noqa: BLE001 - the register is down: OSM alone
+                log(f"{name} register failed ({err})")
+                continue
+            els += got
+            used.append(name)
+            log(f"{what}: {sum(1 for x in got if x['tags'].get('natural') == 'tree')} trees, "
+                f"{sum(1 for x in got if x['tags'].get('highway') == 'street_lamp')} street lights")
+    data = {"elements": els, "sources": used}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data))
     return data
 
 

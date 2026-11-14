@@ -39,9 +39,17 @@ def _bus_vtype(tc):
 def prepare(cfg, map_dir, work, duration_s, log=print):
     """Writes types, routes and a .sumocfg into work/ and returns the .sumocfg path."""
     import sumo
-    tc = cfg["traffic"]
+    import json
+    from . import fleet
+    tc = dict(cfg["traffic"])
     work.mkdir(parents=True, exist_ok=True)
     net = Path(map_dir) / "map.net.xml"
+    bbox = json.loads((Path(map_dir) / "meta.json").read_text())["bbox"]
+    reg = fleet.registry(bbox) if tc.get("fleet", "auto") == "auto" else None
+    if reg:
+        tc["car_types"] = fleet.car_types(reg)
+        log(f"fleet: {reg['source']}: " + ", ".join(f"{k} {100 * v / sum(reg['body'].values()):.0f}%"
+                                                  for k, v in sorted(reg["body"].items(), key=lambda x: -x[1])[:5]))
     types = work / "types.add.xml"
     types.write_text(_vtypes(tc))
     random_trips = Path(sumo.SUMO_HOME) / "tools" / "randomTrips.py"
@@ -52,9 +60,15 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     if pc.get("enabled", True):
         import sumolib
         from . import transit
-        when = transit.trial_time(cfg["simulation"].get("time"))
+        import json
+        bb = json.loads((Path(map_dir) / "meta.json").read_text())["bbox"]
+        when = transit.trial_time(cfg["simulation"].get("time"), ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2),
+                                  Path(map_dir) / "real")
+        live = pc.get("live", "auto")
+        live = live is True or (live == "auto" and str(cfg["simulation"].get("time")).strip() == "now")
         pt = transit.routes(map_dir, work, end, tc["bus_type"], _bus_vtype(tc), when, pc, tc["seed"],
-                            sumolib.net.readNet(str(net), withInternal=False, withPedestrianConnections=False))
+                            sumolib.net.readNet(str(net), withInternal=False, withPedestrianConnections=False),
+                            live=live)
         if pt:
             routes.append(pt[0])
             additional.append(pt[1])
@@ -75,6 +89,14 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
              "--trip-attributes", f'type="{vtype}" departLane="best" departSpeed="max"',
              "--additional-file", str(types), "--validate", *extra],
             stdout=subprocess.DEVNULL)
+        if name == "car":
+            painter = fleet.Painter(reg, tc["seed"])
+            painter.taxis = bool(reg and reg["body"].get("taxi"))
+            fleet.paint_routes(rou, painter)
+        elif name == "bike":
+            fleet.paint_routes(rou, fleet.Painter({"colors": fleet.BIKE_COLORS}, tc["seed"] + 1))
+        else:
+            fleet.paint_routes(rou, lambda bp: "240,240,236")
         routes.append(rou.name)
     # The router behind --validate copies the vehicle types into each route file, so types.add.xml
     # is not loaded again here (SUMO refuses a type defined twice).

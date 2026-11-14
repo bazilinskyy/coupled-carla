@@ -8,7 +8,8 @@ counted per hour, for a weekday, a Saturday and a Sunday. All of it goes to tran
 
 Trial (`routes`): each line runs at its timetable's frequency for the trial's local hour (simulation.time, else
 08:00 on a weekday), else at the OSM `interval` tag, else at a default; buses are already spread along the line at
-t = 0, as they would be, and stop at every stop. Trams and trains are left out: CARLA has no tram, and the maps
+t = 0, as they would be, and stop at every stop. At simulation.time "now", the lines whose agency publishes
+GTFS-Realtime vehicle positions start with their buses where the real ones are at that moment. Trams and trains are left out: CARLA has no tram, and the maps
 have no rails.
 """
 import csv
@@ -34,6 +35,8 @@ CATALOG = "https://files.mobilitydatabase.org/feeds_v2.csv"
 NATIONAL = {"NL": ["mdb-1077"]}
 MAX_FEED_BYTES = 1_500_000_000
 MAX_FEEDS = 8
+CACHE = Path.home() / ".cache" / "coupled-carla" / "gtfs"
+LIVE_MAX_AGE_S = 300    # live positions older than this are dropped
 V_LINE = 6.0            # a city bus's mean speed along its line, stops included (m/s), to spread buses at t = 0
 
 
@@ -532,14 +535,144 @@ def build(out, bbox, use_gtfs=True, cache=None):
     freq, feeds = {}, []
     if use_gtfs and refs:
         try:
-            freq, feeds = gtfs_frequencies(bbox, Path(cache or Path.home() / ".cache" / "coupled-carla" / "gtfs"),
-                                           set(refs))
+            freq, feeds = gtfs_frequencies(bbox, Path(cache or CACHE), set(refs))
         except Exception as err:  # noqa: BLE001 - the lines still run at OSM or default intervals
             log(f"GTFS failed ({err}); lines run at OSM or default intervals")
     data = {"lines": matched, "stops": stops, "gtfs": freq, "feeds": feeds}
     (out / "transit.json").write_text(json.dumps(data, indent=1))
     return {"lines": len(matched), "refs": len(refs), "stops": len(stops), "with_timetable": len(freq),
             "feeds": [f["id"] for f in feeds]}
+
+
+# --- live positions (GTFS-Realtime) ------------------------------------------------------------------------------
+
+def rt_feeds(static_ids, cache=CACHE):
+    """GTFS-Realtime vehicle-position feeds of the Mobility Database that belong to these static feeds and need no
+    key."""
+    path = Path(cache) / "mobilitydatabase_feeds_v2.csv"
+    if not path.exists():
+        return []
+    out = []
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if row.get("data_type") != "gtfs_rt" or "vp" not in (row.get("entity_type") or "").split("|"):
+                continue
+            if row.get("urls.authentication_type") not in ("0", "") or not row.get("urls.direct_download"):
+                continue
+            if row.get("status") not in ("active", ""):
+                continue
+            refs = set((row.get("static_reference") or "").replace(";", "|").split("|"))
+            if refs & set(static_ids):
+                out.append(row)
+    return out
+
+
+def live_positions(map_dir, data, cache=CACHE, now=None):
+    """The buses of the map's lines that are inside its box right now, from the GTFS-Realtime vehicle positions of
+    its timetable feeds: ([{ref, lat, lon, bearing, age_s, trip_id}], [feed ids], refs the feeds cover)."""
+    from google.transit import gtfs_realtime_pb2
+    bbox = json.loads((Path(map_dir) / "meta.json").read_text())["bbox"]
+    s, w, n, e = bbox
+    refs = {ln["ref"] for ln in data["lines"] if ln["ref"]}
+    keys = {}
+    for ref in refs:
+        keys[_key(ref)] = ref
+    for ref in refs:
+        keys.setdefault(_base(ref), ref)
+    out, used, covered = [], [], set()
+    now = now or time.time()
+    for row in rt_feeds([f["id"] for f in data.get("feeds", [])], cache):
+        static = next((f["id"] for f in data["feeds"] if f["id"] in (row.get("static_reference") or "")), None)
+        zpath = Path(cache) / f"{static}.zip"
+        if not static or not zpath.exists():
+            continue
+        try:
+            r = requests.get(row["urls.direct_download"], headers=realworld.UA, timeout=60)
+            r.raise_for_status()
+            msg = gtfs_realtime_pb2.FeedMessage()
+            msg.ParseFromString(r.content)
+        except Exception as err:  # noqa: BLE001 - a dead live feed: the trial spreads buses by timetable instead
+            log(f"live feed {row['id']} failed ({err})")
+            continue
+        z = zipfile.ZipFile(zpath)
+        route_ref = {}
+        for rr in _rows(z, "routes.txt"):
+            name = (rr.get("route_short_name") or "").strip() or (rr.get("route_long_name") or "").strip()
+            ref = keys.get(_key(name)) or keys.get(_base(name))
+            if ref:
+                route_ref[rr["route_id"]] = ref
+        covered |= set(route_ref.values())
+        trip_route = None
+        for ent in msg.entity:
+            if not ent.HasField("vehicle"):
+                continue
+            v = ent.vehicle
+            lat, lon = v.position.latitude, v.position.longitude
+            if not (s <= lat <= n and w <= lon <= e):
+                continue
+            age = now - v.timestamp if v.timestamp else 0
+            if age > LIVE_MAX_AGE_S:
+                continue
+            rid = v.trip.route_id
+            if not rid and v.trip.trip_id:
+                if trip_route is None:      # route ids only through the trips: read trips.txt once
+                    trip_route = {t["trip_id"]: t.get("route_id") for t in _rows(z, "trips.txt")}
+                rid = trip_route.get(v.trip.trip_id, "")
+            ref = route_ref.get(rid)
+            if ref:
+                out.append({"ref": ref, "lat": lat, "lon": lon, "bearing": v.position.bearing or None,
+                            "age_s": round(age, 1), "trip_id": v.trip.trip_id, "feed": row["id"]})
+        used.append(row["id"])
+    return out, used, covered
+
+
+def _place_live(veh, lines, net):
+    """Where a live bus starts: (line index, edge index, position, edges before the line) on the line of its ref.
+
+    On the line when within 40 m of it (running its way when the feed gives a bearing); else (a bus waiting at a
+    bus station, or on a stretch the line's track was not matched to) on the nearest bus road, with the shortest
+    bus path from there to the line (at most 1.5 km). None when neither works."""
+    x, y = net.convertLonLat2XY(veh["lon"], veh["lat"])
+    best = None
+    near = net.getNeighboringEdges(x, y, 40.0)
+    for li, line in lines:
+        index = {eid: i for i, eid in enumerate(line["edges"])}
+        for edge, _ in near:
+            i = index.get(edge.getID())
+            if i is None:
+                continue
+            lanes = [ln for ln in edge.getLanes() if ln.allows("bus")]
+            if not lanes:
+                continue
+            pos, dist = lanes[0].getClosestLanePosAndDist((x, y))
+            score = dist
+            if veh.get("bearing") is not None:
+                h = _heading(edge.getShape(), x, y)
+                if h:
+                    b = math.radians(veh["bearing"])           # compass: 0 north, clockwise
+                    score += 15 * (1 - (h[1] * math.sin(b) + h[2] * math.cos(b)))
+            if best is None or score < best[0]:
+                best = (score, li, i, max(0.0, pos), [])
+    if best:
+        return best[1:]
+    # off the line: from the nearest road a bus may use, the shortest way onto the line
+    start = None
+    for edge, _ in sorted(near, key=lambda t: t[1]):
+        lanes = [ln for ln in edge.getLanes() if ln.allows("bus")]
+        if lanes:
+            start = (edge, max(0.0, lanes[0].getClosestLanePosAndDist((x, y))[0]))
+            break
+    if not start:
+        return None
+    for li, line in lines:
+        for i, eid in enumerate(line["edges"]):
+            path, cost = net.getShortestPath(start[0], net.getEdge(eid), vClass="bus")
+            if path and cost - start[1] <= 1500:
+                cand = (cost, li, i, start[1], [e.getID() for e in path[:-1]])
+                if best is None or cand[0] < best[0]:
+                    best = cand
+                break               # the first reachable edge of this piece is the nearest way in
+    return best[1:] if best else None
 
 
 # --- trial -----------------------------------------------------------------------------------------------------
@@ -559,11 +692,38 @@ def day_type(when):
     return "saturday" if when.weekday() == 5 else "sunday" if when.weekday() == 6 else "weekday"
 
 
-def trial_time(text):
-    """simulation.time -> the local datetime whose timetable is used; unset or "now": 08:00 on a weekday."""
-    now = datetime.now()
-    if text not in (None, "now", ""):
-        text = str(text).strip()
+def place_now(lat, lon, cache_dir=None):
+    """The local time at the place now (its UTC offset from Open-Meteo, cached per day; else solar time)."""
+    from datetime import timezone
+    utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    path = Path(cache_dir) / "utc_offset.json" if cache_dir else None
+    off = None
+    if path and path.exists():
+        c = json.loads(path.read_text())
+        if c.get("date") == utc.date().isoformat():
+            off = c["offset_s"]
+    if off is None:
+        try:
+            r = requests.get(realworld.METEO, params={"latitude": lat, "longitude": lon, "timezone": "auto",
+                                                      "current": "temperature_2m"}, headers=realworld.UA, timeout=30)
+            r.raise_for_status()
+            off = r.json()["utc_offset_seconds"]
+            if path:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps({"date": utc.date().isoformat(), "offset_s": off}))
+        except Exception:  # noqa: BLE001 - offline: solar time
+            off = round(lon / 15.0) * 3600
+    return utc + timedelta(seconds=off)
+
+
+def trial_time(text, latlon=None, cache_dir=None):
+    """simulation.time -> the local datetime at the place whose timetable is used: "now" is the place's local time
+    now, "HH:MM" today there; unset: 08:00 on a weekday."""
+    now = place_now(*latlon, cache_dir) if latlon else datetime.now()
+    text = None if text is None else str(text).strip()
+    if text == "now":
+        return now
+    if text:
         for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M"):
             try:
                 return datetime.strptime(text, fmt)
@@ -574,16 +734,17 @@ def trial_time(text):
             return now.replace(hour=hh, minute=mm, second=0, microsecond=0)
         except ValueError:
             pass
-        if text == "now":
-            return now
     d = now.replace(hour=8, minute=0, second=0, microsecond=0)
     while d.weekday() >= 5:
         d += timedelta(days=1)
     return d
 
 
-def routes(map_dir, work, end_s, vtype, vtype_xml, when, pc, seed, net):
-    """Writes stops.add.xml and pt.rou.xml for the trial; returns (route file, additional file, summary) or None."""
+def routes(map_dir, work, end_s, vtype, vtype_xml, when, pc, seed, net, live=False):
+    """Writes stops.add.xml and pt.rou.xml for the trial; returns (route file, additional file, summary) or None.
+
+    live: start with the buses where the GTFS-Realtime feed has them now (lines it covers), instead of spreading
+    them by the timetable."""
     path = Path(map_dir) / "transit.json"
     if not path.exists():
         return None
@@ -603,6 +764,16 @@ def routes(map_dir, work, end_s, vtype, vtype_xml, when, pc, seed, net):
     rou = ["<routes>", "  " + vtype_xml]
     vehicles, running = [], 0
     dwell = pc.get("dwell_s", 20)
+    stop_edge = {st["id"]: st["lane"].rsplit("_", 1)[0] for st in data["stops"]}
+    live_veh, live_feeds, covered = [], [], set()
+    if live:
+        try:
+            live_veh, live_feeds, covered = live_positions(map_dir, data)
+        except Exception as err:  # noqa: BLE001 - no live data: spread by timetable
+            log(f"live positions failed ({err}); buses spread by the timetable")
+        if live_feeds:
+            (work / "pt_live.json").write_text(json.dumps({"time": time.time(), "feeds": live_feeds,
+                                                           "vehicles": live_veh}, indent=1))
     for li, line in enumerate(data["lines"]):
         h = headway_s(line, data["gtfs"], day, hour, pc.get("default_headway_min", 10))
         if not h:
@@ -616,10 +787,9 @@ def routes(map_dir, work, end_s, vtype, vtype_xml, when, pc, seed, net):
             cum.append(acc)
             acc += edges_len[e]
         total = acc
-        stop_edge = {st["id"]: st["lane"].rsplit("_", 1)[0] for st in data["stops"]}
         phase = rng.uniform(0, h)
         k = 0
-        while True:                     # buses already on the line at t = 0, spread by the headway
+        while line["ref"] not in covered:   # buses already on the line at t = 0, spread by the headway
             back = (k * h + (h - phase)) * V_LINE
             if back >= total - 60:
                 break
@@ -637,9 +807,29 @@ def routes(map_dir, work, end_s, vtype, vtype_xml, when, pc, seed, net):
             vehicles.append((t, f"pt{li}_d{n}", line["edges"], line["stops"], 0.0, line))
             t += h
             n += 1
+    placed = 0
+    by_ref = {}
+    for li, line in enumerate(data["lines"]):
+        if line["ref"]:
+            by_ref.setdefault(line["ref"], []).append((li, line))
+    for k, veh in enumerate(live_veh):      # the real buses, where they are now
+        spot = _place_live(veh, by_ref.get(veh["ref"], []), net)
+        if not spot:
+            continue
+        li, i, pos, before = spot
+        line = data["lines"][li]
+        edges = before + line["edges"][i:]
+        st_ids = [s for s in line["stops"] if stop_edge.get(s) in line["edges"][i:] and not
+                  (not before and stop_edge[s] == edges[0] and _stop_pos(data, s) < pos + 5)]
+        vehicles.append((0.0, f"live{k}", edges, st_ids, pos, line))
+        placed += 1
+    if live_feeds:
+        log(f"live: {placed} of {len(live_veh)} buses in the box placed where they are now "
+            f"({', '.join(live_feeds)}); {len(covered)} lines covered")
     vehicles.sort(key=lambda v: v[0])
     for depart, vid, edges, st_ids, pos, line in vehicles:
-        attrs = f'id="{vid}" type="{vtype}" depart="{depart:.1f}" departLane="best" departPos="{pos:.1f}"'
+        attrs = (f'id="{vid}" type="{vtype}" depart="{depart:.1f}" departLane="best" departPos="{pos:.1f}" '
+                 f'color="{_line_rgb(line)}"')
         line_attr = _x(line["ref"] or line["name"])
         rou.append(f'  <vehicle {attrs} line="{line_attr}">')
         rou.append(f'    <route edges="{" ".join(edges)}"/>')
@@ -652,7 +842,7 @@ def routes(map_dir, work, end_s, vtype, vtype_xml, when, pc, seed, net):
     (work / "stops.add.xml").write_text("\n".join(add) + "\n")
     (work / "pt.rou.xml").write_text("\n".join(rou) + "\n")
     return "pt.rou.xml", "stops.add.xml", {"lines_running": running, "lines": len(data["lines"]),
-                                           "buses": len(vehicles), "day": day, "hour": hour}
+                                           "buses": len(vehicles), "day": day, "hour": hour, "live": placed}
 
 
 def _stop_pos(data, sid, _cache={}):
@@ -661,6 +851,18 @@ def _stop_pos(data, sid, _cache={}):
         _cache.clear()
         _cache[key] = {s["id"]: s["start"] for s in data["stops"]}
     return _cache[key].get(sid, 0.0)
+
+
+def _line_rgb(line):
+    """The bus in its line's OSM colour (colour=#RRGGBB or a CSS name), else white."""
+    c = (line.get("colour") or "").strip().lower()
+    names = {"red": "200,30,30", "blue": "30,70,170", "green": "30,140,60", "yellow": "240,200,20",
+             "orange": "235,120,20", "purple": "120,50,140", "white": "240,240,236", "black": "30,30,30",
+             "grey": "130,130,130", "gray": "130,130,130", "pink": "230,120,170", "brown": "120,80,40"}
+    if re.fullmatch(r"#?[0-9a-f]{6}", c):
+        c = c.lstrip("#")
+        return f"{int(c[0:2], 16)},{int(c[2:4], 16)},{int(c[4:6], 16)}"
+    return names.get(c, "240,240,236")
 
 
 def _x(s):

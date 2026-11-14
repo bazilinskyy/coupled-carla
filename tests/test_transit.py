@@ -139,3 +139,25 @@ def test_line_name_matching():
     assert T._key("都０１（Ｔ０１）") == T._key("都01(T01)") == "都01(T01)"
     assert T._base("都01(T01)") == "都01"
     assert T._key(" m 7 ") == "M7"
+
+
+def test_rt_feeds_pick_keyless_vehicle_positions(tmp_path):
+    head = ("id,data_type,entity_type,status,static_reference,urls.direct_download,urls.authentication_type\n")
+    rows = ["rt1,gtfs_rt,vp,active,mdb-1077,http://a/vp.pb,0",
+            "rt2,gtfs_rt,tu,active,mdb-1077,http://a/tu.pb,0",           # trip updates, not positions
+            "rt3,gtfs_rt,vp,active,mdb-1077,http://a/key.pb,2",          # needs a key
+            "rt4,gtfs_rt,vp|tu,active,x|mdb-9,http://b/vp.pb,0"]
+    (tmp_path / "mobilitydatabase_feeds_v2.csv").write_text(head + "\n".join(rows) + "\n")
+    assert [r["id"] for r in T.rt_feeds(["mdb-1077"], tmp_path)] == ["rt1"]
+    assert [r["id"] for r in T.rt_feeds(["mdb-9"], tmp_path)] == ["rt4"]
+
+
+def test_place_now_offline_falls_back_to_solar_time(monkeypatch, tmp_path):
+    def fail(*a, **k):
+        raise OSError("offline")
+    monkeypatch.setattr(T.requests, "get", fail)
+    from datetime import timezone
+    utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    local = T.place_now(-36.85, 174.76, tmp_path)               # Auckland: about UTC+12 by its longitude
+    assert abs((local - utc).total_seconds() - 12 * 3600) < 120
+    assert T.trial_time("now", (-36.85, 174.76), tmp_path).hour == local.hour

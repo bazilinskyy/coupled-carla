@@ -61,7 +61,8 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 | **Real-world scenery** | Every map is filled from free open data: real terrain on the roads (AHN lidar in the Netherlands, AWS Terrain Tiles elsewhere), buildings at their real footprints and heights (3DBAG, IGN BD TOPO, NYC Open Data, Overture Maps), OSM street trees by species and height, parks, water, lamps, benches, bus shelters, bollards and road signs, and the weather and sun of a real place and time (Open-Meteo) ([Real-world scenery](#real-world-scenery-terrain-and-weather)). |
 | **19 cities** | Eindhoven plus 18 cities on six continents, from Tokyo and Cairo to Luang Prabang and Ushuaia ([Cities](#cities)). |
 | **Traffic models** | SUMO drives everything that is not a participant: EIDM car following, the sublane lane-change model (cyclists and cars share and overtake), a Dutch-flavoured fleet with Gazelle bikes and buses, random car and bike demand by city size. The participant's car is mirrored into SUMO, so traffic reacts to them. |
-| **Real public transport** | The bus lines of OpenStreetMap run on their real streets and stop at their real stops (16 of the 19 maps have OSM bus lines); where the city publishes a GTFS timetable (10 maps) they come as often as that timetable says for the trial's hour and day ([Public transport](#public-transport)). |
+| **Real public transport** | The bus lines of OpenStreetMap run on their real streets and stop at their real stops (16 of the 19 maps have OSM bus lines); where the city publishes a GTFS timetable (10 maps) they come as often as that timetable says for the trial's hour and day; at `time: now` the real buses start where they are at that moment (GTFS-Realtime, e.g. all of the Netherlands) ([Public transport](#public-transport)). |
+| **Real car fleet** | Car body types and colours from open vehicle registers (RDW for the Netherlands, NY DMV for Manhattan with its yellow cabs), mapped onto CARLA's models; each SUMO car's colour is the CARLA car's ([Traffic](#traffic)). |
 | **City-scale, real time** | SUMO simulates the whole map; only actors within 250 m of a participant exist in CARLA (level of detail), which keeps a city real time on one GPU. |
 | **Participants** | Keyboard, Logitech G25 wheel with force feedback, or autopilot; driver, hood or chase view. |
 | **Logging** | coupled-sim-style per-frame CSV at 50 Hz (participants always, AI actors near them), events, live JSON over UDP 40131, SUMO's trajectory output for the whole network, CARLA's recorder for replay. |
@@ -285,6 +286,7 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | Street furniture | OSM lamps, benches, bins, bus shelters, bollards, post boxes, bicycle racks, hydrants, fountains, ad columns, cabinets | the matching CARLA prop at the mapped spot, parallel to the road |
 | Road signs | OSM `highway=stop/give_way`, `traffic_sign` (NL, DE, FR, US codes; speed limits) | a sign on a post at the edge of the lane it governs, facing its traffic |
 | Ground cover | OSM landuse, leisure, natural, water | grass, water or paving tiles |
+| City registers | Eindhoven's open data ([bomen](https://data.eindhoven.nl/explore/dataset/bomen/): 127,911 trees with species and height class; [openbare verlichting](https://data.eindhoven.nl/explore/dataset/data-openbare-verlichting/): 58,430 lamps with mast height); NYC's [2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) | every public tree and street light where the city lists them (OSM trees within 3 m of one are dropped; register lamps replace OSM and guessed ones) |
 | Weather | [Open-Meteo](https://open-meteo.com) forecast and ERA5 archive (back to 1940) | clouds, rain, wet roads, wind and fog of that hour |
 | Sun | computed (NOAA solar position) | the sun's altitude and direction for the place and local time; headlights on after dark |
 
@@ -377,7 +379,8 @@ timetable, so every 10 min each) has 186.
 map:
   transit: true                       # build the bus lines with the map (default)
 traffic:
-  public_transport: {enabled: true, dwell_s: 20, default_headway_min: 10}
+  public_transport: {enabled: true, dwell_s: 20, default_headway_min: 10, live: auto}   # live: auto = at time "now"
+  fleet: auto                         # body types and colours from the vehicle register where there is one
 simulation:
   time: "2026-11-16 17:30"            # the timetable of that day type and hour
 ```
@@ -385,6 +388,15 @@ simulation:
 ```bash
 python -m coupledcarla.mapbuild experiments/cities/lyon.yaml --transit   # redo only the bus lines (seconds)
 ```
+
+**Live buses.** With `simulation.time: now` (or `public_transport.live: true`), the lines whose agency publishes
+GTFS-Realtime vehicle positions without a key (the Mobility Database lists 1,606 such feeds; OVapi covers all of
+the Netherlands) start with their buses where the real ones are at that moment: on their line when within 40 m of
+it, else from the nearest bus road (a bus waiting at the station) along the shortest way onto it. The snapshot is
+saved as `sumo/pt_live.json`. Timetabled departures follow. "now" is the local time at the place (its UTC offset
+from Open-Meteo), so a trial of Auckland run in Eindhoven gets Auckland's hour. On a Saturday at 13:16 the
+Eindhoven box had 11 live buses, 9 of them placed (the other two off the matched lines); Leuven, Auckland and
+Sydney publish real-time feeds only with a key.
 
 Trams and trains are left out (CARLA has no tram and the maps have no rails); a line that leaves and
 re-enters the box runs as separate sections; GTFS frequencies are per line and hour, averaged over its
@@ -652,8 +664,14 @@ twin's OpenDRIVE), BGT road surfaces, VR.
 - **Models.** SUMO's Extended IDM (EIDM) for car following (human-like reaction and drive-off) with
   `tau = 1.2 s`, `minGap = 2 m`, speed factor N(1.0, 0.1); the sublane model (`--lateral-resolution 0.25`)
   for lane changing, which lets cyclists ride at the right edge and cars overtake them.
-- **Fleet.** Cars from a weighted mix of compact European-style CARLA models; Gazelle omafiets,
-  BH crossbike and Diamondback bikes (cyclists at about 5 m/s with spread); a bus.
+- **Fleet.** Where an open vehicle register covers the map (`traffic.fleet: auto`, `coupledcarla/fleet.py`),
+  the car body types and colours are the register's: the RDW's 9.9 M insured Dutch passenger cars (hatchback
+  38%, estate 31%, MPV 22%; grey, black, white, blue) and the NY DMV's Manhattan registrations (SUV 67%, sedan
+  22%, 3% yellow cabs). Body types are spread over the CARLA models that look like them; each SUMO car gets a
+  colour drawn from the register's shares and the bridge gives it to the CARLA car. A register counts the fleet
+  that is registered, not the mix on the street. Elsewhere a weighted mix of compact European-style CARLA models
+  with a world colour mix. Gazelle omafiets, BH crossbike and Diamondback bikes (cyclists at about 5 m/s with
+  spread); buses in their line's OSM colour.
 - **Demand.** Random trips (`randomTrips.py --validate`) per class and hour, with a fringe factor so traffic
   enters at the edges of the map; the cities scale demand by size. Buses run the real lines (see
   [Public transport](#public-transport)).
@@ -858,8 +876,14 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
    Digital Twin baker is done on lin5080), the Digital Twin pipeline with Dutch national data for
    Eindhoven (AHN terrain, PDOK aerial photos and 3DBAG buildings done, BGT road surfaces next), the baked
    level loaded with the SUMO bridge, VR.
-4. **Phase 4, live data:** real signal programs (Eindhoven's smart traffic lights), near-live buses from
-   GTFS-RT (OVapi), NDW counts for demand, more cities. (Real bus lines at timetable frequencies are done.)
+4. **Phase 4, more real data:** done so far: real bus lines at timetable frequencies, live bus positions
+   (GTFS-RT), register fleets, municipal trees and lights. Next, from a survey of free sources (2026-11-14):
+   measured hourly counts calibrating demand with SUMO's `routeSampler` (NDW v3 for NL, before its v2.3 files
+   stop on 9 Feb 2027; Telraam for cars, bikes and pedestrians in Leuven and Eindhoven; DfT for London, NYC DOT,
+   JARTIC for Tokyo, Criter for Lyon), Overture's roof and facade attributes, leaf state by date (Copernicus
+   HR-VPP) and Meta's 1 m canopy heights, GBFS bike-share docks for cyclist density, BGT road surfaces (NL),
+   PLATEAU buildings for Tokyo, night radiance (NASA Black Marble). Real signal timings (SPaT) are not open in
+   the Netherlands or Flanders (UDAP and Mobilidata admit certified parties only).
 
 ## Lessons learned (gotchas)
 
@@ -939,7 +963,8 @@ coupledcarla/
   mapbuild.py        OSM (+ terrain heights) -> pruned SUMO net -> OpenDRIVE -> CARLA-consistent SUMO net
   realworld.py       real-world data: OSM features, Overture, 3DBAG, BD TOPO, NYC, AHN, Terrain Tiles, Open-Meteo, sun
   scenery.py         buildings, trees, furniture, signs and ground placed from it; streamed in at run time
-  transit.py         bus lines and stops from OSM on the SUMO net, GTFS frequencies (Mobility Database), trial buses
+  transit.py         bus lines and stops from OSM on the SUMO net, GTFS frequencies (Mobility Database), live positions
+  fleet.py           car body types and colours from open vehicle registers (RDW, NY DMV)
   data/              meshes_0.9.16.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
   traffic.py         SUMO vehicle types and demand per trial
@@ -978,6 +1003,10 @@ maps/, logs/         built maps and trial logs (not in git)
 - [CARLA](https://github.com/carla-simulator/carla) (MIT); the SUMO bridge in `coupledcarla/bridge` is
   vendored from CARLA 0.9.16 `Co-Simulation/Sumo` (MIT, © CVC) and modified.
 - [Eclipse SUMO](https://eclipse.dev/sumo/) (EPL-2.0), used as a separate program and through TraCI.
+- Vehicle registers: [RDW open data](https://opendata.rdw.nl) (CC0), [NY DMV registrations](https://data.ny.gov/d/w4pv-hbkt)
+  (NY Open Data). City registers: [Gemeente Eindhoven open data](https://data.eindhoven.nl) (public domain),
+  [NYC 2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) (NYC Open Data).
+- Live bus positions: GTFS-Realtime feeds of the agencies (OVapi for the Netherlands).
 - Public transport: the GTFS feeds of the transit agencies (each feed's licence is recorded in the map's
   `transit.json`), found through the [Mobility Database](https://mobilitydatabase.org) catalogue (MobilityData).
 - Scenery data: [Overture Maps](https://overturemaps.org) buildings (ODbL / CDLA Permissive 2.0),

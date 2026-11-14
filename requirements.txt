@@ -15,3 +15,4 @@ pillow
 duckdb          # Overture Maps buildings
 tifffile        # AHN elevation (Netherlands)
 imagecodecs     # AHN tiles use the floating-point predictor
+gtfs-realtime-bindings  # live bus positions (GTFS-Realtime)
