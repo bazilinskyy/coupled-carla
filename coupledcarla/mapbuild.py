@@ -221,8 +221,9 @@ def name_signals(xodr):
     """netconvert writes <signal> without a name, and netconvert_carla.py skips every unnamed traffic light,
     so SUMO would get none; give each signal a name. Ids longer than 32 characters (netconvert joins junction ids:
     up to 158 in Eindhoven) become short ones, sig<n>: CARLA 1.0 warns about every long id on every lookup, which
-    filled its log with gigabytes. Nothing refers to the ids (no signalReference; SUMO's traffic lights are named
-    after junctions)."""
+    filled its log with gigabytes. The <controller>s refer to signals by id (<control signalId>), so they get the
+    same short ids: a dangling one crashes the CARLA 0.9.16 server while it loads the map (std::out_of_range in
+    unordered_map::at). SUMO's traffic lights are named after junctions."""
     import re
     text = xodr.read_text(encoding="utf-8")
     short = {}
@@ -238,6 +239,8 @@ def name_signals(xodr):
         rest = re.sub(r'\s*\bname="[^"]*"', "", rest)
         return f'<signal id="{sid}" name="{sid}"{rest}'
     text, n = re.subn(r'<signal id="([^"]*)"([^>]*)', repl, text)
+    text = re.sub(r'(<(?:control signalId|signalReference id)=")([^"]*)"',
+                  lambda m: f'{m.group(1)}{short.get(m.group(2), m.group(2))}"', text)
     xodr.write_text(text, encoding="utf-8")
     log(f"named {n} OpenDRIVE signals ({len(short)} long ids shortened)")
 
