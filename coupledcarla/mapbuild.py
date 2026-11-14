@@ -237,14 +237,21 @@ def check_xodr(xodr):
     return {"lane_links": len(m.get_topology()), "waypoints": len(wps), "lane_ends": ends, "tl_signals": tls}
 
 
-def build_scenery(cfg, out, meta, cmap=None):
-    """Scenery and buildings for a built map (scenery.py), recorded in meta."""
+def build_scenery(cfg, out, meta, cmap=None, server_major=None, log=log):
+    """Scenery and buildings for a built map (scenery.py), recorded in meta. On a baked CARLA level (map.carla_level)
+    only trees, bushes, lamps, street furniture and signs: the level has its own buildings and ground."""
     from . import scenery
     from .geo import Geo
     mc = cfg["map"]
+    if not mc.get("bbox"):
+        mc = dict(mc, bbox=meta["bbox"])
+    if mc.get("carla_level"):
+        mc = dict(mc, scenery=dict(mc.get("scenery") or {}, buildings=False, ground=False))
+    cfg = dict(cfg, map=mc)
     elev = meta.get("elevation")
     dem = realworld.Dem.load(out / "real" / "dem.npz") if elev else None
-    res = scenery.build(out, cfg, Geo(out / "geo.net.xml"), dem, elev["base_m"] if elev else 0.0, cmap, log)
+    res = scenery.build(out, cfg, Geo(out / "geo.net.xml"), dem, elev["base_m"] if elev else 0.0, cmap, log,
+                        server_major)
     meta["scenery"] = res["counts"]
     meta["buildings"] = len(json.loads((out / "buildings.json").read_text()))
     srcs = set(res["sources"]) | ({elev["source"]} if elev else set())
@@ -258,6 +265,37 @@ def _lefthand(net_file):
     head = Path(net_file).read_text(encoding="utf-8", errors="ignore")[:4000] if Path(net_file).exists() else ""
     m = re.search(r"<net [^>]*>", head)
     return bool(m and 'lefthand="true"' in m.group(0))
+
+
+def scenery_for_server(cfg, out, server_major, log=log):
+    """True when the map's scenery.json suits a server of this major CARLA version (0 for 0.9.x, 1 for 1.0).
+    Scenery built with the other version's mesh catalogue names meshes this server does not have, so it is
+    rebuilt first from the cached real-world data (about a minute); with map.scenery.catalog pinned to the other
+    version, or when the rebuild fails, the trial runs without scenery and says why."""
+    from . import scenery
+    f = out / "scenery.json"
+    if not f.exists():
+        return False
+    data = json.loads(f.read_text())
+    built = data.get("catalog", "0.9.16")
+    if cfg["map"].get("carla_level") and "snapped" not in data:
+        log("scenery: at terrain-model heights; tools/snap_scenery.py stands it on the level's own ground")
+    if scenery.major(built) == server_major:
+        return True
+    want = (cfg["map"].get("scenery") or {}).get("catalog", "auto")
+    if want not in (None, "auto") and scenery.major(want) != server_major:
+        log(f"scenery: map.scenery.catalog is {want} but the server is CARLA {server_major}.x; no scenery "
+            f"(set catalog: auto)")
+        return False
+    log(f"scenery: scenery.json was built for CARLA {built}; rebuilding it for this CARLA {server_major}.x server")
+    try:
+        meta = json.loads((out / "meta.json").read_text())
+        build_scenery(cfg, out, meta, server_major=server_major, log=log)
+        (out / "meta.json").write_text(json.dumps(meta, indent=2))
+        return True
+    except Exception as err:  # noqa: BLE001 - the trial still drives, without scenery
+        log(f"scenery: rebuild failed ({err}); no scenery this trial")
+        return False
 
 
 def sumo_net(out):
@@ -311,7 +349,9 @@ def build_from_opendrive(cfg, out):
     e.g. a carla-digitaltwins twin, with map.carla_level naming the level). SUMO's net is made from the same file,
     so SUMO and the level share their roads. geo.net.xml is the same net without netconvert's shift to the
     origin, so its (x, y) equal the OpenDRIVE's and CARLA (x, y) = (geo x, -geo y) holds as for OSM maps.
-    No scenery: the level brings its own buildings and ground."""
+    The level brings its own buildings and ground; the scenery adds trees, bushes, lamps, furniture and signs.
+    Its heights are absolute (a twin's OpenDRIVE elevations are the terrain model's, e.g. AHN), so the terrain
+    model is used with base 0 where OSM maps subtract meta.elevation.base_m."""
     import re
     mc = cfg["map"]
     src = Path(mc["opendrive"]).expanduser()
@@ -332,11 +372,34 @@ def build_from_opendrive(cfg, out):
             "built": time.strftime("%Y-%m-%d %H:%M:%S"), "opendrive": str(src), "carla_level": mc.get("carla_level"),
             "files": {"geo_net": "geo.net.xml", "xodr": "map.xodr", "sumo_net": "map.net.xml"},
             "xodr": stats, "elevation": None}
+    if mc.get("elevation"):
+        try:
+            meta["elevation"] = absolute_elevation(bbox, out)
+        except Exception as err:  # noqa: BLE001 - offline: scenery stands at the nearest road's height
+            log(f"terrain model failed ({err}); scenery stands at the nearest road's height")
+    sc = mc.get("scenery") or {}
+    if sc.get("enabled", True):
+        try:
+            build_scenery(cfg, out, meta)
+        except Exception as err:  # noqa: BLE001 - the level drives without the extra scenery
+            import traceback
+            traceback.print_exc()
+            log(f"scenery failed ({err}); the level has its own scenery only (redo with --scenery)")
     if mc.get("transit", True):
         build_transit(dict(cfg, map=dict(mc, bbox=bbox)), out, meta)
     (out / "meta.json").write_text(json.dumps(meta, indent=2))
     log(f"done (from {src.name}): {out}")
     return out
+
+
+def absolute_elevation(bbox, out):
+    """meta.elevation for a map whose heights are absolute metres (a baked level's): the terrain model, base 0."""
+    import numpy as np
+    dem, source = realworld.dem(bbox, out / "real" / "dem.npz")
+    s, w, n, e = bbox
+    grid = dem.sample(*np.meshgrid(np.linspace(s, n, 40), np.linspace(w, e, 40)))
+    return {"source": source, "base_m": 0.0, "min_m": round(float(grid.min()), 1),
+            "max_m": round(float(grid.max()), 1), "absolute": True}
 
 
 def build(cfg, force=False, scenery_only=False, transit_only=False):
@@ -352,6 +415,8 @@ def build(cfg, force=False, scenery_only=False, transit_only=False):
         return out
     if scenery_only and (out / "meta.json").exists():
         meta = json.loads((out / "meta.json").read_text())
+        if mc.get("opendrive") and mc.get("elevation") and not meta.get("elevation"):   # built before this
+            meta["elevation"] = absolute_elevation(meta["bbox"], out)
         build_scenery(cfg, out, meta)
         (out / "meta.json").write_text(json.dumps(meta, indent=2))
         log(f"scenery rebuilt: {out}")

@@ -258,8 +258,9 @@ def run_trial(cfg, trial_idx, args, control=None):
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
     try:
-        has_scenery = (mdir / "scenery.json").exists() and compat.server_major(client) == 0 \
-            and tc["map"].get("scenery", {}).get("enabled", True) and not tc["map"].get("carla_level")
+        # scenery.json names the meshes of one CARLA version's catalogue: rebuilt first when made for the other
+        has_scenery = tc["map"].get("scenery", {}).get("enabled", True) and \
+            mapbuild.scenery_for_server(tc, mdir, compat.server_major(client), log)
         world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery)
         bb = tc["map"]["bbox"]
         wx = set_weather(world, tc["simulation"], ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real", log)
