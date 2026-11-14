@@ -20,13 +20,14 @@ DEFAULTS = {
         "buildings": True,           # also fetch building footprints (trial viewer, figures)
         "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
         "overture": True,            # Overture Maps buildings (needs duckdb), else OSM
-        "national_buildings": True,  # measured heights: 3DBAG (NL), IGN BD TOPO (FR), NYC Open Data
+        "national_buildings": True,  # measured heights: 3DBAG (NL), IGN BD TOPO (FR), NYC Open Data, PLATEAU (JP)
         "transit": True,             # the real bus lines and stops of OSM, with GTFS frequencies (transit.py)
         "scenery": {                 # CARLA meshes placed from real-world data (coupledcarla/scenery.py)
             "enabled": True, "buildings": True, "trees": True, "furniture": True, "guess_lamps": True, "signs": True,
             "ground": True, "catalog": "0.9.16",
             "bgt": "auto",           # the Dutch BGT (bgt.py): ground surfaces (grass, bricks/tiles, asphalt,
                                      # gravel) and municipal street furniture, for maps in the Netherlands; false: off
+            "canopy": True,          # trees without a mapped height: sized by Meta/WRI's 1 m canopy height map
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
@@ -70,7 +71,8 @@ DEFAULTS = {
             "live": "auto",          # start with the real buses where they are now (GTFS-Realtime): "auto" when
         },                           # simulation.time is "now", true, or false
         "fleet": "auto",             # "auto": car body types and colours from the open vehicle register where
-                                     # there is one (fleet.py: RDW for NL, NY DMV for New York); else car_types
+                                     # there is one (fleet.py: RDW for NL, NY DMV for New York, Waka Kotahi
+                                     # for New Zealand, Senatran for Brazilian cities); else car_types
         "car_following": "EIDM",
         "car_types": {               # CARLA blueprint -> share of the car fleet
             "vehicle.toyota.prius": 3, "vehicle.volkswagen.t2_2021": 1, "vehicle.audi.a2": 2,
