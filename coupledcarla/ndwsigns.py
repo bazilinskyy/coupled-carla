@@ -296,7 +296,6 @@ def place(pl, cat, signs, xy, roads, log=print):
     code), sign_ndw_unplaced (no free spot, or no bearing and no road), sign_ndw_offroad (plates placed with no
     lane of theirs: pedestrian streets, cycle paths, streets the map leaves out), sign_ndw_far (left out: more
     than NEAR_M from any driving lane)."""
-    from .geo import heading_to_yaw
     ms = cat.m
     post_h = cat.size(ms.POST)[2]
     placed = []
@@ -315,7 +314,7 @@ def place(pl, cat, signs, xy, roads, log=print):
         plates = plates[:MAX_PLATES]
         pl.counts["sign_ndw_skipped"] += len(extra)
         s0, (x, y) = group[0]
-        heading = heading_to_yaw(s0["b"]) if s0.get("b") is not None else None
+        heading = (s0["b"] - 90.0) % 360.0 if s0.get("b") is not None else None    # compass -> CARLA yaw
         gov = roads.governed(x, y, heading) if heading is not None else None
         if gov is None:     # no driving lane near (a pedestrian street, a cycle path): as the register says
             if heading is None:
