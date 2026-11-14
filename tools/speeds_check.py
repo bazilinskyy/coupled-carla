@@ -98,6 +98,20 @@ def run(cfg, map_dir, work, duration, warmup, matched, net):
     return sim, (float(m.group(1)) if m else None)
 
 
+def store(map_name, summary):
+    """The calibrated factor of a summary into data/speed_calibration.json (when the check run worked)."""
+    if not summary.get("calibrated") or summary["runs"].get("calibrated", {}).get("mape") is None:
+        print("no calibrated factor to store")
+        return
+    book = json.loads(CALIBRATION.read_text()) if CALIBRATION.exists() else {}
+    book[map_name] = {**summary["calibrated"], "source": summary["source"], "when": summary["when"],
+                      "sites": summary["runs"]["calibrated"]["sites"], "measured_factor": summary.get("measured_factor"),
+                      "mape": {k: v["mape"] for k, v in summary["runs"].items()},
+                      "sim_over_measured": {k: v["median_sim_over_measured"] for k, v in summary["runs"].items()}}
+    CALIBRATION.write_text(json.dumps(book, indent=1, sort_keys=True) + "\n")
+    print(f"calibrated speed factor for {map_name} written to {CALIBRATION}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("experiment")
@@ -170,16 +184,9 @@ def main():
         summary["runs"][name] = res
         print(f"  {name}: MAPE {res['mape']}% over {res['sites']} sites, simulated / measured median "
               f"{res['median_sim_over_measured']}, network mean speed {res['mean_speed_kmh']} km/h")
-    if a.write and summary.get("calibrated") and summary["runs"].get("calibrated", {}).get("mape") is not None:
-        book = json.loads(CALIBRATION.read_text()) if CALIBRATION.exists() else {}
-        book[cfg["map"]["name"]] = {**summary["calibrated"], "source": data["source"], "when": when.isoformat(),
-                                    "sites": summary["runs"]["calibrated"]["sites"],
-                                    "measured_factor": direct["mean"],
-                                    "mape": {k: v["mape"] for k, v in summary["runs"].items()},
-                                    "sim_over_measured": {k: v["median_sim_over_measured"]
-                                                          for k, v in summary["runs"].items()}}
-        CALIBRATION.write_text(json.dumps(book, indent=1, sort_keys=True) + "\n")
-        print(f"calibrated speed factor for {cfg['map']['name']} written to {CALIBRATION}")
+    summary["measured_factor"] = direct["mean"] if direct and speeds.fit(matched, data["source"]) else None
+    if a.write:
+        store(cfg["map"]["name"], summary)
     summary["per_site"] = per_site
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False))

@@ -609,7 +609,7 @@ def plan(cfg, map_dir, work, bbox, log=log):
                 write_vss(Path(work) / "vss.add.xml", net, limits)
                 vss = "vss.add.xml"
                 kmh = sorted({round(v * 3.6) for v in limits.values()})
-                log(f"speed limits: {len(limits)} roads without an OSM maxspeed (netconvert's 80-100 km/h) get the "
+                log(f"speed limits: {len(limits)} roads without an OSM maxspeed (netconvert's rural defaults) get the "
                     f"urban default of {country or 'most countries'}: {', '.join(map(str, kmh))} km/h")
         except Exception as err:  # noqa: BLE001
             log(f"speed limits: left as built ({type(err).__name__}: {err})")

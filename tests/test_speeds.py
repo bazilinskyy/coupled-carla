@@ -273,3 +273,23 @@ def test_live_source_adds_snapshots(tmp_path, monkeypatch):
     d = S.load(tmp_path, box, refresh=True)
     h = d["sites"][0]["hourly"]
     assert h["sunday"][3] == 40.0 and h["weekday"][8] == 30.0
+
+
+def test_calibration_lookup(tmp_path, monkeypatch):
+    book = tmp_path / "cal.json"
+    book.write_text(json.dumps({"portland_or": {"mean": 0.914, "sd": 0.297, "min": 0.4, "max": 1.66,
+                                                "source": "pbot", "when": "2026-11-17T12:00:00",
+                                                "mape": {"limits": 38.0, "calibrated": 32.7}}}))
+    monkeypatch.setattr(S, "CALIBRATION", book)
+    cal = S.calibration("portland_or", "pbot")
+    assert S.distribution(cal) == "normc(0.914,0.297,0.4,1.66)"
+    assert S.calibration("portland_or", "ndw") is None and S.calibration("lyon", "pbot") is None
+    monkeypatch.setattr(S, "CALIBRATION", tmp_path / "missing.json")
+    assert S.calibration("portland_or", "pbot") is None
+
+
+def test_shipped_calibrations_are_sane():
+    book = json.loads(S.CALIBRATION.read_text())
+    for name, cal in book.items():
+        assert cal["source"] in S.SOURCES and 0.5 <= cal["mean"] <= 1.5 and cal["min"] < cal["mean"] < cal["max"]
+        assert cal["mape"]["calibrated"] <= cal["mape"]["before"]
