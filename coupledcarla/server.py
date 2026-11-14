@@ -8,6 +8,8 @@ from pathlib import Path
 
 import carla
 
+from . import season
+
 WINDOWS = os.name == "nt"
 
 
@@ -31,7 +33,8 @@ class Server:
             names = ["CarlaUE4.exe", "CarlaUnreal.exe"] if WINDOWS else ["CarlaUE4.sh", "CarlaUnreal.sh"]
             exe = next((root / n for n in names if (root / n).exists()), root / names[0])
             args = [str(exe), f"-carla-rpc-port={sc['port']}", f"-quality-level={sc['quality']}", "-nosound",
-                    *(["-RenderOffScreen"] if sc["offscreen"] else []), *sc["extra_args"]]
+                    *(["-RenderOffScreen"] if sc["offscreen"] else []), *season.pack_args(exe.name),
+                    *sc["extra_args"]]      # pack: the street-light blueprints of CARLA 1.0 (season.py)
             self.proc = subprocess.Popen(args, **({} if WINDOWS else {"start_new_session": True}))
             self.log(f"started {exe.name} (pid {self.proc.pid})")
         # A carla.Client made before the server listens never recovers, so wait for the port first.

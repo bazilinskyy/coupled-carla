@@ -59,7 +59,15 @@ DEFAULTS = {
         "time": None,                # local time at the place, "YYYY-MM-DD HH:MM", "HH:MM" (today) or "now":
                                      # the sun stands where it did; with weather: real, Open-Meteo's weather
         "scenery": {"radius_m": 400.0,   # scenery cells within this distance of participants (0: all at once)
-                    "kinds": ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"]},
+                    "kinds": ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"],
+                    "leaves": "auto",    # deciduous trees by the date of simulation.time (season.py): "auto"
+                                         # (leaf dates from latitude; no time: in leaf), "modis" (MODIS MCD12Q2
+                                         # dates where plausible), "leaf", "autumn", "bare", or false (in leaf)
+                    "bare": "small",     # deciduous trees out of leaf (CARLA has no bare tree): "small" (half
+                                         # size), "drop" (left out) or "keep" (in leaf)
+                    "lamp_lights": "auto",   # CARLA 1.0: lamps spawned as street lights, which the server lights
+                                             # when the sun is at or below the horizon; true: always; false: never
+                    "lights_radius_m": 200.0},   # ... only within this distance of a participant (0: all)
     },
     "traffic": {
         "seed": 42,

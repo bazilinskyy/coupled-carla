@@ -636,7 +636,7 @@ def dem(bbox, path, source="auto"):
 # --- weather and sun -----------------------------------------------------------------------------------------
 
 HOURLY = ["temperature_2m", "relative_humidity_2m", "precipitation", "rain", "snowfall", "cloud_cover",
-          "wind_speed_10m", "wind_direction_10m", "is_day"]
+          "wind_speed_10m", "wind_direction_10m", "is_day", "snow_depth"]   # snow_depth (m): logged only (no snow in CARLA)
 
 
 def weather_at(lat, lon, when, cache_dir=None):
