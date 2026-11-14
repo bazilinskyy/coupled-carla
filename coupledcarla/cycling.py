@@ -786,6 +786,8 @@ def _demand(cfg, cc, map_dir, work, types, end, log):
     od_r, od_c = work / "bikerand", work / "bikenet"
     src_r, dst_r = od_weights(net, [], [], 1.0, keep)
     src_c, dst_c = od_weights(net, route_edges, infra_edges, float(cc.get("od_weight", 10)), keep)
+    from . import gbfs      # shared-bike docks draw trip starts and ends (traffic.cycling.dock_weight)
+    gbfs.cycling_hook(cfg, net, map_dir, [src_r, src_c], [dst_r, dst_c], log)
     costs = None
     if share > 0:
         costs = work / "bike_costs.xml"

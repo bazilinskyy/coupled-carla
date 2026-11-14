@@ -34,6 +34,9 @@ DEFAULTS = {
                                      # sign at its position, for maps in the Netherlands; false: OSM's signs only
             "parked": True,          # parking stalls at the kerbs (OSM parking tags, BGT parkeervlak, a default by
                                      # road class) and on car parks, with a car each (parking.py -> parked.json)
+            "shared": True,          # shared bikes and scooters at their GBFS positions (gbfs.py); a trial at
+                                     # simulation.time "now" puts them where they are at its start
+            "shared_per_station": 10,    # at most this many bikes shown per dock
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
@@ -63,7 +66,8 @@ DEFAULTS = {
         "time": None,                # local time at the place, "YYYY-MM-DD HH:MM", "HH:MM" (today) or "now":
                                      # the sun stands where it did; with weather: real, Open-Meteo's weather
         "scenery": {"radius_m": 400.0,   # scenery cells within this distance of participants (0: all at once)
-                    "kinds": ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"],
+                    "kinds": ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water",
+                              "shared"],
                     "leaves": "auto",    # deciduous trees by the date of simulation.time (season.py): "auto"
                                          # (leaf dates from latitude; no time: in leaf), "modis" (MODIS MCD12Q2
                                          # dates where plausible), "leaf", "autumn", "bare", or false (in leaf)
@@ -101,11 +105,18 @@ DEFAULTS = {
             "prefer_route": 0.5,     # cyclists' perceived travel time on a cycle route, relative to the real one
             "prefer_infra": 0.7,     # the same on other cycle tracks and lanes
             "max_bikes_per_hour": 3000,   # cap on the counted demand (a cyclist in CARLA costs ~3 ms per tick)
+            "dock_weight": 2.0,      # bike edges within 30 m of a shared-bike dock (GBFS, gbfs.py) draw 1 + this
+                                     # times the trip starts and ends; 0: off
         },
         "fleet": "auto",             # "auto": car body types and colours from the open vehicle register where
                                      # there is one (fleet.py: RDW for NL, NY DMV for New York, Waka Kotahi
                                      # for New Zealand, Senatran for Brazilian cities); else car_types
         "car_following": "EIDM",
+        "speed_limits": "auto",      # "auto": roads without an OSM maxspeed (netconvert gives them 80-100 km/h)
+                                     # get the country's urban default limit (speeds.py); false: as built
+        "speed_factor": "auto",      # cars' desired speed / limit: "auto" = from open speed measurements where they
+                                     # cover the map (speeds.py: PBOT Portland, Montevideo, Taipei), else
+                                     # normc(1.0,0.1,0.8,1.2); a SUMO distribution string; false: that default
         "car_types": {               # CARLA blueprint -> share of the car fleet
             "vehicle.toyota.prius": 3, "vehicle.volkswagen.t2_2021": 1, "vehicle.audi.a2": 2,
             "vehicle.citroen.c3": 3, "vehicle.mini.cooper_s_2021": 2, "vehicle.nissan.micra": 2,

@@ -912,6 +912,15 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             log(f"scenery: {lamps} street lamps from the city's register")
         log(f"scenery: {pl.counts['furniture']} pieces of street furniture, {pl.counts['lamp']} lamps")
 
+    # shared bikes and scooters where GBFS feeds put them (gbfs.py)
+    if sc.get("shared", True):
+        try:
+            from . import gbfs
+            if gbfs.add_to_scenery(pl, cfg, mdir, geo, cmap, log):
+                sources.add("gbfs")
+        except Exception as err:  # noqa: BLE001 - the scenery stands without them
+            log(f"scenery: no shared bikes ({type(err).__name__}: {err})")
+
     # road signs
     if sc.get("signs", True) and ms.POST in cat:
         import re
@@ -1094,7 +1103,8 @@ class Scenery:
         self.sc = sc
         data = data or json.loads((Path(mdir) / "scenery.json").read_text())   # data: e.g. parking.trial_data
         self.meshes = data["meshes"]
-        kinds = set(sc.get("kinds") or ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"])
+        kinds = set(sc.get("kinds") or ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water",
+                                        "shared"])
         self.radius = float(sc.get("radius_m", 400.0))
         self.cell = float(data.get("cell_m", CELL))
         self.cells = defaultdict(list)

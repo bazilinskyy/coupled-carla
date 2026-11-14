@@ -360,6 +360,8 @@ def run_trial(cfg, trial_idx, args, control=None):
             (out / "season.json").write_text(json.dumps(seas_info, indent=2))
             scenery = Scenery(client, world, mdir, tc["simulation"].get("scenery") or {}, log,
                               on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}), season=seas)
+            from . import gbfs   # a trial at time "now": today's shared bikes and scooters
+            gbfs.refresh_scenery(scenery, tc, mdir, geo, world.get_map(), log)
             scenery.update([a.get_location() for a in focus_actors])
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "

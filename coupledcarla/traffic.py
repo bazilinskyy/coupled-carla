@@ -19,7 +19,7 @@ def _vtypes(tc):
     for bp, w in tc["car_types"].items():
         cls = "delivery" if "sprinter" in bp or "t2" in bp else "passenger"
         rows.append(f'    <vType id="{bp}" vClass="{cls}" probability="{w}" carFollowModel="{cf}" '
-                    f'speedFactor="normc(1.0,0.1,0.8,1.2)" tau="1.2" minGap="2.0" '
+                    f'speedFactor="{tc.get("_speed_factor") or "normc(1.0,0.1,0.8,1.2)"}" tau="1.2" minGap="2.0" '
                     f'jmIgnoreFoeProb="0" impatience="0.1"/>')
     rows.append('  </vTypeDistribution>')
     rows.append('  <vTypeDistribution id="bikes">')
@@ -50,11 +50,13 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
         tc["car_types"] = fleet.car_types(reg)
         log(f"fleet: {reg['source']}: " + ", ".join(f"{k} {100 * v / sum(reg['body'].values()):.0f}%"
                                                   for k, v in sorted(reg["body"].items(), key=lambda x: -x[1])[:5]))
+    from . import speeds   # urban limits on roads OSM gives none; drivers' speeds / limit from measured speeds
+    tc["_speed_factor"], vss = speeds.plan(cfg, map_dir, work, bbox, log)
     types = work / "types.add.xml"
     types.write_text(_vtypes(tc))
     random_trips = Path(sumo.SUMO_HOME) / "tools" / "randomTrips.py"
     end = int(duration_s) + 60
-    routes, additional = [], []
+    routes, additional = [], [vss] if vss else []
     pc = tc.get("public_transport") or {}
     pt = None
     from . import transit
