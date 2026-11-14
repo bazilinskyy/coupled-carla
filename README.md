@@ -299,6 +299,8 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | Ground cover | OSM landuse, leisure, natural, water | grass, water or paving tiles |
 | Ground cover (NL) | [BGT](https://www.pdok.nl/introductie/-/article/basisregistratie-grootschalige-topografie-bgt-) via PDOK's OGC API (CC0) | what covers the ground beside the roads: grass, bricks or tiles, asphalt or concrete, gravel or sand, water; mixed 40 m tiles split in four |
 | Street furniture (NL) | BGT plus objects (IMGeo, from the municipalities) | benches, bicycle racks, bins, waste containers, bollards, cabinets, parking meters, boards, play equipment, and lamps and trees where the city has no register; they replace OSM objects of the same kind within 3-8 m |
+| Road signs (NL) | [NDW Verkeersborden](https://docs.ndw.nu/en/data-uitwisseling/interface-beschrijvingen/verkeersborden-api/), the national traffic sign register (CC0) | every official sign at its position, facing the traffic it governs, plates stacked on posts: CARLA's own mesh where it has one (stop, give way, the posted speed, no entry on 1.0), else on CARLA 1.0 a blank plate of the sign's shape; OSM signs of the same kind within 8 m are dropped |
+| Shared bikes and scooters | [GBFS](https://gbfs.org) feeds from [MobilityData's systems catalogue](https://github.com/MobilityData/gbfs/blob/master/systems.csv) (CC BY 3.0), TfL BikePoint, Taipei's YouBike | the bikes at each dock and free-floating bikes, scooters and mopeds where they stand (CARLA's road bike and Vespa meshes); a trial at `time: now` takes a fresh snapshot (9 maps have a system) |
 | Tree heights | [Meta/WRI 1 m canopy height map](https://registry.opendata.aws/dataforgood-fb-forests/) (Tolan et al. 2024) | the size of trees without a mapped height (OSM nodes and rows, park planting), corrected against Eindhoven's register |
 | City registers | Eindhoven's open data ([bomen](https://data.eindhoven.nl/explore/dataset/bomen/): 127,911 trees with species and height class; [openbare verlichting](https://data.eindhoven.nl/explore/dataset/data-openbare-verlichting/): 58,430 lamps with mast height); NYC's [2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) | every public tree and street light where the city lists them (OSM trees within 3 m of one are dropped; register lamps replace OSM and guessed ones) |
 | Weather | [Open-Meteo](https://open-meteo.com) forecast and ERA5 archive (back to 1940) | clouds, rain, wet roads, wind and fog of that hour |
@@ -369,6 +371,40 @@ Built from these sources (the test maps of central Eindhoven, Lyon, Kigali and N
 
 Where OSM maps few street lamps, lamps line the roads every 32 m (on by default, `guess_lamps`). The lamp
 meshes give no light at night: CARLA 0.9.16 cannot add lights at run time.
+
+**Seasons.** With `simulation.time` set, deciduous trees follow the date at the place (`coupledcarla/season.py`):
+in leaf, in autumn colour (a growing share take CARLA's autumn sugar maple and red Japanese maples) or bare. CARLA
+has no bare tree mesh, so a bare tree is the same kind at half size (`simulation.scenery.bare: small`, or `drop`,
+`keep`). The dates come from latitude: leaf-out on 23 April and leaf fall on 1 November at 50°, later and earlier
+towards the poles, half a year apart in the south, none within 25° of the equator (latitude alone misses continental
+climates: Burlington leafs out about four weeks early). Evergreen genera and species stay as they are. `leaves:
+modis` uses MODIS MCD12Q2 dates (keyless) where they agree with the model; in city centres they mostly measure
+lawns. CARLA cannot show snow; Open-Meteo's snow depth is logged.
+
+**Street lamps at night (CARLA 1.0).** A small content pack (`coupledcarla/data/carla_packs`) puts CARLA's
+street-light blueprints in the blueprint library (coupled-carla adds `-carla-packs=` when it starts the server);
+at night the scenery lamps within `lights_radius_m` (200 m) of a participant are spawned as those blueprints and
+the server lights them when the sun sets. Headless: 225 lit lamps add 0.2 ms per tick, 781 add 0.7 ms (the cost to
+rendering is not measured). CARLA 1.0's OpenDRIVE worlds also bring generic lamps of their own along every road.
+
+### Parked cars
+
+Streets have parked cars (`coupledcarla/parking.py`), placed when the scenery is built (`parked.json`) and filled at
+the trial's local hour. Where: OSM parking tags (`parking:left/right/both` with orientation, and the older
+`parking:lane:*`), BGT "parkeervlak" strips in the Netherlands and OSM street-side parking areas (their depth gives
+parallel, diagonal or perpendicular), else a default share of road sides by road class (residential 0.8,
+unclassified 0.5, tertiary 0.4, secondary 0.15 in Europe, the Americas and Oceania; none on primary roads, on sides
+with two lanes in one direction, or in Japan), and OSM/BGT car parks as rows of stalls. Never within 5 m of a
+junction or crossing, 10 m of signals or 12 m of a bus stop, nor beside a bus lane or on a lane. Each stall is taken
+when its random number is below its zone's occupancy (residential, centre or mixed, from the buildings within 60 m)
+at the local hour, an assumption in the spirit of CROW's presence percentages (`simulation.parked.occupancy`
+overrides it). The cars are CARLA's static car meshes (23 in 0.9.16), streamed within 250 m: 300 cost the server
+0.8 ms per tick, against 11 ms as vehicle actors. A static mesh keeps its paint, so the register sets the body types
+and favours the meshes whose paint is common in it. Eindhoven centre: 5,307 stalls (1,460 at the kerb, 929 of
+those from the BGT), 3,180 taken at 03:00 and 3,541 at 14:00 on a weekday; every car off the lanes, RTF 0.991 ->
+0.988. Not yet on CARLA 1.0 (its parked meshes are unmeasured) or on baked levels.
+
+![Parked cars at both kerbs of an Eindhoven street, facing along the road](docs/img/parked_eindhoven.jpg)
 
 ### Scenery on CARLA 1.0 and on baked levels
 
@@ -567,11 +603,29 @@ flowchart LR
   `eye_contact_end` whenever a pedestrian and a vehicle face each other within the angle and distance, with
   both angles. A pedestrian station sends where its camera looks; a vehicle faces along its heading (no head
   tracking yet, so for a driver this is "the car points at the pedestrian").
-- **Pedestrian crowd** (`traffic.walkers: {count, radius_m, seed}`, [`experiments/eindhoven_crowd.yaml`](experiments/eindhoven_crowd.yaml)):
-  pedestrians walking up and down beside the roads near the participants (on sidewalk lanes when the map has
-  them, else 1.5 m beyond the outermost lane). They never step onto the road, so no car yields to them. Not
-  CARLA's walker AI: CARLA 0.9.16 serves no navigation mesh for an OpenDRIVE world (see
-  [Lessons learned](#lessons-learned-gotchas)). 30 walkers cost the server about 12 ms per tick on lin4080.
+- **Pedestrian crowd** (`traffic.walkers`, `coupledcarla/crowdpeds.py`, [`experiments/eindhoven_crowd.yaml`](experiments/eindhoven_crowd.yaml)):
+  pedestrians near the participants who behave like the real pedestrians of the map's country, calibrated with
+  [CROWD](https://github.com/crowd-dataset/crowd) (dashcam videos from 238 countries with automatic pedestrian
+  tracks). `count: auto` gives `walkers_per_km` (8) per km of kerb, scaled by CROWD's pedestrians per minute of the
+  city (else country, continent, world: 18.1) and its night/day ratio. Speeds are the place's median crossing speed
+  and quartiles (crowd-city). Walkers cross `crossings_per_km` (2.0) times per km, scaled by the share of tracked
+  pedestrians that crossed; a crossing is mid-block with the country's measured share (crowd-jaywalking: Japan
+  0.45%, France 1.5%, Netherlands 7.1%, Vietnam 30%, Bangladesh 77%; modelled from pedestrians per minute
+  elsewhere, a weak fit), else at the nearest OSM crossing, else at the junction. At the kerb a walker waits for the
+  HCM critical gap (width / speed + 2 s, shrinking to 60% after a minute); at a marked crossing it also steps out
+  when every approaching car can still stop. On the road, SUMO traffic and scripted cars yield to them
+  (`crowd_crosses` events). Walkers start where Overture places, bus stops and open pedestrian counts (NYC DOT,
+  City of Sydney) are dense. `behaviour: off` keeps the old crowd that never crosses. Not CARLA's walker AI:
+  CARLA 0.9.16 serves no navigation mesh for an OpenDRIVE world. `python tools/crowdpeds_check.py <experiment>
+  [--sumo]` shows a map's plan:
+
+  | Map | Walkers | Speed (m/s) | Crossings/km | Mid-block share |
+  |---|---|---|---|---|
+  | Eindhoven | 41 | 1.35 | 2.2 | 7.1% (measured) |
+  | New York (Midtown) | 67 | 1.29 | 4.3 | 0.6% (modelled) |
+  | Cairo (Tahrir) | 76 | 1.36 | 1.2 | 4.7% (modelled) |
+  | Tokyo (Shibuya) | 80 | 1.30 | 6.1 | 0.45% (measured) |
+  | Sydney (CBD) | 28 | 1.40 | 1.6 | 0.5% (modelled) |
 
   ![The pedestrian station's view in eindhoven_crowd: the AV shows GO AHEAD on its front, roof and the road, the crowd walks beside the street](docs/img/crowd_pedestrian_view.jpg)
 - **SUMO traffic yields to pedestrians**: SUMO vehicles near a pedestrian brake for one in their path and drive
@@ -742,8 +796,19 @@ bridge needs profiling on 1.0.
 light, snapped scenery, SUMO's bus, 3DBAG buildings with CARLA's plain facade material (the twin's facades are
 slabs; `--buildings procedural` would use the modular facade generator).*
 
-**Still to do in phase 3:** profile the bridge on CARLA 1.0 for real time, stations on the rendering server, facade
-textures for the 3DBAG buildings, VR.
+**Real time on CARLA 1.0.** CARLA 1.0 builds rpclib without TCP_NODELAY (0.9.16's rpclib set it on both ends):
+two fire-and-forget calls in a row (debug draws, `apply_control`, `set_light_state`) then hold up the next
+blocking call (`world.tick()`) by about 40 ms, a delayed ACK. So the runner sends debug drawings, traffic-light
+states and the spectator over a second connection (`coupledcarla/side.py`), and controls and light states of
+participants, agents and crowds go with the bridge's one batch per tick. The bridge also caches its traffic-light
+index and the light states it sets, subscribes SUMO vehicles outside CARLA to their position only, and snaps
+CARLA-driven cars to SUMO lanes with its own lane index (`coupledcarla/lanesnap.py`: the same point as SUMO's
+`convertRoad`, checked on 104,000 points, without its 1.6 ms scan). `simulation.profile: true` prints the
+milliseconds per tick of each part of the loop. Eindhoven twin on lin5080 (`-nullrhi`, 60 s, headless): 18.9 ->
+7.7 ms per tick, the client's own 15.0 -> 4.5 ms; RTF 1.06 -> 2.59.
+
+**Still to do in phase 3:** stations on the rendering server, facade textures for the 3DBAG buildings, VR; the
+rpclib fix upstream.
 
 ## Traffic
 
@@ -793,7 +858,8 @@ textures for the 3DBAG buildings, VR.
   that network, and every cyclist prefers cycle routes and tracks when choosing a route; the rest are random
   trips, so side streets keep their cyclists. Where open bike counters lie in or near the box, `bikes_per_hour` is
   fitted to their typical count for the trial's day type and hour (capped at `max_bikes_per_hour`, 3000: a
-  cyclist costs CARLA about 3 ms per tick).
+  cyclist costs CARLA about 3 ms per tick). Bike edges within 30 m of a shared-bike dock draw three times the trip
+  starts and ends (`dock_weight`: Lyon 21 -> 41% of trips starting near a dock, London 18 -> 40%, Taipei 25 -> 48%).
 
   | Map | Cycle routes matched | Bike-km on cycle routes (random -> cycling) | Counters | Bikes/h at 08:00 weekday |
   |---|---|---|---|---|
@@ -803,6 +869,15 @@ textures for the 3DBAG buildings, VR.
   | Sydney | 8 | 13% -> 45% | 13 (City of Sydney) | 1503 |
   | Leuven | 9 (5 knooppunten) | 22% -> 27% | 2 nearby (AWV), outside the net | 1200 (as set) |
 
+- **Speed limits and driving style** (`coupledcarla/speeds.py`). Where OSM gives a road no `maxspeed`,
+  netconvert uses its rural defaults (100 km/h on primary and secondary roads: 109 edges of Midtown Manhattan,
+  204 around Taipei Main Station); in a trial these roads get the country's urban limit through a variable speed
+  sign (`traffic.speed_limits: auto`; CARLA's OpenDRIVE still carries the netconvert value). Where open speed
+  measurements cover the map (`traffic.speed_factor: auto`), the cars' speed factor is fitted in SUMO-only runs so
+  that simulated spot speeds match them (`tools/speeds_check.py --calibrate`, `data/speed_calibration.json`):
+  Portland (PBOT speed counts, factor 0.91, MAPE 36.6 -> 32.7%), Taipei (live detectors, 1.06, 44.2 -> 30.1%),
+  Montevideo (video detectors, 0.80, 24.4 -> 13.1% at night; daytime congestion SUMO does not make). Eindhoven's
+  NDW floating-car speeds check the default (median simulated / measured 1.01). Elsewhere N(1.0, 0.1) in [0.8, 1.2].
 - **Interaction.** The participant's car is mirrored into SUMO each tick (`moveToXY`), so SUMO vehicles brake
   for it, queue behind it and yield to it.
 - **Level of detail.** SUMO simulates the whole map; a SUMO vehicle exists in CARLA only within
@@ -970,7 +1045,7 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
   markings or crossings on OSM maps, and lamps give no light. Exact buildings, aerial-photo ground and markings
   need the UE 5.8 digital twin (phase 3).
 - **Pedestrians:** human pedestrians, scripted AI walkers and the crowd walk by direct control (no navigation
-  mesh). Crowd walkers stay beside the roads and do not cross. Walkers off the road walk on the ground plane,
+  mesh). Crowd walkers keep to one street, cross at OSM crossings, junctions or mid-block, and ignore pedestrian lights. Walkers off the road walk on the ground plane,
   0.3 m below the road surface. `map.sidewalks: true` puts sidewalk lanes into the OpenDRIVE (not into SUMO's
   net, where they crash SUMO), but walkers fall through CARLA 0.9.16's generated sidewalk meshes, so it stays
   off. SUMO persons are not mirrored: SUMO needs sidewalks for them.
@@ -1096,6 +1171,12 @@ What cost time while building phases 1 and 2, so it does not again:
   `D3D11TargetedShaderFormats=PCD3D_SM5`.
 - A baked World Partition level streams its cells (ground and roads with their collision) around the spectator;
   the off-screen run loop parked it over the origin, so it now follows the first participant.
+- CARLA 1.0's rpclib (branch `carla`) lacks TCP_NODELAY: two fire-and-forget calls in a row stall the next blocking
+  call by ~40 ms (200 ms is Windows' usual delayed ACK). Send one batch per tick and debug drawings over a second
+  connection.
+- An OSM road without `maxspeed` gets netconvert's rural default (100 km/h on a city primary road).
+- CARLA's `get_waypoint` with driving and bike lane types together picks the nearest bike lane: a point on a
+  driving lane beside a cycle lane then counts as free. Ask for each lane type separately.
 - A CARLA 1.0 editor server (`-game`) grows with every world it loads: one reached 40.9 GB and was OOM-killed.
   Restart it between maps, or watch it.
 
@@ -1114,6 +1195,14 @@ coupledcarla/
   bgt.py             the Dutch BGT: ground surfaces and municipal street furniture
   canopy.py          tree heights from Meta/WRI's 1 m canopy height map
   meshes10.py        CARLA 1.0's mesh choices for scenery.py
+  crowdpeds.py       the pedestrian crowd calibrated with CROWD per country (speeds, crossings, gaps, places)
+  parking.py         parked cars at the kerbs and on car parks
+  ndwsigns.py        the Dutch national traffic sign register (NDW) and Rijkswaterstaat's speed limits
+  season.py          leaf state by date and place; lit street lamps on CARLA 1.0
+  speeds.py          urban speed limits and speed factors fitted to open speed data
+  gbfs.py            shared bikes and scooters (GBFS)
+  side.py            a second CARLA connection for drawings (CARLA 1.0's rpclib stalls)
+  lanesnap.py        SUMO lane snapping without convertRoad
   data/              meshes_0.9.16.json, meshes_1.0.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
   traffic.py         SUMO vehicle types and demand per trial
@@ -1137,7 +1226,8 @@ experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhove
                      cities.yaml, cities/<slug>.yaml
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
-                     render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py
+                     render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py,
+                     crowdpeds_check.py, crowd_table.py, speeds_check.py
 docs/                city_tests.md, img/
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
@@ -1167,6 +1257,17 @@ maps/, logs/         built maps and trial logs (not in git)
   Pedestrian Counts](https://data.cityofnewyork.us/d/ct66-47at) (NYC Open Data), [TfL Active Travel Counts
   Programme](https://cycling.data.tfl.gov.uk) (TfL Open Data), [AWV fietstellingen](https://opendata.apps.mow.vlaanderen.be/fietstellingen/)
   (Modellicentie Gratis Hergebruik v1.0), [City of Sydney cycling counts](https://data.cityofsydney.nsw.gov.au) (CC BY 4.0).
+- Pedestrian behaviour: CROWD (Alam, Bazilinska & Bazilinskyy 2026, arXiv:2604.01044; CC BY 4.0), with crowd-city
+  crossing speeds and crowd-jaywalking crossing checks; [Overture Maps](https://overturemaps.org) places (CDLA
+  Permissive 2.0); [NYC DOT Bi-Annual Pedestrian Counts](https://data.cityofnewyork.us/d/cqsj-cfgu); [City of Sydney
+  walking counts](https://data.cityofsydney.nsw.gov.au) (CC BY 4.0).
+- Signs and speeds (NL): [NDW Verkeersborden](https://docs.ndw.nu) (CC0), Rijkswaterstaat Wegkenmerkendatabase
+  maximum speeds (CC0), NDW floating-car speeds. Speeds elsewhere: PBOT speed counts (Portland), Taipei Traffic
+  Control Center detectors (Taiwan OGDL 1.0), Intendencia de Montevideo.
+- Shared mobility: GBFS feeds via MobilityData's systems catalogue (CC BY 3.0) under each operator's terms (Citi
+  Bike, BIKETOWN, Dott, Felyx and Bike Itaú state none), TfL BikePoint, YouBike (Taiwan OGDL 1.0), Vélo'v (JCDecaux
+  open licence), docomo and Flamingo (CC BY 4.0), OV-fiets (CC BY-SA 3.0 NL). Phenology: Rötzer & Chmielewski
+  (2001), MODIS MCD12Q2 (NASA, public domain).
 - More scenery data: [BGT](https://www.pdok.nl) via PDOK (CC0), PLATEAU (MLIT, PLATEAU terms of use) via
   [Flateau](https://source.coop/pacificspatial/flateau) by Pacific Spatial Solutions (CC BY 4.0), [Meta/WRI canopy
   heights](https://registry.opendata.aws/dataforgood-fb-forests/) (CC BY 4.0).
