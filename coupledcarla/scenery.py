@@ -12,7 +12,8 @@ static.prop.mesh actors around the participants and removes them behind, in 100 
   a tree every 8 m, and parks, gardens and woods are planted at a density for their kind. Trees without a mapped
   height take the canopy height of Meta/WRI's 1 m map at their spot (canopy.py) where it sees a tree.
 - Road signs: OSM stop, give-way and speed-limit signs on a post at the edge of the lane they govern, facing
-  its traffic.
+  its traffic. In the Netherlands every sign of the national register (NDW, ndwsigns.py) at its own position,
+  CARLA's mesh where CARLA has that sign, else (CARLA 1.0) a blank plate of its shape; it replaces OSM's duplicates.
 - Street furniture: OSM lamps, benches, bins, bus shelters, bollards, post boxes, bicycle racks, hydrants,
   fountains and ad columns at their mapped positions; where OSM maps few lamps, lamps line the roads.
 - Ground: 40 m tiles (20 m on hilly maps), grass in green areas, water on rivers and lakes, paving elsewhere, tilted to the terrain.
@@ -485,6 +486,21 @@ def _bgt(mc, sc, rdir, log):
         return None
 
 
+def _ndw(mc, sc, rdir, log):
+    """The NDW traffic sign register's signs for a map in the Netherlands (ndwsigns.py), or None: off, elsewhere,
+    or the service failed."""
+    from . import ndwsigns
+    from . import realworld as rw
+    want = sc.get("ndw_signs", "auto")
+    if want in (False, "off", "false", None) or not rw.in_netherlands(mc["bbox"]):
+        return None
+    try:
+        return ndwsigns.fetch(mc["bbox"], rdir / "ndw_signs.json", rw.UA, log)["signs"]
+    except Exception as err:  # noqa: BLE001 - NDW down or offline: OSM's signs as before
+        log(f"scenery: NDW traffic signs failed ({err}); OSM signs only")
+        return None
+
+
 def _ring_xy(geo, ring):
     pts = []
     for lon, lat in ring:
@@ -895,6 +911,18 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     if sc.get("signs", True) and ms.POST in cat:
         import re
         lefthand = bool(mc.get("lefthand"))
+        ndw, ndw_placed = _ndw(mc, sc, rdir, log), []
+        if ndw:     # the national register's signs first; OSM's stop/give-way/speed signs near them are dropped
+            from . import ndwsigns
+            ndw_placed = ndwsigns.place(pl, cat, ndw, lambda s_: geo.to_carla(s_["lat"], s_["lon"]),
+                                        ndwsigns.Roads(cmap, carla, lefthand), log)
+            sources.add("ndw")
+            c_ = pl.counts
+            log(f"scenery: NDW register {len(ndw)} signs -> {c_['sign_ndw']} plates on {c_['sign_ndw_posts']} posts "
+                f"({c_['sign_ndw_real']} CARLA's own sign, {c_['sign_ndw_generic']} blank plates of its shape); "
+                f"{c_['sign_ndw_offroad']} of them on streets without a lane in the map; {c_['sign_ndw_skipped']} "
+                f"without a mesh, {c_['sign_ndw_far']} far from the map's roads, {c_['sign_ndw_unplaced']} without "
+                f"a free spot")
         speed_re = re.compile(r"(?:maxspeed|A1|274|B14|C43|R2-1|C14|R5)\D{0,3}(\d{2,3})", re.I)
         for el in els:
             if el["type"] != "node":
@@ -915,6 +943,9 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             if sign is None or sign not in cat:
                 continue
             x, y = geo.to_carla(el["lat"], el["lon"])
+            if ndw_placed and ndwsigns.near_same(ndw_placed, x, y, ndwsigns.osm_kind(sign, ms)):
+                pl.counts["sign_osm_replaced"] += 1
+                continue
             wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
             if wp is None or wp.transform.location.distance(carla.Location(x=x, y=y, z=wp.transform.location.z)) > 25:
                 continue
@@ -942,7 +973,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             L, W, H = cat.size(sign)
             pl.add("sign", sign, px, py, face + ms.SIGN_YAW, 1.0,
                    z=gz + cat.size(ms.POST)[2] - H - 0.05)
-        log(f"scenery: {pl.counts['sign'] // 2} road signs from OSM")
+            pl.counts["sign_osm"] += 1
+        log(f"scenery: {pl.counts['sign_osm']} road signs from OSM"
+            + (f"; {pl.counts['sign_osm_replaced']} left out near a register sign of the same kind" if ndw_placed
+               else ""))
 
     # ground tiles: tilted to the terrain, and always below the road surface (which follows the terrain
     # model only at the road nodes) and below the pavements

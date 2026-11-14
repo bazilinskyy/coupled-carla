@@ -48,6 +48,9 @@ SOURCES = {
     "ahn": ("AHN4 DTM 0.5 m via PDOK (Rijkswaterstaat)", "CC0 1.0"),
     "bgt": ("Basisregistratie Grootschalige Topografie (BGT, with IMGeo plus objects) via the PDOK OGC API "
             "(Kadaster and the bronhouders)", "CC0 1.0"),
+    "ndw": ("NDW Verkeersborden: the national traffic sign register of the Dutch road authorities "
+            "(Nationaal Dataportaal Wegverkeer)", "CC0 1.0"),
+    "wkd": ("Rijkswaterstaat Wegkenmerkendatabase: maximum speeds per NWB road section", "CC0 1.0"),
     "terrarium": ("AWS Terrain Tiles (Mapzen Terrarium: SRTM, 3DEP, national lidar, ...)", "see their attribution"),
     "open-meteo": ("Open-Meteo.com weather API (national weather services, ERA5)", "CC BY 4.0"),
     "eindhoven": ("Gemeente Eindhoven open data: trees (bomen) and street lights (openbare verlichting)",

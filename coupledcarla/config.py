@@ -30,6 +30,8 @@ DEFAULTS = {
             "bgt": "auto",           # the Dutch BGT (bgt.py): ground surfaces (grass, bricks/tiles, asphalt,
                                      # gravel) and municipal street furniture, for maps in the Netherlands; false: off
             "canopy": True,          # trees without a mapped height: sized by Meta/WRI's 1 m canopy height map
+            "ndw_signs": "auto",     # the Dutch national traffic sign register (NDW, ndwsigns.py): every official
+                                     # sign at its position, for maps in the Netherlands; false: OSM's signs only
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
