@@ -75,9 +75,12 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
             s = pt[2]
             log(f"public transport ({s['day']} {s['hour']:02d}:00): {s['lines_running']} of {s['lines']} OSM bus "
                 f"lines running, {s['buses']} buses")
+    from . import cycling
+    bikes = cycling.demand(cfg, map_dir, work, types, end, log)   # along the cycle network, at counted volumes
+    routes += bikes or []
     for name, per_hour, vclass, vtype, extra in (
             ("car", tc["cars_per_hour"], "passenger", "cars", ["--fringe-factor", "5"]),
-            ("bike", tc["bikes_per_hour"], "bicycle", "bikes", ["--fringe-factor", "3"]),
+            ("bike", 0 if bikes is not None else tc["bikes_per_hour"], "bicycle", "bikes", ["--fringe-factor", "3"]),
             ("bus", 0 if pt else tc["buses_per_hour"], "bus", tc["bus_type"], ["--min-distance", "1000"])):
         if not per_hour:
             continue
