@@ -35,8 +35,9 @@ defaults (osmNetconvert.typ.xml: 100 km/h on primary and secondary roads, 80 on 
 speeds: 57 secondary edges of Midtown Manhattan and 98 primary and secondary edges around Taipei Main Station
 drove at 100 km/h. In a trial these roads get the urban default limit of the country (URBAN_KMH, after the OSM
 wiki's "Default speed limits"; 50 km/h, the most common one and WHO's recommended maximum, for countries not in
-the table) through a variable speed sign on their lanes (vss.add.xml); the map stays as built. The speed factor
-is then relative to these limits.
+the table) through a variable speed sign on their lanes (vss.add.xml). Maps built with these limits in their own net
+and OpenDRIVE (urbanspeeds.py, meta.json "speed_defaults") get no signs; the signs remain the fallback for maps
+built before. The speed factor is then relative to these limits.
 
 Nothing open gives accelerations or headways (EIDM's accel, decel, tau), so those stay at their defaults.
 Checked: no keyless street speeds for New York (NYC DOT's real-time speeds cover only highways, bridges and
@@ -412,16 +413,23 @@ def load(map_dir, bbox, refresh=False):
 # netconvert's speed (m/s) for OSM roads without maxspeed (SUMO's osmNetconvert.typ.xml); motorways keep theirs
 NETCONVERT_DEFAULT = {"trunk": 27.78, "trunk_link": 27.78, "primary": 27.78, "primary_link": 27.78,
                       "secondary": 27.78, "secondary_link": 27.78, "tertiary": 22.22, "tertiary_link": 22.22,
-                      "unclassified": 13.89, "residential": 13.89}
+                      "unclassified": 13.89, "residential": 13.89, "busway": 27.78}
 # Urban default limits (km/h) where no sign says otherwise, by OSM road type ("*": all), after the OSM wiki's
-# "Default speed limits" and the national codes: US cities 25 mph (New York City since 2014, Oregon residence
-# districts, Burlington); Brazil's CTB by road function (arterial 60, collector 40, local 30); Argentina avenues
-# 60, streets 40; Japan 60 on general roads.
+# "Default speed limits" and the national codes; legal defaults only (a 30 km/h zone has signs, which OSM maps).
+# NL 50 (RVV 1990 art. 20), BE 50 (Flanders, Wallonia), FR and NC 50 (Code de la route), GB 30 mph on restricted
+# roads, AU (NSW) and NZ 50, ZA 60, EG 60, RW 40, UY 45. The US has no national one: 25 mph, the usual posted
+# city value and the legal default of New York City (since 2014), Oregon's residence districts and Burlington.
+# Brazil's CTB by road function (arterial 60, collector 40, local 30); Argentina avenues 60, streets 40 (busways
+# run along the arterials and avenues). Japan 60 on general roads with a centre line and 30 on the others (Road
+# Traffic Act order, art. 11, since 2026-09); Taiwan 50, 30 on roads without a centre line: OSM's residential and
+# unclassified streets stand for those. Countries not in the table (LA) get 50, the most common urban limit and
+# WHO's recommended maximum.
 URBAN_KMH = {
     "NL": {"*": 50}, "BE": {"*": 50}, "FR": {"*": 50}, "NC": {"*": 50}, "GB": {"*": 48.3}, "US": {"*": 40.2},
-    "TW": {"*": 50}, "JP": {"*": 60}, "AU": {"*": 50}, "NZ": {"*": 50}, "ZA": {"*": 60}, "UY": {"*": 45},
-    "BR": {"trunk": 60, "primary": 60, "secondary": 60, "tertiary": 40, "*": 30},
-    "AR": {"trunk": 60, "primary": 60, "secondary": 60, "*": 40},
+    "TW": {"residential": 30, "unclassified": 30, "*": 50}, "JP": {"residential": 30, "unclassified": 30, "*": 60},
+    "AU": {"*": 50}, "NZ": {"*": 50}, "ZA": {"*": 60}, "UY": {"*": 45}, "EG": {"*": 60}, "RW": {"*": 40},
+    "BR": {"trunk": 60, "primary": 60, "secondary": 60, "busway": 60, "tertiary": 40, "*": 30},
+    "AR": {"trunk": 60, "primary": 60, "secondary": 60, "busway": 60, "*": 40},
 }
 GENERIC_URBAN_KMH = 50.0
 COUNTRY_CODE = {"Netherlands": "NL", "Belgium": "BE", "France": "FR", "New Caledonia": "NC",
@@ -485,6 +493,14 @@ def implicit_limits(net, geo, country):
             if v < net.getEdge(eid).getSpeed() - 0.1:
                 out[eid] = round(v, 3)
     return out
+
+
+def built_with_urban_speeds(map_dir):
+    """meta.json's "speed_defaults" of a map built with urban default limits (urbanspeeds.py), else None."""
+    try:
+        return json.loads((Path(map_dir) / "meta.json").read_text()).get("speed_defaults")
+    except (OSError, ValueError, AttributeError):
+        return None
 
 
 def write_vss(path, net, limits):
@@ -595,7 +611,11 @@ def plan(cfg, map_dir, work, bbox, log=log):
     factor = str(want) if want not in ("auto", None, False, "off") else default
     vss, limits, net, geo_net = None, {}, None, None
     map_dir = Path(map_dir)
-    if tc.get("speed_limits", "auto") == "auto" and (map_dir / "geo.net.xml").exists():
+    built = built_with_urban_speeds(map_dir)
+    if built:
+        log(f"speed limits: the map's own (built with the urban defaults of {built.get('country') or 'most countries'}"
+            f", {built.get('file')})")
+    if tc.get("speed_limits", "auto") == "auto" and not built and (map_dir / "geo.net.xml").exists():
         try:
             import sumolib
             net = sumolib.net.readNet(str(map_dir / "map.net.xml"), withInternal=False,
