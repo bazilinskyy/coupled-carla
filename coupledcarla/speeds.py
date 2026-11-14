@@ -495,7 +495,7 @@ def implicit_limits(net, geo, country):
     return out
 
 
-def _built_with_urban_speeds(map_dir):
+def built_with_urban_speeds(map_dir):
     """meta.json's "speed_defaults" of a map built with urban default limits (urbanspeeds.py), else None."""
     try:
         return json.loads((Path(map_dir) / "meta.json").read_text()).get("speed_defaults")
@@ -611,7 +611,7 @@ def plan(cfg, map_dir, work, bbox, log=log):
     factor = str(want) if want not in ("auto", None, False, "off") else default
     vss, limits, net, geo_net = None, {}, None, None
     map_dir = Path(map_dir)
-    built = _built_with_urban_speeds(map_dir)
+    built = built_with_urban_speeds(map_dir)
     if built:
         log(f"speed limits: the map's own (built with the urban defaults of {built.get('country') or 'most countries'}"
             f", {built.get('file')})")

@@ -138,7 +138,8 @@ def main():
     import sumolib
     net, edges = counts.net_edges(map_dir)
     geo = sumolib.net.readNet(str(map_dir / "geo.net.xml"), withInternal=False, withPedestrianConnections=False)
-    limits = speeds.implicit_limits(net, geo, speeds.country_of(cfg, bbox))
+    limits = {} if speeds.built_with_urban_speeds(map_dir) else \
+        speeds.implicit_limits(net, geo, speeds.country_of(cfg, bbox))   # maps built before urbanspeeds.py
     matched = speeds.match_sites(data["sites"], net, edges, limits)
     meas = {s["id"]: speeds.measured(s, day, hour) for s, *_ in matched}
     out_dir = Path(a.out or ROOT / "scratch" / f"speeds_{cfg['map']['name']}")
