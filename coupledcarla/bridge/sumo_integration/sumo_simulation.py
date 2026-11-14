@@ -22,6 +22,7 @@ import sumolib  # pylint: disable=import-error
 import traci  # pylint: disable=import-error
 
 from .constants import INVALID_ACTOR_ID
+from coupledcarla.lanesnap import ASK  # pylint: disable=wrong-import-order
 
 import lxml.etree as ET  # pylint: disable=import-error
 
@@ -355,6 +356,14 @@ class SumoSimulation(object):
 
         # Retrieving net from configuration file.
         self.net = _get_sumo_net(cfg_file)
+        # coupled-carla: convertRoad + convert2D for the lane snap below, in Python (coupledcarla/lanesnap.py)
+        self.lane_index = None
+        try:
+            from coupledcarla.lanesnap import LaneIndex  # pylint: disable=import-outside-toplevel
+            net_file = ET.parse(cfg_file).find('.//net-file').get('value')
+            self.lane_index = LaneIndex(os.path.join(os.path.dirname(os.path.abspath(cfg_file)), net_file))
+        except Exception as err:  # pylint: disable=broad-except
+            logging.warning('lane index not built (%s); the lane snap asks SUMO', err)
 
         # To keep track of the vehicle classes for which a route has been generated in sumo.
         self._routes = set()
@@ -538,8 +547,14 @@ class SumoSimulation(object):
         # MSVehicle::getBackPositionOnLane (a shadow further lane with no further lanes) when another vehicle looks
         # at it as a leader across a junction. Pull it to within LANE_SNAP_M of the lane centre.
         try:
-            edge, pos, lane = traci.simulation.convertRoad(loc_x, loc_y, False, "passenger")
-            cx, cy = traci.simulation.convert2D(edge, pos, lane)
+            # coupled-carla: the same point from lanesnap, without SUMO's 1.6 ms scan of every lane
+            centre = self.lane_index.nearest_centre(loc_x, loc_y) if self.lane_index is not None else ASK
+            if centre is ASK:
+                edge, pos, lane = traci.simulation.convertRoad(loc_x, loc_y, False, "passenger")
+                centre = traci.simulation.convert2D(edge, pos, lane)
+            elif centre is None:
+                raise traci.exceptions.TraCIException("no lane")
+            cx, cy = centre
             off = math.hypot(loc_x - cx, loc_y - cy)
             if off > LANE_SNAP_M:
                 k = LANE_SNAP_M / off
