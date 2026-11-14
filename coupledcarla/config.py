@@ -32,6 +32,9 @@ DEFAULTS = {
             "canopy": True,          # trees without a mapped height: sized by Meta/WRI's 1 m canopy height map
             "ndw_signs": "auto",     # the Dutch national traffic sign register (NDW, ndwsigns.py): every official
                                      # sign at its position, for maps in the Netherlands; false: OSM's signs only
+            "ndw_faces": True,       # CARLA 1.0: register signs show their Dutch design (data/nl_sign_faces.json,
+                                     # meshes in /Game/CoupledCarla/Signs/NL, cooked into the server); a server
+                                     # without them spawns the blank plate; false: blank plates as before
             "parked": True,          # parking stalls at the kerbs (OSM parking tags, BGT parkeervlak, a default by
                                      # road class) and on car parks, with a car each (parking.py -> parked.json)
             "shared": True,          # shared bikes and scooters at their GBFS positions (gbfs.py); a trial at
