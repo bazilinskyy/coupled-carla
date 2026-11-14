@@ -151,3 +151,23 @@ def test_station_trial_with_a_fake_world(tmp_path):
     with wave.open(str(tmp_path / "driver_test_trial0.wav")) as wv:
         assert wv.getnframes() > 0
     assert any("sound: on" in m for m in logs)
+
+
+def test_takeover_request_of_the_automation_vibrates_and_sounds(tmp_path):
+    from coupledcarla import takeover
+    own = Actor(10, "vehicle.lincoln.mkz_2020", 0.0, 0.0, 0.0, 10.0)
+    cmap = types.SimpleNamespace(to_opendrive=lambda: "<OpenDRIVE/>", get_waypoint=lambda loc: None)
+    world = types.SimpleNamespace(get_map=lambda: cmap, get_actors=lambda ids: [own], get_actor=lambda i: own)
+    welcome = {"kind": "driver", "sound": {"enabled": True}, "haptics": {"enabled": True, "gamepad": False},
+               "displays": {"hud": {"design": "hud_speed"}}}
+    ux = stationux.StationUX(welcome, "driver", tmp_path / "d", (1280, 720), headless=True, log=lambda s: None)
+    ux.start(world, own, own, 0)
+    tor = takeover.StationTakeOver(takeover.spec({"takeover": {"beep": False}}), lambda m: None)
+    ux.tick(Snapshot([own]), 0.0, tor=tor)
+    assert ux.incar.state == "AUTOMATED"
+    tor.on_message({"type": "takeover", "state": "requested"})
+    ux.tick(Snapshot([own]), 0.05, tor=tor)
+    assert ux.incar.state == "TAKEOVER" and ux.incar.values["time_left"] == "7.0"
+    ux.stop()
+    kinds = [(r[3], r[4]) for r in csv.reader(open(tmp_path / "d_cues.csv"), delimiter=";")]
+    assert ("haptic", "takeover") in kinds and ("sound_cue", "takeover") in kinds

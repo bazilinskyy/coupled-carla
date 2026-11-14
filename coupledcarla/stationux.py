@@ -81,6 +81,7 @@ class StationUX:
         self.ehmi_draw = {}         # actor id -> DesignedEhmi (station-side drawing)
         self.extents = {}
         self._actors = {}
+        self._tor_prev = None
         self.t = 0.0
         self.trial = None
         self.world = self.actor = self.camera = None
@@ -179,7 +180,27 @@ class StationUX:
             if e.type == pygame.KEYDOWN and e.key == pygame.K_F3 and self.scape is not None:
                 self.scape.toggle_calibration()
 
-    def tick(self, snap, t, events=(), heading=None):
+    def _automation(self, tor, t):
+        """The automation state of takeover.py's StationTakeOver (automated / requested / manual) for the displays,
+        and the take-over request's cues: the wheel or gamepad vibrates, and the alarm sounds when takeover.py's own
+        beeps are switched off (automation.takeover.beep: false)."""
+        if tor is None:
+            return None, None
+        state = tor.state
+        if state == "requested" and self._tor_prev != "requested":
+            if self.haptics is not None:
+                self.haptics.cue("takeover", t, detail="automation")
+            if self.scape is not None and not tor.sp["takeover"].get("beep", True):
+                self.scape.play("takeover", float((self.w.get("sound") or {}).get("takeover_db", 72.0)),
+                                name="takeover")
+        self._tor_prev = state
+        left = None
+        if state == "requested":
+            budget = float(tor.sp["takeover"].get("budget_s", 7.0))
+            left = budget - (time.time() - tor.shown_at) if tor.shown_at is not None else budget
+        return state, left
+
+    def tick(self, snap, t, events=(), heading=None, tor=None):
         self.t = t
         if self.actor is None:
             return
@@ -209,7 +230,9 @@ class StationUX:
             limit = self.limits.update(t, self.actor.get_location()) if self.limits is not None else None
             dt = t - getattr(self, "_t_prev", t)
             self._t_prev = t
-            self.incar.update(t, kmh, own.lights if own is not None else 0, ctl, limit, dt)
+            auto, left = self._automation(tor, t)
+            self.incar.update(t, kmh, own.lights if own is not None else 0, ctl, limit, dt, automation=auto,
+                              time_left=left)
         if self.haptics is not None:
             near = self._nearest_ehmi() if any(str(c.get("on", "")).startswith("ehmi:")
                                                for c in self.haptics.cues) else None

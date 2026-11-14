@@ -9,11 +9,14 @@ them), and the speed limit of the road from the CARLA map.
       messages:                     # shown on a display at a time, a distance driven or when a state starts
         - {at: 5, seconds: 4, display: hud, text: "Turn right at the next junction"}
         - {at_m: 150, seconds: 5, display: centre, text: "Roadworks ahead", color: "#FFD60A"}
-        - {at: 20, seconds: 6, takeover: true, text: "TAKE OVER"}   # a take-over request: state TAKEOVER, a cue
+        - {at: 20, seconds: 6, takeover: true, text: "TAKE OVER"}   # a scripted warning: TAKEOVER, a cue
       messages_file: experiments/messages.csv    # coupled-sim's CSV (at;seconds;display;text;color;atDistance;onState)
 
 A display design is the same format as an eHMI design (designs.py). Its states are MANUAL (a driver), AUTOMATED
-(an AV passenger) and TAKEOVER (during a take-over request); ANY is always shown. Live values in text, gauges and
+(an AV passenger, or a driver whose car has `automation`) and TAKEOVER (during a take-over request); ANY is always
+shown. Real take-over requests of an automated car come from takeover.py (its own warning, beeps and reaction
+time); the displays follow its state, with {time_left} counting down its budget. A message with `takeover: true`
+is a scripted warning only (no automation hands over), with its reaction (first brake, throttle or steering) logged. Live values in text, gauges and
 bars: {speed} {limit} {rpm} {gear} {clock} {trial_time} {distance} {message} {mode} {time_left} {reaction}.
 Conditions (`when`): left right blinkers headlights braking reverse automated manual takeover message limit
 over_limit; "!x" negates. Messages for a display that is not configured go to the centre screen (a plain message
@@ -366,7 +369,9 @@ class InCar:
             return "all"
         return d if d in self.displays else "centre"
 
-    def update(self, t, kmh, lights=0, control=None, limit=None, dt=0.05):
+    def update(self, t, kmh, lights=0, control=None, limit=None, dt=0.05, automation=None, time_left=None):
+        """automation: takeover.py's state of the participant's car (automated / requested / manual), when it has
+        `automation`; a request shows as TAKEOVER with time_left (s) counting down."""
         if self.t0 is None:
             self.t0 = t
         tt = t - self.t0
@@ -385,8 +390,9 @@ class InCar:
                     self.on_event("takeover_response", "", f"{self.reaction:.2f} s")
             if tt >= until:
                 self.takeover = None
-        state = "TAKEOVER" if self.takeover is not None else ("AUTOMATED" if self.kind == "av_passenger"
-                                                             else "MANUAL")
+        base = {"automated": "AUTOMATED", "requested": "TAKEOVER", "manual": "MANUAL"}.get(automation) or \
+            ("AUTOMATED" if self.kind == "av_passenger" else "MANUAL")
+        state = "TAKEOVER" if self.takeover is not None else base
         started = state != self._prev_state
         self._prev_state = state
         self.state = state
@@ -407,7 +413,8 @@ class InCar:
             self.on_event("message", m["text"], f"{self._target(m)} {m['seconds']:.1f} s", m)
         self.shown = [s for s in self.shown if tt < s[1]]
         gear, rpm = _gear_rpm(kmh, throttle, reverse, control)
-        left_time = max(0.0, self.takeover[1] - tt) if self.takeover is not None else 0.0
+        left_time = max(0.0, self.takeover[1] - tt) if self.takeover is not None else \
+            max(0.0, time_left) if (state == "TAKEOVER" and time_left is not None) else 0.0
         blink_on = (t * 1.5) % 1.0 < 0.5
         lights = int(lights or 0)
         clock = self.clock0 + tt

@@ -15,6 +15,10 @@ Controls
   pedestrian    W/S forward/back, A/D sidestep, mouse or left/right arrows to look, Shift to run
   av_passenger  1-9 choose the AV's eHMI message (listed on screen), 0 switches it off
   everyone      F visual sync (red bar on every station for 1 s), F3 sound calibration tone (with sound), Esc quit
+  responses     B hold-to-respond button, N/M slider down/up (gamepad: right shoulder/trigger, d-pad; wheel: right
+                wheel button, paddles), when the experiment gives the role a `response`
+  automated     steer, brake or press the throttle to take over, Enter (G25 button 2) hands back to the automation;
+                T requests a take-over (experimenter)
 --input bot drives the role without a human (tests): the driver on CARLA's autopilot, the pedestrian along the
 path in the experiment's `bot`, the passenger by the eHMI schedule in `bot`.
 
@@ -38,6 +42,7 @@ import numpy as np
 
 from .compat import set_manual_exposure
 from .coupling import ControlClient
+from .studytools import CSV_COLUMNS, StationStudy
 
 VIEWS = {
     "driver": carla.Transform(carla.Location(x=-0.05, y=-0.38, z=1.22)),
@@ -72,12 +77,13 @@ class Station:
         self.t0_sim = None
         self.trial = None
         self.tick_lag, self.image_lag, self.seen = [], [], {}      # ms after the host's tick: snapshot seen, camera image here
+        self.study = None          # responses and take-over requests (studytools.StationStudy), from the welcome
         out = Path(args.out) / "stations"
         out.mkdir(parents=True, exist_ok=True)
         self.log_f = open(out / f"{args.role}_{time.strftime('%Y%m%d-%H%M%S')}.csv", "w", newline="", buffering=1)
         self.log_w = csv.writer(self.log_f, delimiter=";")
         self.log_w.writerow(["wall_time", "frame", "sim_time", "trial", "rtt_ms", "flash", "speed_kmh", "ehmi",
-                             "clock_offset_ms", "tick_lag_ms", "image_lag_ms"])
+                             "clock_offset_ms", "tick_lag_ms", "image_lag_ms", *CSV_COLUMNS])
         if not args.headless:
             import pygame
             pygame.init()
@@ -114,6 +120,7 @@ class Station:
                 if kind == "welcome":
                     self.welcome = msg
                     self.ehmi_states = msg.get("ehmi_states", [])
+                    self.study = StationStudy(msg, self.args, self.control.send)
                     print(f"[station {self.args.role}] {msg.get('kind')} in {msg.get('experiment')}", flush=True)
                 elif kind == "state":
                     if msg["state"] == "running" and state != "running" and msg.get("actor_id"):
@@ -131,6 +138,8 @@ class Station:
                     self.flash_until = time.time() + 1.0
                 elif kind == "ehmi_state" and self.ux is not None:
                     self.ux.on_message(msg)
+                elif self.study is not None:
+                    self.study.on_message(msg)      # take-over state, pause
             if state == "running":
                 if not self.tick():
                     self.stop()
@@ -190,6 +199,8 @@ class Station:
                 self.look_at = found[0] if found else None
         elif kind == "av_passenger" and args.input == "bot":
             self.bot = sorted(bot.get("ehmi", []))
+        if self.study is not None:
+            self.study.start(self.actor, self.world, self.input, self.client)
         self.t0_sim = None
         self.trial = msg.get("trial")
         from .stationux import StationUX, wanted
@@ -255,7 +266,8 @@ class Station:
         try:
             if kind == "driver":
                 ctl = self.input.control(self.actor, events)
-                if ctl is not None:
+                drive = self.study.drive(ctl, events) if self.study is not None else True   # automation drives?
+                if ctl is not None and drive:
                     self.actor.apply_control(ctl)
                 if getattr(self.input, "reset", False):
                     self._reset_to_lane()
@@ -274,7 +286,9 @@ class Station:
         except RuntimeError:
             return True      # our actor went away (end of trial); the host will say so
         if self.ux is not None:
-            self.ux.tick(snap, t, events, heading=self.heading if kind == "pedestrian" else None)
+            self.ux.tick(snap, t, events, heading=self.heading if kind == "pedestrian" else None,
+                         tor=self.study.tor if self.study is not None else None)
+        cells = self.study.sample(t, snap.frame, self.screen) if self.study is not None else [""] * len(CSV_COLUMNS)
         self.render(t)
         v = self.actor.get_velocity()
         rtt = self.control.rtt()
@@ -284,7 +298,7 @@ class Station:
                              f"{3.6 * math.hypot(v.x, v.y):.2f}", self.ehmi,
                              f"{1000 * off:.2f}" if off is not None else "",
                              f"{lag:.1f}" if lag is not None else "",
-                             f"{self.image_lag[-1]:.1f}" if self.image_lag else ""])
+                             f"{self.image_lag[-1]:.1f}" if self.image_lag else "", *cells])
         self.frames += 1
         self.fps_n += 1
         if kind == "pedestrian" and self.frames % 10 == 0:      # where the pedestrian looks (eye contact)
@@ -386,6 +400,8 @@ class Station:
             self.screen.blit(self.font.render(line, True, (255, 255, 255)), (16, 12 + 26 * i))
         if self.ux is not None:
             self.ux.draw(self.screen, self.args.fov)
+        if self.study is not None:
+            self.study.draw(self.screen, self.font, self.big)
         if time.time() < self.flash_until:
             pygame.draw.rect(self.screen, (255, 0, 0), (0, 0, self.size[0], 60))
         pygame.display.flip()
@@ -416,6 +432,7 @@ def main():
     ap.add_argument("--headless", action="store_true", help="no window (with --input bot)")
     ap.add_argument("--frames-every", type=float, default=0.0, help="headless: save the view every N s")
     ap.add_argument("--out", default="logs")
+    ap.add_argument("--response", help="button,slider[,hidden]: responses here even if the experiment has none")
     ap.add_argument("--child", action="store_true", help=argparse.SUPPRESS)
     args = ap.parse_args()
     if args.child:

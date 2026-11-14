@@ -176,3 +176,13 @@ def test_wheel_vibrate_mixes_into_the_road_effect(monkeypatch):
     assert w._cue == 0.7
     w.vibrate(3.0)
     assert w._cue == 1.0
+
+
+def test_displays_follow_the_automation_of_takeover_py():
+    ic = incar.InCar({"cluster": True}, "driver", (1280, 720), log=lambda s: None)
+    ic.update(0.0, 30.0, automation="automated")
+    assert ic.state == "AUTOMATED" and ic.values["mode"] == "Automated"
+    ic.update(0.05, 30.0, automation="requested", time_left=6.24)
+    assert ic.state == "TAKEOVER" and ic.values["time_left"] == "6.2" and ic.conds["takeover"]
+    ic.update(0.1, 30.0, automation="manual")
+    assert ic.state == "MANUAL"

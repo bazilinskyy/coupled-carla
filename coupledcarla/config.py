@@ -194,6 +194,24 @@ DEFAULTS = {
         "analyse": True,             # encounter measures in <trial>/analysis/ after each trial (coupledcarla/analysis.py)
     },
     "trials": [{"duration_s": 300}],
+    # study tools (coupledcarla/study.py, studytools.py, dashboard.py; check a file with python -m coupledcarla.validate)
+    "conditions": {},                # name -> overrides of a trial, used by trials (condition: / conditions: [..])
+    "design": {                      # trials generated from conditions, ordered per participant (run --participant N)
+        "factors": {},               # factor -> [condition names]: every combination is a condition (full factorial)
+        "order": "latin",            # blocks per participant: latin (balanced Latin square) | full (every
+                                     # permutation) | random | none
+        "repeat": 1,                 # each combination this many times, within its block
+        "block_by": None,            # a factor whose levels form the blocks (default: each combination is a block)
+        "trial": {},                 # merged into every generated trial (e.g. duration_s)
+        "practice": [],              # trials run first, in this order
+        "after": [],                 # trials run last, in this order
+    },
+    "dashboard": {                   # experimenter dashboard (coupledcarla/dashboard.py), also run --dashboard
+        "enabled": False,
+        "host": "127.0.0.1",         # where it listens; anything but localhost needs the token it prints
+        "port": 8780,
+        "gate_trials": True,         # each trial waits for "Start trial" on the dashboard once it is loaded
+    },
 }
 
 
@@ -221,7 +239,13 @@ def trial_config(cfg, trial):
     over = {k: v for k, v in trial.items() if k in ("simulation", "traffic", "participants", "agents", "logging",
                                                       "coupling", "ehmi", "eye_contact", "sound", "displays",
                                                       "haptics")}
-    return _merge(cfg, over)
+    out = _merge(cfg, over)
+    # patch: {agents: {id: {...}}, participants: {role: {...}}} changes one agent or participant (a condition can
+    # switch av1's eHMI without repeating the whole agents list)
+    for section, key in (("agents", "id"), ("participants", "role")):
+        for name, fields in ((trial.get("patch") or {}).get(section) or {}).items():
+            out[section] = [_merge(item, fields) if item.get(key) == name else item for item in out.get(section) or []]
+    return out
 
 
 def map_dir(cfg):

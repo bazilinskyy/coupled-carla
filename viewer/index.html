@@ -35,7 +35,8 @@
   <div class="muted" id="sub">Load a trial.json (exported with <code>python -m coupledcarla.export_trial</code>): pass
     <code>?file=…</code> or drop the file here.</div></div>
 <div id="hud" class="panel"><div class="muted">participant</div><div class="big" id="speed">–</div>
-  <div id="light" class="muted">no light ahead</div><div class="muted" id="clock">t = 0.0 s</div></div>
+  <div id="light" class="muted">no light ahead</div><div class="muted" id="clock">t = 0.0 s</div>
+  <div id="resp" class="muted"></div></div>
 <div id="events" class="panel"></div>
 <div id="legend" class="panel"><span style="background:#c8102e"></span>participant<span style="background:#2f6db5"></span>car
   <span style="background:#2e9e5b"></span>bike<span style="background:#e08a00"></span>bus<span style="background:#1b2f6b"></span>AI agent<span style="background:#7a4bb5"></span>AI walker<span style="background:#a8483a"></span>cycleway</div>
@@ -185,6 +186,12 @@ function update() {
       camera.position.set(p.x, 320, p.z + 1); controls.target.set(p.x, 0, p.z);
     }
   }
+  document.getElementById("resp").innerHTML = Object.entries(data.responses || {}).map(([role, s]) => {
+    let i = s.length - 1; while (i > 0 && s[i][0] > tt) i--;                   // participant responses (study tools)
+    const r = s[i] && s[i][0] <= tt ? s[i] : null;
+    return r ? `${role}: ` + (r[1] === null ? "" : `<span class="lamp" style="background:${r[1] ? "#1fae4b" : "#bbb"}"></span>`) +
+      (r[2] === null ? "" : `slider ${r[2].toFixed(0)}`) : "";
+  }).filter(x => x).join("<br>");
   const ev = (data.events || []).filter(e => e[0] - (data.t0 || 0) <= t).slice(-6).reverse();
   document.getElementById("events").innerHTML = ev.map(e => `<div><b>${(e[0] - (data.t0 || 0)).toFixed(1)} s</b> ${e[1]} <span class="muted">${e[2]}</span></div>`).join("") || "<span class='muted'>no events yet</span>";
 }
