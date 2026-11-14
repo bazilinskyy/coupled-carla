@@ -805,7 +805,10 @@ index and the light states it sets, subscribes SUMO vehicles outside CARLA to th
 CARLA-driven cars to SUMO lanes with its own lane index (`coupledcarla/lanesnap.py`: the same point as SUMO's
 `convertRoad`, checked on 104,000 points, without its 1.6 ms scan). `simulation.profile: true` prints the
 milliseconds per tick of each part of the loop. Eindhoven twin on lin5080 (`-nullrhi`, 60 s, headless): 18.9 ->
-7.7 ms per tick, the client's own 15.0 -> 4.5 ms; RTF 1.06 -> 2.59.
+7.7 ms per tick, the client's own 15.0 -> 4.5 ms; RTF 1.06 -> 2.59. On Windows (win5090, the packaged server
+rendering, client in WSL) a fire-and-forget batch before the tick still waited for the delayed ACK (43 ms per tick
+against the server's 17 ms), so the bridge sends its batch with `apply_batch_sync`: the Eindhoven twin with
+styled buildings and a 1280x720 camera then runs in real time, 13-14 ms per tick (the server 6-7 ms of it).
 
 **Still to do in phase 3:** stations on the rendering server, facade textures for the 3DBAG buildings, VR; the
 rpclib fix upstream.

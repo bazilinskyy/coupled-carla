@@ -211,7 +211,9 @@ class CarlaSimulation(object):
         Tick to carla simulation.
         """
         if self._pending:
-            self.client.apply_batch(self._pending)
+            # sync: on CARLA 1.0 a fire-and-forget batch followed by the tick still waited for a delayed ACK on
+            # Windows (win5090: 43 ms per tick against the server's 17 ms); waiting for its reply costs ~0.3 ms
+            self.client.apply_batch_sync(self._pending, False)
             self._pending = []
         self.tick_frame = self.world.tick()
         self.tick_wall = time.time()      # coupled-carla: when this frame's tick returned (station latency)

@@ -1140,20 +1140,27 @@ class Scenery:
 
     def _spawn(self, key, items, lit=False):
         import carla
-        cmds, lamp = [], []
+        cmds, lamp, moves = [], [], {}
         for it in items:
             pitch, roll = (it[7] if len(it) > 7 else (0.0, 0.0))
             tf = carla.Transform(carla.Location(x=it[1], y=it[2], z=it[3]),
                                  carla.Rotation(pitch=pitch, yaw=it[4], roll=roll))
             light = lit and it[6] == "lamp" and it[0] in self.light_bp and abs(it[5] - 1.0) < 0.01
             if light:       # the street-light blueprint: the same mesh and pivot, plus its light (no scale)
-                cmds.append(carla.command.SpawnActor(self.light_bp[it[0]], tf))
+                # it has collision, and CARLA refuses a spawn that touches anything: on a baked level its pole
+                # foot touches the real ground, so it is spawned 100 m up and then moved into place
+                moves[len(cmds)] = tf
+                up = carla.Transform(carla.Location(x=it[1], y=it[2], z=it[3] + 100.0), tf.rotation)
+                cmds.append(carla.command.SpawnActor(self.light_bp[it[0]], up))
             else:
                 self.bp.set_attribute("mesh_path", self.meshes[it[0]])
                 self.bp.set_attribute("scale", str(it[5]))
                 cmds.append(carla.command.SpawnActor(self.bp, tf))
             lamp.append(it[6] == "lamp" and it[0] in self.light_bp)
         res = self.client.apply_batch_sync(cmds, False)
+        if moves:
+            self.client.apply_batch_sync([carla.command.ApplyTransform(res[i].actor_id, tf)
+                                          for i, tf in moves.items() if not res[i].error], False)
         ids = [r.actor_id for r in res if not r.error]
         if self.light_bp:
             self.lamps[key] = [r.actor_id for r, is_lamp in zip(res, lamp) if is_lamp and not r.error]
