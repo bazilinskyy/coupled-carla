@@ -20,6 +20,12 @@ What it makes (idempotent: existing assets are updated in place):
 static.prop.mesh keeps a mesh's own materials, so each face needs its own mesh (CARLA 1.0's StaticMeshFactory has
 mesh_path, mass and scale, no material attribute). For a package the folder has to be cooked:
 +DirectoriesToAlwaysCook=(Path="/Game/CoupledCarla") in Config/DefaultGame.ini.
+
+On win5090 (2026-11-15) it ran in C:\cc58 as the scheduled task cc58-dutchsigns (S4U, below-normal priority):
+C:\cc58\dutchsigns\job.ps1 calls UnrealEditor-Cmd.exe C:\cc58\carla\Unreal\CarlaUnreal\CarlaUnreal.uproject
+-run=pythonscript "-script=C:/cc58/dutchsigns/ue_nl_signs.py --textures C:/cc58/dutchsigns/textures --manifest
+C:/cc58/dutchsigns/nl_sign_faces.json --report C:/cc58/dutchsigns/build_report.json" -unattended -nop4 -nosplash
+(about 70 s; 248 faces, 32 MB of uassets). The textures come from tools/nl_sign_faces.py on any machine.
 """
 import json
 import os
