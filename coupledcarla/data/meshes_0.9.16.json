@@ -1,0 +1,12602 @@
+{
+"carla": "0.9.16",
+"meshes": {
+"/Game/Carla/Static/Building/00_Opt/Apartment03/SM_Apartment03_v01_Opt.SM_Apartment03_v01_Opt": {
+"cat": "building",
+"ext": [
+9.54,
+11.54,
+16.13
+],
+"off": [
+4.0,
+9.94,
+16.13
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Apartment03/SM_Apartment03_v02Opt.SM_Apartment03_v02Opt": {
+"cat": "building",
+"ext": [
+24.0,
+8.0,
+12.0
+],
+"off": [
+-20.0,
+-12.0,
+12.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Apartment04/SM_Apartment04_v01_Opt.SM_Apartment04_v01_Opt": {
+"cat": "building",
+"ext": [
+15.63,
+15.6,
+7.88
+],
+"off": [
+15.19,
+-14.99,
+7.86
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Apartment04/SM_Apartment04_v02_Opt.SM_Apartment04_v02_Opt": {
+"cat": "building",
+"ext": [
+9.45,
+22.65,
+10.23
+],
+"off": [
+7.04,
+20.46,
+10.23
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Apartment04/SM_Apartment04_v03_Opt.SM_Apartment04_v03_Opt": {
+"cat": "building",
+"ext": [
+7.69,
+7.38,
+7.87
+],
+"off": [
+7.25,
+-6.76,
+7.87
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Apartment04/SM_Apartment04_v04_Opt.SM_Apartment04_v04_Opt": {
+"cat": "building",
+"ext": [
+9.33,
+8.25,
+10.24
+],
+"off": [
+7.26,
+-8.25,
+10.22
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Apartment04/SM_Apartment04_v05_Opt.SM_Apartment04_v05_Opt": {
+"cat": "building",
+"ext": [
+7.69,
+7.69,
+10.23
+],
+"off": [
+7.25,
+-7.07,
+10.23
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Apartment04/SM_Apartment04_v06_Opt.SM_Apartment04_v06_Opt": {
+"cat": "building",
+"ext": [
+15.6,
+15.29,
+14.96
+],
+"off": [
+13.41,
+-15.29,
+14.94
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Apartment04/SM_Apartment04_v07_Opt.SM_Apartment04_v07_Opt": {
+"cat": "building",
+"ext": [
+22.59,
+22.64,
+19.67
+],
+"off": [
+20.51,
+-22.03,
+19.67
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Apartment04/SM_Apartment04_v08_Opt.SM_Apartment04_v08_Opt": {
+"cat": "building",
+"ext": [
+11.13,
+14.6,
+7.87
+],
+"off": [
+3.8,
+-7.04,
+7.86
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block12/SM_Block12_v01_Opt.SM_Block12_v01_Opt": {
+"cat": "building",
+"ext": [
+15.21,
+7.71,
+11.91
+],
+"off": [
+2.5,
+0.0,
+10.91
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block12/SM_Block12_v02_Opt.SM_Block12_v02_Opt": {
+"cat": "building",
+"ext": [
+15.21,
+7.71,
+10.16
+],
+"off": [
+2.5,
+0.0,
+9.16
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block12/SM_Block12_v03_Opt.SM_Block12_v03_Opt": {
+"cat": "building",
+"ext": [
+15.21,
+7.71,
+13.66
+],
+"off": [
+-2.5,
+0.0,
+12.66
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block12/SM_block12NY_F01_b_Opt.SM_block12NY_F01_b_Opt": {
+"cat": "building",
+"ext": [
+-Infinity,
+-Infinity,
+-Infinity
+],
+"off": [
+NaN,
+NaN,
+NaN
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block13NY/SM_Block13NY_V01_Opt.SM_Block13NY_V01_Opt": {
+"cat": "building",
+"ext": [
+8.23,
+15.73,
+14.63
+],
+"off": [
+0.0,
+0.0,
+14.46
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block13NY/SM_Block13NY_v03_Opt.SM_Block13NY_v03_Opt": {
+"cat": "building",
+"ext": [
+15.73,
+8.49,
+15.55
+],
+"off": [
+0.0,
+0.26,
+14.55
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block13NY/SM_Block13NY_v04_Opt.SM_Block13NY_v04_Opt": {
+"cat": "building",
+"ext": [
+15.73,
+8.49,
+12.05
+],
+"off": [
+0.0,
+0.26,
+11.05
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block13NY/SM_block13NY_BaseGr_a_Opt.SM_block13NY_BaseGr_a_Opt": {
+"cat": "building",
+"ext": [
+-Infinity,
+-Infinity,
+-Infinity
+],
+"off": [
+NaN,
+NaN,
+NaN
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block13NY/SM_block13NY_F01_a_Opt.SM_block13NY_F01_a_Opt": {
+"cat": "building",
+"ext": [
+-Infinity,
+-Infinity,
+-Infinity
+],
+"off": [
+NaN,
+NaN,
+NaN
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block14/SM_Block14_v01_Merged.SM_Block14_v01_Merged": {
+"cat": "building",
+"ext": [
+15.07,
+10.41,
+9.0
+],
+"off": [
+-12.37,
+0.0,
+7.43
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block14/SM_Block14_v01_Opt.SM_Block14_v01_Opt": {
+"cat": "building",
+"ext": [
+15.05,
+10.41,
+9.0
+],
+"off": [
+12.35,
+-0.01,
+7.45
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block14/SM_Block14_v02_Merged.SM_Block14_v02_Merged": {
+"cat": "building",
+"ext": [
+15.15,
+10.41,
+10.78
+],
+"off": [
+12.45,
+0.0,
+9.2
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block14/SM_Block14_v02_Opt.SM_Block14_v02_Opt": {
+"cat": "building",
+"ext": [
+15.15,
+10.43,
+10.8
+],
+"off": [
+12.45,
+0.02,
+9.25
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block14/SM_Block14_v03_Merged.SM_Block14_v03_Merged": {
+"cat": "building",
+"ext": [
+15.15,
+10.41,
+9.0
+],
+"off": [
+12.45,
+0.06,
+7.43
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block14/SM_Block14_v03_Opt.SM_Block14_v03_Opt": {
+"cat": "building",
+"ext": [
+15.16,
+10.43,
+9.0
+],
+"off": [
+12.46,
+0.09,
+7.45
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block14/SM_Block14_v04_Merged.SM_Block14_v04_Merged": {
+"cat": "building",
+"ext": [
+15.24,
+10.41,
+9.0
+],
+"off": [
+12.54,
+0.0,
+7.43
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Block14/SM_Block14_v04_Opt.SM_Block14_v04_Opt": {
+"cat": "building",
+"ext": [
+15.24,
+10.4,
+9.0
+],
+"off": [
+12.54,
+-0.02,
+7.45
+]
+},
+"/Game/Carla/Static/Building/00_Opt/ConstructionSite/SM_buildingTown05_Opt_1slot.SM_buildingTown05_Opt_1slot": {
+"cat": "building",
+"ext": [
+24.02,
+18.07,
+44.04
+],
+"off": [
+-0.36,
+-0.9,
+29.04
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Factory/SM_Factory_v01_Opt.SM_Factory_v01_Opt": {
+"cat": "building",
+"ext": [
+8.4,
+25.9,
+7.5
+],
+"off": [
+-7.5,
+20.0,
+7.5
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Factory/SM_Factory_v02_Opt.SM_Factory_v02_Opt": {
+"cat": "building",
+"ext": [
+25.9,
+14.19,
+7.5
+],
+"off": [
+20.0,
+11.71,
+7.5
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Factory/SM_Factory_v03_Opt.SM_Factory_v03_Opt": {
+"cat": "building",
+"ext": [
+13.99,
+25.4,
+12.75
+],
+"off": [
+11.51,
+-20.1,
+12.75
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Hotel/SM_Hotel_v01_Opt.SM_Hotel_v01_Opt": {
+"cat": "building",
+"ext": [
+13.93,
+13.93,
+7.93
+],
+"off": [
+2.98,
+13.03,
+7.93
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Hotel/SM_Hotel_v02_Opt.SM_Hotel_v02_Opt": {
+"cat": "building",
+"ext": [
+15.38,
+19.81,
+12.48
+],
+"off": [
+-11.74,
+8.69,
+12.48
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Hotel/SM_Hotel_v03_Opt.SM_Hotel_v03_Opt": {
+"cat": "building",
+"ext": [
+13.54,
+25.13,
+10.34
+],
+"off": [
+-13.11,
+14.45,
+10.22
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Museum/SM_Museum_v01_Opt.SM_Museum_v01_Opt": {
+"cat": "building",
+"ext": [
+43.75,
+57.61,
+10.65
+],
+"off": [
+40.72,
+-41.56,
+10.65
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Museum/SM_Museum_v02_Opt.SM_Museum_v02_Opt": {
+"cat": "building",
+"ext": [
+32.66,
+46.51,
+10.65
+],
+"off": [
+29.63,
+-30.47,
+10.65
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Parking/SM_ParkingRamp_v01_Opt.SM_ParkingRamp_v01_Opt": {
+"cat": "building",
+"ext": [
+12.26,
+12.43,
+13.37
+],
+"off": [
+0.17,
+0.0,
+12.21
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Parking/SM_Parking_v01_Opt.SM_Parking_v01_Opt": {
+"cat": "building",
+"ext": [
+10.26,
+20.25,
+12.84
+],
+"off": [
+5.0,
+-15.03,
+9.35
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Apartment01_1_Opt.SM_Apartment01_1_Opt": {
+"cat": "building",
+"ext": [
+4.17,
+6.08,
+4.65
+],
+"off": [
+0.44,
+0.07,
+5.15
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Apartment02_1_Opt.SM_Apartment02_1_Opt": {
+"cat": "building",
+"ext": [
+6.05,
+4.69,
+3.82
+],
+"off": [
+0.27,
+0.03,
+3.8
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Awning01_Opt.SM_Awning01_Opt": {
+"cat": "building",
+"ext": [
+1.09,
+0.56,
+0.67
+],
+"off": [
+0.0,
+0.55,
+0.67
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Awning02_Opt.SM_Awning02_Opt": {
+"cat": "building",
+"ext": [
+2.23,
+0.97,
+0.89
+],
+"off": [
+0.0,
+0.97,
+-0.82
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Bloc04_Opt.SM_Bloc04_Opt": {
+"cat": "building",
+"ext": [
+8.31,
+8.5,
+8.72
+],
+"off": [
+4.1,
+4.2,
+8.81
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block01Parking_Opt.SM_Block01Parking_Opt": {
+"cat": "building",
+"ext": [
+9.77,
+6.18,
+1.73
+],
+"off": [
+-0.21,
+0.0,
+1.91
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block01_fixed_Opt.SM_Block01_fixed_Opt": {
+"cat": "building",
+"ext": [
+6.6,
+10.07,
+7.22
+],
+"off": [
+-0.24,
+-0.08,
+7.62
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block02Base_2_Opt.SM_Block02Base_2_Opt": {
+"cat": "building",
+"ext": [
+4.07,
+5.03,
+3.56
+],
+"off": [
+0.0,
+0.0,
+3.56
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block03BaseFloor_Opt.SM_Block03BaseFloor_Opt": {
+"cat": "building",
+"ext": [
+2.71,
+3.59,
+3.08
+],
+"off": [
+0.0,
+-0.26,
+3.09
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block03Floor_Opt.SM_Block03Floor_Opt": {
+"cat": "building",
+"ext": [
+2.55,
+3.85,
+1.29
+],
+"off": [
+-0.0,
+0.0,
+7.46
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block04_fixed_Opt.SM_Block04_fixed_Opt": {
+"cat": "building",
+"ext": [
+4.21,
+4.3,
+8.71
+],
+"off": [
+0.0,
+0.0,
+8.8
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block05_Opt.SM_Block05_Opt": {
+"cat": "building",
+"ext": [
+3.83,
+4.92,
+12.56
+],
+"off": [
+0.0,
+0.0,
+12.57
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block07_1_fixed_Opt.SM_Block07_1_fixed_Opt": {
+"cat": "building",
+"ext": [
+4.85,
+14.47,
+4.3
+],
+"off": [
+-0.02,
+-0.02,
+4.36
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block08_Opt.SM_Block08_Opt": {
+"cat": "building",
+"ext": [
+5.95,
+14.78,
+5.54
+],
+"off": [
+-0.02,
+0.27,
+5.52
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block10_1_Opt.SM_Block10_1_Opt": {
+"cat": "building",
+"ext": [
+20.6,
+8.81,
+10.0
+],
+"off": [
+0.0,
+0.0,
+-13.6
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block10_2_Opt.SM_Block10_2_Opt": {
+"cat": "building",
+"ext": [
+20.6,
+8.81,
+10.0
+],
+"off": [
+0.0,
+0.0,
+-13.6
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block10_3_Opt.SM_Block10_3_Opt": {
+"cat": "building",
+"ext": [
+17.26,
+7.61,
+4.43
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Block10_5_Opt.SM_Block10_5_Opt": {
+"cat": "building",
+"ext": [
+14.38,
+13.33,
+14.18
+],
+"off": [
+0.0,
+0.0,
+-20.6
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Church01_Opt.SM_Church01_Opt": {
+"cat": "building",
+"ext": [
+6.36,
+5.4,
+8.05
+],
+"off": [
+0.52,
+1.99,
+8.01
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Concrete1_T3_Opt.SM_Concrete1_T3_Opt": {
+"cat": "building",
+"ext": [
+10.75,
+10.4,
+3.61
+],
+"off": [
+0.0,
+0.0,
+-3.37
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_ConstructBuilding_Opt.SM_ConstructBuilding_Opt": {
+"cat": "building",
+"ext": [
+5.42,
+4.5,
+3.65
+],
+"off": [
+0.45,
+-1.05,
+3.52
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Garage01_Opt.SM_Garage01_Opt": {
+"cat": "building",
+"ext": [
+2.95,
+3.63,
+2.14
+],
+"off": [
+0.02,
+-0.32,
+2.04
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_GasStation01_Opt.SM_GasStation01_Opt": {
+"cat": "building",
+"ext": [
+27.56,
+15.05,
+5.55
+],
+"off": [
+-8.17,
+0.83,
+5.12
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_GuardShelter_Opt.SM_GuardShelter_Opt": {
+"cat": "building",
+"ext": [
+1.37,
+1.16,
+1.34
+],
+"off": [
+-0.1,
+0.0,
+1.31
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_HotelHall_Opt.SM_HotelHall_Opt": {
+"cat": "building",
+"ext": [
+7.55,
+6.57,
+4.64
+],
+"off": [
+-6.55,
+-2.15,
+-0.99
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House01_Opt.SM_House01_Opt": {
+"cat": "building",
+"ext": [
+4.82,
+6.04,
+6.32
+],
+"off": [
+0.0,
+-0.0,
+6.32
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House02_Opt.SM_House02_Opt": {
+"cat": "building",
+"ext": [
+3.91,
+4.38,
+4.24
+],
+"off": [
+0.01,
+-0.14,
+4.23
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House03_Opt.SM_House03_Opt": {
+"cat": "building",
+"ext": [
+8.6,
+7.96,
+4.42
+],
+"off": [
+-0.51,
+-1.07,
+4.35
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House04_Opt.SM_House04_Opt": {
+"cat": "building",
+"ext": [
+11.43,
+7.31,
+3.47
+],
+"off": [
+0.92,
+-3.25,
+2.52
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House05_Opt.SM_House05_Opt": {
+"cat": "building",
+"ext": [
+4.75,
+6.26,
+3.87
+],
+"off": [
+-2.65,
+0.8,
+3.89
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House06_Opt.SM_House06_Opt": {
+"cat": "building",
+"ext": [
+11.2,
+5.0,
+2.36
+],
+"off": [
+5.58,
+-3.66,
+2.37
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House10_Opt.SM_House10_Opt": {
+"cat": "building",
+"ext": [
+3.98,
+4.33,
+4.43
+],
+"off": [
+0.0,
+0.0,
+4.41
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House11_Opt.SM_House11_Opt": {
+"cat": "building",
+"ext": [
+4.6,
+4.63,
+5.27
+],
+"off": [
+0.0,
+0.0,
+5.27
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House12_1_Opt.SM_House12_1_Opt": {
+"cat": "building",
+"ext": [
+5.18,
+4.86,
+3.22
+],
+"off": [
+-0.11,
+-0.0,
+3.19
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_House_13_Opt.SM_House_13_Opt": {
+"cat": "building",
+"ext": [
+8.52,
+4.87,
+3.84
+],
+"off": [
+-0.89,
+3.0,
+3.92
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_IronPlank_Opt.SM_IronPlank_Opt": {
+"cat": "building",
+"ext": [
+0.73,
+0.59,
+0.01
+],
+"off": [
+0.0,
+0.0,
+0.01
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Kiosk03_Opt.SM_Kiosk03_Opt": {
+"cat": "building",
+"ext": [
+1.59,
+1.38,
+1.59
+],
+"off": [
+0.22,
+0.0,
+1.58
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Mall02_Opt.SM_Mall02_Opt": {
+"cat": "building",
+"ext": [
+20.75,
+22.73,
+5.77
+],
+"off": [
+-1.19,
+-6.24,
+5.76
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Mall03_Opt.SM_Mall03_Opt": {
+"cat": "building",
+"ext": [
+20.75,
+22.73,
+5.77
+],
+"off": [
+-1.19,
+-6.24,
+5.76
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Mansion01_Opt.SM_Mansion01_Opt": {
+"cat": "building",
+"ext": [
+4.99,
+9.01,
+4.98
+],
+"off": [
+-1.89,
+0.12,
+5.04
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Mansion02_Opt.SM_Mansion02_Opt": {
+"cat": "building",
+"ext": [
+13.65,
+6.59,
+3.83
+],
+"off": [
+-5.29,
+4.6,
+3.1
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Mansion03_oPT.SM_Mansion03_oPT": {
+"cat": "building",
+"ext": [
+10.08,
+6.12,
+2.88
+],
+"off": [
+5.4,
+0.15,
+-0.78
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_OfficeGroundFloor_2_Opt.SM_OfficeGroundFloor_2_Opt": {
+"cat": "building",
+"ext": [
+8.32,
+3.42,
+1.58
+],
+"off": [
+-0.05,
+-0.41,
+1.58
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_OfficeStructure_2_Opt.SM_OfficeStructure_2_Opt": {
+"cat": "building",
+"ext": [
+8.32,
+3.42,
+1.58
+],
+"off": [
+-0.06,
+-0.41,
+4.75
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_OfficeWin_2_opt.SM_OfficeWin_2_opt": {
+"cat": "building",
+"ext": [
+8.15,
+0.05,
+1.49
+],
+"off": [
+-0.04,
+2.88,
+4.82
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Pier_Opt.SM_Pier_Opt": {
+"cat": "building",
+"ext": [
+3.25,
+3.75,
+2.09
+],
+"off": [
+-3.25,
+-0.0,
+-0.83
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Pier_Square_Opt.SM_Pier_Square_Opt": {
+"cat": "building",
+"ext": [
+6.58,
+7.4,
+4.29
+],
+"off": [
+-6.41,
+0.0,
+1.3
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_PotStatue_Opt.SM_PotStatue_Opt": {
+"cat": "building",
+"ext": [
+0.38,
+0.36,
+0.53
+],
+"off": [
+0.0,
+0.0,
+0.53
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_RailingCube_Opt.SM_RailingCube_Opt": {
+"cat": "building",
+"ext": [
+0.45,
+0.45,
+0.45
+],
+"off": [
+0.0,
+0.0,
+0.45
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Skycraper01_Opt.SM_Skycraper01_Opt": {
+"cat": "building",
+"ext": [
+5.0,
+5.0,
+15.5
+],
+"off": [
+0.3,
+0.0,
+-14.5
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Skycraper02_Opt.SM_Skycraper02_Opt": {
+"cat": "building",
+"ext": [
+9.0,
+9.0,
+20.6
+],
+"off": [
+0.0,
+0.0,
+-19.6
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Skycraper03_Opt.SM_Skycraper03_Opt": {
+"cat": "building",
+"ext": [
+11.69,
+8.75,
+25.89
+],
+"off": [
+0.0,
+0.7,
+-18.31
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Skycraper04_1_Opt.SM_Skycraper04_1_Opt": {
+"cat": "building",
+"ext": [
+7.55,
+7.65,
+24.25
+],
+"off": [
+-0.05,
+-0.15,
+1.75
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Skycraper04_2_Opt.SM_Skycraper04_2_Opt": {
+"cat": "building",
+"ext": [
+7.5,
+7.5,
+22.5
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Skycraper04_3_Opt.SM_Skycraper04_3_Opt": {
+"cat": "building",
+"ext": [
+27.65,
+12.58,
+11.82
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Skycraper05_Opt.SM_Skycraper05_Opt": {
+"cat": "building",
+"ext": [
+9.15,
+8.1,
+25.53
+],
+"off": [
+-0.3,
+-14.0,
+7.53
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Skycraper06_Opt.SM_Skycraper06_Opt": {
+"cat": "building",
+"ext": [
+11.69,
+8.75,
+19.11
+],
+"off": [
+0.0,
+0.0,
+-14.89
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Station_lettering_Opt.SM_Station_lettering_Opt": {
+"cat": "building",
+"ext": [
+1.22,
+0.02,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_TerracedHouse02_1_Opt.SM_TerracedHouse02_1_Opt": {
+"cat": "building",
+"ext": [
+4.93,
+4.47,
+3.7
+],
+"off": [
+0.0,
+-0.0,
+3.7
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_TerracedHouse02_2_Opt.SM_TerracedHouse02_2_Opt": {
+"cat": "building",
+"ext": [
+4.93,
+4.47,
+3.7
+],
+"off": [
+0.0,
+-0.0,
+3.7
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_Wall02_Opt.SM_Wall02_Opt": {
+"cat": "building",
+"ext": [
+1.2,
+0.14,
+0.69
+],
+"off": [
+1.2,
+0.0,
+0.69
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_bannerSinglePoleShort_Opt.SM_bannerSinglePoleShort_Opt": {
+"cat": "building",
+"ext": [
+0.05,
+0.72,
+1.0
+],
+"off": [
+0.0,
+-0.8,
+-0.95
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_bannerSinglePole_Opt.SM_bannerSinglePole_Opt": {
+"cat": "building",
+"ext": [
+0.05,
+0.72,
+1.52
+],
+"off": [
+0.0,
+-0.8,
+-1.47
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_bannerSingleShort_Opt.SM_bannerSingleShort_Opt": {
+"cat": "building",
+"ext": [
+0.05,
+0.64,
+1.0
+],
+"off": [
+0.0,
+-0.0,
+-0.95
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_bannerSingle_Opt.SM_bannerSingle_Opt": {
+"cat": "building",
+"ext": [
+0.05,
+0.64,
+1.52
+],
+"off": [
+0.0,
+-0.0,
+-1.47
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_concretRoof_small_Opt.SM_concretRoof_small_Opt": {
+"cat": "building",
+"ext": [
+2.5,
+3.0,
+0.15
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_concreteColumnSmall_Opt.SM_concreteColumnSmall_Opt": {
+"cat": "building",
+"ext": [
+0.12,
+0.12,
+2.0
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_concreteFloorT5_02_Opt.SM_concreteFloorT5_02_Opt": {
+"cat": "building",
+"ext": [
+24.0,
+10.0,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_concreteFloor_01_Opt.SM_concreteFloor_01_Opt": {
+"cat": "building",
+"ext": [
+24.0,
+18.25,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SM_concreteRoof_03_Opt.SM_concreteRoof_03_Opt": {
+"cat": "building",
+"ext": [
+7.55,
+6.57,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SkyEvo/SM_SkyEvo_v01_Opt.SM_SkyEvo_v01_Opt": {
+"cat": "building",
+"ext": [
+24.63,
+24.63,
+93.82
+],
+"off": [
+17.41,
+17.41,
+3.82
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SkyEvo/SM_SkyEvo_v02_Opt.SM_SkyEvo_v02_Opt": {
+"cat": "building",
+"ext": [
+24.63,
+24.63,
+48.82
+],
+"off": [
+17.41,
+17.41,
+48.82
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SkyEvo/SM_skyscraperEvo_EMISSIVE_Opt.SM_skyscraperEvo_EMISSIVE_Opt": {
+"cat": "building",
+"ext": [
+-Infinity,
+-Infinity,
+-Infinity
+],
+"off": [
+NaN,
+NaN,
+NaN
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SkyScraperNY_1/SM_SkyScraperNY_1_Opt.SM_SkyScraperNY_1_Opt": {
+"cat": "building",
+"ext": [
+17.98,
+17.98,
+77.08
+],
+"off": [
+15.0,
+0.0,
+77.05
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SkyscraperNY_2/SM_SkyscraperNY_02_v01.SM_SkyscraperNY_02_v01": {
+"cat": "building",
+"ext": [
+17.19,
+15.93,
+23.15
+],
+"off": [
+16.26,
+-5.0,
+23.15
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SkyscraperNY_2/SM_SkyscraperNY_02_v02.SM_SkyscraperNY_02_v02": {
+"cat": "building",
+"ext": [
+29.57,
+14.77,
+11.47
+],
+"off": [
+18.8,
+12.0,
+11.47
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SkyscraperNY_2/SM_SkyscraperNY_02_v03.SM_SkyscraperNY_02_v03": {
+"cat": "building",
+"ext": [
+15.3,
+39.45,
+13.97
+],
+"off": [
+-9.04,
+-39.23,
+13.85
+]
+},
+"/Game/Carla/Static/Building/00_Opt/SkyscraperPoly/SM_SkyscraperPoly_Opt.SM_SkyscraperPoly_Opt": {
+"cat": "building",
+"ext": [
+19.69,
+19.68,
+59.65
+],
+"off": [
+0.0,
+0.0,
+59.64
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_01/SM_Skyscraper_01_Base_v02_Opt.SM_Skyscraper_01_Base_v02_Opt": {
+"cat": "building",
+"ext": [
+18.98,
+14.3,
+4.94
+],
+"off": [
+-9.63,
+-14.3,
+4.93
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_01/SM_Skyscraper_01_v01_Opt.SM_Skyscraper_01_v01_Opt": {
+"cat": "building",
+"ext": [
+14.36,
+19.1,
+40.84
+],
+"off": [
+14.25,
+-9.63,
+40.84
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_01/SM_Skyscraper_01_v02_Opt.SM_Skyscraper_01_v02_Opt": {
+"cat": "building",
+"ext": [
+19.1,
+14.36,
+66.37
+],
+"off": [
+-9.63,
+-14.26,
+66.37
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_02/SM_Skyscraper_02_Base01_Opt.SM_Skyscraper_02_Base01_Opt": {
+"cat": "building",
+"ext": [
+18.96,
+3.84,
+2.84
+],
+"off": [
+11.28,
+18.52,
+2.84
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_02/SM_Skyscraper_02_Base02_Opt.SM_Skyscraper_02_Base02_Opt": {
+"cat": "building",
+"ext": [
+3.84,
+15.1,
+2.84
+],
+"off": [
+3.84,
+-14.99,
+2.84
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_02/SM_Skyscraper_02_v01_Opt.SM_Skyscraper_02_v01_Opt": {
+"cat": "building",
+"ext": [
+32.55,
+34.29,
+37.8
+],
+"off": [
+32.37,
+-30.83,
+37.8
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_02/SM_Skyscraper_02_v02_Opt.SM_Skyscraper_02_v02_Opt": {
+"cat": "building",
+"ext": [
+19.74,
+31.89,
+29.58
+],
+"off": [
+-19.74,
+-25.91,
+29.58
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_02/SM_Skyscraper_02_v03_Opt.SM_Skyscraper_02_v03_Opt": {
+"cat": "building",
+"ext": [
+13.3,
+22.74,
+36.17
+],
+"off": [
+-2.11,
+5.51,
+-18.14
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_02/SM_Skyscraper_02_v04_Opt.SM_Skyscraper_02_v04_Opt": {
+"cat": "building",
+"ext": [
+18.89,
+9.46,
+54.25
+],
+"off": [
+-18.71,
+9.46,
+54.25
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_03/SM_Skyscraper_P01_Opt.SM_Skyscraper_P01_Opt": {
+"cat": "building",
+"ext": [
+37.79,
+30.45,
+7.32
+],
+"off": [
+-30.81,
+-27.84,
+7.27
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_03/SM_Skyscraper_P02_Opt.SM_Skyscraper_P02_Opt": {
+"cat": "building",
+"ext": [
+35.31,
+31.17,
+47.74
+],
+"off": [
+-23.15,
+-31.07,
+47.74
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_03/SM_Skyscraper_P03_Opt.SM_Skyscraper_P03_Opt": {
+"cat": "building",
+"ext": [
+25.64,
+23.63,
+31.85
+],
+"off": [
+-13.48,
+-15.38,
+31.85
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_03/SM_Skyscraper_v02_Opt.SM_Skyscraper_v02_Opt": {
+"cat": "building",
+"ext": [
+19.86,
+15.71,
+29.65
+],
+"off": [
+-19.77,
+15.71,
+29.65
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_03/SM_Skyscraper_v03_Opt.SM_Skyscraper_v03_Opt": {
+"cat": "building",
+"ext": [
+19.86,
+21.79,
+17.28
+],
+"off": [
+-19.76,
+9.63,
+17.28
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_04/SM_Skyscraper_04_v01_Opt.SM_Skyscraper_04_v01_Opt": {
+"cat": "building",
+"ext": [
+38.45,
+21.31,
+5.27
+],
+"off": [
+-37.97,
+14.28,
+5.22
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_04/SM_Skyscraper_04_v02_Opt.SM_Skyscraper_04_v02_Opt": {
+"cat": "building",
+"ext": [
+15.6,
+27.02,
+5.27
+],
+"off": [
+8.57,
+26.55,
+5.22
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_05/SM_Skyscraper_05_v01_Opt.SM_Skyscraper_05_v01_Opt": {
+"cat": "building",
+"ext": [
+35.07,
+27.37,
+27.6
+],
+"off": [
+35.0,
+-22.63,
+27.4
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_05/SM_Skyscraper_05_v02_Opt.SM_Skyscraper_05_v02_Opt": {
+"cat": "building",
+"ext": [
+15.07,
+20.03,
+25.0
+],
+"off": [
+15.0,
+-19.97,
+25.0
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_05/SM_Skyscraper_05_v03_Opt.SM_Skyscraper_05_v03_Opt": {
+"cat": "building",
+"ext": [
+10.07,
+15.03,
+12.5
+],
+"off": [
+10.0,
+-14.96,
+12.5
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_05/SM_Skyscraper_05_v04_Opt.SM_Skyscraper_05_v04_Opt": {
+"cat": "building",
+"ext": [
+10.08,
+5.03,
+4.95
+],
+"off": [
+10.01,
+-4.96,
+0.05
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Skyscraper_05/SM_Skyscraper_05_v05_Opt.SM_Skyscraper_05_v05_Opt": {
+"cat": "building",
+"ext": [
+20.49,
+20.49,
+35.1
+],
+"off": [
+-5.49,
+-20.49,
+34.9
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Station/SM_StationPlatform_Opt.SM_StationPlatform_Opt": {
+"cat": "building",
+"ext": [
+10.1,
+25.0,
+3.09
+],
+"off": [
+-10.0,
+-25.0,
+1.04
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Station/SM_StationRamp_Opt.SM_StationRamp_Opt": {
+"cat": "building",
+"ext": [
+8.24,
+1.52,
+5.2
+],
+"off": [
+6.67,
+-1.25,
+5.03
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Station/SM_Station_01_Opt.SM_Station_01_Opt": {
+"cat": "building",
+"ext": [
+15.05,
+5.16,
+7.7
+],
+"off": [
+-10.0,
+-10.11,
+7.7
+]
+},
+"/Game/Carla/Static/Building/00_Opt/Station/SM_Station_02_Opt.SM_Station_02_Opt": {
+"cat": "building",
+"ext": [
+17.55,
+7.66,
+7.7
+],
+"off": [
+-12.5,
+-7.39,
+7.7
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_Base01.SM_Ap_Base01": {
+"cat": "building",
+"ext": [
+2.0,
+0.45,
+4.13
+],
+"off": [
+-2.0,
+-0.45,
+4.13
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_Base03.SM_Ap_Base03": {
+"cat": "building",
+"ext": [
+2.0,
+1.15,
+4.13
+],
+"off": [
+-2.0,
+0.25,
+4.13
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_BodyCorner01.SM_Ap_BodyCorner01": {
+"cat": "building",
+"ext": [
+2.0,
+2.0,
+2.0
+],
+"off": [
+-2.0,
+-2.0,
+2.0
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_BodyCorner02.SM_Ap_BodyCorner02": {
+"cat": "building",
+"ext": [
+2.0,
+2.0,
+2.0
+],
+"off": [
+-2.0,
+-2.0,
+2.0
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_BodyWin01.SM_Ap_BodyWin01": {
+"cat": "building",
+"ext": [
+2.0,
+0.19,
+2.0
+],
+"off": [
+-2.0,
+-0.19,
+2.0
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_BodyWin02.SM_Ap_BodyWin02": {
+"cat": "building",
+"ext": [
+2.0,
+0.19,
+2.0
+],
+"off": [
+-2.0,
+-0.19,
+2.0
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_BodyWin03.SM_Ap_BodyWin03": {
+"cat": "building",
+"ext": [
+2.0,
+0.19,
+2.0
+],
+"off": [
+-2.0,
+-0.19,
+2.0
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_CornerBase.SM_Ap_CornerBase": {
+"cat": "building",
+"ext": [
+1.97,
+1.97,
+4.13
+],
+"off": [
+-1.97,
+-1.97,
+4.13
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_Roof.SM_Ap_Roof": {
+"cat": "building",
+"ext": [
+2.0,
+2.0,
+0.0
+],
+"off": [
+-2.0,
+-2.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_TopCorner01.SM_Ap_TopCorner01": {
+"cat": "building",
+"ext": [
+2.0,
+2.0,
+2.0
+],
+"off": [
+-2.0,
+-2.0,
+2.0
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Ap_TopWin01.SM_Ap_TopWin01": {
+"cat": "building",
+"ext": [
+2.0,
+2.0,
+2.0
+],
+"off": [
+-2.0,
+-2.0,
+2.0
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Apartment03_v01_merged.SM_Apartment03_v01_merged": {
+"cat": "building",
+"ext": [
+9.53,
+11.53,
+16.13
+],
+"off": [
+-7.93,
+6.0,
+16.13
+]
+},
+"/Game/Carla/Static/Building/Apartment03/SM_Apartment03_v02_merged.SM_Apartment03_v02_merged": {
+"cat": "building",
+"ext": [
+23.99,
+10.0,
+12.0
+],
+"off": [
+-23.99,
+6.0,
+12.0
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Apartment04_v01_Merged.SM_Apartment04_v01_Merged": {
+"cat": "building",
+"ext": [
+15.59,
+15.62,
+7.88
+],
+"off": [
+15.14,
+-14.96,
+7.86
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Apartment04_v02_Merged.SM_Apartment04_v02_Merged": {
+"cat": "building",
+"ext": [
+9.36,
+23.45,
+10.22
+],
+"off": [
+7.05,
+21.37,
+10.22
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Apartment04_v03_Merged.SM_Apartment04_v03_Merged": {
+"cat": "building",
+"ext": [
+7.71,
+7.56,
+7.87
+],
+"off": [
+-7.27,
+6.9,
+7.87
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Apartment04_v04_Merged.SM_Apartment04_v04_Merged": {
+"cat": "building",
+"ext": [
+9.36,
+9.39,
+10.24
+],
+"off": [
+7.28,
+-7.08,
+10.22
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Apartment04_v05_Merged.SM_Apartment04_v05_Merged": {
+"cat": "building",
+"ext": [
+7.71,
+8.31,
+10.24
+],
+"off": [
+7.27,
+-6.44,
+10.22
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Apartment04_v06_Merged.SM_Apartment04_v06_Merged": {
+"cat": "building",
+"ext": [
+16.47,
+15.48,
+14.94
+],
+"off": [
+14.26,
+-15.12,
+14.94
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Apartment04_v07_Merged.SM_Apartment04_v07_Merged": {
+"cat": "building",
+"ext": [
+22.61,
+22.62,
+19.67
+],
+"off": [
+20.53,
+-21.96,
+19.67
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Apartment04_v08_Merged.SM_Apartment04_v08_Merged": {
+"cat": "building",
+"ext": [
+11.15,
+14.6,
+7.87
+],
+"off": [
+3.82,
+-7.04,
+7.86
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Base_01.SM_Base_01": {
+"cat": "building",
+"ext": [
+7.05,
+3.7,
+2.42
+],
+"off": [
+-7.05,
+-0.85,
+2.42
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Base_02.SM_Base_02": {
+"cat": "building",
+"ext": [
+7.05,
+2.29,
+2.4
+],
+"off": [
+-7.05,
+-0.65,
+2.38
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Base_03.SM_Base_03": {
+"cat": "building",
+"ext": [
+7.05,
+0.67,
+2.42
+],
+"off": [
+-7.05,
+-0.53,
+2.42
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Base_04.SM_Base_04": {
+"cat": "building",
+"ext": [
+7.05,
+0.39,
+2.42
+],
+"off": [
+-7.05,
+-0.25,
+2.42
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Base_Corner.SM_Base_Corner": {
+"cat": "building",
+"ext": [
+0.11,
+0.11,
+2.42
+],
+"off": [
+-0.11,
+-0.11,
+2.42
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Body_01.SM_Body_01": {
+"cat": "building",
+"ext": [
+7.05,
+1.7,
+2.36
+],
+"off": [
+-7.05,
+0.37,
+2.36
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Body_02.SM_Body_02": {
+"cat": "building",
+"ext": [
+7.05,
+1.18,
+2.36
+],
+"off": [
+-7.05,
+0.9,
+2.36
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Body_03.SM_Body_03": {
+"cat": "building",
+"ext": [
+7.05,
+1.18,
+2.36
+],
+"off": [
+-7.05,
+0.9,
+2.36
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Body_04.SM_Body_04": {
+"cat": "building",
+"ext": [
+7.05,
+1.7,
+2.36
+],
+"off": [
+-7.05,
+0.37,
+2.36
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Body_05.SM_Body_05": {
+"cat": "building",
+"ext": [
+7.05,
+1.7,
+2.36
+],
+"off": [
+-7.05,
+0.37,
+2.36
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Body_Corner.SM_Body_Corner": {
+"cat": "building",
+"ext": [
+0.12,
+0.09,
+2.35
+],
+"off": [
+-0.12,
+-0.14,
+2.38
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Roof.SM_Roof": {
+"cat": "building",
+"ext": [
+7.05,
+7.05,
+0.0
+],
+"off": [
+-7.05,
+-7.05,
+-0.0
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Top.SM_Top": {
+"cat": "building",
+"ext": [
+7.05,
+0.17,
+0.73
+],
+"off": [
+-7.05,
+0.28,
+0.73
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Top_Corner.SM_Top_Corner": {
+"cat": "building",
+"ext": [
+0.11,
+0.09,
+0.73
+],
+"off": [
+-0.11,
+-0.15,
+0.73
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Wall_01.SM_Wall_01": {
+"cat": "building",
+"ext": [
+7.05,
+0.35,
+2.36
+],
+"off": [
+-7.05,
+0.07,
+2.36
+]
+},
+"/Game/Carla/Static/Building/Apartment04/SM_Wall_02.SM_Wall_02": {
+"cat": "building",
+"ext": [
+7.05,
+0.35,
+2.36
+],
+"off": [
+-7.05,
+0.07,
+2.36
+]
+},
+"/Game/Carla/Static/Building/Awning/SM_Awning01.SM_Awning01": {
+"cat": "building",
+"ext": [
+1.09,
+0.56,
+0.67
+],
+"off": [
+0.0,
+0.55,
+0.67
+]
+},
+"/Game/Carla/Static/Building/Awning/SM_Awning02.SM_Awning02": {
+"cat": "building",
+"ext": [
+2.23,
+0.97,
+0.89
+],
+"off": [
+0.0,
+0.97,
+-0.82
+]
+},
+"/Game/Carla/Static/Building/ConstructionSite/SM_Concrete1_T3.SM_Concrete1_T3": {
+"cat": "building",
+"ext": [
+10.75,
+10.4,
+3.61
+],
+"off": [
+0.0,
+0.0,
+-3.37
+]
+},
+"/Game/Carla/Static/Building/ConstructionSite/SM_buildingTown05.SM_buildingTown05": {
+"cat": "building",
+"ext": [
+24.02,
+18.07,
+44.04
+],
+"off": [
+-0.36,
+-0.9,
+29.04
+]
+},
+"/Game/Carla/Static/Building/ConstructionSite/SM_concretRoof_small.SM_concretRoof_small": {
+"cat": "building",
+"ext": [
+2.5,
+3.0,
+0.15
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/ConstructionSite/SM_concreteColumnSmall.SM_concreteColumnSmall": {
+"cat": "building",
+"ext": [
+0.12,
+0.12,
+2.0
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/ConstructionSite/SM_concreteFloorT5_02.SM_concreteFloorT5_02": {
+"cat": "building",
+"ext": [
+24.0,
+10.0,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/ConstructionSite/SM_concreteRoof_03.SM_concreteRoof_03": {
+"cat": "building",
+"ext": [
+7.55,
+6.57,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Corner_BaseA.SM_Corner_BaseA": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+2.25
+],
+"off": [
+-2.5,
+-2.5,
+2.25
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Corner_BaseB.SM_Corner_BaseB": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+2.25
+],
+"off": [
+-2.5,
+-2.5,
+2.25
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Corner_BaseB_Glass.SM_Corner_BaseB_Glass": {
+"cat": "building",
+"ext": [
+0.58,
+0.58,
+1.5
+],
+"off": [
+-2.33,
+-2.67,
+2.5
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Corner_BodyA.SM_Corner_BodyA": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+1.75
+],
+"off": [
+-2.5,
+-2.5,
+1.75
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Corner_BodyB.SM_Corner_BodyB": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+1.75
+],
+"off": [
+-2.5,
+-2.5,
+1.75
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Corner_roofA.SM_Corner_roofA": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+1.0
+],
+"off": [
+-2.5,
+-2.5,
+1.0
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Factory_v01_Merged.SM_Factory_v01_Merged": {
+"cat": "building",
+"ext": [
+8.4,
+25.9,
+7.5
+],
+"off": [
+-7.5,
+20.0,
+7.5
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Factory_v02_Merged.SM_Factory_v02_Merged": {
+"cat": "building",
+"ext": [
+25.9,
+14.19,
+7.5
+],
+"off": [
+20.0,
+11.71,
+7.5
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Factory_v03_Merged.SM_Factory_v03_Merged": {
+"cat": "building",
+"ext": [
+13.99,
+25.4,
+12.75
+],
+"off": [
+11.51,
+-20.1,
+12.75
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Mid_BaseA.SM_Mid_BaseA": {
+"cat": "building",
+"ext": [
+2.5,
+2.45,
+2.25
+],
+"off": [
+-2.5,
+-2.45,
+2.25
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Mid_BaseA_Glass.SM_Mid_BaseA_Glass": {
+"cat": "building",
+"ext": [
+2.3,
+0.0,
+1.22
+],
+"off": [
+-2.5,
+-0.5,
+3.23
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Mid_BaseB.SM_Mid_BaseB": {
+"cat": "building",
+"ext": [
+2.5,
+0.43,
+2.25
+],
+"off": [
+-2.5,
+0.07,
+2.25
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Mid_BodyA.SM_Mid_BodyA": {
+"cat": "building",
+"ext": [
+2.5,
+2.45,
+1.72
+],
+"off": [
+-2.5,
+-2.45,
+1.72
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Mid_BodyA_Glass.SM_Mid_BodyA_Glass": {
+"cat": "building",
+"ext": [
+2.3,
+0.0,
+1.7
+],
+"off": [
+-2.5,
+-0.5,
+1.75
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Mid_BodyB.SM_Mid_BodyB": {
+"cat": "building",
+"ext": [
+2.5,
+0.43,
+1.75
+],
+"off": [
+-2.5,
+0.07,
+1.75
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_Mid_roofB.SM_Mid_roofB": {
+"cat": "building",
+"ext": [
+2.5,
+2.75,
+1.75
+],
+"off": [
+-2.5,
+-2.25,
+1.75
+]
+},
+"/Game/Carla/Static/Building/Factory/SM_ROOF_tapa.SM_ROOF_tapa": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+0.0
+],
+"off": [
+-2.5,
+-2.5,
+0.0
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Base.SM_Hotel_Base": {
+"cat": "building",
+"ext": [
+2.9,
+2.34,
+2.2
+],
+"off": [
+-2.9,
+-1.43,
+2.2
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Base_Corner.SM_Hotel_Base_Corner": {
+"cat": "building",
+"ext": [
+5.1,
+5.03,
+2.2
+],
+"off": [
+-5.1,
+-5.17,
+2.2
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyCorner01.SM_Hotel_BodyCorner01": {
+"cat": "building",
+"ext": [
+5.09,
+5.1,
+1.51
+],
+"off": [
+-5.09,
+-5.1,
+1.51
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyCorner01_Off.SM_Hotel_BodyCorner01_Off": {
+"cat": "building",
+"ext": [
+5.09,
+5.1,
+1.51
+],
+"off": [
+-5.09,
+-5.1,
+1.51
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyCorner02.SM_Hotel_BodyCorner02": {
+"cat": "building",
+"ext": [
+5.1,
+5.1,
+1.51
+],
+"off": [
+-5.1,
+-5.1,
+1.51
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyCorner02_Off.SM_Hotel_BodyCorner02_Off": {
+"cat": "building",
+"ext": [
+5.1,
+5.1,
+1.51
+],
+"off": [
+-5.1,
+-5.1,
+1.51
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyCorner03.SM_Hotel_BodyCorner03": {
+"cat": "building",
+"ext": [
+5.1,
+5.1,
+1.51
+],
+"off": [
+-5.1,
+-5.1,
+1.51
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyCorner03_Off.SM_Hotel_BodyCorner03_Off": {
+"cat": "building",
+"ext": [
+5.1,
+5.1,
+1.51
+],
+"off": [
+-5.1,
+-5.1,
+1.51
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyWin01.SM_Hotel_BodyWin01": {
+"cat": "building",
+"ext": [
+2.9,
+1.3,
+1.5
+],
+"off": [
+-2.9,
+-1.3,
+1.54
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyWin02.SM_Hotel_BodyWin02": {
+"cat": "building",
+"ext": [
+2.9,
+1.3,
+1.5
+],
+"off": [
+-2.9,
+-1.3,
+1.54
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyWin02_Off.SM_Hotel_BodyWin02_Off": {
+"cat": "building",
+"ext": [
+2.9,
+1.3,
+1.5
+],
+"off": [
+-2.9,
+-1.3,
+1.54
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyWin03.SM_Hotel_BodyWin03": {
+"cat": "building",
+"ext": [
+2.9,
+1.3,
+1.5
+],
+"off": [
+-2.9,
+-1.3,
+1.54
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyWin03_Off.SM_Hotel_BodyWin03_Off": {
+"cat": "building",
+"ext": [
+2.9,
+1.3,
+1.5
+],
+"off": [
+-2.9,
+-1.3,
+1.54
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_BodyWin04.SM_Hotel_BodyWin04": {
+"cat": "building",
+"ext": [
+2.9,
+1.3,
+1.5
+],
+"off": [
+-2.9,
+-1.3,
+1.54
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Lights.SM_Hotel_Lights": {
+"cat": "building",
+"ext": [
+1.72,
+0.16,
+0.07
+],
+"off": [
+-0.1,
+0.16,
+0.07
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Logo.SM_Hotel_Logo": {
+"cat": "building",
+"ext": [
+2.43,
+1.2,
+2.91
+],
+"off": [
+0.0,
+0.97,
+0.45
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Name.SM_Hotel_Name": {
+"cat": "building",
+"ext": [
+2.84,
+0.45,
+0.55
+],
+"off": [
+0.0,
+0.14,
+0.0
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_PlantPot.SM_Hotel_PlantPot": {
+"cat": "building",
+"ext": [
+1.75,
+0.68,
+0.27
+],
+"off": [
+-1.75,
+-0.68,
+0.27
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Roof.SM_Hotel_Roof": {
+"cat": "building",
+"ext": [
+2.9,
+2.9,
+0.0
+],
+"off": [
+-2.9,
+-2.9,
+0.0
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_TopWin01.SM_Hotel_TopWin01": {
+"cat": "building",
+"ext": [
+2.91,
+5.32,
+2.71
+],
+"off": [
+-2.9,
+-4.88,
+2.7
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_TopWin02.SM_Hotel_TopWin02": {
+"cat": "building",
+"ext": [
+2.9,
+5.32,
+2.71
+],
+"off": [
+-2.9,
+-4.88,
+2.7
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_TopWin02_Off.SM_Hotel_TopWin02_Off": {
+"cat": "building",
+"ext": [
+2.91,
+5.32,
+2.71
+],
+"off": [
+-2.9,
+-4.88,
+2.7
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_TopWin03.SM_Hotel_TopWin03": {
+"cat": "building",
+"ext": [
+2.91,
+5.32,
+2.71
+],
+"off": [
+-2.9,
+-4.88,
+2.7
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_TopWin03_Off.SM_Hotel_TopWin03_Off": {
+"cat": "building",
+"ext": [
+2.91,
+5.32,
+2.71
+],
+"off": [
+-2.9,
+-4.88,
+2.7
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Top_Corner.SM_Hotel_Top_Corner": {
+"cat": "building",
+"ext": [
+5.1,
+5.1,
+2.7
+],
+"off": [
+-5.1,
+-5.1,
+2.7
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Tower.SM_Hotel_Tower": {
+"cat": "building",
+"ext": [
+3.63,
+1.09,
+2.37
+],
+"off": [
+-3.63,
+-1.09,
+2.37
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Tower_Top.SM_Hotel_Tower_Top": {
+"cat": "building",
+"ext": [
+4.05,
+1.51,
+3.46
+],
+"off": [
+-3.63,
+-1.09,
+3.46
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_Wall.SM_Hotel_Wall": {
+"cat": "building",
+"ext": [
+2.9,
+0.0,
+1.51
+],
+"off": [
+-2.9,
+0.0,
+1.51
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_v01_merged.SM_Hotel_v01_merged": {
+"cat": "building",
+"ext": [
+14.0,
+14.05,
+7.93
+],
+"off": [
+-13.09,
+2.94,
+7.93
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_v02_merged.SM_Hotel_v02_merged": {
+"cat": "building",
+"ext": [
+15.36,
+19.79,
+12.47
+],
+"off": [
+-11.73,
+8.69,
+12.47
+]
+},
+"/Game/Carla/Static/Building/Hotel/SM_Hotel_v03_merged.SM_Hotel_v03_merged": {
+"cat": "building",
+"ext": [
+13.54,
+25.12,
+10.34
+],
+"off": [
+-13.09,
+14.48,
+10.22
+]
+},
+"/Game/Carla/Static/Building/Museum/SM_MuseumGate.SM_MuseumGate": {
+"cat": "building",
+"ext": [
+8.42,
+16.57,
+13.18
+],
+"off": [
+0.0,
+0.0,
+13.18
+]
+},
+"/Game/Carla/Static/Building/Museum/SM_Museum_v01_merged.SM_Museum_v01_merged": {
+"cat": "building",
+"ext": [
+43.76,
+57.61,
+10.65
+],
+"off": [
+40.72,
+-41.57,
+10.65
+]
+},
+"/Game/Carla/Static/Building/Museum/SM_Museum_v02_merged.SM_Museum_v02_merged": {
+"cat": "building",
+"ext": [
+32.67,
+46.53,
+10.65
+],
+"off": [
+29.63,
+-30.48,
+10.65
+]
+},
+"/Game/Carla/Static/Building/Museum/SM_museum_base_column.SM_museum_base_column": {
+"cat": "building",
+"ext": [
+2.77,
+0.41,
+7.09
+],
+"off": [
+-2.77,
+-0.41,
+7.09
+]
+},
+"/Game/Carla/Static/Building/Museum/SM_museum_base_corner.SM_museum_base_corner": {
+"cat": "building",
+"ext": [
+6.5,
+6.51,
+7.09
+],
+"off": [
+-6.5,
+-6.51,
+7.09
+]
+},
+"/Game/Carla/Static/Building/Museum/SM_museum_base_roof.SM_museum_base_roof": {
+"cat": "building",
+"ext": [
+2.77,
+5.91,
+3.55
+],
+"off": [
+-2.77,
+-5.36,
+3.55
+]
+},
+"/Game/Carla/Static/Building/Museum/SM_museum_base_statue.SM_museum_base_statue": {
+"cat": "building",
+"ext": [
+2.77,
+0.09,
+7.09
+],
+"off": [
+-2.77,
+-0.9,
+7.09
+]
+},
+"/Game/Carla/Static/Building/Museum/SM_museum_roof_corner.SM_museum_roof_corner": {
+"cat": "building",
+"ext": [
+6.51,
+6.5,
+3.56
+],
+"off": [
+-6.51,
+-6.5,
+3.55
+]
+},
+"/Game/Carla/Static/Building/Museum/walls/SM_PotStatue.SM_PotStatue": {
+"cat": "building",
+"ext": [
+0.38,
+0.36,
+0.53
+],
+"off": [
+0.0,
+0.0,
+0.53
+]
+},
+"/Game/Carla/Static/Building/Museum/walls/SM_Railing.SM_Railing": {
+"cat": "building",
+"ext": [
+1.27,
+0.22,
+0.46
+],
+"off": [
+-0.22,
+0.0,
+0.46
+]
+},
+"/Game/Carla/Static/Building/Museum/walls/SM_RailingCube.SM_RailingCube": {
+"cat": "building",
+"ext": [
+0.45,
+0.45,
+0.45
+],
+"off": [
+0.0,
+0.0,
+0.45
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_ParkingRamp_Base.SM_ParkingRamp_Base": {
+"cat": "building",
+"ext": [
+12.43,
+12.26,
+1.75
+],
+"off": [
+0.0,
+-0.17,
+0.58
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_ParkingRamp_Body.SM_ParkingRamp_Body": {
+"cat": "building",
+"ext": [
+12.43,
+12.26,
+1.75
+],
+"off": [
+0.0,
+-0.17,
+1.37
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_ParkingRamp_Top.SM_ParkingRamp_Top": {
+"cat": "building",
+"ext": [
+12.43,
+12.26,
+2.25
+],
+"off": [
+0.0,
+-0.17,
+1.87
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_ParkingRamp_v01_merged.SM_ParkingRamp_v01_merged": {
+"cat": "building",
+"ext": [
+12.26,
+12.43,
+13.39
+],
+"off": [
+0.17,
+0.0,
+12.22
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_Parking_Corner.SM_Parking_Corner": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+1.75
+],
+"off": [
+-2.5,
+-2.5,
+1.55
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_Parking_Wall.SM_Parking_Wall": {
+"cat": "building",
+"ext": [
+5.0,
+2.5,
+1.75
+],
+"off": [
+-5.0,
+-2.5,
+1.55
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_Parking_v01_merged.SM_Parking_v01_merged": {
+"cat": "building",
+"ext": [
+10.25,
+20.25,
+12.84
+],
+"off": [
+5.01,
+-15.02,
+9.35
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_TopCorner.SM_TopCorner": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+0.1
+],
+"off": [
+-2.5,
+-2.5,
+-0.1
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_TopWall.SM_TopWall": {
+"cat": "building",
+"ext": [
+5.0,
+2.5,
+0.0
+],
+"off": [
+-5.0,
+-2.5,
+-0.2
+]
+},
+"/Game/Carla/Static/Building/Parking/SM_roof_cover.SM_roof_cover": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+0.0
+],
+"off": [
+-2.5,
+-2.5,
+-0.0
+]
+},
+"/Game/Carla/Static/Building/SM_Apartment01_1.SM_Apartment01_1": {
+"cat": "building",
+"ext": [
+4.17,
+6.08,
+4.65
+],
+"off": [
+0.44,
+0.07,
+5.15
+]
+},
+"/Game/Carla/Static/Building/SM_Apartment02_1.SM_Apartment02_1": {
+"cat": "building",
+"ext": [
+6.05,
+4.69,
+3.82
+],
+"off": [
+0.27,
+0.03,
+3.8
+]
+},
+"/Game/Carla/Static/Building/SM_Bloc04.SM_Bloc04": {
+"cat": "building",
+"ext": [
+8.31,
+8.5,
+8.72
+],
+"off": [
+4.1,
+4.2,
+8.81
+]
+},
+"/Game/Carla/Static/Building/SM_Block01_fixed.SM_Block01_fixed": {
+"cat": "building",
+"ext": [
+6.6,
+10.07,
+7.22
+],
+"off": [
+-0.24,
+-0.08,
+7.62
+]
+},
+"/Game/Carla/Static/Building/SM_Block03BaseFloor.SM_Block03BaseFloor": {
+"cat": "building",
+"ext": [
+2.71,
+3.59,
+3.08
+],
+"off": [
+0.0,
+-0.26,
+3.09
+]
+},
+"/Game/Carla/Static/Building/SM_Block03Floor.SM_Block03Floor": {
+"cat": "building",
+"ext": [
+2.55,
+3.85,
+1.29
+],
+"off": [
+-0.0,
+0.0,
+7.46
+]
+},
+"/Game/Carla/Static/Building/SM_Block04_fixed.SM_Block04_fixed": {
+"cat": "building",
+"ext": [
+4.21,
+4.3,
+8.71
+],
+"off": [
+0.0,
+0.0,
+8.8
+]
+},
+"/Game/Carla/Static/Building/SM_Block05.SM_Block05": {
+"cat": "building",
+"ext": [
+3.83,
+4.92,
+12.56
+],
+"off": [
+0.0,
+0.0,
+12.57
+]
+},
+"/Game/Carla/Static/Building/SM_Block07_1_fixed.SM_Block07_1_fixed": {
+"cat": "building",
+"ext": [
+4.85,
+14.47,
+4.3
+],
+"off": [
+-0.02,
+-0.02,
+4.36
+]
+},
+"/Game/Carla/Static/Building/SM_Block07_2_fixed.SM_Block07_2_fixed": {
+"cat": "building",
+"ext": [
+4.85,
+14.47,
+4.3
+],
+"off": [
+-0.02,
+-0.02,
+4.36
+]
+},
+"/Game/Carla/Static/Building/SM_Block08.SM_Block08": {
+"cat": "building",
+"ext": [
+5.95,
+14.78,
+5.54
+],
+"off": [
+-0.02,
+0.27,
+5.52
+]
+},
+"/Game/Carla/Static/Building/SM_Block10_1.SM_Block10_1": {
+"cat": "building",
+"ext": [
+20.6,
+8.81,
+10.0
+],
+"off": [
+0.0,
+0.0,
+-13.6
+]
+},
+"/Game/Carla/Static/Building/SM_Block10_2.SM_Block10_2": {
+"cat": "building",
+"ext": [
+20.6,
+8.81,
+10.0
+],
+"off": [
+0.0,
+0.0,
+-13.6
+]
+},
+"/Game/Carla/Static/Building/SM_Block10_3.SM_Block10_3": {
+"cat": "building",
+"ext": [
+17.26,
+7.61,
+4.43
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/SM_Block10_5.SM_Block10_5": {
+"cat": "building",
+"ext": [
+14.38,
+13.33,
+14.18
+],
+"off": [
+0.0,
+0.0,
+-20.6
+]
+},
+"/Game/Carla/Static/Building/SM_Church01.SM_Church01": {
+"cat": "building",
+"ext": [
+6.36,
+5.4,
+8.05
+],
+"off": [
+0.52,
+1.99,
+8.01
+]
+},
+"/Game/Carla/Static/Building/SM_ConstructBuilding.SM_ConstructBuilding": {
+"cat": "building",
+"ext": [
+5.42,
+4.5,
+3.65
+],
+"off": [
+0.45,
+-1.05,
+3.52
+]
+},
+"/Game/Carla/Static/Building/SM_Garage01.SM_Garage01": {
+"cat": "building",
+"ext": [
+2.95,
+3.63,
+2.14
+],
+"off": [
+0.02,
+-0.32,
+2.04
+]
+},
+"/Game/Carla/Static/Building/SM_GasStation01.SM_GasStation01": {
+"cat": "building",
+"ext": [
+27.56,
+15.05,
+5.55
+],
+"off": [
+-8.17,
+0.83,
+5.12
+]
+},
+"/Game/Carla/Static/Building/SM_GuardShelter.SM_GuardShelter": {
+"cat": "building",
+"ext": [
+1.37,
+1.16,
+1.34
+],
+"off": [
+-0.1,
+0.0,
+1.31
+]
+},
+"/Game/Carla/Static/Building/SM_HotelHall.SM_HotelHall": {
+"cat": "building",
+"ext": [
+7.55,
+6.57,
+4.64
+],
+"off": [
+-6.55,
+-2.15,
+-0.99
+]
+},
+"/Game/Carla/Static/Building/SM_House01.SM_House01": {
+"cat": "building",
+"ext": [
+4.82,
+6.04,
+6.32
+],
+"off": [
+0.0,
+-0.0,
+6.32
+]
+},
+"/Game/Carla/Static/Building/SM_House02.SM_House02": {
+"cat": "building",
+"ext": [
+3.91,
+4.38,
+4.24
+],
+"off": [
+0.01,
+-0.14,
+4.23
+]
+},
+"/Game/Carla/Static/Building/SM_House03.SM_House03": {
+"cat": "building",
+"ext": [
+8.6,
+7.96,
+4.42
+],
+"off": [
+-0.51,
+-1.07,
+4.35
+]
+},
+"/Game/Carla/Static/Building/SM_House04.SM_House04": {
+"cat": "building",
+"ext": [
+11.43,
+7.31,
+3.47
+],
+"off": [
+0.92,
+-3.25,
+2.52
+]
+},
+"/Game/Carla/Static/Building/SM_House05.SM_House05": {
+"cat": "building",
+"ext": [
+4.75,
+6.26,
+3.87
+],
+"off": [
+-2.65,
+0.8,
+3.89
+]
+},
+"/Game/Carla/Static/Building/SM_House06.SM_House06": {
+"cat": "building",
+"ext": [
+11.2,
+5.0,
+2.36
+],
+"off": [
+5.58,
+-3.66,
+2.37
+]
+},
+"/Game/Carla/Static/Building/SM_House10.SM_House10": {
+"cat": "building",
+"ext": [
+3.98,
+4.33,
+4.43
+],
+"off": [
+0.0,
+0.0,
+4.41
+]
+},
+"/Game/Carla/Static/Building/SM_House11.SM_House11": {
+"cat": "building",
+"ext": [
+4.6,
+4.63,
+5.27
+],
+"off": [
+0.0,
+0.0,
+5.27
+]
+},
+"/Game/Carla/Static/Building/SM_House12_1.SM_House12_1": {
+"cat": "building",
+"ext": [
+5.18,
+4.86,
+3.22
+],
+"off": [
+-0.11,
+-0.0,
+3.19
+]
+},
+"/Game/Carla/Static/Building/SM_House_13.SM_House_13": {
+"cat": "building",
+"ext": [
+8.52,
+4.87,
+3.84
+],
+"off": [
+-0.89,
+3.0,
+3.92
+]
+},
+"/Game/Carla/Static/Building/SM_Kiosk01.SM_Kiosk01": {
+"cat": "building",
+"ext": [
+0.81,
+0.83,
+1.62
+],
+"off": [
+0.0,
+0.01,
+1.62
+]
+},
+"/Game/Carla/Static/Building/SM_Kiosk02.SM_Kiosk02": {
+"cat": "building",
+"ext": [
+2.25,
+1.52,
+1.45
+],
+"off": [
+0.15,
+0.21,
+1.45
+]
+},
+"/Game/Carla/Static/Building/SM_Kiosk03.SM_Kiosk03": {
+"cat": "building",
+"ext": [
+1.59,
+1.38,
+1.59
+],
+"off": [
+0.22,
+0.0,
+1.58
+]
+},
+"/Game/Carla/Static/Building/SM_Mall02.SM_Mall02": {
+"cat": "building",
+"ext": [
+20.75,
+22.73,
+5.77
+],
+"off": [
+-1.19,
+-6.24,
+5.76
+]
+},
+"/Game/Carla/Static/Building/SM_Mall03.SM_Mall03": {
+"cat": "building",
+"ext": [
+20.75,
+22.73,
+5.77
+],
+"off": [
+-1.19,
+-6.24,
+5.76
+]
+},
+"/Game/Carla/Static/Building/SM_Mansion01.SM_Mansion01": {
+"cat": "building",
+"ext": [
+4.99,
+9.01,
+4.98
+],
+"off": [
+-1.89,
+0.12,
+5.04
+]
+},
+"/Game/Carla/Static/Building/SM_Mansion02.SM_Mansion02": {
+"cat": "building",
+"ext": [
+13.65,
+6.59,
+3.83
+],
+"off": [
+-5.29,
+4.6,
+3.1
+]
+},
+"/Game/Carla/Static/Building/SM_Mansion03.SM_Mansion03": {
+"cat": "building",
+"ext": [
+10.08,
+6.12,
+2.88
+],
+"off": [
+5.4,
+0.15,
+-0.78
+]
+},
+"/Game/Carla/Static/Building/SM_Mansion04.SM_Mansion04": {
+"cat": "building",
+"ext": [
+11.58,
+12.61,
+3.04
+],
+"off": [
+-0.01,
+-0.19,
+2.94
+]
+},
+"/Game/Carla/Static/Building/SM_Skycraper01.SM_Skycraper01": {
+"cat": "building",
+"ext": [
+5.0,
+5.0,
+15.5
+],
+"off": [
+0.3,
+0.0,
+-14.5
+]
+},
+"/Game/Carla/Static/Building/SM_Skycraper02.SM_Skycraper02": {
+"cat": "building",
+"ext": [
+9.0,
+9.0,
+20.6
+],
+"off": [
+0.0,
+0.0,
+-19.6
+]
+},
+"/Game/Carla/Static/Building/SM_Skycraper03.SM_Skycraper03": {
+"cat": "building",
+"ext": [
+11.69,
+8.75,
+25.89
+],
+"off": [
+0.0,
+0.7,
+-18.31
+]
+},
+"/Game/Carla/Static/Building/SM_Skycraper04_1.SM_Skycraper04_1": {
+"cat": "building",
+"ext": [
+7.55,
+7.65,
+24.25
+],
+"off": [
+-0.05,
+-0.15,
+1.75
+]
+},
+"/Game/Carla/Static/Building/SM_Skycraper04_2.SM_Skycraper04_2": {
+"cat": "building",
+"ext": [
+7.5,
+7.5,
+22.5
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/SM_Skycraper04_3.SM_Skycraper04_3": {
+"cat": "building",
+"ext": [
+27.65,
+12.58,
+11.82
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/SM_Skycraper05.SM_Skycraper05": {
+"cat": "building",
+"ext": [
+9.15,
+8.1,
+25.53
+],
+"off": [
+-0.3,
+-14.0,
+7.53
+]
+},
+"/Game/Carla/Static/Building/SM_Skycraper06.SM_Skycraper06": {
+"cat": "building",
+"ext": [
+11.69,
+8.75,
+19.11
+],
+"off": [
+0.0,
+0.0,
+-14.89
+]
+},
+"/Game/Carla/Static/Building/SM_TerracedHouse02_1.SM_TerracedHouse02_1": {
+"cat": "building",
+"ext": [
+4.93,
+4.47,
+3.7
+],
+"off": [
+0.0,
+-0.0,
+3.7
+]
+},
+"/Game/Carla/Static/Building/SM_TerracedHouse02_2.SM_TerracedHouse02_2": {
+"cat": "building",
+"ext": [
+4.93,
+4.47,
+3.7
+],
+"off": [
+0.0,
+-0.0,
+3.7
+]
+},
+"/Game/Carla/Static/Building/SM_TerracedHouse_1.SM_TerracedHouse_1": {
+"cat": "building",
+"ext": [
+5.88,
+5.24,
+3.44
+],
+"off": [
+0.0,
+-0.04,
+3.43
+]
+},
+"/Game/Carla/Static/Building/SkyScraperNY_1/BP_parts/SM_SSNy1_base_proc.SM_SSNy1_base_proc": {
+"cat": "building",
+"ext": [
+7.5,
+7.5,
+3.0
+],
+"off": [
+-7.5,
+-7.5,
+3.0
+]
+},
+"/Game/Carla/Static/Building/SkyScraperNY_1/BP_parts/SM_SSny1_mid_procV1.SM_SSny1_mid_procV1": {
+"cat": "building",
+"ext": [
+7.47,
+7.47,
+2.5
+],
+"off": [
+-7.47,
+-7.52,
+2.5
+]
+},
+"/Game/Carla/Static/Building/SkyScraperNY_1/BP_parts/SM_SSny1_mid_procV2.SM_SSny1_mid_procV2": {
+"cat": "building",
+"ext": [
+7.47,
+7.47,
+2.5
+],
+"off": [
+-7.47,
+-7.52,
+2.5
+]
+},
+"/Game/Carla/Static/Building/SkyScraperNY_1/BP_parts/SM_SSny1_mid_procV3.SM_SSny1_mid_procV3": {
+"cat": "building",
+"ext": [
+7.47,
+7.47,
+2.5
+],
+"off": [
+-7.47,
+-7.52,
+2.5
+]
+},
+"/Game/Carla/Static/Building/SkyScraperNY_1/BP_parts/SM_skyscraper_roof_V1.SM_skyscraper_roof_V1": {
+"cat": "building",
+"ext": [
+7.47,
+7.47,
+4.06
+],
+"off": [
+-7.47,
+-7.52,
+4.06
+]
+},
+"/Game/Carla/Static/Building/SkyScraperNY_1/SM_SkyScraperNY_1_merged.SM_SkyScraperNY_1_merged": {
+"cat": "building",
+"ext": [
+17.98,
+17.98,
+77.08
+],
+"off": [
+14.95,
+0.0,
+77.05
+]
+},
+"/Game/Carla/Static/Building/SkyScraperNY_2/SM_SkyscraperNY_02_v01_merged.SM_SkyscraperNY_02_v01_merged": {
+"cat": "building",
+"ext": [
+15.93,
+17.19,
+23.16
+],
+"off": [
+15.0,
+-3.73,
+23.16
+]
+},
+"/Game/Carla/Static/Building/SkyScraperNY_2/SM_SkyscraperNY_02_v02_merged.SM_SkyscraperNY_02_v02_merged": {
+"cat": "building",
+"ext": [
+36.95,
+18.45,
+14.34
+],
+"off": [
+33.49,
+-4.99,
+14.34
+]
+},
+"/Game/Carla/Static/Building/SkyScraperNY_2/SM_SkyscraperNY_02_v03_merged.SM_SkyscraperNY_02_v03_merged": {
+"cat": "building",
+"ext": [
+25.33,
+55.31,
+23.15
+],
+"off": [
+24.97,
+-44.97,
+22.96
+]
+},
+"/Game/Carla/Static/Building/SkyscraperPoly/SM_SkyscraperPoly_merged.SM_SkyscraperPoly_merged": {
+"cat": "building",
+"ext": [
+15.77,
+15.77,
+52.87
+],
+"off": [
+0.0,
+0.0,
+52.86
+]
+},
+"/Game/Carla/Static/Building/SkyscraperPoly/SM_skyPoly_baseCM.SM_skyPoly_baseCM": {
+"cat": "building",
+"ext": [
+15.84,
+15.84,
+5.17
+],
+"off": [
+0.0,
+0.0,
+5.17
+]
+},
+"/Game/Carla/Static/Building/SkyscraperPoly/SM_skyPoly_floorCM.SM_skyPoly_floorCM": {
+"cat": "building",
+"ext": [
+15.84,
+15.84,
+5.0
+],
+"off": [
+0.0,
+0.0,
+5.0
+]
+},
+"/Game/Carla/Static/Building/SkyscraperPoly/SM_skyPoly_floorCMb.SM_skyPoly_floorCMb": {
+"cat": "building",
+"ext": [
+15.84,
+15.84,
+5.0
+],
+"off": [
+0.0,
+0.0,
+5.0
+]
+},
+"/Game/Carla/Static/Building/SkyscraperPoly/SM_skyPoly_roof.SM_skyPoly_roof": {
+"cat": "building",
+"ext": [
+15.84,
+15.84,
+7.85
+],
+"off": [
+0.0,
+0.0,
+7.85
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_Base01.SM_Sky_01_Base01": {
+"cat": "building",
+"ext": [
+1.92,
+4.6,
+4.5
+],
+"off": [
+-1.92,
+-4.6,
+4.5
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_Base02.SM_Sky_01_Base02": {
+"cat": "building",
+"ext": [
+1.92,
+4.98,
+4.5
+],
+"off": [
+-1.92,
+-4.98,
+4.5
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_BaseCorner.SM_Sky_01_BaseCorner": {
+"cat": "building",
+"ext": [
+4.67,
+4.67,
+4.5
+],
+"off": [
+-4.67,
+-4.67,
+4.5
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_BodyWin01.SM_Sky_01_BodyWin01": {
+"cat": "building",
+"ext": [
+1.92,
+0.27,
+2.55
+],
+"off": [
+-1.92,
+-0.16,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_BodyWin01_Off.SM_Sky_01_BodyWin01_Off": {
+"cat": "building",
+"ext": [
+1.92,
+0.27,
+2.55
+],
+"off": [
+-1.92,
+-0.16,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_BodyWin02.SM_Sky_01_BodyWin02": {
+"cat": "building",
+"ext": [
+1.92,
+0.27,
+2.55
+],
+"off": [
+-1.92,
+-0.16,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_BodyWin02_Off.SM_Sky_01_BodyWin02_Off": {
+"cat": "building",
+"ext": [
+1.92,
+0.27,
+2.55
+],
+"off": [
+-1.92,
+-0.16,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_Body_Corner_01.SM_Sky_01_Body_Corner_01": {
+"cat": "building",
+"ext": [
+4.68,
+4.68,
+2.55
+],
+"off": [
+-4.68,
+-4.68,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_Body_Corner_01_Off.SM_Sky_01_Body_Corner_01_Off": {
+"cat": "building",
+"ext": [
+4.68,
+4.68,
+2.55
+],
+"off": [
+-4.68,
+-4.68,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_Body_Corner_02.SM_Sky_01_Body_Corner_02": {
+"cat": "building",
+"ext": [
+4.68,
+4.68,
+2.55
+],
+"off": [
+-4.68,
+-4.68,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_Body_Corner_02_Off.SM_Sky_01_Body_Corner_02_Off": {
+"cat": "building",
+"ext": [
+4.68,
+4.68,
+2.55
+],
+"off": [
+-4.68,
+-4.68,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_Roof.SM_Sky_01_Roof": {
+"cat": "building",
+"ext": [
+1.92,
+1.92,
+0.0
+],
+"off": [
+-1.92,
+-1.92,
+-0.0
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_TopCorner.SM_Sky_01_TopCorner": {
+"cat": "building",
+"ext": [
+4.68,
+4.68,
+2.55
+],
+"off": [
+-4.68,
+-4.68,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Sky_01_TopWin01.SM_Sky_01_TopWin01": {
+"cat": "building",
+"ext": [
+1.92,
+4.73,
+2.55
+],
+"off": [
+-1.92,
+-4.63,
+2.55
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Skyscraper_01_Base_v02_Merged.SM_Skyscraper_01_Base_v02_Merged": {
+"cat": "building",
+"ext": [
+18.97,
+18.97,
+4.94
+],
+"off": [
+-9.62,
+-18.97,
+4.93
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Skyscraper_01_v01_Merged.SM_Skyscraper_01_v01_Merged": {
+"cat": "building",
+"ext": [
+14.36,
+19.09,
+40.84
+],
+"off": [
+14.25,
+-9.62,
+40.84
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_01/SM_Skyscraper_01_v02_Merged.SM_Skyscraper_01_v02_Merged": {
+"cat": "building",
+"ext": [
+19.09,
+14.36,
+66.37
+],
+"off": [
+-9.62,
+-14.25,
+66.37
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/Mannequins/SM_Mannequin_01.SM_Mannequin_01": {
+"cat": "building",
+"ext": [
+0.35,
+0.12,
+0.97
+],
+"off": [
+0.04,
+0.01,
+0.92
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/Mannequins/SM_Mannequin_02.SM_Mannequin_02": {
+"cat": "building",
+"ext": [
+0.38,
+0.05,
+1.14
+],
+"off": [
+-0.02,
+0.03,
+1.14
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/Mannequins/SM_Mannequin_03.SM_Mannequin_03": {
+"cat": "building",
+"ext": [
+0.38,
+0.06,
+1.15
+],
+"off": [
+0.09,
+0.01,
+1.13
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/Mannequins/SM_Mannequin_04.SM_Mannequin_04": {
+"cat": "building",
+"ext": [
+0.38,
+0.09,
+1.15
+],
+"off": [
+0.04,
+0.1,
+1.13
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/Mannequins/SM_Mannequin_05.SM_Mannequin_05": {
+"cat": "building",
+"ext": [
+0.35,
+0.06,
+1.13
+],
+"off": [
+0.23,
+-0.01,
+1.13
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/Mannequins/SM_Mannequin_06.SM_Mannequin_06": {
+"cat": "building",
+"ext": [
+0.5,
+0.08,
+0.81
+],
+"off": [
+-0.07,
+0.07,
+0.76
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/Mannequins/SM_Mannequin_07.SM_Mannequin_07": {
+"cat": "building",
+"ext": [
+0.51,
+0.05,
+1.14
+],
+"off": [
+0.34,
+0.05,
+1.13
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/Mannequins/SM_Mannequin_08.SM_Mannequin_08": {
+"cat": "building",
+"ext": [
+0.44,
+0.08,
+1.15
+],
+"off": [
+0.13,
+0.06,
+1.14
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Sky_02_Base_01.SM_Sky_02_Base_01": {
+"cat": "building",
+"ext": [
+3.86,
+1.95,
+2.84
+],
+"off": [
+-3.86,
+-1.83,
+2.84
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Sky_02_Base_02.SM_Sky_02_Base_02": {
+"cat": "building",
+"ext": [
+3.86,
+1.95,
+2.84
+],
+"off": [
+-3.86,
+-1.83,
+2.84
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Sky_02_Base_Corner.SM_Sky_02_Base_Corner": {
+"cat": "building",
+"ext": [
+3.48,
+3.78,
+2.84
+],
+"off": [
+-3.48,
+-3.78,
+2.84
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Sky_02_Top.SM_Sky_02_Top": {
+"cat": "building",
+"ext": [
+1.92,
+1.59,
+0.79
+],
+"off": [
+-1.92,
+-1.51,
+0.79
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Sky_02_Top_corner_02.SM_Sky_02_Top_corner_02": {
+"cat": "building",
+"ext": [
+1.66,
+1.65,
+0.79
+],
+"off": [
+-1.84,
+-1.66,
+0.79
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Skyscraper_02_Base01_Merged.SM_Skyscraper_02_Base01_Merged": {
+"cat": "building",
+"ext": [
+15.12,
+15.08,
+2.84
+],
+"off": [
+-7.43,
+-14.96,
+2.84
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Skyscraper_02_Base03_Merged.SM_Skyscraper_02_Base03_Merged": {
+"cat": "building",
+"ext": [
+18.84,
+7.39,
+2.84
+],
+"off": [
+11.08,
+14.97,
+2.84
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Skyscraper_02_Roof.SM_Skyscraper_02_Roof": {
+"cat": "building",
+"ext": [
+1.92,
+1.92,
+0.0
+],
+"off": [
+-1.92,
+-1.92,
+-0.0
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Skyscraper_02_v01_Merged.SM_Skyscraper_02_v01_Merged": {
+"cat": "building",
+"ext": [
+34.19,
+34.19,
+37.54
+],
+"off": [
+34.0,
+-30.69,
+37.54
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Skyscraper_02_v02_Merged.SM_Skyscraper_02_v02_Merged": {
+"cat": "building",
+"ext": [
+20.61,
+33.31,
+29.38
+],
+"off": [
+13.41,
+-23.21,
+29.38
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Skyscraper_02_v03_Merged.SM_Skyscraper_02_v03_Merged": {
+"cat": "building",
+"ext": [
+13.28,
+22.67,
+36.12
+],
+"off": [
+13.09,
+-19.19,
+36.12
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_02/SM_Skyscraper_02_v04_Merged.SM_Skyscraper_02_v04_Merged": {
+"cat": "building",
+"ext": [
+9.43,
+18.84,
+53.87
+],
+"off": [
+-9.41,
+-18.66,
+53.87
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_Base01.SM_Sky_03_Base01": {
+"cat": "building",
+"ext": [
+1.92,
+5.26,
+7.27
+],
+"off": [
+-1.92,
+-4.94,
+7.22
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_Base02.SM_Sky_03_Base02": {
+"cat": "building",
+"ext": [
+1.92,
+5.26,
+7.24
+],
+"off": [
+-1.93,
+-4.94,
+7.24
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_Base03.SM_Sky_03_Base03": {
+"cat": "building",
+"ext": [
+1.92,
+5.64,
+7.24
+],
+"off": [
+-1.92,
+-5.32,
+7.24
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_BaseCorner.SM_Sky_03_BaseCorner": {
+"cat": "building",
+"ext": [
+6.05,
+6.03,
+7.24
+],
+"off": [
+-6.05,
+-5.71,
+7.24
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_BodyCorner01.SM_Sky_03_BodyCorner01": {
+"cat": "building",
+"ext": [
+6.03,
+6.03,
+2.06
+],
+"off": [
+-6.03,
+-6.03,
+2.06
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_BodyCorner02.SM_Sky_03_BodyCorner02": {
+"cat": "building",
+"ext": [
+6.03,
+6.03,
+2.06
+],
+"off": [
+-6.03,
+-6.03,
+2.06
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_BodyCorner03.SM_Sky_03_BodyCorner03": {
+"cat": "building",
+"ext": [
+6.03,
+6.03,
+2.06
+],
+"off": [
+-6.03,
+-6.03,
+2.06
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_BodyWin01.SM_Sky_03_BodyWin01": {
+"cat": "building",
+"ext": [
+1.92,
+0.12,
+2.06
+],
+"off": [
+-1.92,
+-0.12,
+2.06
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_BodyWin01_Off.SM_Sky_03_BodyWin01_Off": {
+"cat": "building",
+"ext": [
+1.92,
+0.12,
+2.06
+],
+"off": [
+-1.92,
+-0.12,
+2.06
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_BodyWin03.SM_Sky_03_BodyWin03": {
+"cat": "building",
+"ext": [
+1.92,
+0.12,
+2.06
+],
+"off": [
+-1.92,
+-0.12,
+2.06
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_BodyWin03_Off.SM_Sky_03_BodyWin03_Off": {
+"cat": "building",
+"ext": [
+1.92,
+0.12,
+2.06
+],
+"off": [
+-1.92,
+-0.12,
+2.06
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_Roof.SM_Sky_03_Roof": {
+"cat": "building",
+"ext": [
+1.92,
+1.92,
+0.0
+],
+"off": [
+-1.92,
+-1.92,
+-0.0
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_Top.SM_Sky_03_Top": {
+"cat": "building",
+"ext": [
+1.92,
+6.08,
+0.79
+],
+"off": [
+-1.92,
+-5.98,
+0.79
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Sky_03_TopCorner.SM_Sky_03_TopCorner": {
+"cat": "building",
+"ext": [
+6.03,
+6.03,
+0.79
+],
+"off": [
+-6.03,
+-6.03,
+0.79
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Skyscraper_P01_Merged.SM_Skyscraper_P01_Merged": {
+"cat": "building",
+"ext": [
+37.8,
+37.8,
+7.32
+],
+"off": [
+-30.78,
+-35.18,
+7.27
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Skyscraper_P02_Merged.SM_Skyscraper_P02_Merged": {
+"cat": "building",
+"ext": [
+35.28,
+31.16,
+47.68
+],
+"off": [
+-23.11,
+-31.05,
+47.68
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Skyscraper_P03_Merged.SM_Skyscraper_P03_Merged": {
+"cat": "building",
+"ext": [
+25.63,
+23.63,
+31.63
+],
+"off": [
+-13.47,
+-15.38,
+31.63
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Skyscraper_v01_Merged.SM_Skyscraper_v01_Merged": {
+"cat": "building",
+"ext": [
+23.71,
+29.48,
+41.91
+],
+"off": [
+23.6,
+-17.31,
+41.91
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Skyscraper_v02_Merged.SM_Skyscraper_v02_Merged": {
+"cat": "building",
+"ext": [
+19.86,
+15.71,
+29.58
+],
+"off": [
+-19.76,
+15.7,
+29.58
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Skyscraper_v03_Merged.SM_Skyscraper_v03_Merged": {
+"cat": "building",
+"ext": [
+19.86,
+21.78,
+17.24
+],
+"off": [
+-19.76,
+9.62,
+17.24
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_03/SM_Skyscraper_v04_Merged.SM_Skyscraper_v04_Merged": {
+"cat": "building",
+"ext": [
+27.56,
+21.48,
+46.03
+],
+"off": [
+-15.39,
+-21.38,
+46.03
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_04/SM_Skyscraper_04_Base_01.SM_Skyscraper_04_Base_01": {
+"cat": "building",
+"ext": [
+2.86,
+4.07,
+5.27
+],
+"off": [
+-2.86,
+-3.59,
+5.22
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_04/SM_Skyscraper_04_Base_02.SM_Skyscraper_04_Base_02": {
+"cat": "building",
+"ext": [
+2.86,
+4.07,
+5.27
+],
+"off": [
+-2.86,
+-3.59,
+5.22
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_04/SM_Skyscraper_04_Base_03.SM_Skyscraper_04_Base_03": {
+"cat": "building",
+"ext": [
+2.86,
+4.07,
+5.27
+],
+"off": [
+-2.86,
+-3.59,
+5.22
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_04/SM_Skyscraper_04_Base_04.SM_Skyscraper_04_Base_04": {
+"cat": "building",
+"ext": [
+2.86,
+4.07,
+5.27
+],
+"off": [
+-2.86,
+-3.59,
+5.22
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_04/SM_Skyscraper_04_Base_05.SM_Skyscraper_04_Base_05": {
+"cat": "building",
+"ext": [
+2.86,
+4.07,
+5.27
+],
+"off": [
+-2.86,
+-3.59,
+5.22
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_04/SM_Skyscraper_04_Base_Corner.SM_Skyscraper_04_Base_Corner": {
+"cat": "building",
+"ext": [
+3.28,
+3.28,
+5.27
+],
+"off": [
+-3.28,
+-3.28,
+5.22
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_04/SM_Skyscraper_04_v01_Merged.SM_Skyscraper_04_v01_Merged": {
+"cat": "building",
+"ext": [
+38.43,
+21.31,
+5.27
+],
+"off": [
+-37.95,
+14.27,
+5.22
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_04/SM_Skyscraper_04_v02_Merged.SM_Skyscraper_04_v02_Merged": {
+"cat": "building",
+"ext": [
+15.6,
+27.02,
+5.27
+],
+"off": [
+8.56,
+26.53,
+5.22
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_05/SM_Sky_05_BodyWin01.SM_Sky_05_BodyWin01": {
+"cat": "building",
+"ext": [
+5.0,
+0.09,
+2.5
+],
+"off": [
+-5.0,
+-0.02,
+2.5
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_05/SM_Sky_05_BodyWin02.SM_Sky_05_BodyWin02": {
+"cat": "building",
+"ext": [
+5.0,
+0.09,
+2.5
+],
+"off": [
+-5.0,
+-0.02,
+2.5
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_05/SM_Sky_05_BodyWin03.SM_Sky_05_BodyWin03": {
+"cat": "building",
+"ext": [
+5.0,
+0.09,
+2.5
+],
+"off": [
+-5.0,
+-0.02,
+2.5
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_05/SM_Sky_05_Roof.SM_Sky_05_Roof": {
+"cat": "building",
+"ext": [
+5.0,
+5.0,
+0.0
+],
+"off": [
+-5.0,
+-5.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_05/SM_Skyscraper_05_v01_merged.SM_Skyscraper_05_v01_merged": {
+"cat": "building",
+"ext": [
+35.05,
+27.36,
+27.6
+],
+"off": [
+34.98,
+-22.62,
+27.4
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_05/SM_Skyscraper_05_v02_merged.SM_Skyscraper_05_v02_merged": {
+"cat": "building",
+"ext": [
+15.06,
+20.03,
+25.0
+],
+"off": [
+14.99,
+-19.96,
+25.0
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_05/SM_Skyscraper_05_v03_merged.SM_Skyscraper_05_v03_merged": {
+"cat": "building",
+"ext": [
+10.06,
+15.03,
+12.5
+],
+"off": [
+9.99,
+-14.96,
+12.5
+]
+},
+"/Game/Carla/Static/Building/Skyscraper_05/SM_Skyscraper_05_v05_merged.SM_Skyscraper_05_v05_merged": {
+"cat": "building",
+"ext": [
+20.49,
+20.49,
+35.1
+],
+"off": [
+-5.49,
+-20.49,
+34.9
+]
+},
+"/Game/Carla/Static/Building/Station/SM_StationPlatform_merged.SM_StationPlatform_merged": {
+"cat": "building",
+"ext": [
+10.09,
+24.99,
+3.09
+],
+"off": [
+-9.99,
+-24.99,
+1.04
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_01_merged.SM_Station_01_merged": {
+"cat": "building",
+"ext": [
+15.05,
+7.65,
+7.7
+],
+"off": [
+-9.99,
+-7.6,
+7.7
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_02_merged.SM_Station_02_merged": {
+"cat": "building",
+"ext": [
+17.55,
+7.65,
+7.7
+],
+"off": [
+-12.49,
+-7.39,
+7.7
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_Corner_Roof.SM_Station_Corner_Roof": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+0.4
+],
+"off": [
+-2.5,
+-2.5,
+0.4
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_Corner_body.SM_Station_Corner_body": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+1.75
+],
+"off": [
+-2.5,
+-2.5,
+1.75
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_access.SM_Station_access": {
+"cat": "building",
+"ext": [
+1.51,
+1.25,
+1.68
+],
+"off": [
+-1.25,
+0.33,
+1.52
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_flat.SM_Station_flat": {
+"cat": "building",
+"ext": [
+1.51,
+1.25,
+1.6
+],
+"off": [
+-1.25,
+-1.25,
+1.6
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_lettering.SM_Station_lettering": {
+"cat": "building",
+"ext": [
+1.22,
+0.02,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_lights.SM_Station_lights": {
+"cat": "building",
+"ext": [
+0.96,
+0.16,
+0.09
+],
+"off": [
+0.0,
+0.0,
+-0.09
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_mid02.SM_Station_mid02": {
+"cat": "building",
+"ext": [
+2.5,
+0.22,
+1.75
+],
+"off": [
+-2.5,
+-0.22,
+1.75
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_ramp.SM_Station_ramp": {
+"cat": "building",
+"ext": [
+1.51,
+2.5,
+3.35
+],
+"off": [
+-1.25,
+-2.5,
+3.35
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_roof.SM_Station_roof": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+0.4
+],
+"off": [
+-2.5,
+-2.5,
+0.4
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_station.SM_Station_station": {
+"cat": "building",
+"ext": [
+2.5,
+2.62,
+3.09
+],
+"off": [
+-2.5,
+-2.52,
+1.04
+]
+},
+"/Game/Carla/Static/Building/Station/SM_Station_topping.SM_Station_topping": {
+"cat": "building",
+"ext": [
+2.5,
+2.5,
+0.18
+],
+"off": [
+-2.5,
+-2.5,
+0.18
+]
+},
+"/Game/Carla/Static/Building/Station/SM_machineGate.SM_machineGate": {
+"cat": "building",
+"ext": [
+0.78,
+0.87,
+1.14
+],
+"off": [
+-0.78,
+-0.76,
+1.14
+]
+},
+"/Game/Carla/Static/Building/WaterDepot/SM_waterDepot_v1.SM_waterDepot_v1": {
+"cat": "building",
+"ext": [
+3.77,
+3.77,
+5.49
+],
+"off": [
+0.0,
+0.0,
+5.49
+]
+},
+"/Game/Carla/Static/Building/WaterDepot/SM_waterDepot_v2.SM_waterDepot_v2": {
+"cat": "building",
+"ext": [
+3.77,
+3.77,
+7.73
+],
+"off": [
+0.0,
+0.0,
+7.73
+]
+},
+"/Game/Carla/Static/Building/WaterDepot/SM_waterDepot_v3.SM_waterDepot_v3": {
+"cat": "building",
+"ext": [
+3.77,
+3.77,
+7.73
+],
+"off": [
+0.0,
+0.0,
+7.73
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_Block12_v02_merged.SM_Block12_v02_merged": {
+"cat": "building",
+"ext": [
+15.21,
+7.71,
+10.16
+],
+"off": [
+-2.5,
+0.0,
+9.16
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_Block12_v03_merged.SM_Block12_v03_merged": {
+"cat": "building",
+"ext": [
+17.03,
+14.28,
+13.66
+],
+"off": [
+2.17,
+1.25,
+12.66
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_Block12_v04_merged.SM_Block12_v04_merged": {
+"cat": "building",
+"ext": [
+15.21,
+7.71,
+11.91
+],
+"off": [
+2.5,
+0.0,
+10.91
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_block12NY_Base.SM_block12NY_Base": {
+"cat": "building",
+"ext": [
+7.71,
+15.21,
+2.35
+],
+"off": [
+0.0,
+2.5,
+1.35
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_block12NY_Base_v2.SM_block12NY_Base_v2": {
+"cat": "building",
+"ext": [
+7.71,
+15.21,
+2.35
+],
+"off": [
+0.0,
+2.5,
+1.35
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_block12NY_Floor_01.SM_block12NY_Floor_01": {
+"cat": "building",
+"ext": [
+7.59,
+15.09,
+1.75
+],
+"off": [
+0.0,
+2.5,
+1.75
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_block12NY_Floor_01_v2.SM_block12NY_Floor_01_v2": {
+"cat": "building",
+"ext": [
+7.59,
+15.09,
+1.75
+],
+"off": [
+0.0,
+2.5,
+1.75
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_block12NY_Floor_02.SM_block12NY_Floor_02": {
+"cat": "building",
+"ext": [
+7.59,
+15.09,
+1.75
+],
+"off": [
+0.0,
+2.5,
+1.75
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_block12NY_Floor_02_v2.SM_block12NY_Floor_02_v2": {
+"cat": "building",
+"ext": [
+7.59,
+15.09,
+1.75
+],
+"off": [
+0.0,
+2.5,
+1.75
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_block12NY_Roof.SM_block12NY_Roof": {
+"cat": "building",
+"ext": [
+7.71,
+15.21,
+2.06
+],
+"off": [
+0.0,
+2.5,
+2.06
+]
+},
+"/Game/Carla/Static/Building/block12/WithLights/SM_block12NY_Roof_v2.SM_block12NY_Roof_v2": {
+"cat": "building",
+"ext": [
+7.71,
+15.21,
+2.06
+],
+"off": [
+0.0,
+2.5,
+2.06
+]
+},
+"/Game/Carla/Static/Building/block13/SM_Block13NY_v01_Merged.SM_Block13NY_v01_Merged": {
+"cat": "building",
+"ext": [
+15.73,
+8.23,
+14.63
+],
+"off": [
+0.0,
+0.0,
+14.46
+]
+},
+"/Game/Carla/Static/Building/block13/SM_Block13NY_v02_Merged.SM_Block13NY_v02_Merged": {
+"cat": "building",
+"ext": [
+15.73,
+8.49,
+17.29
+],
+"off": [
+0.0,
+0.26,
+16.29
+]
+},
+"/Game/Carla/Static/Building/block13/SM_Block13NY_v03_Merged.SM_Block13NY_v03_Merged": {
+"cat": "building",
+"ext": [
+15.73,
+8.49,
+15.54
+],
+"off": [
+0.0,
+0.26,
+14.54
+]
+},
+"/Game/Carla/Static/Building/block13/SM_Block13NY_v04_Merged.SM_Block13NY_v04_Merged": {
+"cat": "building",
+"ext": [
+15.73,
+8.49,
+12.04
+],
+"off": [
+0.0,
+0.26,
+11.04
+]
+},
+"/Game/Carla/Static/Building/block13/SM_Block13NY_v05_Merged.SM_Block13NY_v05_Merged": {
+"cat": "building",
+"ext": [
+8.49,
+15.73,
+6.79
+],
+"off": [
+0.26,
+0.0,
+5.79
+]
+},
+"/Game/Carla/Static/Building/block13/SM_block13NY_baseFloor.SM_block13NY_baseFloor": {
+"cat": "building",
+"ext": [
+8.38,
+15.51,
+2.25
+],
+"off": [
+0.36,
+0.0,
+1.25
+]
+},
+"/Game/Carla/Static/Building/block13/SM_block14White.SM_block14White": {
+"cat": "building",
+"ext": [
+7.79,
+15.3,
+1.75
+],
+"off": [
+0.0,
+0.0,
+1.75
+]
+},
+"/Game/Carla/Static/Building/block13/SM_block14WhiteTop.SM_block14WhiteTop": {
+"cat": "building",
+"ext": [
+8.23,
+15.73,
+2.61
+],
+"off": [
+0.0,
+0.0,
+1.98
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYFloor_V1.SM_block14NYFloor_V1": {
+"cat": "building",
+"ext": [
+2.59,
+8.23,
+1.8
+],
+"off": [
+0.0,
+0.64,
+1.45
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYFloor_V1_Off.SM_block14NYFloor_V1_Off": {
+"cat": "building",
+"ext": [
+2.59,
+8.23,
+1.8
+],
+"off": [
+0.0,
+0.64,
+1.45
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYFloor_V2.SM_block14NYFloor_V2": {
+"cat": "building",
+"ext": [
+2.59,
+8.23,
+1.8
+],
+"off": [
+0.0,
+0.64,
+1.45
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYFloor_V2_Off.SM_block14NYFloor_V2_Off": {
+"cat": "building",
+"ext": [
+2.59,
+8.23,
+1.8
+],
+"off": [
+0.0,
+0.64,
+1.45
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYFloor_V3.SM_block14NYFloor_V3": {
+"cat": "building",
+"ext": [
+2.59,
+8.23,
+1.8
+],
+"off": [
+0.0,
+0.64,
+1.45
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYFloor_V3_Off.SM_block14NYFloor_V3_Off": {
+"cat": "building",
+"ext": [
+2.59,
+8.23,
+1.8
+],
+"off": [
+0.0,
+0.64,
+1.45
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYRoof_V1.SM_block14NYRoof_V1": {
+"cat": "building",
+"ext": [
+2.7,
+7.94,
+2.22
+],
+"off": [
+0.0,
+-0.22,
+1.93
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYRoof_V1_Off.SM_block14NYRoof_V1_Off": {
+"cat": "building",
+"ext": [
+2.7,
+7.94,
+2.22
+],
+"off": [
+0.0,
+-0.22,
+1.93
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYRoof_V2.SM_block14NYRoof_V2": {
+"cat": "building",
+"ext": [
+2.7,
+7.94,
+2.22
+],
+"off": [
+0.0,
+-0.22,
+1.93
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYRoof_V2_Off.SM_block14NYRoof_V2_Off": {
+"cat": "building",
+"ext": [
+2.7,
+7.94,
+2.22
+],
+"off": [
+0.0,
+-0.22,
+1.93
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYRoof_V3.SM_block14NYRoof_V3": {
+"cat": "building",
+"ext": [
+2.7,
+7.94,
+2.22
+],
+"off": [
+0.0,
+-0.22,
+1.93
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NYRoof_V3_Off.SM_block14NYRoof_V3_Off": {
+"cat": "building",
+"ext": [
+2.7,
+7.94,
+2.22
+],
+"off": [
+0.0,
+-0.22,
+1.93
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NY_baseFloor_v1.SM_block14NY_baseFloor_v1": {
+"cat": "building",
+"ext": [
+2.59,
+10.25,
+2.55
+],
+"off": [
+0.0,
+0.15,
+1.0
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NY_baseFloor_v1_Off.SM_block14NY_baseFloor_v1_Off": {
+"cat": "building",
+"ext": [
+2.59,
+10.25,
+2.55
+],
+"off": [
+0.0,
+0.15,
+1.0
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NY_baseFloor_v2.SM_block14NY_baseFloor_v2": {
+"cat": "building",
+"ext": [
+2.59,
+10.25,
+2.55
+],
+"off": [
+0.0,
+0.15,
+1.0
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NY_baseFloor_v2_Off.SM_block14NY_baseFloor_v2_Off": {
+"cat": "building",
+"ext": [
+2.59,
+10.25,
+2.55
+],
+"off": [
+0.0,
+0.15,
+1.0
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NY_baseFloor_v3.SM_block14NY_baseFloor_v3": {
+"cat": "building",
+"ext": [
+2.59,
+10.25,
+2.55
+],
+"off": [
+0.0,
+0.15,
+1.0
+]
+},
+"/Game/Carla/Static/Building/block14/WithLights/SM_block14NY_baseFloor_v3_Off.SM_block14NY_baseFloor_v3_Off": {
+"cat": "building",
+"ext": [
+2.59,
+10.25,
+2.55
+],
+"off": [
+0.0,
+0.15,
+1.0
+]
+},
+"/Game/Carla/Static/Dynamic/00_Opt/SM_Container_Opt.SM_Container_Opt": {
+"cat": "furniture",
+"ext": [
+0.97,
+0.51,
+0.86
+],
+"off": [
+0.0,
+1.1,
+0.86
+]
+},
+"/Game/Carla/Static/Dynamic/00_Opt/SM_Dumpster_Opt.SM_Dumpster_Opt": {
+"cat": "furniture",
+"ext": [
+1.43,
+0.7,
+1.13
+],
+"off": [
+0.0,
+0.0,
+1.13
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_118.SM_SideWalk_118": {
+"cat": "ground",
+"ext": [
+21.24,
+1.88,
+0.08
+],
+"off": [
+-101.24,
+-2.21,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_119.SM_SideWalk_119": {
+"cat": "ground",
+"ext": [
+8.52,
+1.8,
+0.08
+],
+"off": [
+-151.48,
+-1.88,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_131.SM_SideWalk_131": {
+"cat": "ground",
+"ext": [
+0.76,
+31.3,
+0.1
+],
+"off": [
+-124.83,
+48.7,
+0.1
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_132.SM_SideWalk_132": {
+"cat": "ground",
+"ext": [
+0.74,
+29.34,
+0.1
+],
+"off": [
+-139.44,
+50.66,
+0.1
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_137.SM_SideWalk_137": {
+"cat": "ground",
+"ext": [
+5.47,
+0.35,
+0.08
+],
+"off": [
+-154.53,
+10.2,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_138.SM_SideWalk_138": {
+"cat": "ground",
+"ext": [
+4.76,
+5.74,
+0.08
+],
+"off": [
+-144.3,
+15.59,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_140.SM_SideWalk_140": {
+"cat": "ground",
+"ext": [
+3.69,
+3.87,
+0.08
+],
+"off": [
+-121.92,
+13.53,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_145.SM_SideWalk_145": {
+"cat": "ground",
+"ext": [
+12.01,
+40.0,
+0.28
+],
+"off": [
+-112.69,
+120.0,
+0.33
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_146.SM_SideWalk_146": {
+"cat": "ground",
+"ext": [
+6.28,
+40.0,
+0.28
+],
+"off": [
+-133.06,
+120.0,
+0.33
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_152.SM_SideWalk_152": {
+"cat": "ground",
+"ext": [
+11.37,
+0.96,
+0.15
+],
+"off": [
+-91.37,
+160.96,
+0.31
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_153.SM_SideWalk_153": {
+"cat": "ground",
+"ext": [
+23.81,
+8.28,
+0.22
+],
+"off": [
+-103.81,
+168.28,
+0.38
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_204.SM_SideWalk_204": {
+"cat": "ground",
+"ext": [
+0.19,
+0.32,
+0.08
+],
+"off": [
+-0.19,
+-17.87,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_205.SM_SideWalk_205": {
+"cat": "ground",
+"ext": [
+0.19,
+0.32,
+0.08
+],
+"off": [
+-0.19,
+-26.51,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_207.SM_SideWalk_207": {
+"cat": "ground",
+"ext": [
+8.85,
+8.85,
+0.08
+],
+"off": [
+-9.23,
+-9.35,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_208.SM_SideWalk_208": {
+"cat": "ground",
+"ext": [
+0.13,
+0.32,
+0.08
+],
+"off": [
+-0.51,
+-26.51,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_210.SM_SideWalk_210": {
+"cat": "ground",
+"ext": [
+0.5,
+2.16,
+0.08
+],
+"off": [
+-26.21,
+-2.66,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_213.SM_SideWalk_213": {
+"cat": "ground",
+"ext": [
+0.32,
+0.25,
+0.08
+],
+"off": [
+-17.75,
+-0.25,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_214.SM_SideWalk_214": {
+"cat": "ground",
+"ext": [
+0.32,
+0.08,
+0.08
+],
+"off": [
+-26.39,
+-0.42,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_217.SM_SideWalk_217": {
+"cat": "ground",
+"ext": [
+19.21,
+1.87,
+0.08
+],
+"off": [
+-60.79,
+-2.45,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_221.SM_SideWalk_221": {
+"cat": "ground",
+"ext": [
+1.49,
+0.33,
+0.08
+],
+"off": [
+-31.59,
+-0.33,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_224.SM_SideWalk_224": {
+"cat": "ground",
+"ext": [
+2.66,
+0.75,
+0.08
+],
+"off": [
+-29.43,
+-5.11,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_225.SM_SideWalk_225": {
+"cat": "ground",
+"ext": [
+1.56,
+2.48,
+0.08
+],
+"off": [
+-33.57,
+-2.51,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_230.SM_SideWalk_230": {
+"cat": "ground",
+"ext": [
+0.59,
+0.58,
+0.08
+],
+"off": [
+-26.29,
+-5.29,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_233.SM_SideWalk_233": {
+"cat": "ground",
+"ext": [
+0.32,
+0.17,
+0.08
+],
+"off": [
+-26.38,
+-0.17,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_234.SM_SideWalk_234": {
+"cat": "ground",
+"ext": [
+0.53,
+0.68,
+0.08
+],
+"off": [
+-1.06,
+-28.02,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_237.SM_SideWalk_237": {
+"cat": "ground",
+"ext": [
+0.52,
+0.71,
+0.08
+],
+"off": [
+-1.16,
+-26.9,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_24.SM_SideWalk_24": {
+"cat": "ground",
+"ext": [
+0.34,
+7.38,
+0.08
+],
+"off": [
+-189.03,
+-25.8,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_240.SM_SideWalk_240": {
+"cat": "ground",
+"ext": [
+0.56,
+1.3,
+0.08
+],
+"off": [
+-0.56,
+-29.77,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_242.SM_SideWalk_242": {
+"cat": "ground",
+"ext": [
+0.19,
+0.32,
+0.08
+],
+"off": [
+-0.19,
+16.88,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_243.SM_SideWalk_243": {
+"cat": "ground",
+"ext": [
+0.19,
+0.32,
+0.08
+],
+"off": [
+-0.19,
+25.51,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_245.SM_SideWalk_245": {
+"cat": "ground",
+"ext": [
+8.84,
+8.6,
+0.08
+],
+"off": [
+-9.22,
+8.6,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_247.SM_SideWalk_247": {
+"cat": "ground",
+"ext": [
+0.1,
+0.32,
+0.08
+],
+"off": [
+-0.48,
+25.51,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_251.SM_SideWalk_251": {
+"cat": "ground",
+"ext": [
+0.98,
+18.21,
+0.08
+],
+"off": [
+-0.98,
+61.79,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_254.SM_SideWalk_254": {
+"cat": "ground",
+"ext": [
+2.36,
+0.58,
+0.08
+],
+"off": [
+-30.53,
+0.58,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_259.SM_SideWalk_259": {
+"cat": "ground",
+"ext": [
+1.15,
+0.73,
+0.08
+],
+"off": [
+-27.21,
+0.73,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_26.SM_SideWalk_26": {
+"cat": "ground",
+"ext": [
+1.02,
+7.39,
+0.0
+],
+"off": [
+-187.71,
+-25.8,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_264.SM_SideWalk_264": {
+"cat": "ground",
+"ext": [
+0.44,
+4.08,
+0.08
+],
+"off": [
+-1.14,
+30.33,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_265.SM_SideWalk_265": {
+"cat": "ground",
+"ext": [
+0.67,
+0.67,
+0.08
+],
+"off": [
+-0.67,
+35.08,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_268.SM_SideWalk_268": {
+"cat": "ground",
+"ext": [
+0.51,
+0.58,
+0.08
+],
+"off": [
+-1.09,
+25.78,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_269.SM_SideWalk_269": {
+"cat": "ground",
+"ext": [
+10.49,
+7.19,
+0.08
+],
+"off": [
+-60.1,
+72.81,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_270.SM_SideWalk_270": {
+"cat": "ground",
+"ext": [
+18.13,
+11.01,
+0.08
+],
+"off": [
+-60.1,
+68.99,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_274.SM_SideWalk_274": {
+"cat": "ground",
+"ext": [
+0.38,
+22.69,
+0.08
+],
+"off": [
+-68.07,
+126.5,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_275.SM_SideWalk_275": {
+"cat": "ground",
+"ext": [
+0.39,
+28.11,
+0.08
+],
+"off": [
+-53.42,
+131.88,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_279.SM_SideWalk_279": {
+"cat": "ground",
+"ext": [
+1.58,
+40.0,
+0.08
+],
+"off": [
+-1.58,
+120.0,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_28.SM_SideWalk_28": {
+"cat": "ground",
+"ext": [
+5.99,
+1.72,
+0.08
+],
+"off": [
+-185.79,
+-1.72,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_280.SM_SideWalk_280": {
+"cat": "ground",
+"ext": [
+2.01,
+5.41,
+0.13
+],
+"off": [
+-69.69,
+154.59,
+0.13
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_282.SM_SideWalk_282": {
+"cat": "ground",
+"ext": [
+10.14,
+5.04,
+0.08
+],
+"off": [
+-60.17,
+85.04,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_283.SM_SideWalk_283": {
+"cat": "ground",
+"ext": [
+17.9,
+7.24,
+0.08
+],
+"off": [
+-60.15,
+87.24,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_285.SM_SideWalk_285": {
+"cat": "ground",
+"ext": [
+0.39,
+0.37,
+0.08
+],
+"off": [
+-56.11,
+90.1,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_286.SM_SideWalk_286": {
+"cat": "ground",
+"ext": [
+2.19,
+4.86,
+0.08
+],
+"off": [
+-51.62,
+98.91,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_288.SM_SideWalk_288": {
+"cat": "ground",
+"ext": [
+0.48,
+0.5,
+0.08
+],
+"off": [
+-64.15,
+90.02,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_289.SM_SideWalk_289": {
+"cat": "ground",
+"ext": [
+1.47,
+4.86,
+0.08
+],
+"off": [
+-69.28,
+98.95,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_29.SM_SideWalk_29": {
+"cat": "ground",
+"ext": [
+9.9,
+1.79,
+0.08
+],
+"off": [
+-169.9,
+-1.79,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_291.SM_SideWalk_291": {
+"cat": "ground",
+"ext": [
+4.1,
+1.2,
+0.08
+],
+"off": [
+-60.08,
+91.31,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_294.SM_SideWalk_294": {
+"cat": "ground",
+"ext": [
+1.12,
+0.32,
+0.08
+],
+"off": [
+-78.88,
+161.61,
+0.23
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_295.SM_SideWalk_295": {
+"cat": "ground",
+"ext": [
+1.02,
+0.32,
+0.08
+],
+"off": [
+-78.97,
+176.24,
+0.23
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_298.SM_SideWalk_298": {
+"cat": "ground",
+"ext": [
+0.35,
+11.31,
+0.08
+],
+"off": [
+-67.88,
+199.12,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_299.SM_SideWalk_299": {
+"cat": "ground",
+"ext": [
+0.38,
+25.91,
+0.08
+],
+"off": [
+-53.28,
+185.91,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_30.SM_SideWalk_30": {
+"cat": "ground",
+"ext": [
+3.49,
+0.34,
+0.08
+],
+"off": [
+-180.8,
+-13.77,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_303.SM_SideWalk_303": {
+"cat": "ground",
+"ext": [
+2.01,
+30.1,
+0.08
+],
+"off": [
+-2.01,
+190.1,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_304.SM_SideWalk_304": {
+"cat": "ground",
+"ext": [
+5.18,
+5.94,
+0.15
+],
+"off": [
+-72.77,
+181.87,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_306.SM_SideWalk_306": {
+"cat": "ground",
+"ext": [
+3.53,
+0.96,
+0.1
+],
+"off": [
+-74.24,
+160.96,
+0.2
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_307.SM_SideWalk_307": {
+"cat": "ground",
+"ext": [
+6.23,
+7.5,
+0.13
+],
+"off": [
+-73.77,
+217.92,
+0.1
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_309.SM_SideWalk_309": {
+"cat": "ground",
+"ext": [
+5.84,
+7.26,
+0.08
+],
+"off": [
+-47.69,
+219.09,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_31.SM_SideWalk_31": {
+"cat": "ground",
+"ext": [
+3.5,
+1.02,
+0.0
+],
+"off": [
+-180.81,
+-15.08,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_32.SM_SideWalk_32": {
+"cat": "ground",
+"ext": [
+2.52,
+2.49,
+0.08
+],
+"off": [
+-186.81,
+-15.92,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_33.SM_SideWalk_33": {
+"cat": "ground",
+"ext": [
+2.2,
+2.18,
+0.0
+],
+"off": [
+-186.5,
+-16.24,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_34.SM_SideWalk_34": {
+"cat": "ground",
+"ext": [
+4.61,
+8.22,
+0.0
+],
+"off": [
+-177.78,
+-27.39,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_35.SM_SideWalk_35": {
+"cat": "ground",
+"ext": [
+4.08,
+8.1,
+0.08
+],
+"off": [
+-176.65,
+-27.87,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_351.SM_SideWalk_351": {
+"cat": "ground",
+"ext": [
+0.32,
+0.25,
+0.08
+],
+"off": [
+16.99,
+-0.25,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_352.SM_SideWalk_352": {
+"cat": "ground",
+"ext": [
+0.32,
+0.25,
+0.08
+],
+"off": [
+25.63,
+-0.25,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_354.SM_SideWalk_354": {
+"cat": "ground",
+"ext": [
+8.66,
+8.84,
+0.08
+],
+"off": [
+8.66,
+-9.34,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_355.SM_SideWalk_355": {
+"cat": "ground",
+"ext": [
+0.34,
+0.76,
+0.08
+],
+"off": [
+25.61,
+-1.26,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_356.SM_SideWalk_356": {
+"cat": "ground",
+"ext": [
+2.05,
+0.51,
+0.08
+],
+"off": [
+2.05,
+-26.32,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_36.SM_SideWalk_36": {
+"cat": "ground",
+"ext": [
+2.48,
+3.24,
+0.08
+],
+"off": [
+-174.83,
+-16.71,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_363.SM_SideWalk_363": {
+"cat": "ground",
+"ext": [
+0.69,
+0.84,
+0.08
+],
+"off": [
+4.32,
+-27.82,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_366.SM_SideWalk_366": {
+"cat": "ground",
+"ext": [
+0.59,
+0.77,
+0.08
+],
+"off": [
+4.58,
+-26.56,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_367.SM_SideWalk_367": {
+"cat": "ground",
+"ext": [
+2.09,
+1.62,
+0.08
+],
+"off": [
+2.09,
+-29.96,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_37.SM_SideWalk_37": {
+"cat": "ground",
+"ext": [
+2.17,
+2.83,
+0.0
+],
+"off": [
+-175.16,
+-16.94,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_370.SM_SideWalk_370": {
+"cat": "ground",
+"ext": [
+3.43,
+0.88,
+0.08
+],
+"off": [
+29.77,
+-2.14,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_373.SM_SideWalk_373": {
+"cat": "ground",
+"ext": [
+1.0,
+0.95,
+0.08
+],
+"off": [
+34.11,
+-0.95,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_374.SM_SideWalk_374": {
+"cat": "ground",
+"ext": [
+0.61,
+0.53,
+0.08
+],
+"off": [
+25.89,
+-2.51,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_378.SM_SideWalk_378": {
+"cat": "ground",
+"ext": [
+8.65,
+8.6,
+0.08
+],
+"off": [
+8.65,
+8.6,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_379.SM_SideWalk_379": {
+"cat": "ground",
+"ext": [
+0.74,
+0.35,
+0.08
+],
+"off": [
+0.74,
+25.48,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_380.SM_SideWalk_380": {
+"cat": "ground",
+"ext": [
+0.44,
+1.59,
+0.08
+],
+"off": [
+25.5,
+1.59,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_383.SM_SideWalk_383": {
+"cat": "ground",
+"ext": [
+1.02,
+18.23,
+0.08
+],
+"off": [
+1.02,
+61.77,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_390.SM_SideWalk_390": {
+"cat": "ground",
+"ext": [
+0.45,
+4.15,
+0.08
+],
+"off": [
+2.04,
+30.33,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_391.SM_SideWalk_391": {
+"cat": "ground",
+"ext": [
+1.11,
+0.64,
+0.08
+],
+"off": [
+1.11,
+35.11,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_392.SM_SideWalk_392": {
+"cat": "ground",
+"ext": [
+0.53,
+0.55,
+0.08
+],
+"off": [
+1.96,
+25.68,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_399.SM_SideWalk_399": {
+"cat": "ground",
+"ext": [
+3.35,
+0.96,
+0.08
+],
+"off": [
+29.5,
+3.23,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_402.SM_SideWalk_402": {
+"cat": "ground",
+"ext": [
+0.64,
+0.57,
+0.08
+],
+"off": [
+25.68,
+3.65,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_403.SM_SideWalk_403": {
+"cat": "ground",
+"ext": [
+1.18,
+1.45,
+0.08
+],
+"off": [
+33.95,
+1.45,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_410.SM_SideWalk_410": {
+"cat": "ground",
+"ext": [
+0.77,
+40.0,
+0.08
+],
+"off": [
+0.77,
+120.0,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_42.SM_SideWalk_42": {
+"cat": "ground",
+"ext": [
+4.58,
+2.45,
+0.08
+],
+"off": [
+-184.78,
+-35.63,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_43.SM_SideWalk_43": {
+"cat": "ground",
+"ext": [
+4.0,
+2.13,
+0.0
+],
+"off": [
+-184.73,
+-35.31,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_434.SM_SideWalk_434": {
+"cat": "ground",
+"ext": [
+0.17,
+11.39,
+0.08
+],
+"off": [
+0.17,
+171.39,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_50.SM_SideWalk_50": {
+"cat": "ground",
+"ext": [
+11.38,
+0.39,
+0.08
+],
+"off": [
+-171.38,
+10.31,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_51.SM_SideWalk_51": {
+"cat": "ground",
+"ext": [
+4.52,
+0.05,
+0.08
+],
+"off": [
+-185.88,
+0.05,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_52.SM_SideWalk_52": {
+"cat": "ground",
+"ext": [
+2.69,
+0.02,
+0.08
+],
+"off": [
+-175.44,
+0.02,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_SideWalk_53.SM_SideWalk_53": {
+"cat": "ground",
+"ext": [
+3.24,
+2.51,
+0.08
+],
+"off": [
+-186.0,
+12.57,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_Square_128.SM_Square_128": {
+"cat": "ground",
+"ext": [
+24.48,
+21.72,
+0.23
+],
+"off": [
+184.48,
+-181.72,
+0.38
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_Square_132.SM_Square_132": {
+"cat": "ground",
+"ext": [
+13.46,
+37.23,
+0.0
+],
+"off": [
+226.54,
+37.23,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_Square_134.SM_Square_134": {
+"cat": "ground",
+"ext": [
+14.32,
+24.78,
+0.0
+],
+"off": [
+225.67,
+119.44,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_Square_141.SM_Square_141": {
+"cat": "ground",
+"ext": [
+5.52,
+37.23,
+0.0
+],
+"off": [
+245.52,
+37.23,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_Square_142.SM_Square_142": {
+"cat": "ground",
+"ext": [
+4.83,
+25.21,
+0.0
+],
+"off": [
+244.83,
+119.84,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_Square_61.SM_Square_61": {
+"cat": "ground",
+"ext": [
+5.87,
+9.69,
+0.0
+],
+"off": [
+-180.86,
+-25.75,
+0.15
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_Square_62.SM_Square_62": {
+"cat": "ground",
+"ext": [
+11.48,
+25.47,
+0.08
+],
+"off": [
+-171.48,
+-42.12,
+0.08
+]
+},
+"/Game/Carla/Static/Ground/Town03/SM_Square_76.SM_Square_76": {
+"cat": "ground",
+"ext": [
+8.61,
+25.76,
+0.06
+],
+"off": [
+-151.39,
+-41.99,
+0.09
+]
+},
+"/Game/Carla/Static/Pole/SM_Lights/SM_Bollard01.SM_Bollard01": {
+"cat": "lamp",
+"ext": [
+0.08,
+0.08,
+0.34
+],
+"off": [
+0.0,
+0.0,
+0.34
+]
+},
+"/Game/Carla/Static/Pole/SM_Lights/SM_SpotLight.SM_SpotLight": {
+"cat": "lamp",
+"ext": [
+0.58,
+0.33,
+0.56
+],
+"off": [
+0.0,
+0.03,
+-0.01
+]
+},
+"/Game/Carla/Static/Pole/SM_Lights/SM_StreetLightWall.SM_StreetLightWall": {
+"cat": "lamp",
+"ext": [
+0.12,
+1.15,
+0.41
+],
+"off": [
+0.0,
+1.11,
+0.35
+]
+},
+"/Game/Carla/Static/Pole/SM_Lights/SM_parkLightV2.SM_parkLightV2": {
+"cat": "lamp",
+"ext": [
+0.69,
+0.24,
+2.23
+],
+"off": [
+0.0,
+0.0,
+2.23
+]
+},
+"/Game/Carla/Static/Pole/SM_PoleCylinder.SM_PoleCylinder": {
+"cat": "sign",
+"ext": [
+0.5,
+0.5,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Pole/SM_Pole_Add_02.SM_Pole_Add_02": {
+"cat": "sign",
+"ext": [
+2.0,
+4.81,
+6.42
+],
+"off": [
+-0.05,
+-4.52,
+6.41
+]
+},
+"/Game/Carla/Static/Pole/SM_RoadSigns01.SM_RoadSigns01": {
+"cat": "sign",
+"ext": [
+0.04,
+0.03,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.04
+]
+},
+"/Game/Carla/Static/Pole/StreetLights/Group1/SM_Streetlight1_group1.SM_Streetlight1_group1": {
+"cat": "lamp",
+"ext": [
+3.94,
+0.37,
+5.48
+],
+"off": [
+3.59,
+0.0,
+5.48
+]
+},
+"/Game/Carla/Static/Pole/StreetLights/Group1/SM_Streetlight2_group1.SM_Streetlight2_group1": {
+"cat": "lamp",
+"ext": [
+1.18,
+1.18,
+6.27
+],
+"off": [
+0.01,
+0.0,
+6.27
+]
+},
+"/Game/Carla/Static/Pole/StreetLights/Group2/SM_Streetlight3_group2.SM_Streetlight3_group2": {
+"cat": "lamp",
+"ext": [
+1.03,
+1.15,
+2.34
+],
+"off": [
+0.26,
+0.0,
+2.34
+]
+},
+"/Game/Carla/Static/Pole/StreetLights/Group3/SM_Streetlight2_group3.SM_Streetlight2_group3": {
+"cat": "lamp",
+"ext": [
+2.83,
+0.24,
+4.1
+],
+"off": [
+0.0,
+0.0,
+4.1
+]
+},
+"/Game/Carla/Static/Pole/StreetLights/Group3/SM_Streetlight3_group3.SM_Streetlight3_group3": {
+"cat": "lamp",
+"ext": [
+1.92,
+0.22,
+3.88
+],
+"off": [
+1.71,
+0.0,
+3.88
+]
+},
+"/Game/Carla/Static/SideWalk/SideWalkCube.SideWalkCube": {
+"cat": "ground",
+"ext": [
+0.5,
+0.5,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_Bench03_Opt.SM_Bench03_Opt": {
+"cat": "furniture",
+"ext": [
+0.79,
+0.26,
+0.26
+],
+"off": [
+0.0,
+0.0,
+0.26
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_BikeParking_Opt.SM_BikeParking_Opt": {
+"cat": "furniture",
+"ext": [
+2.22,
+0.69,
+0.44
+],
+"off": [
+1.75,
+0.1,
+0.44
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_Cartel_Add_02_Opt.SM_Cartel_Add_02_Opt": {
+"cat": "furniture",
+"ext": [
+0.88,
+4.32,
+1.82
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_MailBox_Opt.SM_MailBox_Opt": {
+"cat": "furniture",
+"ext": [
+0.26,
+0.22,
+0.58
+],
+"off": [
+0.19,
+-0.18,
+0.58
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_MapTable_Opt.SM_MapTable_Opt": {
+"cat": "furniture",
+"ext": [
+0.79,
+0.31,
+0.59
+],
+"off": [
+0.0,
+0.29,
+0.59
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_ParkingBarrier_Opt.SM_ParkingBarrier_Opt": {
+"cat": "furniture",
+"ext": [
+4.17,
+0.3,
+0.72
+],
+"off": [
+3.85,
+-0.07,
+0.72
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_ParkingBarrier_Short_Opt.SM_ParkingBarrier_Short_Opt": {
+"cat": "furniture",
+"ext": [
+2.17,
+0.3,
+0.72
+],
+"off": [
+1.86,
+-0.07,
+0.72
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_PlantPot02_Opt.SM_PlantPot02_Opt": {
+"cat": "furniture",
+"ext": [
+0.53,
+0.21,
+0.24
+],
+"off": [
+0.0,
+0.0,
+0.24
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_PlatformGarbage01_Opt.SM_PlatformGarbage01_Opt": {
+"cat": "furniture",
+"ext": [
+1.82,
+0.86,
+0.17
+],
+"off": [
+0.0,
+0.0,
+0.05
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_Sculpture01_Opt.SM_Sculpture01_Opt": {
+"cat": "furniture",
+"ext": [
+2.82,
+2.82,
+13.5
+],
+"off": [
+0.0,
+0.0,
+13.0
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_Slide_Opt.SM_Slide_Opt": {
+"cat": "furniture",
+"ext": [
+0.47,
+2.06,
+0.99
+],
+"off": [
+-0.16,
+1.58,
+0.99
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_StreetFountain_Opt.SM_StreetFountain_Opt": {
+"cat": "furniture",
+"ext": [
+0.14,
+0.33,
+0.63
+],
+"off": [
+0.0,
+0.17,
+0.63
+]
+},
+"/Game/Carla/Static/Static/00_Opt/SM_Swing_Opt.SM_Swing_Opt": {
+"cat": "furniture",
+"ext": [
+2.05,
+0.79,
+1.29
+],
+"off": [
+0.0,
+0.0,
+1.28
+]
+},
+"/Game/Carla/Static/Static/Billboard/SM_Billboard1.SM_Billboard1": {
+"cat": "furniture",
+"ext": [
+0.88,
+0.88,
+1.47
+],
+"off": [
+0.0,
+0.0,
+1.47
+]
+},
+"/Game/Carla/Static/Static/Billboard/SM_Billboard2.SM_Billboard2": {
+"cat": "furniture",
+"ext": [
+0.77,
+0.14,
+1.22
+],
+"off": [
+0.0,
+0.0,
+1.22
+]
+},
+"/Game/Carla/Static/Static/Billboard/SM_Billboard3.SM_Billboard3": {
+"cat": "furniture",
+"ext": [
+0.75,
+0.14,
+1.43
+],
+"off": [
+0.0,
+0.0,
+1.43
+]
+},
+"/Game/Carla/Static/Static/Calibrator/SM_calibration.SM_calibration": {
+"cat": "furniture",
+"ext": [
+0.77,
+0.34,
+0.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Static/Chainbarrier/SM_LightPost.SM_LightPost": {
+"cat": "furniture",
+"ext": [
+0.09,
+0.09,
+0.43
+],
+"off": [
+0.0,
+0.0,
+0.43
+]
+},
+"/Game/Carla/Static/Static/Chainbarrier/SM_RopePost.SM_RopePost": {
+"cat": "furniture",
+"ext": [
+0.84,
+0.12,
+0.35
+],
+"off": [
+0.72,
+0.0,
+0.35
+]
+},
+"/Game/Carla/Static/Static/Chainbarrier/SM_RopePostEnd.SM_RopePostEnd": {
+"cat": "furniture",
+"ext": [
+0.12,
+0.12,
+0.35
+],
+"off": [
+0.0,
+0.0,
+0.35
+]
+},
+"/Game/Carla/Static/Static/Materials/BusStop/SM_BusStop.SM_BusStop": {
+"cat": "furniture",
+"ext": [
+1.94,
+0.95,
+1.37
+],
+"off": [
+0.37,
+0.18,
+1.37
+]
+},
+"/Game/Carla/Static/Static/SM_Atm.SM_Atm": {
+"cat": "furniture",
+"ext": [
+0.36,
+0.44,
+1.14
+],
+"off": [
+0.0,
+-0.05,
+1.14
+]
+},
+"/Game/Carla/Static/Static/SM_AtmCashier.SM_AtmCashier": {
+"cat": "furniture",
+"ext": [
+0.29,
+0.42,
+1.1
+],
+"off": [
+0.0,
+0.0,
+1.1
+]
+},
+"/Game/Carla/Static/Static/SM_Barrier.SM_Barrier": {
+"cat": "furniture",
+"ext": [
+1.74,
+0.06,
+0.5
+],
+"off": [
+-1.34,
+-0.01,
+0.7
+]
+},
+"/Game/Carla/Static/Static/SM_Bench01.SM_Bench01": {
+"cat": "furniture",
+"ext": [
+0.77,
+0.37,
+0.48
+],
+"off": [
+-0.0,
+0.03,
+0.47
+]
+},
+"/Game/Carla/Static/Static/SM_Bench02.SM_Bench02": {
+"cat": "furniture",
+"ext": [
+0.78,
+0.27,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.25
+]
+},
+"/Game/Carla/Static/Static/SM_Bench03.SM_Bench03": {
+"cat": "furniture",
+"ext": [
+0.79,
+0.26,
+0.26
+],
+"off": [
+0.0,
+0.0,
+0.26
+]
+},
+"/Game/Carla/Static/Static/SM_BikeParking.SM_BikeParking": {
+"cat": "furniture",
+"ext": [
+2.22,
+0.68,
+0.43
+],
+"off": [
+1.75,
+0.11,
+0.43
+]
+},
+"/Game/Carla/Static/Static/SM_CarlaCola.SM_CarlaCola": {
+"cat": "furniture",
+"ext": [
+0.44,
+0.55,
+1.05
+],
+"off": [
+-0.05,
+0.0,
+0.98
+]
+},
+"/Game/Carla/Static/Static/SM_Cartel_Add_02.SM_Cartel_Add_02": {
+"cat": "furniture",
+"ext": [
+0.88,
+4.32,
+1.82
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Static/SM_ChainBarrier.SM_ChainBarrier": {
+"cat": "furniture",
+"ext": [
+0.75,
+0.12,
+0.44
+],
+"off": [
+0.63,
+0.0,
+0.44
+]
+},
+"/Game/Carla/Static/Static/SM_ChainBarrierEnd.SM_ChainBarrierEnd": {
+"cat": "furniture",
+"ext": [
+0.12,
+0.12,
+0.44
+],
+"off": [
+0.0,
+0.0,
+0.44
+]
+},
+"/Game/Carla/Static/Static/SM_FireHdrant.SM_FireHdrant": {
+"cat": "furniture",
+"ext": [
+0.26,
+0.2,
+0.4
+],
+"off": [
+0.0,
+0.04,
+0.4
+]
+},
+"/Game/Carla/Static/Static/SM_Fountain.SM_Fountain": {
+"cat": "furniture",
+"ext": [
+4.2,
+4.2,
+3.46
+],
+"off": [
+0.0,
+0.0,
+3.46
+]
+},
+"/Game/Carla/Static/Static/SM_Fountain_02.SM_Fountain_02": {
+"cat": "furniture",
+"ext": [
+1.35,
+1.35,
+0.64
+],
+"off": [
+0.0,
+0.0,
+0.61
+]
+},
+"/Game/Carla/Static/Static/SM_Fountain_03.SM_Fountain_03": {
+"cat": "furniture",
+"ext": [
+5.08,
+5.0,
+2.68
+],
+"off": [
+-0.52,
+0.26,
+0.88
+]
+},
+"/Game/Carla/Static/Static/SM_LightBox1.SM_LightBox1": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.37,
+0.66
+],
+"off": [
+0.0,
+0.0,
+0.66
+]
+},
+"/Game/Carla/Static/Static/SM_LightBox2.SM_LightBox2": {
+"cat": "furniture",
+"ext": [
+0.28,
+0.61,
+0.77
+],
+"off": [
+0.0,
+0.0,
+0.77
+]
+},
+"/Game/Carla/Static/Static/SM_MailBox.SM_MailBox": {
+"cat": "furniture",
+"ext": [
+0.26,
+0.22,
+0.58
+],
+"off": [
+0.19,
+-0.18,
+0.58
+]
+},
+"/Game/Carla/Static/Static/SM_MapTable.SM_MapTable": {
+"cat": "furniture",
+"ext": [
+0.79,
+0.31,
+0.59
+],
+"off": [
+0.0,
+0.29,
+0.59
+]
+},
+"/Game/Carla/Static/Static/SM_ParkingBarrier.SM_ParkingBarrier": {
+"cat": "furniture",
+"ext": [
+4.17,
+0.3,
+0.72
+],
+"off": [
+3.85,
+-0.07,
+0.72
+]
+},
+"/Game/Carla/Static/Static/SM_ParkingBarrier_Short.SM_ParkingBarrier_Short": {
+"cat": "furniture",
+"ext": [
+2.17,
+0.3,
+0.72
+],
+"off": [
+1.86,
+-0.07,
+0.72
+]
+},
+"/Game/Carla/Static/Static/SM_PlantPot02.SM_PlantPot02": {
+"cat": "furniture",
+"ext": [
+0.52,
+0.21,
+0.24
+],
+"off": [
+0.0,
+0.0,
+0.24
+]
+},
+"/Game/Carla/Static/Static/SM_PlantPot03.SM_PlantPot03": {
+"cat": "furniture",
+"ext": [
+0.52,
+0.21,
+0.24
+],
+"off": [
+0.0,
+0.0,
+0.24
+]
+},
+"/Game/Carla/Static/Static/SM_PlantPot04.SM_PlantPot04": {
+"cat": "furniture",
+"ext": [
+2.48,
+0.37,
+0.06
+],
+"off": [
+0.0,
+0.0,
+0.06
+]
+},
+"/Game/Carla/Static/Static/SM_PlantPot05.SM_PlantPot05": {
+"cat": "furniture",
+"ext": [
+0.2,
+0.2,
+0.14
+],
+"off": [
+0.0,
+0.0,
+0.14
+]
+},
+"/Game/Carla/Static/Static/SM_PlantPot06.SM_PlantPot06": {
+"cat": "furniture",
+"ext": [
+0.8,
+0.8,
+0.42
+],
+"off": [
+0.0,
+0.0,
+0.42
+]
+},
+"/Game/Carla/Static/Static/SM_PlantPot07.SM_PlantPot07": {
+"cat": "furniture",
+"ext": [
+0.25,
+0.24,
+0.28
+],
+"off": [
+0.0,
+0.0,
+0.28
+]
+},
+"/Game/Carla/Static/Static/SM_PlantPot08.SM_PlantPot08": {
+"cat": "furniture",
+"ext": [
+0.26,
+0.26,
+0.24
+],
+"off": [
+0.0,
+0.0,
+0.24
+]
+},
+"/Game/Carla/Static/Static/SM_Plantpot01.SM_Plantpot01": {
+"cat": "furniture",
+"ext": [
+0.55,
+0.24,
+0.28
+],
+"off": [
+0.0,
+0.0,
+0.28
+]
+},
+"/Game/Carla/Static/Static/SM_PlantpotM2.SM_PlantpotM2": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+0.64
+],
+"off": [
+0.0,
+0.0,
+0.64
+]
+},
+"/Game/Carla/Static/Static/SM_PlantpotM3.SM_PlantpotM3": {
+"cat": "furniture",
+"ext": [
+0.8,
+0.8,
+1.82
+],
+"off": [
+0.0,
+0.0,
+1.8
+]
+},
+"/Game/Carla/Static/Static/SM_PlatformGarbage01.SM_PlatformGarbage01": {
+"cat": "furniture",
+"ext": [
+1.82,
+0.86,
+0.17
+],
+"off": [
+0.0,
+0.0,
+0.05
+]
+},
+"/Game/Carla/Static/Static/SM_Sculpture01.SM_Sculpture01": {
+"cat": "furniture",
+"ext": [
+2.82,
+2.82,
+13.5
+],
+"off": [
+0.0,
+0.0,
+13.0
+]
+},
+"/Game/Carla/Static/Static/SM_Sculpture02.SM_Sculpture02": {
+"cat": "furniture",
+"ext": [
+9.19,
+10.57,
+6.31
+],
+"off": [
+-6.35,
+8.26,
+4.73
+]
+},
+"/Game/Carla/Static/Static/SM_Slide.SM_Slide": {
+"cat": "furniture",
+"ext": [
+0.47,
+2.06,
+0.99
+],
+"off": [
+-0.16,
+1.58,
+0.99
+]
+},
+"/Game/Carla/Static/Static/SM_StandNews.SM_StandNews": {
+"cat": "furniture",
+"ext": [
+0.23,
+0.17,
+0.44
+],
+"off": [
+0.0,
+0.0,
+0.43
+]
+},
+"/Game/Carla/Static/Static/SM_StreetAD01.SM_StreetAD01": {
+"cat": "furniture",
+"ext": [
+1.24,
+0.15,
+1.94
+],
+"off": [
+0.0,
+-0.03,
+1.94
+]
+},
+"/Game/Carla/Static/Static/SM_StreetAD02.SM_StreetAD02": {
+"cat": "furniture",
+"ext": [
+0.53,
+0.06,
+1.08
+],
+"off": [
+0.0,
+0.0,
+1.08
+]
+},
+"/Game/Carla/Static/Static/SM_StreetAD03.SM_StreetAD03": {
+"cat": "furniture",
+"ext": [
+0.57,
+0.05,
+1.12
+],
+"off": [
+0.03,
+0.0,
+1.12
+]
+},
+"/Game/Carla/Static/Static/SM_StreetAD04.SM_StreetAD04": {
+"cat": "furniture",
+"ext": [
+0.59,
+0.06,
+1.39
+],
+"off": [
+0.0,
+0.0,
+1.39
+]
+},
+"/Game/Carla/Static/Static/SM_StreetBench.SM_StreetBench": {
+"cat": "furniture",
+"ext": [
+0.9,
+0.32,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/Carla/Static/Static/SM_StreetCounter.SM_StreetCounter": {
+"cat": "furniture",
+"ext": [
+0.31,
+0.17,
+0.61
+],
+"off": [
+0.0,
+0.0,
+0.61
+]
+},
+"/Game/Carla/Static/Static/SM_StreetFountain.SM_StreetFountain": {
+"cat": "furniture",
+"ext": [
+0.14,
+0.33,
+0.63
+],
+"off": [
+0.0,
+0.17,
+0.63
+]
+},
+"/Game/Carla/Static/Static/SM_Swing.SM_Swing": {
+"cat": "furniture",
+"ext": [
+2.05,
+0.79,
+1.29
+],
+"off": [
+0.0,
+0.0,
+1.28
+]
+},
+"/Game/Carla/Static/Static/SM_TrashCan04.SM_TrashCan04": {
+"cat": "furniture",
+"ext": [
+0.39,
+0.29,
+0.51
+],
+"off": [
+0.0,
+0.0,
+0.51
+]
+},
+"/Game/Carla/Static/Static/SM_TrashCan05.SM_TrashCan05": {
+"cat": "furniture",
+"ext": [
+0.39,
+0.29,
+0.51
+],
+"off": [
+0.0,
+0.0,
+0.51
+]
+},
+"/Game/Carla/Static/Static/SM_TrashCan1.SM_TrashCan1": {
+"cat": "furniture",
+"ext": [
+0.27,
+0.19,
+0.61
+],
+"off": [
+0.0,
+0.0,
+0.61
+]
+},
+"/Game/Carla/Static/Static/SM_TrashCan2.SM_TrashCan2": {
+"cat": "furniture",
+"ext": [
+0.4,
+0.33,
+0.53
+],
+"off": [
+0.0,
+0.0,
+0.53
+]
+},
+"/Game/Carla/Static/Static/SM_TreePot.SM_TreePot": {
+"cat": "furniture",
+"ext": [
+0.78,
+0.78,
+0.22
+],
+"off": [
+0.0,
+0.0,
+0.22
+]
+},
+"/Game/Carla/Static/Static/SM_TreePot_round.SM_TreePot_round": {
+"cat": "furniture",
+"ext": [
+0.65,
+0.65,
+0.02
+],
+"off": [
+0.0,
+0.0,
+0.02
+]
+},
+"/Game/Carla/Static/Static/SM_basket1.SM_basket1": {
+"cat": "furniture",
+"ext": [
+0.85,
+0.84,
+2.12
+],
+"off": [
+-9.87,
+-0.01,
+2.51
+]
+},
+"/Game/Carla/Static/Static/SM_fountainSmall.SM_fountainSmall": {
+"cat": "furniture",
+"ext": [
+2.29,
+2.29,
+0.71
+],
+"off": [
+0.0,
+0.0,
+0.71
+]
+},
+"/Game/Carla/Static/Static/SM_trashCanV3.SM_trashCanV3": {
+"cat": "furniture",
+"ext": [
+0.26,
+0.26,
+0.52
+],
+"off": [
+0.0,
+0.0,
+0.52
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_CloseHole.SM_CloseHole": {
+"cat": "ground",
+"ext": [
+1.5,
+1.0,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_SideWalk_203.SM_SideWalk_203": {
+"cat": "ground",
+"ext": [
+0.19,
+1.0,
+0.0
+],
+"off": [
+-0.19,
+-16.56,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_SideWalk_206.SM_SideWalk_206": {
+"cat": "ground",
+"ext": [
+8.53,
+8.53,
+0.0
+],
+"off": [
+-8.91,
+-9.03,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_SideWalk_212.SM_SideWalk_212": {
+"cat": "ground",
+"ext": [
+1.01,
+0.25,
+0.0
+],
+"off": [
+-16.43,
+-0.25,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_SideWalk_241.SM_SideWalk_241": {
+"cat": "ground",
+"ext": [
+0.19,
+1.0,
+0.0
+],
+"off": [
+-0.19,
+15.56,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_SideWalk_244.SM_SideWalk_244": {
+"cat": "ground",
+"ext": [
+8.52,
+8.28,
+0.0
+],
+"off": [
+-8.9,
+8.28,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_SideWalk_350.SM_SideWalk_350": {
+"cat": "ground",
+"ext": [
+1.0,
+0.25,
+0.0
+],
+"off": [
+15.68,
+-0.25,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_SideWalk_353.SM_SideWalk_353": {
+"cat": "ground",
+"ext": [
+8.34,
+8.53,
+0.0
+],
+"off": [
+8.34,
+-9.03,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_SideWalk_377.SM_SideWalk_377": {
+"cat": "ground",
+"ext": [
+8.34,
+8.28,
+0.0
+],
+"off": [
+8.34,
+8.28,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_1.SM_Square_1": {
+"cat": "ground",
+"ext": [
+11.38,
+1.07,
+0.0
+],
+"off": [
+-171.38,
+11.63,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_10.SM_Square_10": {
+"cat": "ground",
+"ext": [
+1.49,
+2.65,
+0.0
+],
+"off": [
+-145.67,
+18.76,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_100.SM_Square_100": {
+"cat": "ground",
+"ext": [
+15.62,
+32.13,
+0.01
+],
+"off": [
+-31.41,
+192.13,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_101.SM_Square_101": {
+"cat": "ground",
+"ext": [
+40.0,
+24.71,
+0.04
+],
+"off": [
+-40.0,
+275.27,
+0.19
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_105.SM_Square_105": {
+"cat": "ground",
+"ext": [
+7.34,
+7.78,
+0.0
+],
+"off": [
+7.34,
+-7.78,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_107.SM_Square_107": {
+"cat": "ground",
+"ext": [
+4.28,
+1.2,
+0.0
+],
+"off": [
+30.19,
+-1.2,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_108.SM_Square_108": {
+"cat": "ground",
+"ext": [
+2.27,
+2.26,
+0.0
+],
+"off": [
+2.27,
+-28.69,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_109.SM_Square_109": {
+"cat": "ground",
+"ext": [
+7.34,
+7.28,
+0.0
+],
+"off": [
+7.34,
+7.28,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_11.SM_Square_11": {
+"cat": "ground",
+"ext": [
+3.38,
+3.55,
+0.0
+],
+"off": [
+-121.6,
+13.84,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_110.SM_Square_110": {
+"cat": "ground",
+"ext": [
+0.93,
+4.67,
+0.0
+],
+"off": [
+0.93,
+30.43,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_111.SM_Square_111": {
+"cat": "ground",
+"ext": [
+4.41,
+1.79,
+0.0
+],
+"off": [
+30.09,
+1.79,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_115.SM_Square_115": {
+"cat": "ground",
+"ext": [
+7.43,
+23.81,
+0.0
+],
+"off": [
+7.43,
+276.31,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_116.SM_Square_116": {
+"cat": "ground",
+"ext": [
+32.64,
+23.92,
+4.5
+],
+"off": [
+47.36,
+276.79,
+4.65
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_12.SM_Square_12": {
+"cat": "ground",
+"ext": [
+1.2,
+1.61,
+0.0
+],
+"off": [
+-120.16,
+15.72,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_124.SM_Square_124": {
+"cat": "ground",
+"ext": [
+21.85,
+25.03,
+0.0
+],
+"off": [
+102.48,
+116.86,
+8.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_127.SM_Square_127": {
+"cat": "ground",
+"ext": [
+40.0,
+23.78,
+4.5
+],
+"off": [
+120.0,
+277.65,
+4.65
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_13.SM_Square_13": {
+"cat": "ground",
+"ext": [
+2.12,
+8.63,
+0.0
+],
+"off": [
+-82.11,
+71.37,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_131.SM_Square_131": {
+"cat": "ground",
+"ext": [
+17.42,
+40.0,
+0.0
+],
+"off": [
+222.58,
+-40.0,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_137.SM_Square_137": {
+"cat": "ground",
+"ext": [
+22.99,
+38.08,
+4.5
+],
+"off": [
+217.0,
+201.92,
+4.65
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_138.SM_Square_138": {
+"cat": "ground",
+"ext": [
+40.0,
+30.8,
+4.5
+],
+"off": [
+200.0,
+270.79,
+4.65
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_139.SM_Square_139": {
+"cat": "ground",
+"ext": [
+1.75,
+6.72,
+0.0
+],
+"off": [
+241.75,
+-86.72,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_14.SM_Square_14": {
+"cat": "ground",
+"ext": [
+20.03,
+38.65,
+0.2
+],
+"off": [
+-100.03,
+118.65,
+0.39
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_140.SM_Square_140": {
+"cat": "ground",
+"ext": [
+5.6,
+40.0,
+0.0
+],
+"off": [
+245.6,
+-40.0,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_143.SM_Square_143": {
+"cat": "ground",
+"ext": [
+5.32,
+37.7,
+4.5
+],
+"off": [
+245.32,
+202.3,
+4.65
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_144.SM_Square_144": {
+"cat": "ground",
+"ext": [
+4.81,
+16.0,
+4.5
+],
+"off": [
+244.81,
+256.0,
+4.65
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_15.SM_Square_15": {
+"cat": "ground",
+"ext": [
+22.03,
+40.0,
+0.2
+],
+"off": [
+-102.03,
+120.0,
+0.4
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_16.SM_Square_16": {
+"cat": "ground",
+"ext": [
+6.86,
+40.0,
+0.2
+],
+"off": [
+-134.48,
+120.0,
+0.4
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_17.SM_Square_17": {
+"cat": "ground",
+"ext": [
+6.31,
+40.0,
+0.2
+],
+"off": [
+-139.03,
+120.0,
+0.39
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_18.SM_Square_18": {
+"cat": "ground",
+"ext": [
+2.04,
+5.98,
+0.0
+],
+"off": [
+-82.04,
+85.98,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_19.SM_Square_19": {
+"cat": "ground",
+"ext": [
+10.34,
+0.65,
+0.07
+],
+"off": [
+-90.34,
+160.65,
+0.38
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_2.SM_Square_2": {
+"cat": "ground",
+"ext": [
+2.93,
+2.19,
+0.0
+],
+"off": [
+-185.67,
+12.89,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_20.SM_Square_20": {
+"cat": "ground",
+"ext": [
+25.1,
+9.28,
+0.14
+],
+"off": [
+-105.1,
+169.28,
+0.45
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_21.SM_Square_21": {
+"cat": "ground",
+"ext": [
+27.6,
+11.28,
+0.15
+],
+"off": [
+-107.6,
+171.28,
+0.44
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_22.SM_Square_22": {
+"cat": "ground",
+"ext": [
+19.26,
+1.12,
+0.0
+],
+"off": [
+-60.74,
+12.93,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_23.SM_Square_23": {
+"cat": "ground",
+"ext": [
+20.01,
+12.01,
+0.0
+],
+"off": [
+-59.99,
+67.99,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_24.SM_Square_24": {
+"cat": "ground",
+"ext": [
+22.01,
+14.01,
+0.0
+],
+"off": [
+-57.99,
+65.99,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_25.SM_Square_25": {
+"cat": "ground",
+"ext": [
+1.12,
+1.0,
+0.01
+],
+"off": [
+-78.88,
+156.29,
+0.29
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_26.SM_Square_26": {
+"cat": "ground",
+"ext": [
+1.12,
+0.35,
+0.01
+],
+"off": [
+-78.88,
+159.64,
+0.3
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_27.SM_Square_27": {
+"cat": "ground",
+"ext": [
+1.06,
+22.69,
+0.0
+],
+"off": [
+-73.39,
+126.51,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_28.SM_Square_28": {
+"cat": "ground",
+"ext": [
+1.06,
+22.69,
+0.0
+],
+"off": [
+-69.39,
+126.5,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_29.SM_Square_29": {
+"cat": "ground",
+"ext": [
+1.07,
+28.12,
+0.0
+],
+"off": [
+-52.1,
+131.88,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_3.SM_Square_3": {
+"cat": "ground",
+"ext": [
+1.45,
+31.34,
+0.03
+],
+"off": [
+-119.51,
+48.65,
+0.17
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_30.SM_Square_30": {
+"cat": "ground",
+"ext": [
+1.07,
+28.12,
+0.0
+],
+"off": [
+-48.1,
+131.88,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_31.SM_Square_31": {
+"cat": "ground",
+"ext": [
+4.72,
+5.41,
+0.07
+],
+"off": [
+-73.04,
+154.59,
+0.22
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_32.SM_Square_32": {
+"cat": "ground",
+"ext": [
+2.72,
+4.05,
+0.08
+],
+"off": [
+-75.04,
+153.24,
+0.21
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_33.SM_Square_33": {
+"cat": "ground",
+"ext": [
+19.89,
+7.84,
+0.0
+],
+"off": [
+-60.11,
+87.84,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_34.SM_Square_34": {
+"cat": "ground",
+"ext": [
+21.91,
+9.04,
+0.0
+],
+"off": [
+-58.09,
+89.04,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_35.SM_Square_35": {
+"cat": "ground",
+"ext": [
+2.7,
+4.68,
+0.0
+],
+"off": [
+-50.47,
+99.09,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_36.SM_Square_36": {
+"cat": "ground",
+"ext": [
+2.35,
+3.54,
+0.0
+],
+"off": [
+-46.83,
+100.22,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_37.SM_Square_37": {
+"cat": "ground",
+"ext": [
+1.95,
+4.67,
+0.0
+],
+"off": [
+-70.4,
+99.15,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_38.SM_Square_38": {
+"cat": "ground",
+"ext": [
+1.55,
+3.47,
+0.0
+],
+"off": [
+-74.0,
+100.35,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_39.SM_Square_39": {
+"cat": "ground",
+"ext": [
+1.12,
+0.64,
+0.01
+],
+"off": [
+-78.88,
+160.64,
+0.3
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_4.SM_Square_4": {
+"cat": "ground",
+"ext": [
+1.45,
+31.32,
+0.03
+],
+"off": [
+-123.51,
+48.68,
+0.18
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_40.SM_Square_40": {
+"cat": "ground",
+"ext": [
+1.02,
+1.0,
+0.01
+],
+"off": [
+-78.97,
+177.56,
+0.3
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_41.SM_Square_41": {
+"cat": "ground",
+"ext": [
+1.02,
+1.0,
+0.01
+],
+"off": [
+-78.97,
+181.56,
+0.29
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_42.SM_Square_42": {
+"cat": "ground",
+"ext": [
+1.03,
+11.31,
+0.0
+],
+"off": [
+-73.2,
+199.13,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_43.SM_Square_43": {
+"cat": "ground",
+"ext": [
+1.03,
+11.31,
+0.0
+],
+"off": [
+-69.2,
+199.12,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_44.SM_Square_44": {
+"cat": "ground",
+"ext": [
+1.07,
+25.91,
+0.0
+],
+"off": [
+-51.96,
+185.91,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_45.SM_Square_45": {
+"cat": "ground",
+"ext": [
+1.07,
+25.91,
+0.0
+],
+"off": [
+-47.96,
+185.91,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_46.SM_Square_46": {
+"cat": "ground",
+"ext": [
+4.86,
+5.63,
+0.08
+],
+"off": [
+-73.09,
+182.19,
+0.22
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_47.SM_Square_47": {
+"cat": "ground",
+"ext": [
+2.86,
+3.63,
+0.08
+],
+"off": [
+-75.09,
+184.19,
+0.21
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_48.SM_Square_48": {
+"cat": "ground",
+"ext": [
+3.03,
+0.64,
+0.02
+],
+"off": [
+-74.73,
+160.64,
+0.28
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_49.SM_Square_49": {
+"cat": "ground",
+"ext": [
+5.91,
+7.18,
+0.06
+],
+"off": [
+-74.09,
+217.61,
+0.18
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_5.SM_Square_5": {
+"cat": "ground",
+"ext": [
+1.42,
+29.34,
+0.03
+],
+"off": [
+-140.75,
+50.66,
+0.18
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_50.SM_Square_50": {
+"cat": "ground",
+"ext": [
+3.91,
+6.18,
+0.06
+],
+"off": [
+-76.09,
+216.61,
+0.17
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_51.SM_Square_51": {
+"cat": "ground",
+"ext": [
+5.52,
+6.95,
+0.0
+],
+"off": [
+-47.38,
+218.77,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_52.SM_Square_52": {
+"cat": "ground",
+"ext": [
+3.57,
+5.95,
+0.0
+],
+"off": [
+-45.33,
+217.76,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_53.SM_Square_53": {
+"cat": "ground",
+"ext": [
+5.17,
+5.43,
+0.0
+],
+"off": [
+-245.17,
+-165.43,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_54.SM_Square_54": {
+"cat": "ground",
+"ext": [
+10.09,
+40.0,
+0.0
+],
+"off": [
+-250.08,
+-120.0,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_55.SM_Square_55": {
+"cat": "ground",
+"ext": [
+10.07,
+40.0,
+0.0
+],
+"off": [
+-250.07,
+-40.0,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_56.SM_Square_56": {
+"cat": "ground",
+"ext": [
+10.02,
+40.0,
+0.1
+],
+"off": [
+-250.02,
+40.0,
+0.25
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_57.SM_Square_57": {
+"cat": "ground",
+"ext": [
+9.97,
+40.0,
+0.54
+],
+"off": [
+-249.97,
+120.0,
+0.7
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_58.SM_Square_58": {
+"cat": "ground",
+"ext": [
+9.43,
+38.36,
+0.55
+],
+"off": [
+-249.43,
+198.36,
+0.7
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_6.SM_Square_6": {
+"cat": "ground",
+"ext": [
+1.42,
+29.31,
+0.03
+],
+"off": [
+-144.75,
+50.69,
+0.16
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_60.SM_Square_60": {
+"cat": "ground",
+"ext": [
+40.0,
+40.0,
+0.0
+],
+"off": [
+-200.0,
+-120.0,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_63.SM_Square_63": {
+"cat": "ground",
+"ext": [
+21.22,
+40.0,
+0.0
+],
+"off": [
+-218.78,
+-40.0,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_64.SM_Square_64": {
+"cat": "ground",
+"ext": [
+13.3,
+32.95,
+0.43
+],
+"off": [
+-173.3,
+47.05,
+0.58
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_65.SM_Square_65": {
+"cat": "ground",
+"ext": [
+12.89,
+40.0,
+0.43
+],
+"off": [
+-227.11,
+40.0,
+0.58
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_66.SM_Square_66": {
+"cat": "ground",
+"ext": [
+13.22,
+40.0,
+1.21
+],
+"off": [
+-173.22,
+120.0,
+1.6
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_67.SM_Square_67": {
+"cat": "ground",
+"ext": [
+13.06,
+40.0,
+1.21
+],
+"off": [
+-226.94,
+120.0,
+1.57
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_68.SM_Square_68": {
+"cat": "ground",
+"ext": [
+13.03,
+27.38,
+0.66
+],
+"off": [
+-173.03,
+187.38,
+2.33
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_69.SM_Square_69": {
+"cat": "ground",
+"ext": [
+34.04,
+40.0,
+1.42
+],
+"off": [
+-205.96,
+200.0,
+1.57
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_7.SM_Square_7": {
+"cat": "ground",
+"ext": [
+19.11,
+1.12,
+0.0
+],
+"off": [
+-99.11,
+13.17,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_70.SM_Square_70": {
+"cat": "ground",
+"ext": [
+39.31,
+29.21,
+0.84
+],
+"off": [
+-199.31,
+269.21,
+0.99
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_75.SM_Square_75": {
+"cat": "ground",
+"ext": [
+24.84,
+32.29,
+0.0
+],
+"off": [
+-135.16,
+-127.71,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_78.SM_Square_78": {
+"cat": "ground",
+"ext": [
+7.33,
+32.76,
+0.13
+],
+"off": [
+-152.67,
+47.24,
+0.26
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_79.SM_Square_79": {
+"cat": "ground",
+"ext": [
+20.66,
+33.85,
+0.03
+],
+"off": [
+-100.66,
+46.15,
+0.16
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_8.SM_Square_8": {
+"cat": "ground",
+"ext": [
+5.47,
+1.03,
+0.0
+],
+"off": [
+-154.52,
+11.52,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_80.SM_Square_80": {
+"cat": "ground",
+"ext": [
+12.4,
+40.0,
+0.74
+],
+"off": [
+-147.6,
+120.0,
+0.93
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_81.SM_Square_81": {
+"cat": "ground",
+"ext": [
+19.03,
+37.65,
+0.23
+],
+"off": [
+-99.03,
+117.65,
+0.36
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_82.SM_Square_82": {
+"cat": "ground",
+"ext": [
+40.0,
+31.39,
+0.85
+],
+"off": [
+-120.0,
+191.39,
+1.06
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_83.SM_Square_83": {
+"cat": "ground",
+"ext": [
+40.0,
+26.93,
+0.72
+],
+"off": [
+-120.0,
+272.33,
+0.88
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_85.SM_Square_85": {
+"cat": "ground",
+"ext": [
+18.94,
+19.93,
+0.0
+],
+"off": [
+-24.01,
+-117.21,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_88.SM_Square_88": {
+"cat": "ground",
+"ext": [
+7.72,
+7.78,
+0.0
+],
+"off": [
+-7.72,
+-7.78,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_89.SM_Square_89": {
+"cat": "ground",
+"ext": [
+4.08,
+2.62,
+0.0
+],
+"off": [
+-30.42,
+-2.62,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_9.SM_Square_9": {
+"cat": "ground",
+"ext": [
+4.44,
+5.44,
+0.0
+],
+"off": [
+-144.62,
+15.92,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_91.SM_Square_91": {
+"cat": "ground",
+"ext": [
+0.52,
+1.49,
+0.0
+],
+"off": [
+-0.52,
+-28.32,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_92.SM_Square_92": {
+"cat": "ground",
+"ext": [
+7.71,
+7.28,
+0.0
+],
+"off": [
+-7.71,
+7.28,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_93.SM_Square_93": {
+"cat": "ground",
+"ext": [
+1.7,
+0.41,
+0.0
+],
+"off": [
+-28.4,
+0.41,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_94.SM_Square_94": {
+"cat": "ground",
+"ext": [
+0.48,
+4.64,
+0.0
+],
+"off": [
+-0.48,
+30.47,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_95.SM_Square_95": {
+"cat": "ground",
+"ext": [
+9.86,
+6.88,
+0.0
+],
+"off": [
+-60.1,
+73.12,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_96.SM_Square_96": {
+"cat": "ground",
+"ext": [
+33.61,
+34.1,
+0.01
+],
+"off": [
+-46.39,
+45.9,
+0.14
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_97.SM_Square_97": {
+"cat": "ground",
+"ext": [
+9.49,
+5.94,
+0.0
+],
+"off": [
+-60.18,
+85.94,
+0.15
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_98.SM_Square_98": {
+"cat": "ground",
+"ext": [
+32.7,
+40.0,
+0.08
+],
+"off": [
+-47.3,
+120.0,
+0.22
+]
+},
+"/Game/Carla/Static/Terrain/Town03/SM_Square_99.SM_Square_99": {
+"cat": "ground",
+"ext": [
+2.91,
+19.11,
+0.09
+],
+"off": [
+-77.09,
+201.67,
+0.2
+]
+},
+"/Game/Carla/Static/TrafficSign/OneWay/SM_oneWayR.SM_oneWayR": {
+"cat": "sign",
+"ext": [
+0.45,
+0.0,
+0.15
+],
+"off": [
+-0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/PostSigns/SM_InterchangeSign_03_Cartel.SM_InterchangeSign_03_Cartel": {
+"cat": "sign",
+"ext": [
+1.25,
+0.0,
+0.87
+],
+"off": [
+0.0,
+0.0,
+-0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/PostSigns/SM_RoundSign.SM_RoundSign": {
+"cat": "sign",
+"ext": [
+0.34,
+0.04,
+0.34
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign100.SM_SpeedSign100": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign110.SM_SpeedSign110": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign120.SM_SpeedSign120": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign30.SM_SpeedSign30": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign40.SM_SpeedSign40": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign50.SM_SpeedSign50": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign60.SM_SpeedSign60": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign70.SM_SpeedSign70": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign80.SM_SpeedSign80": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/SpeedLimiters/SM_SpeedSign90.SM_SpeedSign90": {
+"cat": "sign",
+"ext": [
+0.3,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/Stop/Stop_v01/SM_stopSign.SM_stopSign": {
+"cat": "sign",
+"ext": [
+0.67,
+0.01,
+0.67
+],
+"off": [
+0.0,
+0.0,
+-0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01busNoPark.SM_A01busNoPark": {
+"cat": "sign",
+"ext": [
+0.26,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01cleanPet.SM_A01cleanPet": {
+"cat": "sign",
+"ext": [
+0.26,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01minPark.SM_A01minPark": {
+"cat": "sign",
+"ext": [
+0.26,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01noBicyc.SM_A01noBicyc": {
+"cat": "sign",
+"ext": [
+0.38,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01noPed.SM_A01noPed": {
+"cat": "sign",
+"ext": [
+0.38,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01noStand.SM_A01noStand": {
+"cat": "sign",
+"ext": [
+0.26,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01nopark.SM_A01nopark": {
+"cat": "sign",
+"ext": [
+0.26,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01onlyCrossw.SM_A01onlyCrossw": {
+"cat": "sign",
+"ext": [
+0.26,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01parking.SM_A01parking": {
+"cat": "sign",
+"ext": [
+0.26,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01photo.SM_A01photo": {
+"cat": "sign",
+"ext": [
+0.26,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01reserved.SM_A01reserved": {
+"cat": "sign",
+"ext": [
+0.26,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01stopPed.SM_A01stopPed": {
+"cat": "sign",
+"ext": [
+0.13,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01tow.SM_A01tow": {
+"cat": "sign",
+"ext": [
+0.37,
+0.0,
+0.19
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_A01yieldPed.SM_A01yieldPed": {
+"cat": "sign",
+"ext": [
+0.13,
+0.0,
+0.38
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_OneWay_L_Atlas.SM_OneWay_L_Atlas": {
+"cat": "sign",
+"ext": [
+0.38,
+0.11,
+0.13
+],
+"off": [
+0.0,
+-0.01,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_OneWay_R_Atlas.SM_OneWay_R_Atlas": {
+"cat": "sign",
+"ext": [
+0.38,
+0.11,
+0.13
+],
+"off": [
+0.0,
+-0.01,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_letterAv.SM_letterAv": {
+"cat": "sign",
+"ext": [
+0.03,
+0.53,
+0.19
+],
+"off": [
+0.0,
+-0.0,
+-0.08
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_letterSt.SM_letterSt": {
+"cat": "sign",
+"ext": [
+0.03,
+0.53,
+0.19
+],
+"off": [
+0.0,
+-0.0,
+-0.08
+]
+},
+"/Game/Carla/Static/TrafficSign/TrafficSigns_A1/SM_passenger.SM_passenger": {
+"cat": "sign",
+"ext": [
+0.3,
+0.08,
+0.22
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/TrafficSign/Yeld/SM_yield_.SM_yield_": {
+"cat": "sign",
+"ext": [
+0.44,
+0.01,
+0.39
+],
+"off": [
+0.0,
+-0.01,
+-0.0
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush.SM_Bush": {
+"cat": "bush",
+"ext": [
+1.64,
+0.54,
+0.74
+],
+"off": [
+0.09,
+0.0,
+0.67
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_L_v1.SM_Bush_L_v1": {
+"cat": "bush",
+"ext": [
+1.79,
+2.13,
+1.58
+],
+"off": [
+0.56,
+0.05,
+0.86
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_L_v2.SM_Bush_L_v2": {
+"cat": "bush",
+"ext": [
+1.88,
+1.93,
+1.51
+],
+"off": [
+0.09,
+-0.41,
+0.79
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_L_v3.SM_Bush_L_v3": {
+"cat": "bush",
+"ext": [
+1.94,
+1.99,
+1.59
+],
+"off": [
+0.2,
+0.41,
+0.87
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_L_v4.SM_Bush_L_v4": {
+"cat": "bush",
+"ext": [
+2.12,
+1.88,
+1.5
+],
+"off": [
+-0.01,
+0.33,
+0.78
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_L_v5.SM_Bush_L_v5": {
+"cat": "bush",
+"ext": [
+2.0,
+2.13,
+1.53
+],
+"off": [
+0.07,
+0.25,
+0.81
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_M_v1.SM_Bush_M_v1": {
+"cat": "bush",
+"ext": [
+0.71,
+0.66,
+0.7
+],
+"off": [
+-0.13,
+0.07,
+0.66
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_M_v2.SM_Bush_M_v2": {
+"cat": "bush",
+"ext": [
+0.76,
+0.92,
+0.63
+],
+"off": [
+0.08,
+0.04,
+0.55
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_M_v3.SM_Bush_M_v3": {
+"cat": "bush",
+"ext": [
+0.73,
+0.7,
+0.53
+],
+"off": [
+0.07,
+0.17,
+0.5
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_M_v4.SM_Bush_M_v4": {
+"cat": "bush",
+"ext": [
+0.86,
+0.75,
+0.59
+],
+"off": [
+0.13,
+0.08,
+0.56
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Bush_M_v5.SM_Bush_M_v5": {
+"cat": "bush",
+"ext": [
+0.91,
+0.78,
+0.5
+],
+"off": [
+-0.03,
+0.04,
+0.42
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Cypress_Bush.SM_Cypress_Bush": {
+"cat": "bush",
+"ext": [
+2.1,
+2.0,
+1.9
+],
+"off": [
+0.08,
+-0.11,
+1.11
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Hedge_01.SM_Hedge_01": {
+"cat": "bush",
+"ext": [
+0.8,
+0.65,
+1.11
+],
+"off": [
+0.01,
+-0.0,
+0.88
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Pine_Bush.SM_Pine_Bush": {
+"cat": "bush",
+"ext": [
+3.09,
+3.22,
+3.23
+],
+"off": [
+-0.12,
+0.19,
+3.17
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_Willow_Bush.SM_Willow_Bush": {
+"cat": "bush",
+"ext": [
+1.07,
+0.93,
+0.99
+],
+"off": [
+-0.17,
+0.04,
+0.89
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_longLeavesBush_01.SM_longLeavesBush_01": {
+"cat": "bush",
+"ext": [
+0.79,
+0.71,
+0.48
+],
+"off": [
+-0.01,
+0.07,
+0.48
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_longLeavesBush_02.SM_longLeavesBush_02": {
+"cat": "bush",
+"ext": [
+0.72,
+0.77,
+0.48
+],
+"off": [
+-0.01,
+0.01,
+0.48
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_longLeavesBush_03.SM_longLeavesBush_03": {
+"cat": "bush",
+"ext": [
+0.76,
+0.7,
+0.5
+],
+"off": [
+0.01,
+0.06,
+0.5
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_oldBush_01.SM_oldBush_01": {
+"cat": "bush",
+"ext": [
+0.2,
+0.2,
+0.24
+],
+"off": [
+0.0,
+0.0,
+0.24
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_oldBush_02.SM_oldBush_02": {
+"cat": "bush",
+"ext": [
+0.2,
+0.2,
+0.24
+],
+"off": [
+0.0,
+0.0,
+0.24
+]
+},
+"/Game/Carla/Static/Vegetation/Bushes/SM_oldBush_03.SM_oldBush_03": {
+"cat": "bush",
+"ext": [
+0.2,
+0.2,
+0.24
+],
+"off": [
+0.0,
+0.0,
+0.24
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/LODs/SM_TreePine_1_Lod1.SM_TreePine_1_Lod1": {
+"cat": "tree",
+"ext": [
+3.79,
+3.68,
+6.0
+],
+"off": [
+0.14,
+0.12,
+5.51
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/LODs/SM_TreePine_3_Lod2.SM_TreePine_3_Lod2": {
+"cat": "tree",
+"ext": [
+3.79,
+3.68,
+6.0
+],
+"off": [
+-0.03,
+0.12,
+5.51
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Acer_02.SM_Acer_02": {
+"cat": "tree",
+"ext": [
+3.84,
+4.51,
+9.64
+],
+"off": [
+-0.13,
+0.7,
+9.64
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Acer_Red_01.SM_Acer_Red_01": {
+"cat": "tree",
+"ext": [
+2.28,
+2.51,
+5.76
+],
+"off": [
+-0.18,
+-0.13,
+5.74
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Aporosa.SM_Aporosa": {
+"cat": "tree",
+"ext": [
+6.48,
+6.29,
+7.82
+],
+"off": [
+1.04,
+-0.47,
+7.76
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Aporosa_base.SM_Aporosa_base": {
+"cat": "tree",
+"ext": [
+6.48,
+6.29,
+7.84
+],
+"off": [
+1.03,
+-0.47,
+7.84
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Ash_01.SM_Ash_01": {
+"cat": "tree",
+"ext": [
+6.97,
+6.92,
+15.07
+],
+"off": [
+0.57,
+0.58,
+13.3
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Ash_02.SM_Ash_02": {
+"cat": "tree",
+"ext": [
+7.07,
+6.98,
+14.82
+],
+"off": [
+-0.01,
+0.46,
+13.36
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Beech.SM_Beech": {
+"cat": "tree",
+"ext": [
+8.02,
+7.67,
+9.41
+],
+"off": [
+0.47,
+0.11,
+9.41
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_CoconutPalm_01.SM_CoconutPalm_01": {
+"cat": "tree",
+"ext": [
+2.31,
+2.4,
+5.52
+],
+"off": [
+0.58,
+0.21,
+5.52
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_CoconutPalm_02.SM_CoconutPalm_02": {
+"cat": "tree",
+"ext": [
+4.3,
+4.44,
+10.16
+],
+"off": [
+0.48,
+0.14,
+10.16
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_CoconutPalm_02_base.SM_CoconutPalm_02_base": {
+"cat": "tree",
+"ext": [
+4.3,
+4.44,
+10.16
+],
+"off": [
+0.48,
+0.14,
+10.16
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Cypress.SM_Cypress": {
+"cat": "tree",
+"ext": [
+2.31,
+2.31,
+7.84
+],
+"off": [
+-0.11,
+-0.1,
+7.84
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Cypress_Small.SM_Cypress_Small": {
+"cat": "tree",
+"ext": [
+0.79,
+0.74,
+2.47
+],
+"off": [
+0.02,
+-0.01,
+2.47
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_FanPalm_01.SM_FanPalm_01": {
+"cat": "tree",
+"ext": [
+2.66,
+2.63,
+2.45
+],
+"off": [
+-0.13,
+0.09,
+2.41
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_FanPalm_02.SM_FanPalm_02": {
+"cat": "tree",
+"ext": [
+2.43,
+2.65,
+2.36
+],
+"off": [
+-0.08,
+0.3,
+2.33
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_FanPalm_03.SM_FanPalm_03": {
+"cat": "tree",
+"ext": [
+2.26,
+2.37,
+2.11
+],
+"off": [
+0.15,
+0.27,
+2.08
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Japanese_Maple_01.SM_Japanese_Maple_01": {
+"cat": "tree",
+"ext": [
+6.71,
+7.41,
+9.48
+],
+"off": [
+-0.23,
+0.09,
+9.48
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Japanese_Maple_03.SM_Japanese_Maple_03": {
+"cat": "tree",
+"ext": [
+7.21,
+7.64,
+10.87
+],
+"off": [
+-0.15,
+0.34,
+10.87
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Japanese_Maple_04.SM_Japanese_Maple_04": {
+"cat": "tree",
+"ext": [
+7.27,
+7.42,
+10.29
+],
+"off": [
+-0.53,
+-0.5,
+10.29
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_M_v1.SM_Maple_Base_M_v1": {
+"cat": "tree",
+"ext": [
+4.07,
+3.77,
+4.39
+],
+"off": [
+-0.12,
+-0.12,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_M_v2.SM_Maple_Base_M_v2": {
+"cat": "tree",
+"ext": [
+4.07,
+3.77,
+4.39
+],
+"off": [
+-0.12,
+-0.12,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_M_v3.SM_Maple_Base_M_v3": {
+"cat": "tree",
+"ext": [
+4.07,
+3.77,
+4.39
+],
+"off": [
+-0.12,
+-0.12,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_M_v4.SM_Maple_Base_M_v4": {
+"cat": "tree",
+"ext": [
+3.87,
+3.47,
+4.52
+],
+"off": [
+-0.03,
+-0.04,
+4.52
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_M_v5.SM_Maple_Base_M_v5": {
+"cat": "tree",
+"ext": [
+3.32,
+3.05,
+4.39
+],
+"off": [
+0.28,
+-0.1,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_M_v6.SM_Maple_Base_M_v6": {
+"cat": "tree",
+"ext": [
+3.73,
+3.4,
+4.51
+],
+"off": [
+0.33,
+0.01,
+4.51
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_M_v7.SM_Maple_Base_M_v7": {
+"cat": "tree",
+"ext": [
+3.32,
+3.05,
+4.39
+],
+"off": [
+0.28,
+-0.1,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_M_v8.SM_Maple_Base_M_v8": {
+"cat": "tree",
+"ext": [
+3.87,
+3.47,
+4.52
+],
+"off": [
+-0.03,
+-0.04,
+4.52
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_S_v1.SM_Maple_Base_S_v1": {
+"cat": "tree",
+"ext": [
+0.82,
+0.93,
+2.13
+],
+"off": [
+-0.0,
+-0.06,
+2.13
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_S_v2.SM_Maple_Base_S_v2": {
+"cat": "tree",
+"ext": [
+0.82,
+0.93,
+2.13
+],
+"off": [
+-0.0,
+-0.06,
+2.13
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_S_v3.SM_Maple_Base_S_v3": {
+"cat": "tree",
+"ext": [
+0.82,
+0.93,
+2.13
+],
+"off": [
+-0.0,
+-0.06,
+2.13
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_S_v4.SM_Maple_Base_S_v4": {
+"cat": "tree",
+"ext": [
+1.49,
+1.05,
+2.15
+],
+"off": [
+-0.01,
+-0.01,
+2.15
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_S_v5.SM_Maple_Base_S_v5": {
+"cat": "tree",
+"ext": [
+1.27,
+0.92,
+2.08
+],
+"off": [
+0.11,
+-0.03,
+2.08
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_S_v6.SM_Maple_Base_S_v6": {
+"cat": "tree",
+"ext": [
+1.43,
+1.03,
+2.14
+],
+"off": [
+0.13,
+0.0,
+2.14
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_S_v7.SM_Maple_Base_S_v7": {
+"cat": "tree",
+"ext": [
+1.27,
+0.92,
+2.08
+],
+"off": [
+0.11,
+-0.03,
+2.08
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_Base_S_v8.SM_Maple_Base_S_v8": {
+"cat": "tree",
+"ext": [
+1.49,
+1.05,
+2.15
+],
+"off": [
+-0.01,
+-0.01,
+2.15
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_L_v1.SM_Maple_L_v1": {
+"cat": "tree",
+"ext": [
+6.64,
+6.76,
+8.33
+],
+"off": [
+0.82,
+0.15,
+8.33
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_L_v2.SM_Maple_L_v2": {
+"cat": "tree",
+"ext": [
+6.64,
+6.76,
+8.33
+],
+"off": [
+0.82,
+0.15,
+8.33
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_L_v3.SM_Maple_L_v3": {
+"cat": "tree",
+"ext": [
+6.64,
+6.76,
+8.33
+],
+"off": [
+0.82,
+0.15,
+8.33
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_L_v4.SM_Maple_L_v4": {
+"cat": "tree",
+"ext": [
+6.62,
+6.14,
+8.22
+],
+"off": [
+-0.04,
+-0.07,
+8.22
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_L_v5.SM_Maple_L_v5": {
+"cat": "tree",
+"ext": [
+5.67,
+5.4,
+7.98
+],
+"off": [
+0.48,
+-0.18,
+7.98
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_L_v6.SM_Maple_L_v6": {
+"cat": "tree",
+"ext": [
+6.38,
+6.02,
+8.21
+],
+"off": [
+0.57,
+0.02,
+8.21
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_L_v7.SM_Maple_L_v7": {
+"cat": "tree",
+"ext": [
+5.67,
+5.4,
+7.98
+],
+"off": [
+0.48,
+-0.18,
+7.98
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_L_v8.SM_Maple_L_v8": {
+"cat": "tree",
+"ext": [
+6.62,
+6.14,
+8.22
+],
+"off": [
+-0.04,
+-0.07,
+8.22
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_M_v1.SM_Maple_M_v1": {
+"cat": "tree",
+"ext": [
+4.07,
+3.77,
+4.39
+],
+"off": [
+-0.12,
+-0.12,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_M_v2.SM_Maple_M_v2": {
+"cat": "tree",
+"ext": [
+4.07,
+3.77,
+4.39
+],
+"off": [
+-0.12,
+-0.12,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_M_v3.SM_Maple_M_v3": {
+"cat": "tree",
+"ext": [
+4.07,
+3.77,
+4.39
+],
+"off": [
+-0.12,
+-0.12,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_M_v4.SM_Maple_M_v4": {
+"cat": "tree",
+"ext": [
+3.87,
+3.47,
+4.52
+],
+"off": [
+-0.03,
+-0.04,
+4.52
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_M_v5.SM_Maple_M_v5": {
+"cat": "tree",
+"ext": [
+3.32,
+3.05,
+4.39
+],
+"off": [
+0.28,
+-0.1,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_M_v6.SM_Maple_M_v6": {
+"cat": "tree",
+"ext": [
+3.73,
+3.4,
+4.51
+],
+"off": [
+0.33,
+0.01,
+4.51
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_M_v7.SM_Maple_M_v7": {
+"cat": "tree",
+"ext": [
+3.32,
+3.05,
+4.39
+],
+"off": [
+0.28,
+-0.1,
+4.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_M_v8.SM_Maple_M_v8": {
+"cat": "tree",
+"ext": [
+3.87,
+3.47,
+4.52
+],
+"off": [
+-0.03,
+-0.04,
+4.52
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_S_v1.SM_Maple_S_v1": {
+"cat": "tree",
+"ext": [
+0.82,
+0.93,
+2.13
+],
+"off": [
+-0.0,
+-0.06,
+2.13
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_S_v2.SM_Maple_S_v2": {
+"cat": "tree",
+"ext": [
+0.82,
+0.93,
+2.13
+],
+"off": [
+-0.0,
+-0.06,
+2.13
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_S_v3.SM_Maple_S_v3": {
+"cat": "tree",
+"ext": [
+0.82,
+0.93,
+2.13
+],
+"off": [
+-0.0,
+-0.06,
+2.13
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_S_v4.SM_Maple_S_v4": {
+"cat": "tree",
+"ext": [
+1.49,
+1.05,
+2.15
+],
+"off": [
+-0.01,
+-0.01,
+2.15
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_S_v5.SM_Maple_S_v5": {
+"cat": "tree",
+"ext": [
+1.27,
+0.92,
+2.08
+],
+"off": [
+0.11,
+-0.03,
+2.08
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_S_v6.SM_Maple_S_v6": {
+"cat": "tree",
+"ext": [
+1.43,
+1.03,
+2.14
+],
+"off": [
+0.13,
+0.0,
+2.14
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_S_v7.SM_Maple_S_v7": {
+"cat": "tree",
+"ext": [
+1.27,
+0.92,
+2.08
+],
+"off": [
+0.11,
+-0.03,
+2.08
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Maple_S_v8.SM_Maple_S_v8": {
+"cat": "tree",
+"ext": [
+1.49,
+1.05,
+2.15
+],
+"off": [
+-0.01,
+-0.01,
+2.15
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_M_v1.SM_Oak_Base_M_v1": {
+"cat": "tree",
+"ext": [
+4.1,
+4.25,
+4.66
+],
+"off": [
+0.28,
+0.22,
+4.66
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_M_v2.SM_Oak_Base_M_v2": {
+"cat": "tree",
+"ext": [
+4.1,
+4.25,
+4.66
+],
+"off": [
+0.28,
+0.22,
+4.66
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_M_v3.SM_Oak_Base_M_v3": {
+"cat": "tree",
+"ext": [
+4.1,
+4.25,
+4.66
+],
+"off": [
+0.28,
+0.22,
+4.66
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_M_v4.SM_Oak_Base_M_v4": {
+"cat": "tree",
+"ext": [
+3.62,
+3.92,
+4.69
+],
+"off": [
+0.17,
+0.23,
+4.69
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_M_v5.SM_Oak_Base_M_v5": {
+"cat": "tree",
+"ext": [
+2.37,
+3.41,
+4.73
+],
+"off": [
+0.31,
+0.2,
+4.73
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_M_v6.SM_Oak_Base_M_v6": {
+"cat": "tree",
+"ext": [
+3.8,
+4.43,
+4.9
+],
+"off": [
+0.27,
+0.31,
+4.9
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_M_v7.SM_Oak_Base_M_v7": {
+"cat": "tree",
+"ext": [
+3.62,
+3.92,
+4.69
+],
+"off": [
+0.17,
+0.23,
+4.69
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_M_v8.SM_Oak_Base_M_v8": {
+"cat": "tree",
+"ext": [
+2.37,
+3.41,
+4.73
+],
+"off": [
+0.31,
+0.2,
+4.73
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_S_v1.SM_Oak_Base_S_v1": {
+"cat": "tree",
+"ext": [
+2.52,
+2.36,
+2.56
+],
+"off": [
+0.21,
+0.16,
+2.56
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_S_v2.SM_Oak_Base_S_v2": {
+"cat": "tree",
+"ext": [
+2.52,
+2.36,
+2.56
+],
+"off": [
+0.21,
+0.16,
+2.56
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_S_v3.SM_Oak_Base_S_v3": {
+"cat": "tree",
+"ext": [
+2.52,
+2.36,
+2.56
+],
+"off": [
+0.21,
+0.16,
+2.56
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_S_v4.SM_Oak_Base_S_v4": {
+"cat": "tree",
+"ext": [
+2.76,
+2.63,
+2.42
+],
+"off": [
+0.13,
+0.15,
+2.42
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_S_v5.SM_Oak_Base_S_v5": {
+"cat": "tree",
+"ext": [
+1.81,
+2.29,
+2.44
+],
+"off": [
+0.24,
+0.14,
+2.44
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_S_v6.SM_Oak_Base_S_v6": {
+"cat": "tree",
+"ext": [
+2.9,
+2.97,
+2.53
+],
+"off": [
+0.21,
+0.2,
+2.53
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_S_v7.SM_Oak_Base_S_v7": {
+"cat": "tree",
+"ext": [
+2.76,
+2.63,
+2.42
+],
+"off": [
+0.13,
+0.15,
+2.42
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_Base_S_v8.SM_Oak_Base_S_v8": {
+"cat": "tree",
+"ext": [
+1.81,
+2.29,
+2.44
+],
+"off": [
+0.24,
+0.14,
+2.44
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_L_v1.SM_Oak_L_v1": {
+"cat": "tree",
+"ext": [
+6.84,
+7.03,
+8.54
+],
+"off": [
+-1.54,
+-0.56,
+8.54
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_L_v2.SM_Oak_L_v2": {
+"cat": "tree",
+"ext": [
+6.84,
+7.03,
+8.54
+],
+"off": [
+-1.54,
+-0.56,
+8.54
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_L_v3.SM_Oak_L_v3": {
+"cat": "tree",
+"ext": [
+6.84,
+7.03,
+8.54
+],
+"off": [
+-1.54,
+-0.56,
+8.54
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_L_v4.SM_Oak_L_v4": {
+"cat": "tree",
+"ext": [
+6.86,
+6.52,
+7.47
+],
+"off": [
+0.32,
+0.38,
+7.47
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_L_v5.SM_Oak_L_v5": {
+"cat": "tree",
+"ext": [
+4.49,
+5.68,
+7.54
+],
+"off": [
+0.59,
+0.34,
+7.54
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_L_v6.SM_Oak_L_v6": {
+"cat": "tree",
+"ext": [
+7.2,
+7.37,
+7.82
+],
+"off": [
+0.52,
+0.51,
+7.82
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_L_v7.SM_Oak_L_v7": {
+"cat": "tree",
+"ext": [
+6.86,
+6.52,
+7.47
+],
+"off": [
+0.32,
+0.38,
+7.47
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_L_v8.SM_Oak_L_v8": {
+"cat": "tree",
+"ext": [
+4.49,
+5.68,
+7.54
+],
+"off": [
+0.59,
+0.34,
+7.54
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_M_v1.SM_Oak_M_v1": {
+"cat": "tree",
+"ext": [
+4.1,
+4.25,
+4.66
+],
+"off": [
+0.28,
+0.22,
+4.66
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_M_v2.SM_Oak_M_v2": {
+"cat": "tree",
+"ext": [
+4.1,
+4.25,
+4.66
+],
+"off": [
+0.28,
+0.22,
+4.66
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_M_v3.SM_Oak_M_v3": {
+"cat": "tree",
+"ext": [
+4.1,
+4.25,
+4.66
+],
+"off": [
+0.28,
+0.22,
+4.66
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_M_v4.SM_Oak_M_v4": {
+"cat": "tree",
+"ext": [
+3.62,
+3.92,
+4.69
+],
+"off": [
+0.17,
+0.23,
+4.69
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_M_v5.SM_Oak_M_v5": {
+"cat": "tree",
+"ext": [
+2.37,
+3.41,
+4.73
+],
+"off": [
+0.31,
+0.2,
+4.73
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_M_v6.SM_Oak_M_v6": {
+"cat": "tree",
+"ext": [
+3.8,
+4.43,
+4.9
+],
+"off": [
+0.27,
+0.31,
+4.9
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_M_v7.SM_Oak_M_v7": {
+"cat": "tree",
+"ext": [
+3.62,
+3.92,
+4.69
+],
+"off": [
+0.17,
+0.23,
+4.69
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_M_v8.SM_Oak_M_v8": {
+"cat": "tree",
+"ext": [
+2.37,
+3.41,
+4.73
+],
+"off": [
+0.31,
+0.2,
+4.73
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_S_v1.SM_Oak_S_v1": {
+"cat": "tree",
+"ext": [
+2.52,
+2.36,
+2.56
+],
+"off": [
+0.22,
+0.16,
+2.56
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_S_v2.SM_Oak_S_v2": {
+"cat": "tree",
+"ext": [
+2.52,
+2.36,
+2.56
+],
+"off": [
+0.22,
+0.16,
+2.56
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_S_v3.SM_Oak_S_v3": {
+"cat": "tree",
+"ext": [
+2.52,
+2.36,
+2.56
+],
+"off": [
+0.22,
+0.16,
+2.56
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_S_v4.SM_Oak_S_v4": {
+"cat": "tree",
+"ext": [
+2.76,
+2.63,
+2.42
+],
+"off": [
+0.13,
+0.15,
+2.42
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_S_v5.SM_Oak_S_v5": {
+"cat": "tree",
+"ext": [
+1.81,
+2.29,
+2.44
+],
+"off": [
+0.24,
+0.14,
+2.44
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_S_v6.SM_Oak_S_v6": {
+"cat": "tree",
+"ext": [
+2.9,
+2.97,
+2.53
+],
+"off": [
+0.21,
+0.2,
+2.53
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_S_v7.SM_Oak_S_v7": {
+"cat": "tree",
+"ext": [
+2.76,
+2.63,
+2.42
+],
+"off": [
+0.13,
+0.15,
+2.42
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Oak_S_v8.SM_Oak_S_v8": {
+"cat": "tree",
+"ext": [
+1.81,
+2.29,
+2.44
+],
+"off": [
+0.24,
+0.14,
+2.44
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_M_v1.SM_Pine_Base_M_v1": {
+"cat": "tree",
+"ext": [
+1.56,
+1.57,
+3.16
+],
+"off": [
+0.1,
+-0.17,
+3.16
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_M_v2.SM_Pine_Base_M_v2": {
+"cat": "tree",
+"ext": [
+1.56,
+1.57,
+3.16
+],
+"off": [
+0.1,
+-0.17,
+3.16
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_M_v3.SM_Pine_Base_M_v3": {
+"cat": "tree",
+"ext": [
+1.56,
+1.57,
+3.16
+],
+"off": [
+0.1,
+-0.17,
+3.16
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_M_v4.SM_Pine_Base_M_v4": {
+"cat": "tree",
+"ext": [
+1.99,
+2.02,
+3.2
+],
+"off": [
+-0.01,
+-0.02,
+3.2
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_M_v5.SM_Pine_Base_M_v5": {
+"cat": "tree",
+"ext": [
+1.97,
+1.96,
+3.39
+],
+"off": [
+0.0,
+-0.04,
+3.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_M_v6.SM_Pine_Base_M_v6": {
+"cat": "tree",
+"ext": [
+1.92,
+1.96,
+3.37
+],
+"off": [
+0.03,
+-0.04,
+3.37
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_M_v7.SM_Pine_Base_M_v7": {
+"cat": "tree",
+"ext": [
+1.99,
+2.02,
+3.2
+],
+"off": [
+-0.01,
+-0.02,
+3.2
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_M_v8.SM_Pine_Base_M_v8": {
+"cat": "tree",
+"ext": [
+1.97,
+1.96,
+3.39
+],
+"off": [
+0.01,
+-0.04,
+3.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_S_v1.SM_Pine_Base_S_v1": {
+"cat": "tree",
+"ext": [
+0.8,
+0.84,
+1.41
+],
+"off": [
+0.01,
+-0.05,
+1.41
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_S_v2.SM_Pine_Base_S_v2": {
+"cat": "tree",
+"ext": [
+0.8,
+0.84,
+1.41
+],
+"off": [
+0.01,
+-0.05,
+1.41
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_S_v3.SM_Pine_Base_S_v3": {
+"cat": "tree",
+"ext": [
+0.8,
+0.84,
+1.41
+],
+"off": [
+0.01,
+-0.05,
+1.41
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_S_v4.SM_Pine_Base_S_v4": {
+"cat": "tree",
+"ext": [
+1.03,
+1.04,
+1.49
+],
+"off": [
+-0.01,
+-0.01,
+1.49
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_S_v5.SM_Pine_Base_S_v5": {
+"cat": "tree",
+"ext": [
+1.02,
+1.01,
+1.57
+],
+"off": [
+0.0,
+-0.02,
+1.57
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_S_v6.SM_Pine_Base_S_v6": {
+"cat": "tree",
+"ext": [
+0.99,
+1.01,
+1.56
+],
+"off": [
+0.01,
+-0.02,
+1.56
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_S_v7.SM_Pine_Base_S_v7": {
+"cat": "tree",
+"ext": [
+1.03,
+1.04,
+1.49
+],
+"off": [
+-0.01,
+-0.01,
+1.49
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_Base_S_v8.SM_Pine_Base_S_v8": {
+"cat": "tree",
+"ext": [
+1.02,
+1.01,
+1.57
+],
+"off": [
+0.0,
+-0.02,
+1.57
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_L_v1.SM_Pine_L_v1": {
+"cat": "tree",
+"ext": [
+2.75,
+2.68,
+4.22
+],
+"off": [
+0.01,
+-0.08,
+4.22
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_L_v2.SM_Pine_L_v2": {
+"cat": "tree",
+"ext": [
+2.75,
+2.68,
+4.22
+],
+"off": [
+0.01,
+-0.08,
+4.22
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_L_v3.SM_Pine_L_v3": {
+"cat": "tree",
+"ext": [
+2.75,
+2.68,
+4.22
+],
+"off": [
+0.01,
+-0.08,
+4.22
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_L_v4.SM_Pine_L_v4": {
+"cat": "tree",
+"ext": [
+2.93,
+2.98,
+4.24
+],
+"off": [
+-0.02,
+-0.03,
+4.24
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_L_v5.SM_Pine_L_v5": {
+"cat": "tree",
+"ext": [
+2.91,
+2.89,
+4.49
+],
+"off": [
+0.01,
+-0.06,
+4.49
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_L_v6.SM_Pine_L_v6": {
+"cat": "tree",
+"ext": [
+2.83,
+2.88,
+4.47
+],
+"off": [
+0.04,
+-0.06,
+4.47
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_L_v7.SM_Pine_L_v7": {
+"cat": "tree",
+"ext": [
+2.93,
+2.98,
+4.24
+],
+"off": [
+-0.02,
+-0.03,
+4.24
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_L_v8.SM_Pine_L_v8": {
+"cat": "tree",
+"ext": [
+2.91,
+2.89,
+4.49
+],
+"off": [
+0.01,
+-0.06,
+4.49
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_M_v1.SM_Pine_M_v1": {
+"cat": "tree",
+"ext": [
+1.56,
+1.57,
+3.16
+],
+"off": [
+0.1,
+-0.17,
+3.16
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_M_v2.SM_Pine_M_v2": {
+"cat": "tree",
+"ext": [
+1.56,
+1.57,
+3.16
+],
+"off": [
+0.1,
+-0.17,
+3.16
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_M_v3.SM_Pine_M_v3": {
+"cat": "tree",
+"ext": [
+1.56,
+1.57,
+3.16
+],
+"off": [
+0.1,
+-0.17,
+3.16
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_M_v4.SM_Pine_M_v4": {
+"cat": "tree",
+"ext": [
+1.99,
+2.02,
+3.2
+],
+"off": [
+-0.01,
+-0.02,
+3.2
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_M_v5.SM_Pine_M_v5": {
+"cat": "tree",
+"ext": [
+1.97,
+1.96,
+3.39
+],
+"off": [
+0.0,
+-0.04,
+3.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_M_v6.SM_Pine_M_v6": {
+"cat": "tree",
+"ext": [
+1.92,
+1.95,
+3.37
+],
+"off": [
+0.03,
+-0.04,
+3.37
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_M_v7.SM_Pine_M_v7": {
+"cat": "tree",
+"ext": [
+1.99,
+2.02,
+3.2
+],
+"off": [
+-0.01,
+-0.02,
+3.2
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_M_v8.SM_Pine_M_v8": {
+"cat": "tree",
+"ext": [
+1.97,
+1.96,
+3.39
+],
+"off": [
+0.0,
+-0.04,
+3.39
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_S_v1.SM_Pine_S_v1": {
+"cat": "tree",
+"ext": [
+0.81,
+0.81,
+1.41
+],
+"off": [
+0.01,
+-0.08,
+1.41
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_S_v2.SM_Pine_S_v2": {
+"cat": "tree",
+"ext": [
+0.81,
+0.81,
+1.41
+],
+"off": [
+0.01,
+-0.08,
+1.41
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_S_v3.SM_Pine_S_v3": {
+"cat": "tree",
+"ext": [
+0.81,
+0.81,
+1.41
+],
+"off": [
+0.01,
+-0.08,
+1.41
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_S_v4.SM_Pine_S_v4": {
+"cat": "tree",
+"ext": [
+1.03,
+1.04,
+1.49
+],
+"off": [
+-0.01,
+-0.01,
+1.49
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_S_v5.SM_Pine_S_v5": {
+"cat": "tree",
+"ext": [
+1.02,
+1.01,
+1.57
+],
+"off": [
+0.0,
+-0.02,
+1.57
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_S_v6.SM_Pine_S_v6": {
+"cat": "tree",
+"ext": [
+0.99,
+1.01,
+1.56
+],
+"off": [
+0.02,
+-0.02,
+1.56
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_S_v7.SM_Pine_S_v7": {
+"cat": "tree",
+"ext": [
+1.03,
+1.04,
+1.49
+],
+"off": [
+-0.01,
+-0.01,
+1.49
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Pine_S_v8.SM_Pine_S_v8": {
+"cat": "tree",
+"ext": [
+1.02,
+1.01,
+1.57
+],
+"off": [
+0.0,
+-0.02,
+1.57
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Sassafras_01.SM_Sassafras_01": {
+"cat": "tree",
+"ext": [
+4.44,
+4.15,
+6.57
+],
+"off": [
+0.5,
+0.47,
+6.57
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Sassafras_02.SM_Sassafras_02": {
+"cat": "tree",
+"ext": [
+4.44,
+4.44,
+6.41
+],
+"off": [
+0.43,
+-0.11,
+6.41
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Sassafras_03.SM_Sassafras_03": {
+"cat": "tree",
+"ext": [
+4.42,
+3.98,
+6.4
+],
+"off": [
+0.57,
+0.16,
+6.4
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_TreePine_1.SM_TreePine_1": {
+"cat": "tree",
+"ext": [
+3.79,
+3.68,
+6.0
+],
+"off": [
+0.14,
+0.12,
+5.51
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_TreePine_2.SM_TreePine_2": {
+"cat": "tree",
+"ext": [
+4.05,
+3.92,
+6.0
+],
+"off": [
+0.14,
+0.1,
+5.51
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_TreePine_3.SM_TreePine_3": {
+"cat": "tree",
+"ext": [
+3.79,
+3.68,
+6.0
+],
+"off": [
+-0.03,
+0.12,
+5.51
+]
+},
+"/Game/Carla/Static/Vegetation/Trees/SM_Wallnut_01.SM_Wallnut_01": {
+"cat": "tree",
+"ext": [
+3.04,
+3.14,
+4.64
+],
+"off": [
+-0.33,
+0.04,
+4.64
+]
+},
+"/Game/Carla/Static/Water/Cylinder_Brush6_StaticMesh.Cylinder_Brush6_StaticMesh": {
+"cat": "water",
+"ext": [
+2.0,
+2.0,
+0.39
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Water/Cylinder_Brush_StaticMesh.Cylinder_Brush_StaticMesh": {
+"cat": "water",
+"ext": [
+13.36,
+13.36,
+1.1
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Water/SM_Beach.SM_Beach": {
+"cat": "water",
+"ext": [
+447.5,
+747.75,
+0.03
+],
+"off": [
+-291.6,
+-369.65,
+0.03
+]
+},
+"/Game/Carla/Static/Water/SM_Sea.SM_Sea": {
+"cat": "water",
+"ext": [
+0.5,
+0.5,
+0.0
+],
+"off": [
+0.0,
+0.0,
+-0.0
+]
+},
+"/Game/Carla/Static/Water/SM_TileLake.SM_TileLake": {
+"cat": "water",
+"ext": [
+50.0,
+50.0,
+0.25
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/Carla/Static/Water/SM_sea2M.SM_sea2M": {
+"cat": "water",
+"ext": [
+1039.14,
+996.6,
+0.3
+],
+"off": [
+-889.14,
+-617.66,
+-0.3
+]
+},
+"/Game/Carla/Static/Water/WaterPlane.WaterPlane": {
+"cat": "water",
+"ext": [
+0.5,
+0.5,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+}
+}
+}

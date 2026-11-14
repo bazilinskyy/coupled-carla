@@ -22,6 +22,7 @@ import carla
 import traci
 
 from . import compat
+from .geo import ground
 
 DEFAULT_EHMI = {
     "off": {"text": "", "color": [0, 0, 0]},
@@ -399,7 +400,8 @@ class ScriptedWalker:
 
     def __init__(self, world, geo, cfg):
         self.cfg, self.id = cfg, cfg["id"]
-        pts = [carla.Location(*geo.to_carla(lat, lon)) for lat, lon in cfg["path"]]
+        cmap = world.get_map()
+        pts = [ground(cmap, *geo.to_carla(lat, lon)) for lat, lon in cfg["path"]]
         want = cfg.get("blueprint", "walker.pedestrian.*")
         bps = sorted(world.get_blueprint_library().filter(want), key=lambda b: b.id) if "*" in want else []
         bp = bps[zlib.crc32(self.id.encode()) % len(bps)] if bps else compat.find(world, want)

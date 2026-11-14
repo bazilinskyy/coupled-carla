@@ -9,7 +9,15 @@ Steps (all with SUMO's netconvert; carla.Osm2Odr segfaults in 0.9.16 on Linux an
    that follows lanes can always go on (at the cut edge of the box, roads would otherwise end in the void).
 4. Pruned net -> OpenDRIVE (map.xodr), validated with carla.Map.
 5. OpenDRIVE -> SUMO net with CARLA's netconvert_carla.py (map.net.xml), so SUMO and CARLA share road ids.
+6. Scenery from real-world data (scenery.py, realworld.py): buildings, trees, street furniture, ground.
 geo.net.xml keeps the projection, and CARLA (x, y) = (geo x, -geo y), see geo.py.
+
+With map.elevation, every road node gets its ground height from a terrain model (AHN in the Netherlands,
+the AWS Terrain Tiles elsewhere) before step 2, relative to the lowest point of the box, so the roads,
+the OpenDRIVE and the SUMO net climb and fall as the real streets do. Bridges and tunnels keep a straight
+grade between their ends (the terrain model would drop a bridge into the river), bridges raised by layer.
+
+    python -m coupledcarla.mapbuild experiments/lyon.yaml --scenery    # redo only step 6
 """
 import argparse
 import json
@@ -21,9 +29,10 @@ from pathlib import Path
 
 import requests
 
-from . import config
+from . import config, realworld
 
-OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
+OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.openstreetmap.fr/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter",
             "https://overpass.private.coffee/api/interpreter",
             "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]
 
@@ -97,6 +106,82 @@ def fetch_buildings(bbox, geo_net, path):
     return len(json.loads(path.read_text()))
 
 
+def add_elevation(osm_in, osm_out, dem, base):
+    """Copy the OSM file with an `ele` tag (metres above `base`) on every node of a highway."""
+    import math
+    import xml.etree.ElementTree as ET
+    import numpy as np
+    tree = ET.parse(osm_in)
+    root = tree.getroot()
+    nodes = {n.get("id"): n for n in root.iter("node")}
+    used, ways = set(), []
+    for w in root.iter("way"):
+        tags = {t.get("k"): t.get("v") for t in w.findall("tag")}
+        if "highway" not in tags:
+            continue
+        refs = [nd.get("ref") for nd in w.findall("nd") if nd.get("ref") in nodes]
+        used.update(refs)
+        level = tags.get("bridge", "no") not in ("no", "false") or tags.get("tunnel", "no") not in ("no", "false")
+        ways.append((refs, level, tags))
+    ids = sorted(used)
+    lat = np.array([float(nodes[i].get("lat")) for i in ids])
+    lon = np.array([float(nodes[i].get("lon")) for i in ids])
+    ele = dict(zip(ids, (dem.sample(lat, lon) - base).tolist()))
+    # bridges and tunnels: chains of such ways get heights interpolated between their abutments
+    ground_nodes = set(r for refs, level, _ in ways if not level for r in refs)
+    parent = {}            # union-find over the nodes of connected bridge/tunnel ways
+
+    def find(a):
+        while parent.setdefault(a, a) != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+    for refs, level, tags in ways:
+        if level:
+            for a, b in zip(refs, refs[1:]):
+                parent[find(a)] = find(b)
+    groups = {}
+    layer_of = {}
+    for refs, level, tags in ways:
+        if level:
+            try:
+                layer = float(tags.get("layer", "1" if tags.get("bridge", "no") != "no" else "-1"))
+            except ValueError:
+                layer = 0.0
+            for r in refs:
+                groups.setdefault(find(r), set()).add(r)
+                layer_of[r] = layer
+
+    def metres(a, b):
+        la, lb = float(nodes[a].get("lat")), float(nodes[b].get("lat"))
+        dx = (float(nodes[b].get("lon")) - float(nodes[a].get("lon"))) * 111320 * math.cos(math.radians(la))
+        return math.hypot(dx, (lb - la) * 110540)
+    levelled = 0
+    for members in groups.values():
+        ends = [r for r in members if r in ground_nodes]
+        if not ends:
+            continue
+        for r in members:
+            if r in ground_nodes:
+                continue
+            d = [(metres(r, e), e) for e in ends]
+            wsum = sum(1.0 / max(di, 1.0) ** 2 for di, _ in d)
+            z = sum(ele[e] / max(di, 1.0) ** 2 for di, e in d) / wsum
+            near = min(di for di, _ in d)
+            if layer_of.get(r, 0) > 0:           # a bridge over another road: up to 5 m per layer, ramped
+                z += 5.0 * layer_of[r] * min(1.0, near / 40.0)
+            ele[r] = z
+            levelled += 1
+    for i, z in ele.items():
+        n = nodes[i]
+        for t in n.findall("tag"):
+            if t.get("k") == "ele":
+                n.remove(t)
+        ET.SubElement(n, "tag", k="ele", v=f"{z:.2f}")
+    tree.write(osm_out, encoding="utf-8", xml_declaration=True)
+    log(f"elevation on {len(ele)} road nodes ({levelled} on bridges or in tunnels levelled)")
+
+
 def netconvert(*args):
     subprocess.check_call(["netconvert", "--no-warnings", *args])
 
@@ -152,10 +237,32 @@ def check_xodr(xodr):
     return {"lane_links": len(m.get_topology()), "waypoints": len(wps), "lane_ends": ends, "tl_signals": tls}
 
 
-def build(cfg, force=False):
+def build_scenery(cfg, out, meta, cmap=None):
+    """Scenery and buildings for a built map (scenery.py), recorded in meta."""
+    from . import scenery
+    from .geo import Geo
+    mc = cfg["map"]
+    elev = meta.get("elevation")
+    dem = realworld.Dem.load(out / "real" / "dem.npz") if elev else None
+    res = scenery.build(out, cfg, Geo(out / "geo.net.xml"), dem, elev["base_m"] if elev else 0.0, cmap, log)
+    meta["scenery"] = res["counts"]
+    meta["buildings"] = len(json.loads((out / "buildings.json").read_text()))
+    srcs = set(res["sources"]) | ({elev["source"]} if elev else set())
+    meta["sources"] = {k: {"what": realworld.SOURCES[k][0], "licence": realworld.SOURCES[k][1]}
+                       for k in sorted(srcs) if k in realworld.SOURCES}
+    return meta
+
+
+def build(cfg, force=False, scenery_only=False):
     mc = cfg["map"]
     out = config.map_dir(cfg)
     out.mkdir(parents=True, exist_ok=True)
+    if scenery_only and (out / "meta.json").exists():
+        meta = json.loads((out / "meta.json").read_text())
+        build_scenery(cfg, out, meta)
+        (out / "meta.json").write_text(json.dumps(meta, indent=2))
+        log(f"scenery rebuilt: {out}")
+        return out
     if (out / "meta.json").exists() and not force:
         log(f"{out} already built (use --force to rebuild)")
         return out
@@ -164,13 +271,25 @@ def build(cfg, force=False):
 
     osm = out / "map.osm"
     fetch_osm(mc["bbox"], osm)
+    elevation = None
+    if mc.get("elevation"):
+        import numpy as np
+        dem, source = realworld.dem(mc["bbox"], out / "real" / "dem.npz")
+        s, w, n, e = mc["bbox"]
+        grid = dem.sample(*np.meshgrid(np.linspace(s, n, 40), np.linspace(w, e, 40)))
+        base = float(np.floor(grid.min()))
+        elevation = {"source": source, "base_m": base, "min_m": round(float(grid.min()), 1),
+                     "max_m": round(float(grid.max()), 1)}
+        add_elevation(osm, out / "map_ele.osm", dem, base)
+        osm = out / "map_ele.osm"
 
     types = ["highway." + t for t in mc["road_types"]] + (["highway.cycleway"] if mc["cycleways"] else [])
     common = ["--geometry.remove", "--ramps.guess", "--edges.join", "--junctions.join", "--roundabouts.guess",
               "--tls.guess-signals", "--tls.discard-simple", "--tls.join", "--junctions.corner-detail", "5",
               "--default.lanewidth", str(mc["lane_width"])]
     geo_net = out / "geo.net.xml"
-    netconvert("--osm-files", str(osm), "--keep-edges.by-type", ",".join(types), "--remove-edges.isolated",
+    netconvert("--osm-files", str(osm), *(["--osm.elevation"] if elevation else []),
+               "--keep-edges.by-type", ",".join(types), "--remove-edges.isolated",
                "--osm.bike-access", "--proj.utm", *(["--sidewalks.guess"] if mc["sidewalks"] else []),
                *(["--lefthand"] if mc.get("lefthand") else []),
                *common, "-o", str(out / "osm.net.xml"))
@@ -193,12 +312,20 @@ def build(cfg, force=False):
     subprocess.check_call([sys.executable, str(Path(__file__).parent / "bridge" / "util" / "netconvert_carla.py"),
                            str(xodr), "--output", str(out / "map.net.xml"), "--guess-tls", "--no-sidewalks"])
     log("OpenDRIVE -> CARLA-consistent SUMO net")
-
-    n_buildings = fetch_buildings(mc["bbox"], geo_net, out / "buildings.json") if mc.get("buildings") else 0
-
-    meta = {"name": mc["name"], "lefthand": bool(mc.get("lefthand")), "buildings": n_buildings, "bbox": mc["bbox"], "built": time.strftime("%Y-%m-%d %H:%M:%S"),
+    meta = {"name": mc["name"], "lefthand": bool(mc.get("lefthand")), "buildings": 0, "bbox": mc["bbox"],
+            "built": time.strftime("%Y-%m-%d %H:%M:%S"),
             "files": {"osm": "map.osm", "geo_net": "geo.net.xml", "xodr": "map.xodr", "sumo_net": "map.net.xml"},
-            "xodr": stats}
+            "xodr": stats, "elevation": elevation}
+    sc = mc.get("scenery") or {}
+    if sc.get("enabled", True):
+        try:
+            build_scenery(cfg, out, meta)
+        except Exception as err:  # noqa: BLE001 - a map without scenery still drives
+            import traceback
+            traceback.print_exc()
+            log(f"scenery failed ({err}); the map has roads only (redo with --scenery)")
+    elif mc.get("buildings"):
+        meta["buildings"] = fetch_buildings(mc["bbox"], geo_net, out / "buildings.json")
     (out / "meta.json").write_text(json.dumps(meta, indent=2))
     log(f"done: {out}")
     return out
@@ -208,8 +335,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("experiment")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--scenery", action="store_true", help="redo only the scenery of a built map")
     args = ap.parse_args()
-    build(config.load(args.experiment), args.force)
+    build(config.load(args.experiment), args.force, args.scenery)
 
 
 if __name__ == "__main__":

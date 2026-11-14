@@ -21,6 +21,14 @@ class Geo:
         return lat, lon
 
 
+def ground(cmap, x, y):
+    """carla.Location at (x, y) on the nearest lane's surface (roads have real heights with map.elevation)."""
+    import carla
+    loc = carla.Location(x=x, y=y)
+    wp = cmap.get_waypoint(loc, project_to_road=True, lane_type=carla.LaneType.Any)
+    return carla.Location(x=x, y=y, z=wp.transform.location.z if wp is not None else 0.0)
+
+
 def heading_to_yaw(heading_deg):
     """Compass heading (0 = north, 90 = east) -> CARLA yaw (0 = +x = east, 90 = +y = south)."""
     return (heading_deg - 90.0) % 360.0

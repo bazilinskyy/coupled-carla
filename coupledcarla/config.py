@@ -17,7 +17,14 @@ DEFAULTS = {
                                      # SUMO net never has them (SUMO crashes on moveToXY with sidewalks)
         "trim_dead_ends": True,      # drop dead-end chains and keep the largest strongly connected road graph
         "lefthand": False,           # left-hand traffic (UK, Japan, Australia, ...)
-        "buildings": True,           # also fetch OSM building footprints (trial viewer, figures)
+        "buildings": True,           # also fetch building footprints (trial viewer, figures)
+        "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
+        "overture": True,            # Overture Maps buildings (needs duckdb), else OSM
+        "national_buildings": True,  # measured heights: 3DBAG (NL), IGN BD TOPO (FR), NYC Open Data
+        "scenery": {                 # CARLA meshes placed from real-world data (coupledcarla/scenery.py)
+            "enabled": True, "buildings": True, "trees": True, "furniture": True, "guess_lamps": True, "signs": True,
+            "ground": True, "catalog": "0.9.16",
+        },
         "lane_width": 3.2,
         "carla": {"vertex_distance": 2.0, "max_road_length": 500.0, "wall_height": 0.0,
                   "additional_width": 0.6, "smooth_junctions": True, "pedestrian_navigation": True,
@@ -35,11 +42,15 @@ DEFAULTS = {
     "simulation": {
         "step": 0.02,                # 50 Hz, as coupled-sim's fixed-time log
         "real_time": True,           # sleep so that simulated time follows the wall clock
-        "weather": "CloudyNoon",     # a carla.WeatherParameters preset name, or a dict of its fields
+        "weather": "CloudyNoon",     # a carla.WeatherParameters preset name, a dict of its fields, or "real"
         "sun_altitude": None,
         "tls_manager": "sumo",       # who runs the traffic lights: sumo | carla | none
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
         "traffic_manager": False,    # start CARLA's Traffic Manager (only for CARLA-driven autopilot cars)
+        "time": None,                # local time at the place, "YYYY-MM-DD HH:MM", "HH:MM" (today) or "now":
+                                     # the sun stands where it did; with weather: real, Open-Meteo's weather
+        "scenery": {"radius_m": 400.0,   # scenery cells within this distance of participants (0: all at once)
+                    "kinds": ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"]},
     },
     "traffic": {
         "seed": 42,

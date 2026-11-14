@@ -32,6 +32,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [How it works](#how-it-works)
 - [Quick start](#quick-start)
 - [Cities](#cities)
+- [Real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather)
 - [Experiment files](#experiment-files)
 - [Participants, inputs and views](#participants-inputs-and-views)
 - [Coupled experiments (phase 2)](#coupled-experiments-phase-2)
@@ -56,6 +57,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 | | |
 |---|---|
 | **Any place** | `map.bbox: [south, west, north, east]` -> OSM download -> pruned road graph -> OpenDRIVE for CARLA + matching SUMO network, in seconds (2.6 s for 1.6 km of central Eindhoven, plus the download). Left- and right-hand traffic. |
+| **Real-world scenery** | Every map is filled from free open data: real terrain on the roads (AHN lidar in the Netherlands, AWS Terrain Tiles elsewhere), buildings at their real footprints and heights (3DBAG, IGN BD TOPO, NYC Open Data, Overture Maps), OSM street trees by species and height, parks, water, lamps, benches, bus shelters, bollards and road signs, and the weather and sun of a real place and time (Open-Meteo) ([Real-world scenery](#real-world-scenery-terrain-and-weather)). |
 | **19 cities** | Eindhoven plus 18 cities on six continents, from Tokyo and Cairo to Luang Prabang and Ushuaia ([Cities](#cities)). |
 | **Traffic models** | SUMO drives everything that is not a participant: EIDM car following, the sublane lane-change model (cyclists and cars share and overtake), a Dutch-flavoured fleet with Gazelle bikes and buses, random demand by city size. The participant's car is mirrored into SUMO, so traffic reacts to them. |
 | **City-scale, real time** | SUMO simulates the whole map; only actors within 250 m of a participant exist in CARLA (level of detail), which keeps a city real time on one GPU. |
@@ -222,36 +224,123 @@ autopilot followed the left-hand OSM lanes' direction in 14 of 15 checked sample
 **Smoke test** of every map (40 s headless autopilot trial each; full table in
 [`docs/city_tests.md`](docs/city_tests.md)):
 
-Smoke test, 2026-11-13: 40 s headless autopilot trial per map, CARLA 0.9.16 at Epic, 50 Hz, on lin4080 (RTX 4080 SUPER shared with another job).
+Smoke test, 2026-11-14: 40 s headless autopilot trial per map, CARLA 0.9.16 at Epic, 50 Hz, on lin4080 (RTX 4080 SUPER, not shared at the time), with the real-world scenery and terrain (Leuven flat, see the README).
 
-| Map | Continent | Size | Traffic | Lane links | Buildings | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane | Collisions | Result |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Eindhoven | Europe | medium | right | 2248 | 3758 | 8 | 0.878 | 0 | 0 | 0 | 14 | ok |
-| Cairo (Tahrir) | Africa | large | right | 3837 | 650 | 8 | 0.813 | 2 | 0 | 2 | 6 | ok |
-| Kigali | Africa | medium | right | 1655 | 1741 | 1 | 0.866 | 1 | 0 | 1 | 0 | ok |
-| Stellenbosch | Africa | small | left | 1748 | 1291 | 3 | 0.822 | 0 | 0 | 0 | 26 | ok |
-| Tokyo (Shibuya) | Asia | large | left | 5076 | 3770 | 1 | 0.678 | 17 | 0 | 17 | 152 | ok |
-| Taipei (Main Station) | Asia | medium | right | 2902 | 2558 | 3 | 0.735 | 0 | 0 | 0 | 0 | ok |
-| Luang Prabang | Asia | small | right | 1418 | 1144 | 1 | 0.989 | 2 | 0 | 2 | 0 | ok |
-| London (Westminster) | Europe | large | left | 2756 | 2086 | 0 | 0.846 | 1 | 0 | 1 | 160 | ok |
-| Lyon (Bellecour) | Europe | medium | right | 2312 | 2481 | 3 | 0.86 | 2 | 0 | 2 | 171 | ok |
-| Leuven | Europe | small | right | 1537 | 5030 | 4 | 0.993 | 2 | 0 | 2 | 65 | ok |
-| New York (Midtown) | North America | large | right | 2213 | 1590 | 11 | 0.657 | 1 | 0 | 1 | 7 | ok |
-| Portland, Oregon | North America | medium | right | 4356 | 703 | 2 | 0.549 | 0 | 0 | 0 | 7 | ok |
-| Burlington, Vermont | North America | small | right | 2034 | 1849 | 4 | 0.882 | 2 | 0 | 2 | 0 | ok |
-| São Paulo (Sé) | South America | large | right | 2181 | 2977 | 2 | 0.751 | 1 | 0 | 1 | 0 | ok |
-| Montevideo | South America | medium | right | 1917 | 741 | 3 | 0.675 | 0 | 0 | 0 | 0 | ok |
-| Ushuaia | South America | small | right | 2403 | 1024 | 1 | 0.941 | 3 | 0 | 3 | 1 | ok |
-| Sydney (CBD) | Oceania | large | left | 2598 | 1021 | 0 | 0.663 | 0 | 0 | 0 | 0 | ok |
-| Auckland (CBD) | Oceania | medium | left | 3923 | 1140 | 0 | 0.669 | 0 | 0 | 0 | 4 | ok |
-| Nouméa | Oceania | small | right | 1784 | 2468 | 3 | 0.97 | 0 | 0 | 0 | 1 | ok |
+| Map | Continent | Size | Traffic | Lane links | Buildings | Building heights | Relief (m) | Scenery meshes | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane | Collisions | Result |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Eindhoven | Europe | medium | right | 2246 | 2998 | 3dbag | 11 | 13711 | 16 | 0.982 | 0 | 0 | 2 | 0 | ok |
+| Cairo (Tahrir) | Africa | large | right | 3835 | 1308 | overture | 66 | 10814 | 4 | 0.993 | 0 | 0 | 0 | 0 | ok |
+| Kigali | Africa | medium | right | 1655 | 2942 | overture | 188 | 15270 | 2 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| Stellenbosch | Africa | small | left | 1748 | 1683 | overture | 32 | 8665 | 7 | 0.991 | 0 | 9 | 9 | 0 | ok |
+| Tokyo (Shibuya) | Asia | large | left | 5057 | 3833 | overture | 87 | 15735 | 11 | 0.986 | 0 | 1 | 1 | 0 | ok |
+| Taipei (Main Station) | Asia | medium | right | 2940 | 2679 | overture | 48 | 15461 | 0 | 0.993 | 0 | 2 | 2 | 0 | ok |
+| Luang Prabang | Asia | small | right | 1418 | 3611 | overture | 87 | 10402 | 2 | 0.995 | 0 | 0 | 0 | 0 | ok |
+| London (Westminster) | Europe | large | left | 2751 | 2069 | overture | 30 | 10053 | 1 | 0.994 | 0 | 1 | 1 | 0 | ok |
+| Lyon (Bellecour) | Europe | medium | right | 2276 | 2518 | bdtopo | 135 | 19667 | 3 | 0.991 | 0 | 2 | 2 | 0 | ok |
+| Leuven | Europe | small | right | 1537 | 5049 | overture | – | 19197 | 4 | 0.992 | 0 | 3 | 3 | 0 | ok |
+| New York (Midtown) | North America | large | right | 2229 | 1404 | nyc | 14 | 7463 | 5 | 0.986 | 0 | 0 | 0 | 0 | ok |
+| Portland, Oregon | North America | medium | right | 4368 | 710 | overture | 50 | 14077 | 3 | 0.989 | 0 | 0 | 0 | 0 | ok |
+| Burlington, Vermont | North America | small | right | 2033 | 1974 | overture | 83 | 12027 | 4 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| São Paulo (Sé) | South America | large | right | 2164 | 3182 | overture | 85 | 16300 | 5 | 0.99 | 0 | 0 | 0 | 0 | ok |
+| Montevideo | South America | medium | right | 1917 | 2411 | overture | 64 | 12668 | 8 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| Ushuaia | South America | small | right | 2404 | 2309 | overture | 129 | 12561 | 2 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| Sydney (CBD) | Oceania | large | left | 2609 | 985 | overture | 111 | 14601 | 1 | 0.991 | 0 | 6 | 6 | 0 | ok |
+| Auckland (CBD) | Oceania | medium | left | 3926 | 1142 | overture | 47 | 14633 | 1 | 0.99 | 0 | 0 | 0 | 0 | ok |
+| Nouméa | Oceania | small | right | 1786 | 2465 | overture | 67 | 18425 | 3 | 0.994 | 0 | 1 | 1 | 0 | ok |
 
-All 19 maps load and drive. "SUMO vehicles shown" counts the SUMO vehicles that came within the
-level-of-detail radius of the ego during the 40 s (SUMO simulates many more on the whole map; demand starts at
-the map edges, so the first 40 s are sparse). "Left road", "Stuck" and "Put back on lane" are autopilot
-recoveries (it follows random lanes; dense junction areas such as Shibuya cost the most); collisions are mostly
-the car touching a road edge before it is put back. The real-time factor is below 1 because the GPU was shared
-([Performance](#performance)).
+All 19 maps load and drive with their scenery. "Scenery meshes" counts the placements on the whole map (about
+2,000-2,700 are loaded at a time around the car); "Relief" is the terrain's height range within the box
+(Leuven is built flat, see [Real-world scenery](#real-world-scenery-terrain-and-weather)). "SUMO vehicles shown"
+counts the SUMO vehicles that came within the level-of-detail radius of the ego during the 40 s (demand starts at
+the map edges, so the first 40 s are sparse). "Stuck" and "Put back on lane" are autopilot recoveries (it follows
+random lanes). The previous run (2026-11-13, no scenery, GPU shared with another job, spectator not parked) had
+real-time factors of 0.55-0.99; see [Performance](#performance) for what changed.
+
+## Real-world scenery, terrain and weather
+
+CARLA builds only the roads of an OpenDRIVE map. coupled-carla fills every map with CARLA's own meshes, placed
+from real-world data that free services give without an account or key, and runs a trial at the weather and
+sun of a real place and time. Everything is fetched once at map build time and cached in `maps/<name>/real/`;
+`meta.json` lists the sources a map was built from.
+
+| | |
+|---|---|
+| ![Eindhoven: station square from above, 3DBAG buildings, OSM trees, lamps and bus shelters](docs/img/scenery_eindhoven_centre_station.jpg) | ![Lyon: Bellecour and the Fourvière hill, BD TOPO heights and real terrain](docs/img/scenery_lyon_bellecour.jpg) |
+| Eindhoven centre, 13 November 14:30 with that hour's weather: 3DBAG heights, 1,827 OSM street trees, lamps, bus shelters | Lyon: Place Bellecour, the Saône and the Fourvière hill (135 m of relief), IGN BD TOPO heights |
+| ![Eindhoven at street level](docs/img/scenery_eindhoven_centre_street.jpg) | ![Kigali on its hills](docs/img/scenery_kigali_centre.jpg) |
+| Eindhoven at street level, sun where it stood at 14:30 | Kigali: 188 m of relief, Overture (ML) footprints, OSM tree rows |
+| ![Eindhoven at dusk](docs/img/scenery_eindhoven_centre_dusk.jpg) | ![New York Midtown](docs/img/scenery_new_york_midtown_midtown.jpg) |
+| The same street at 16:55, after sunset that day | New York Midtown with NYC Open Data roof heights |
+
+| What | Source (free, no key) | Used for |
+|---|---|---|
+| Roads, lanes, speed limits, signals | OpenStreetMap via Overpass | OpenDRIVE and SUMO net (as before) |
+| Terrain | [AHN4](https://www.ahn.nl) 0.5 m DTM via PDOK (Netherlands); [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (worldwide: SRTM, USGS 3DEP, national lidar) | road heights in the OpenDRIVE and the SUMO net, ground, building and tree bases |
+| Building footprints | [Overture Maps](https://overturemaps.org) (OSM, Microsoft and Google ML buildings, Esri), GeoParquet on S3 read with DuckDB | building stand-ins, the trial viewer |
+| Building heights | [3DBAG](https://3dbag.nl) (Netherlands, lidar), [IGN BD TOPO](https://geoservices.ign.fr/bdtopo) (France), [NYC Open Data](https://data.cityofnewyork.us) (New York City); else Overture/OSM heights and floors; else a height by building kind | the height of each stand-in |
+| Trees | OSM `natural=tree` with genus, species, leaf type and height; `tree_row`; parks, gardens, woods | a matching CARLA tree (plane, lime, oak, pine, palm, ...) at the mapped size; planting at a density per kind of green |
+| Street furniture | OSM lamps, benches, bins, bus shelters, bollards, post boxes, bicycle racks, hydrants, fountains, ad columns, cabinets | the matching CARLA prop at the mapped spot, parallel to the road |
+| Road signs | OSM `highway=stop/give_way`, `traffic_sign` (NL, DE, FR, US codes; speed limits) | a sign on a post at the edge of the lane it governs, facing its traffic |
+| Ground cover | OSM landuse, leisure, natural, water | grass, water or paving tiles |
+| Weather | [Open-Meteo](https://open-meteo.com) forecast and ERA5 archive (back to 1940) | clouds, rain, wet roads, wind and fog of that hour |
+| Sun | computed (NOAA solar position) | the sun's altitude and direction for the place and local time; headlights on after dark |
+
+```yaml
+map:
+  elevation: true            # real terrain on the roads (default)
+  scenery: {buildings: true, trees: true, furniture: true, signs: true, guess_lamps: true, ground: true}
+simulation:
+  weather: real              # Open-Meteo's weather for the map's place and the time below
+  time: "2026-11-13 16:55"   # local time at the place ("HH:MM" today, or "now"); without weather: real only the sun
+  scenery: {radius_m: 400}   # scenery cells within this distance of the participants (0: all at once)
+```
+
+```bash
+python -m coupledcarla.mapbuild experiments/cities/lyon.yaml --force     # roads with terrain, then scenery
+python -m coupledcarla.mapbuild experiments/cities/lyon.yaml --scenery   # redo only the scenery (seconds)
+```
+
+How it is placed (`coupledcarla/scenery.py`, `coupledcarla/realworld.py`):
+
+- **Terrain.** Every road node of the OSM extract gets its ground height before netconvert (`--osm.elevation`),
+  relative to the lowest point of the box, so the OpenDRIVE, the SUMO net and CARLA's road meshes climb and
+  fall as the streets do (Kigali: 187 m of relief in the box, Lyon 135 m). Bridges and tunnels keep a straight
+  grade between their ends instead of following the river or the hill, and bridges over roads are raised by
+  their OSM layer. SUMO vehicles, walkers and the drawn traffic lights all take their height from the road.
+  Leuven is built flat (`map.elevation: false`): with terrain, the SUMO net converted from its OpenDRIVE
+  segfaults SUMO at the first step after the participant's car is moved into it (SUMO alone runs it fine, and a
+  flat SUMO net beside the elevated OpenDRIVE crashed too), and Leuven has only 26 m of relief.
+- **Buildings.** Each footprint is split into rectangles until they cover it well; each rectangle gets the
+  CARLA building whose proportions, height and kind (house, apartment block, commercial, tower, industrial,
+  church) fit best, turned to the footprint, scaled (0.6 to 1.5) and repeated along long blocks, standing on
+  the terrain. Positions, footprints and heights are the real ones; the facades are CARLA's (mostly North
+  American towns). Exact geometry and textures are the job of the UE 5.8 digital twin (phase 3).
+- **Nothing on the lanes.** Every placement is checked against CARLA's map: nothing stands on a lane that is
+  driven, ridden, parked or walked; a building that would reach into one is shrunk or dropped.
+- **Ground.** 40 m tiles (20 m on maps with more than 40 m of relief), tilted to the terrain and kept under
+  the road surface: grass in parks and green landuse, water on rivers and lakes, paving elsewhere.
+- **Streaming.** CARLA sends every actor's state to every client on every tick, so the scenery is spawned in
+  100 m cells within `radius_m` of the participants and removed behind them, as the SUMO traffic is;
+  buildings taller than 40 m stay loaded as the skyline. About 2,000-2,700 meshes are loaded at a time. With
+  the spectator parked and the optimised building meshes they cost little: Stellenbosch ran at 0.97 of real
+  time with them and 0.99 without ([Performance](#performance)).
+- **Weather.** Cloud cover 0 to 100 % maps to CARLA cloudiness 0 to 60 (higher values turn the sky of an
+  OpenDRIVE world dark grey to black: sky brightness 66, 18 and 1 of 255 at 60, 80 and 90); rain 1 mm/h to
+  precipitation 20; rain over the last three hours to puddles and wet roads; wind 1 km/h to intensity 2;
+  visibility under 10 km to fog. CARLA's sun azimuth is the direction the light travels (compass + 90°,
+  checked with a pole's shadow). Each trial writes what it applied to `weather.json`.
+
+Built from these sources (the test maps of central Eindhoven, Lyon, Kigali and New York):
+
+| Map | Buildings (heights from) | Trees (OSM street trees) | Lamps (OSM) | Furniture | Signs | Relief |
+|---|---|---|---|---|---|---|
+| Eindhoven centre | 3,654 (3DBAG lidar) | 4,091 (1,827) | 1,079 (101) | 480 | 24 | 11 m (AHN) |
+| Lyon (Bellecour) | 2,675 (IGN BD TOPO) | 5,548 (1,268) | 500 | 2,097 | 38 | 135 m |
+| Kigali | 3,027 (Overture, ML footprints) | 1,449 (401) | 1,247 (26) | 4 | 0 | 187 m |
+| New York (Midtown) | 1,406 (NYC Open Data) | 801 (719) | 1,153 (103) | 339 | 2 | 14 m |
+
+Where OSM maps few street lamps, lamps line the roads every 32 m (on by default, `guess_lamps`). The lamp
+meshes give no light at night: CARLA 0.9.16 cannot add lights at run time.
 
 ## Experiment files
 
@@ -267,13 +356,15 @@ map:
   # trim_dead_ends: true   # prune dead ends, keep the largest strongly connected road graph
   # lefthand: false        # left-hand traffic
   # carla: {wall_height: 0.0, ground: true, ...}   # OpenDRIVE mesh options, ground plane
+  # elevation: true, scenery: {...}, overture: true, national_buildings: true   # real-world data
 server:
   quality: Epic            # Epic | Low
   # host: 127.0.0.1, port: 2000, tm_port: 8100, launch: true, offscreen: true
 simulation:
   step: 0.02               # 50 Hz, like coupled-sim's fixed-time log
-  weather: CloudyNoon      # a carla.WeatherParameters preset or a dict of its fields
-  # sun_altitude: 4, real_time: true, tls_manager: sumo, lod_radius_m: 250
+  weather: CloudyNoon      # a carla.WeatherParameters preset, a dict of its fields, or real (Open-Meteo)
+  # time: "2026-11-13 08:30" (the sun at that local time), sun_altitude: 4, real_time: true,
+  # tls_manager: sumo, lod_radius_m: 250, scenery: {radius_m: 400}
 traffic:
   cars_per_hour: 2400
   bikes_per_hour: 1200
@@ -618,16 +709,23 @@ Chromium.
 
 ## Performance
 
-Measured on lin4080 (RTX 4080 SUPER 16 GB, **shared with another job using ~60 % of the GPU**), CARLA
-0.9.16 at Epic, 50 Hz:
+Measured on lin4080 (RTX 4080 SUPER 16 GB, **shared with another job using ~60 % of the GPU** unless noted),
+CARLA 0.9.16 at Epic, 50 Hz. The rows before 2026-11-14 ran with the spectator rendering (see below):
 
 | Setup | Real-time factor |
 |---|---|
 | Eindhoven, 180 s, level of detail 250 m, ~5-10 SUMO actors in CARLA at a time | 0.78 |
 | Same, no level of detail (all ~100 SUMO vehicles in CARLA) | 0.26 |
 | 20 Hz, cars only (no cyclists), all in CARLA | 1.00 |
-| The 19 maps, 40 s each (table above) | 0.55-0.99 (small towns fastest) |
+| The 19 maps, 40 s each, before the spectator was parked (2026-11-13) | 0.55-0.99 (small towns fastest) |
+| The 19 maps with full scenery, spectator parked (2026-11-14, GPU not shared at the time) | 0.98-0.995 |
 | Coupled crossing: host + 3 stations with 50 Hz cameras + 4 agents | 0.69-0.70 |
+
+**The spectator.** An off-screen CARLA server still renders its spectator view, and in our worlds it looked at the
+whole map from its start position. The host now parks it in the sky looking up (when `server.offscreen`).
+Stellenbosch, 40 s, same GPU: 0.70 without scenery before, **0.99** after; with its 2,379 scenery meshes 0.40
+before (buildings alone 0.39), **0.97** after. The full Town buildings would cost even with that fixed, so the
+scenery uses CARLA's optimised (`_Opt`) versions where they exist (64 of 70).
 
 Each SUMO vehicle in CARLA costs server time every tick: about 0.4 ms for a car and **about 3 ms for a
 cyclist** (the bike carries an animated rider), which is why the level of detail matters. The base frame time at
@@ -662,9 +760,10 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 
 ## Known limits
 
-- **Looks:** CARLA shows only the road meshes generated from OpenDRIVE, on a pale ground plane: no
-  buildings, markings, vegetation or signs. The buildings exist (OSM footprints in the viewer); bringing them
-  and real terrain into CARLA needs the UE 5.8 Digital Twin route (phase 3).
+- **Looks:** the scenery uses CARLA 0.9.16's own meshes: real positions, footprints and heights, but CARLA's
+  facades, tree models and props, and flat or tilted ground tiles (steps between tiles on steep maps). No road
+  markings or crossings on OSM maps, and lamps give no light. Exact buildings, aerial-photo ground and markings
+  need the UE 5.8 digital twin (phase 3).
 - **Pedestrians:** human pedestrians, scripted AI walkers and the crowd walk by direct control (no navigation
   mesh). Crowd walkers stay beside the roads and do not cross. Walkers off the road walk on the ground plane,
   0.3 m below the road surface. `map.sidewalks: true` puts sidewalk lanes into the OpenDRIVE (not into SUMO's
@@ -744,12 +843,27 @@ What cost time while building phases 1 and 2, so it does not again:
 - A scripted car that stops for a pedestrian only while the pedestrian is within its (speed-dependent)
   look-ahead flickers stop/go; hold the stop until the path has been clear for a moment.
 
+- Scenery: `static.prop.mesh` actors cannot be moved after spawning (`set_transform` is ignored), so every
+  placement is computed in advance from measured mesh sizes, including the pivot offset (many CARLA meshes are
+  not centred) and, for tilted ground tiles, the rotation about the pivot.
+- An actor's location reads (0, 0, 0) until the first tick after its spawn: load anything around the
+  participants after that tick.
+- CARLA's `sun_azimuth_angle` is the direction the light travels, not where the sun stands (compass + 90°), and
+  cloudiness above about 60 turns an OpenDRIVE world's sky black.
+- Ground meshes of the Town maps (`Ground/Town03`) are cooked without their materials (checkerboard); the
+  `SideWalkCube` scaled and sunk works as paving, `Terrain/Town03/SM_Square_60` as grass.
+- `sumolib`'s `lane.getShape(True)` includes junctions; the 3D shape is `getShape3D()`.
+- `pkill -f "CarlaUE4...port=2000"` inside `ssh host '...'` matches the ssh command line itself and kills it.
+
 ## Project layout
 
 ```
 coupledcarla/
   config.py          experiment files and defaults
-  mapbuild.py        OSM -> pruned SUMO net -> OpenDRIVE -> CARLA-consistent SUMO net, buildings
+  mapbuild.py        OSM (+ terrain heights) -> pruned SUMO net -> OpenDRIVE -> CARLA-consistent SUMO net
+  realworld.py       real-world data: OSM features, Overture, 3DBAG, BD TOPO, NYC, AHN, Terrain Tiles, Open-Meteo, sun
+  scenery.py         buildings, trees, furniture, signs and ground placed from it; streamed in at run time
+  data/              meshes_0.9.16.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
   traffic.py         SUMO vehicle types and demand per trial
   run.py             the host: trial loop, participants, agents, stations
@@ -771,7 +885,7 @@ coupledcarla/
 experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhoven_crowd.yaml (coupled),
                      cities.yaml, cities/<slug>.yaml
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
-tools/               test_cities.py, run_coupled_test.sh, plot_maps.py, viewer_shots.py,
+tools/               test_cities.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
                      render_twin_buildings.py
 docs/                city_tests.md, img/
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
@@ -787,7 +901,11 @@ maps/, logs/         built maps and trial logs (not in git)
 - [CARLA](https://github.com/carla-simulator/carla) (MIT); the SUMO bridge in `coupledcarla/bridge` is
   vendored from CARLA 0.9.16 `Co-Simulation/Sumo` (MIT, © CVC) and modified.
 - [Eclipse SUMO](https://eclipse.dev/sumo/) (EPL-2.0), used as a separate program and through TraCI.
-- Digital twin data: [AHN](https://www.ahn.nl) (CC0), [PDOK Luchtfoto](https://www.pdok.nl) (Beeldmateriaal
+- Scenery data: [Overture Maps](https://overturemaps.org) buildings (ODbL / CDLA Permissive 2.0),
+  [IGN BD TOPO](https://geoservices.ign.fr/bdtopo) (Licence Ouverte 2.0), [NYC Open Data](https://data.cityofnewyork.us)
+  building footprints, [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen; SRTM, USGS 3DEP and
+  others, see their attribution), [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
+- Digital twin and scenery data for the Netherlands: [AHN](https://www.ahn.nl) (CC0), [PDOK Luchtfoto](https://www.pdok.nl) (Beeldmateriaal
   Nederland, CC BY 4.0), [3DBAG](https://3dbag.nl) (3D geoinformation group, TU Delft, CC BY 4.0).
 - [three.js](https://threejs.org) (MIT), loaded from a CDN by the viewer.
 - Successor of [coupled-sim](https://github.com/bazilinskyy/coupled-sim): Bazilinskyy, P., Kooijman, L.,

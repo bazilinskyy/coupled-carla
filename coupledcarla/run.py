@@ -23,14 +23,15 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, inputs, mapbuild, traffic
+from . import analysis, compat, config, inputs, mapbuild, realworld, traffic
 from .ai import DEFAULT_EHMI, Crowd, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
-from .geo import Geo, heading_to_yaw
+from .geo import Geo, ground, heading_to_yaw
 from .logger import TrialLogger
 from .routing import SafeGlobalRoutePlanner
+from .scenery import Scenery
 from .server import Server
 from .signals import Signals
 
@@ -43,7 +44,7 @@ class Log:
         print(f"[{time.time() - self.t0:7.1f}s] {msg}", flush=True)
 
 
-def load_world(client, xodr, mc):
+def load_world(client, xodr, mc, slab=False):
     p = mc["carla"]
     params = carla.OpendriveGenerationParameters(
         vertex_distance=p["vertex_distance"], max_road_length=p["max_road_length"], wall_height=p["wall_height"],
@@ -56,26 +57,80 @@ def load_world(client, xodr, mc):
         # A 3 km plane (with collision) 0.3 m under the road surface (roads dip a little in places): the
         # OpenDRIVE-only world has no terrain, so a car leaving the road mesh would otherwise fall out of it.
         bp = world.get_blueprint_library().find("static.prop.mesh")
-        bp.set_attribute("mesh_path", "/Engine/BasicShapes/Plane.Plane")
-        bp.set_attribute("scale", "3000")
         bounds = [w.transform.location for w in world.get_map().generate_waypoints(50.0)]
         cx = sum(b.x for b in bounds) / len(bounds)
         cy = sum(b.y for b in bounds) / len(bounds)
-        world.spawn_actor(bp, carla.Transform(carla.Location(x=cx, y=cy, z=-0.3)))
+        if slab:   # with scenery: a 20 km paving cube whose top is the ground beyond the scenery tiles, out to
+            # the horizon (the void beyond a smaller one shows as a black band under a cloudy sky)
+            bp.set_attribute("mesh_path", "/Game/Carla/Static/SideWalk/SideWalkCube.SideWalkCube")
+            bp.set_attribute("scale", "20000")
+            world.spawn_actor(bp, carla.Transform(carla.Location(x=cx, y=cy, z=-0.45 - 10000.0)))
+        else:
+            bp.set_attribute("mesh_path", "/Engine/BasicShapes/Plane.Plane")
+            bp.set_attribute("scale", "3000")
+            world.spawn_actor(bp, carla.Transform(carla.Location(x=cx, y=cy, z=-0.3)))
     return world
 
 
-def set_weather(world, sc):
+def _local_time(text):
+    from datetime import datetime
+    if text in (None, "now"):
+        return "now"
+    text = str(text).strip()
+    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            pass
+    hh, mm = (int(v) for v in text.split(":")[:2])
+    return datetime.now().replace(hour=hh, minute=mm, second=0, microsecond=0)
+
+
+def set_weather(world, sc, latlon=None, cache_dir=None, log=print):
+    """Apply the weather; with simulation.time the sun at that place and time, with weather "real" also
+    Open-Meteo's weather of that hour. Returns what was applied (written to weather.json)."""
+    from datetime import timedelta
     w = sc["weather"]
-    if isinstance(w, str):
+    info = {"weather": w}
+    real = w == "real"
+    if isinstance(w, str) and not real:
         weather = getattr(carla.WeatherParameters, w)
     else:
         weather = world.get_weather()
-        for k, v in w.items():
+        for k, v in ({} if real else w).items():
             setattr(weather, k, v)
+    if (real or sc.get("time")) and latlon:
+        when = _local_time(sc.get("time") or "now")
+        lat, lon = latlon
+        try:
+            rec, local, off = realworld.weather_at(lat, lon, when, cache_dir)
+        except Exception as err:  # noqa: BLE001 - offline: the sun from the clock alone
+            log(f"Open-Meteo failed ({err}); sun position only")
+            rec, local, off = None, (when if when != "now" else None), None
+        from datetime import datetime, timezone
+        if off is not None:
+            utc = local - timedelta(seconds=off)
+        else:      # no time zone from Open-Meteo: solar time from the longitude
+            utc = (local - timedelta(hours=lon / 15.0)) if local is not None else \
+                datetime.now(timezone.utc).replace(tzinfo=None)
+            local = local or utc + timedelta(hours=lon / 15.0)
+        alt, az = realworld.sun_position(lat, lon, utc.replace(tzinfo=timezone.utc))
+        fields = realworld.carla_weather_fields(rec or {}, alt, az)
+        if not real or rec is None:
+            fields = {k: fields[k] for k in ("sun_altitude_angle", "sun_azimuth_angle")}
+        for k, v in fields.items():
+            setattr(weather, k, v)
+        info.update(local_time=local.strftime("%Y-%m-%d %H:%M"), sun_altitude=round(alt, 2),
+                    sun_azimuth_compass=round(az, 2), open_meteo=rec, carla=fields)
+        log(f"{'real weather' if real and rec else 'sun'} for {local:%Y-%m-%d %H:%M} local: sun {alt:.1f} deg up "
+            f"at {az:.0f} deg" + (f", clouds {rec['cloud_cover']}%, rain {rec.get('rain')} mm/h, wind "
+                                 f"{rec.get('wind_speed_10m')} km/h, {rec.get('temperature_2m')} C"
+                                 if real and rec else ""))
     if sc.get("sun_altitude") is not None:
         weather.sun_altitude_angle = sc["sun_altitude"]
     world.set_weather(weather)
+    info["night"] = weather.sun_altitude_angle < 3.0
+    return info
 
 
 def spawn_vehicle(world, geo, p, log):
@@ -119,7 +174,8 @@ def spawn_pedestrian(world, geo, p):
     sp = p["spawn"]
     x, y = geo.to_carla(sp["lat"], sp["lon"])
     yaw = heading_to_yaw(sp.get("heading", 0.0))
-    return world.spawn_actor(bp, carla.Transform(carla.Location(x=x, y=y, z=1.2), carla.Rotation(yaw=yaw)))
+    loc = ground(world.get_map(), x, y) + carla.Location(z=1.2)
+    return world.spawn_actor(bp, carla.Transform(loc, carla.Rotation(yaw=yaw)))
 
 
 def to_carla_path(geo, latlons):
@@ -193,8 +249,17 @@ def run_trial(cfg, trial_idx, args, control=None):
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
     try:
-        world = load_world(client, mdir / "map.xodr", tc["map"])
-        set_weather(world, tc["simulation"])
+        has_scenery = (mdir / "scenery.json").exists() and compat.server_major(client) == 0 \
+            and tc["map"].get("scenery", {}).get("enabled", True)
+        world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery)
+        bb = tc["map"]["bbox"]
+        wx = set_weather(world, tc["simulation"], ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real", log)
+        (out / "weather.json").write_text(json.dumps(wx, indent=2))
+        BridgeHelper.night = wx["night"]
+        if tc["server"].get("offscreen", True):
+            # nobody sees the spectator of an off-screen server, but the server still renders its view: park it
+            # high up, looking at the sky, so it costs nothing (it rendered the whole city's scenery otherwise)
+            world.get_spectator().set_transform(carla.Transform(carla.Location(z=3000.0), carla.Rotation(pitch=90.0)))
         log(f"world ready: {len(world.get_map().get_spawn_points())} spawn points")
 
         sumo = SumoSimulation(str(cfg_file), step)
@@ -243,7 +308,7 @@ def run_trial(cfg, trial_idx, args, control=None):
                 part.actor = spawn_pedestrian(world, geo, p)
                 if not part.station and (p.get("input") == "bot" or p.get("bot")):
                     bot = p.get("bot") or {}
-                    pts = [carla.Location(x=x, y=y) for x, y in to_carla_path(geo, bot.get("path", []))]
+                    pts = [ground(world.get_map(), x, y) for x, y in to_carla_path(geo, bot.get("path", []))]
                     part.bot = PathWalker(part.actor, pts, float(bot.get("speed", 1.4)), float(bot.get("start_s", 0)))
             elif part.kind == "av_passenger":
                 part.agent = agent_by_id[p["agent"]]
@@ -268,7 +333,20 @@ def run_trial(cfg, trial_idx, args, control=None):
             if isinstance(ag, ScriptedCar):
                 watch_collisions(ag.vehicle, ag.id)
 
-        world.tick()
+        if wx["night"]:      # headlights on after dark (SUMO cars: BridgeHelper.night)
+            lights = carla.VehicleLightState.LowBeam | carla.VehicleLightState.Position
+            for a in [p.actor for p in parts if p.actor.type_id.startswith("vehicle.")] + \
+                     [ag.vehicle for ag in agents if isinstance(ag, ScriptedCar)]:
+                a.set_light_state(carla.VehicleLightState(int(a.get_light_state()) | int(lights)))
+        world.tick()      # actors have their spawn locations only after a tick
+        scenery = None
+        if has_scenery:
+            t_s = time.time()
+            scenery = Scenery(client, world, mdir, tc["simulation"].get("scenery") or {}, log,
+                              on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
+            scenery.update([a.get_location() for a in focus_actors])
+            log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
+                f"({time.time() - t_s:.1f} s)")
         for part in parts:   # BasicAgent planned from (0, 0, 0) before the first tick: plan from the spawn lane
             if hasattr(part.input, "restart"):
                 part.input.restart(world.get_map().get_waypoint(part.actor.get_location()))
@@ -334,6 +412,8 @@ def run_trial(cfg, trial_idx, args, control=None):
             prof["sync"] += t_b - t_a
             sumo_yield.step(sync, world, walkers_all)
             signals.draw([a.get_location() for a in focus_actors])
+            if scenery is not None and summary["ticks"] % 50 == 25:
+                scenery.update([a.get_location() for a in focus_actors])
             for part in parts:
                 if part.actor.type_id.startswith("vehicle."):
                     sid = sync.carla2sumo_ids.get(part.actor.id)

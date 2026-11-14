@@ -31,7 +31,8 @@ def experiment(c, cat):
     return {
         "name": c["slug"],
         "city": {k: c[k] for k in ("name", "country", "continent", "size", "population", "lat", "lon", "drive")},
-        "map": {"bbox": bbox(c["lat"], c["lon"], cat["size_km"]), "lefthand": c["drive"] == "left"},
+        "map": {"bbox": bbox(c["lat"], c["lon"], cat["size_km"]), "lefthand": c["drive"] == "left",
+                **c.get("map", {})},
         "traffic": traffic,
         "participants": [{"role": "driver", "vehicle": "vehicle.lincoln.mkz_2020", "input": "keyboard",
                           "view": "driver"}],   # no spawn: a random spawn point of the map

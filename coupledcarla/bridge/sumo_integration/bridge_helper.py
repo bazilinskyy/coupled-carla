@@ -37,6 +37,7 @@ class BridgeHelper(object):
     blueprint_library = []
     offset = (0, 0)
 
+    night = False     # coupled-carla: headlights on for every SUMO vehicle after dark
     _vtypes_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data",
                                 "vtypes.json")
     with open(_vtypes_path) as f:
@@ -257,7 +258,7 @@ class BridgeHelper(object):
             current_lights ^= carla.VehicleLightState.Brake
 
         # Front (low beam).
-        if (bool(sumo_lights & SumoVehSignal.FRONTLIGHT) !=
+        if ((bool(sumo_lights & SumoVehSignal.FRONTLIGHT) or BridgeHelper.night) !=
                 bool(current_lights & carla.VehicleLightState.LowBeam)):
             current_lights ^= carla.VehicleLightState.LowBeam
 

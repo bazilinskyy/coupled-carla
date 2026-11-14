@@ -24,6 +24,7 @@ class Signals:
     def __init__(self, world, net, offset, radius=120.0, every=5, step=0.02):
         """net: the sumolib net SUMO runs (map.net.xml); offset: the bridge's SUMO->CARLA shift."""
         self.debug = world.debug
+        cmap = world.get_map()
         self.radius, self.every = radius, every
         self.life = every * step * 1.6
         self.heads = []   # (tls_id, [link indices], carla Location of the lamp)
@@ -45,7 +46,9 @@ class Signals:
                 rx, ry = (y1 - y0) / d, -(x1 - x0) / d          # unit vector to the right of travel (SUMO)
                 side = lane.getWidth() / 2 + 0.6
                 sx, sy = x1 + rx * side, y1 + ry * side
-                loc = carla.Location(x=sx - offset[0], y=-(sy - offset[1]), z=0.0)
+                loc = carla.Location(x=sx - offset[0], y=-(sy - offset[1]))
+                wp = cmap.get_waypoint(loc, project_to_road=True, lane_type=carla.LaneType.Any)
+                loc.z = wp.transform.location.z if wp is not None else 0.0      # the road's height (elevation)
                 self.heads.append((tls, idxs, loc))
         self._tick = 0
 

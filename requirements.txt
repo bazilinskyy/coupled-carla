@@ -10,3 +10,8 @@ pygame
 pyyaml
 requests
 pyproj
+pillow
+# real-world data (optional: without them the maps fall back to OSM buildings and the AWS Terrain Tiles)
+duckdb          # Overture Maps buildings
+tifffile        # AHN elevation (Netherlands)
+imagecodecs     # AHN tiles use the floating-point predictor
