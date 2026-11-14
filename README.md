@@ -241,25 +241,25 @@ Smoke test, 2026-11-14: 40 s headless autopilot trial per map, CARLA 0.9.16 at E
 
 | Map | Continent | Size | Traffic | Lane links | Buildings | Building heights | Relief (m) | Scenery meshes | Bus lines (with timetable) | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane | Collisions | Result |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Eindhoven | Europe | medium | right | 2318 | 2998 | 3dbag | 11 | 13709 | 51 (45) | 12 | 0.991 | 0 | 2 | 2 | 0 | ok |
-| Cairo (Tahrir) | Africa | large | right | 3835 | 1308 | overture | 66 | 10814 | – | 4 | 0.994 | 0 | 0 | 0 | 0 | ok |
-| Kigali | Africa | medium | right | 1655 | 2942 | overture | 188 | 15270 | 18 (0) | 2 | 0.992 | 0 | 1 | 1 | 0 | ok |
-| Stellenbosch | Africa | small | left | 1748 | 1683 | overture | 32 | 8665 | – | 5 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| Tokyo (Shibuya) | Asia | large | left | 5057 | 3833 | overture | 87 | 15735 | 31 (10) | 13 | 0.992 | 0 | 1 | 1 | 0 | ok |
-| Taipei (Main Station) | Asia | medium | right | 2940 | 2679 | overture | 48 | 15461 | 150 (0) | 14 | 0.99 | 0 | 0 | 0 | 0 | ok |
+| Eindhoven | Europe | medium | right | 2318 | 2998 | 3dbag | 11 | 16781 | 51 (45) | 11 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| Cairo (Tahrir) | Africa | large | right | 3835 | 1308 | overture | 66 | 10814 | – | 3 | 0.994 | 0 | 1 | 1 | 0 | ok |
+| Kigali | Africa | medium | right | 1655 | 2942 | overture | 188 | 15270 | 18 (0) | 3 | 0.994 | 0 | 0 | 0 | 0 | ok |
+| Stellenbosch | Africa | small | left | 1748 | 1683 | overture | 32 | 8665 | – | 7 | 0.994 | 0 | 9 | 9 | 0 | ok |
+| Tokyo (Shibuya) | Asia | large | left | 5057 | 3833 | overture | 87 | 15735 | 31 (10) | 15 | 0.989 | 0 | 0 | 0 | 0 | ok |
+| Taipei (Main Station) | Asia | medium | right | 2940 | 2679 | overture | 48 | 15461 | 150 (0) | 14 | 0.991 | 0 | 0 | 0 | 0 | ok |
 | Luang Prabang | Asia | small | right | 1418 | 3611 | overture | 87 | 10402 | – | 2 | 0.995 | 0 | 0 | 0 | 0 | ok |
 | London (Westminster) | Europe | large | left | 2751 | 2069 | overture | 30 | 10053 | 31 (0) | 2 | 0.994 | 0 | 1 | 1 | 0 | ok |
-| Lyon (Bellecour) | Europe | medium | right | 2276 | 2518 | bdtopo | 135 | 19667 | 21 (20) | 4 | 0.992 | 0 | 1 | 1 | 0 | ok |
-| Leuven | Europe | small | right | 1537 | 5049 | overture | 26 | 19194 | 26 (26) | 3 | 0.991 | 0 | 1 | 1 | 0 | ok |
-| New York (Midtown) | North America | large | right | 2229 | 1404 | nyc | 14 | 7463 | 67 (54) | 9 | 0.985 | 0 | 0 | 0 | 0 | ok |
-| Portland, Oregon | North America | medium | right | 4368 | 710 | overture | 50 | 14077 | 27 (25) | 5 | 0.988 | 0 | 0 | 0 | 0 | ok |
-| Burlington, Vermont | North America | small | right | 2033 | 1974 | overture | 83 | 12027 | 10 (2) | 3 | 0.992 | 0 | 1 | 1 | 0 | ok |
-| São Paulo (Sé) | South America | large | right | 2164 | 3182 | overture | 85 | 16300 | 64 (56) | 4 | 0.989 | 0 | 0 | 0 | 0 | ok |
+| Lyon (Bellecour) | Europe | medium | right | 2276 | 2518 | bdtopo | 135 | 19667 | 21 (20) | 6 | 0.992 | 0 | 2 | 2 | 0 | ok |
+| Leuven | Europe | small | right | 1537 | 5049 | overture | 26 | 19194 | 26 (26) | 4 | 0.992 | 0 | 2 | 2 | 0 | ok |
+| New York (Midtown) | North America | large | right | 2229 | 1404 | nyc | 14 | 8289 | 67 (54) | 9 | 0.988 | 0 | 0 | 0 | 0 | ok |
+| Portland, Oregon | North America | medium | right | 4368 | 710 | overture | 50 | 14077 | 27 (25) | 5 | 0.99 | 0 | 0 | 0 | 0 | ok |
+| Burlington, Vermont | North America | small | right | 2033 | 1974 | overture | 83 | 12027 | 10 (2) | 5 | 0.993 | 0 | 1 | 1 | 0 | ok |
+| São Paulo (Sé) | South America | large | right | 2164 | 3182 | overture | 85 | 16300 | 64 (56) | 4 | 0.991 | 0 | 0 | 0 | 0 | ok |
 | Montevideo | South America | medium | right | 1917 | 2411 | overture | 64 | 12668 | 3 (0) | 5 | 0.991 | 0 | 0 | 0 | 0 | ok |
 | Ushuaia | South America | small | right | 2404 | 2309 | overture | 129 | 12561 | 2 (0) | 3 | 0.993 | 0 | 0 | 0 | 0 | ok |
-| Sydney (CBD) | Oceania | large | left | 2609 | 985 | overture | 111 | 14601 | 32 (31) | 1 | 0.99 | 0 | 8 | 8 | 0 | ok |
-| Auckland (CBD) | Oceania | medium | left | 3935 | 1142 | overture | 47 | 14632 | 31 (29) | 0 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| Nouméa | Oceania | small | right | 1786 | 2465 | overture | 67 | 18425 | – | 3 | 0.994 | 0 | 0 | 0 | 0 | ok |
+| Sydney (CBD) | Oceania | large | left | 2609 | 985 | overture | 111 | 14600 | 32 (31) | 1 | 0.993 | 0 | 8 | 8 | 0 | ok |
+| Auckland (CBD) | Oceania | medium | left | 3935 | 1142 | overture | 47 | 14635 | 31 (29) | 0 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| Nouméa | Oceania | small | right | 1786 | 2465 | overture | 67 | 18425 | – | 6 | 0.993 | 0 | 2 | 2 | 0 | ok |
 
 All 19 maps load and drive with their scenery. "Scenery meshes" counts the placements on the whole map (about
 2,000-2,700 are loaded at a time around the car); "Relief" is the terrain's height range within the box; "Bus
@@ -324,7 +324,8 @@ How it is placed (`coupledcarla/scenery.py`, `coupledcarla/realworld.py`):
   their OSM layer. SUMO vehicles, walkers and the drawn traffic lights all take their height from the road.
 - **Buildings.** Each footprint is split into rectangles until they cover it well; each rectangle gets the
   CARLA building whose proportions, height and kind (house, apartment block, commercial, tower, industrial,
-  church) fit best, turned to the footprint, scaled (0.6 to 1.5) and repeated along long blocks, standing on
+  church) fit best (a known roof shape, 3DBAG's or OSM's `roof:shape`, picks pitched or flat-roofed
+  kinds; church meshes only where the data says church), turned to the footprint, scaled (0.6 to 1.5) and repeated along long blocks, standing on
   the terrain. Positions, footprints and heights are the real ones; the facades are CARLA's (mostly North
   American towns). Exact geometry and textures are the job of the UE 5.8 digital twin (phase 3).
 - **Nothing on the lanes.** Every placement is checked against CARLA's map: nothing stands on a lane that is
@@ -889,7 +890,7 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 4. **Phase 4, more real data:** done so far: real bus lines at timetable frequencies, live bus positions
    (GTFS-RT), register fleets, municipal trees and lights. Next, from a survey of free sources (2026-11-14):
    measured hourly counts calibrating demand with SUMO's `routeSampler` (NDW v3 for NL, before its v2.3 files
-   stop on 9 Feb 2027; Telraam for cars, bikes and pedestrians in Leuven and Eindhoven; DfT for London, NYC DOT,
+   stop on 9 Feb 2027, though its nearest site is 3.6 km from the Eindhoven centre box, on the A2; Telraam for cars, bikes and pedestrians in Leuven and Eindhoven; DfT for London, NYC DOT,
    JARTIC for Tokyo, Criter for Lyon), Overture's roof and facade attributes, leaf state by date (Copernicus
    HR-VPP) and Meta's 1 m canopy heights, GBFS bike-share docks for cyclist density, BGT road surfaces (NL),
    PLATEAU buildings for Tokyo, night radiance (NASA Black Marble). Real signal timings (SPaT) are not open in

@@ -258,8 +258,24 @@ def split_footprint(poly, depth=0, max_width=60.0):
     return [(cx, cy, l, w, yaw)]
 
 
-def fit_building(cat, rect, height, kinds, key):
-    """Best (mesh, n, scale, yaw_extra) for a rectangle: the mesh repeated n times along its length."""
+ROOF_OF = {"house": "pitched", "church": "pitched"}     # the other CARLA building kinds have flat roofs
+PITCHED = {"gabled", "hipped", "half-hipped", "gambrel", "mansard", "saltbox", "pyramidal", "skillion", "round",
+           "dome", "onion", "cone", "side_hipped"}
+
+
+def _roof(value):
+    """A roof description (3DBAG b3_dak_type, OSM roof:shape) -> "pitched", "flat" or None."""
+    v = (value or "").lower()
+    if v in ("slanted",) or v in PITCHED:
+        return "pitched"
+    if "horizontal" in v or v == "flat":
+        return "flat"
+    return None
+
+
+def fit_building(cat, rect, height, kinds, key, roof=None):
+    """Best (mesh, n, scale, yaw_extra) for a rectangle: the mesh repeated n times along its length. A known roof
+    shape (pitched or flat, from 3DBAG or OSM) steers the choice between pitched (house, church) and flat kinds."""
     cx, cy, l, w, yaw = rect
     best = []
     kinds = kinds or ["apartments", "house", "commercial"]
@@ -271,7 +287,11 @@ def fit_building(cat, rect, height, kinds, key):
         turn = 0.0
         if W > L:
             L, W, turn = W, L, 90.0
+        if kind == "church" and "church" not in kinds:
+            continue        # a church only where the data says church (else big pitched roofs become churches)
         penalty = 0.0 if kind in kinds[:1] else 0.35 if kind in kinds else 1.0
+        if roof and ROOF_OF.get(kind, "flat") != roof:
+            penalty += 0.3
         for n in range(1, 9):
             pl = l / n
             if pl < 0.4 * w and n > 1:
@@ -388,7 +408,8 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
     if national:
         src_used.append(nat_src)
         for b in national:
-            recs.append({"ring": b["ring"], "h": b["height"], "cls": b.get("cls"), "src": nat_src})
+            recs.append({"ring": b["ring"], "h": b["height"], "cls": b.get("cls"), "src": nat_src,
+                         "roof": _roof(b.get("roof"))})
         if ovt:     # kinds from Overture (OSM tags) by centroid, where the national data has none
             from shapely.strtree import STRtree
             polys = [Polygon(o["ring"]) for o in ovt]
@@ -418,7 +439,7 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
             if h is None and _number(tags.get("building:levels")) is not None:
                 h = 3.2 * _number(tags.get("building:levels")) + 1.5
             recs.append({"ring": [[g["lon"], g["lat"]] for g in geom], "h": h, "cls": tags.get("building"),
-                         "src": "osm"})
+                         "src": "osm", "roof": _roof(tags.get("roof:shape"))})
     out = []
     for r in recs:
         pts = _ring_xy(geo, r["ring"])
@@ -442,7 +463,7 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
         lon = sum(p[0] for p in r["ring"]) / len(r["ring"])
         zs = [dem.sample(p[1], p[0]) - base for p in r["ring"]] if dem is not None else [0.0]
         out.append({"poly": poly, "h": round(float(h), 1), "cls": r["cls"], "kinds": kinds, "src": r["src"],
-                    "z": round(float(min(zs)), 2), "lat": lat, "lon": lon})
+                    "z": round(float(min(zs)), 2), "lat": lat, "lon": lon, "roof": r.get("roof")})
     return out, src_used
 
 
@@ -487,7 +508,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
             for ri, rect in enumerate(split_footprint(b["poly"])):
                 if rect[2] < 3.0 or rect[3] < 2.5:
                     continue
-                fit = fit_building(cat, rect, b["h"], b["kinds"], (bi, ri))
+                fit = fit_building(cat, rect, b["h"], b["kinds"], (bi, ri), b.get("roof"))
                 if fit is None:
                     continue
                 mesh, n, s, turn = fit
