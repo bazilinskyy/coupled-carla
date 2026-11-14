@@ -554,6 +554,16 @@ The 1.0 server needs a recent NVIDIA driver. With driver 560 (lin4080) it stops 
 could not be created at the project's supported feature levels"), even with only the NVIDIA Vulkan driver
 visible; lin5080 (driver 595, RTX 5080) is the 1.0 machine.
 
+**Source build (2026-11-14).** CARLA `ue58-dev` (38b72cc52) builds on lin5080 with the CMake presets in
+about 15 minutes once the UE 5.8 engine fork is built (`cmake --preset Release`, then the `carla-server`,
+`carla-client`, `carla-python-api-install`, `carla-unreal` and `carla-unreal-editor` targets; the venv needs
+`build` installed). The server is the editor binary in `-game` mode; the first start spends a few minutes building
+derived data. The first coupled-carla run on it: `eindhoven_centre.yaml`, 40 s, autopilot driver with SUMO traffic,
+RTF 0.82, 0 collisions, every 0.9 blueprint mapped to a 1.0 stand-in. That run used `-nullrhi` (no rendering, so no
+cameras or stations), because the RTX 5080 was full with other jobs. The real-world scenery of the 0.9.16 maps is
+not used on 1.0 (it is made of 0.9.16 meshes); there the twin takes its place. Install the 1.0 wheel after
+`requirements.txt`, which pins `carla==0.9.16`.
+
 ### The Eindhoven digital twin
 
 The twin is built with CARLA's [Digital Twin pipeline](https://github.com/carla-simulator/carla-digitaltwins)
@@ -586,7 +596,7 @@ validates in CARLA (98,920 waypoints). Bake input: 623 meshes, 0.9 M triangles.*
 with the real roof shapes (right). The centre twin has 3,654 3DBAG buildings (274k triangles in 63 tiles).*
 
 **Still to do in phase 3:** bake the twin into a UE 5.8 level (`bake_level.py`, needs the CARLA source build,
-under way on lin5080), load it as the map instead of an OpenDRIVE world (the SUMO network then comes from the
+built on lin5080), a rendering 1.0 run with stations, load it as the map instead of an OpenDRIVE world (the SUMO network then comes from the
 twin's OpenDRIVE), BGT road surfaces, VR.
 
 ## Traffic
@@ -794,8 +804,8 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
    events, tick-to-station and tick-to-image latency, a pedestrian crowd. **Still open from phase 2:** CARLA
    multi-GPU secondaries for station rendering, Xsens suit, SUMO persons, head tracking for the driver's gaze,
    a human (not bot) pilot study.
-3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8 (coupled-carla is ready for it; the source build for the
-   Digital Twin baker is under way on lin5080), the Digital Twin pipeline with Dutch national data for
+3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8 (coupled-carla runs on it headless; the source build for the
+   Digital Twin baker is done on lin5080), the Digital Twin pipeline with Dutch national data for
    Eindhoven (AHN terrain, PDOK aerial photos and 3DBAG buildings done, BGT road surfaces next), the baked
    level loaded with the SUMO bridge, VR.
 4. **Phase 4, live data:** real signal programs (Eindhoven's smart traffic lights), real bus lines and
