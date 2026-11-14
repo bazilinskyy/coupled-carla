@@ -222,7 +222,8 @@ def _fake_carla(monkeypatch):
     m.Rotation = lambda pitch=0.0, yaw=0.0, roll=0.0: SimpleNamespace(pitch=pitch, yaw=yaw, roll=roll)
     m.Transform = lambda loc, rot: SimpleNamespace(location=loc, rotation=rot)
     m.command = SimpleNamespace(SpawnActor=lambda bp, tf: _Cmd(kind="spawn", bp=bp.id, attrs=dict(bp.attrs), tf=tf),
-                                DestroyActor=lambda i: _Cmd(kind="destroy", id=i))
+                                DestroyActor=lambda i: _Cmd(kind="destroy", id=i),
+                                ApplyTransform=lambda i, tf: _Cmd(kind="move", id=i, tf=tf))
     monkeypatch.setitem(sys.modules, "carla", m)
 
 
@@ -261,6 +262,9 @@ class _Client:
                 self.spawned.append(c)
                 out.append(SimpleNamespace(actor_id=self.next, error=""))
                 self.next += 1
+            elif c.kind == "move":      # lit lamps spawn 100 m up and are moved into place
+                self.alive[c.id].tf = c.tf
+                out.append(SimpleNamespace(actor_id=c.id, error=""))
             else:
                 self.alive.pop(c.id, None)
                 out.append(SimpleNamespace(actor_id=c.id, error=""))
