@@ -55,7 +55,11 @@ DEFAULTS = {
     },
     "traffic": {
         "seed": 42,
-        "cars_per_hour": 2400,
+        "cars_per_hour": "auto",     # cars entering per hour, or "auto": from the map's lane-km by road class and
+                                     # the trial's hour (coupledcarla/counts.py)
+        "counts": "auto",            # "auto": fit the cars to open traffic counts where they cover the map
+                                     # (NYC DOT, DfT, Lyon, Montevideo, Auckland, Portland, VTrans) with SUMO's
+                                     # routeSampler, topped up to cars_per_hour; false: random trips only
         "bikes_per_hour": 1200,
         "buses_per_hour": 12,        # random bus trips, only on maps without OSM bus lines
         "public_transport": {        # the map's real bus lines (map.transit): at their GTFS frequency for the
