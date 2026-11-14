@@ -87,6 +87,7 @@ def test_scenery_for_server(tmp_path, monkeypatch):
 
 
 def test_baked_level_scenery_has_no_buildings_or_ground(tmp_path, monkeypatch):
+    pytest.importorskip("sumolib")    # geo.Geo reads a net (CI installs no SUMO)
     seen = {}
 
     def fake_build(out, cfg, geo, dem, base, cmap, log, server_major):
