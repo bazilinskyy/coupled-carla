@@ -11,7 +11,7 @@ DEFAULTS = {
         "bbox": None,                # [south, west, north, east] in degrees
         "road_types": ["motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link",
                        "secondary", "secondary_link", "tertiary", "tertiary_link", "unclassified",
-                       "residential", "living_street"],
+                       "residential", "living_street", "busway"],   # busway: bus-only roads (restricted lanes)
         "cycleways": True,           # keep highway=cycleway (SUMO cyclists ride them)
         "sidewalks": False,          # guessed sidewalks in the OpenDRIVE (CARLA walkers, traffic.walkers); the
                                      # SUMO net never has them (SUMO crashes on moveToXY with sidewalks)
@@ -21,6 +21,7 @@ DEFAULTS = {
         "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
         "overture": True,            # Overture Maps buildings (needs duckdb), else OSM
         "national_buildings": True,  # measured heights: 3DBAG (NL), IGN BD TOPO (FR), NYC Open Data
+        "transit": True,             # the real bus lines and stops of OSM, with GTFS frequencies (transit.py)
         "scenery": {                 # CARLA meshes placed from real-world data (coupledcarla/scenery.py)
             "enabled": True, "buildings": True, "trees": True, "furniture": True, "guess_lamps": True, "signs": True,
             "ground": True, "catalog": "0.9.16",
@@ -56,7 +57,12 @@ DEFAULTS = {
         "seed": 42,
         "cars_per_hour": 2400,
         "bikes_per_hour": 1200,
-        "buses_per_hour": 12,
+        "buses_per_hour": 12,        # random bus trips, only on maps without OSM bus lines
+        "public_transport": {        # the map's real bus lines (map.transit): at their GTFS frequency for the
+            "enabled": True,         # trial's local hour (simulation.time, else 08:00 on a weekday), else the OSM
+            "dwell_s": 20,           # interval tag, else default_headway_min
+            "default_headway_min": 10,
+        },
         "car_following": "EIDM",
         "car_types": {               # CARLA blueprint -> share of the car fleet
             "vehicle.toyota.prius": 3, "vehicle.volkswagen.t2_2021": 1, "vehicle.audi.a2": 2,

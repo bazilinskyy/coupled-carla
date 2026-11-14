@@ -233,7 +233,7 @@ def run_trial(cfg, trial_idx, args, control=None):
                                                      sort_keys=False, allow_unicode=True))
     log(f"trial {trial_idx} -> {out}")
 
-    cfg_file = traffic.prepare(tc, mdir, out / "sumo", duration)
+    cfg_file = traffic.prepare(tc, mdir, out / "sumo", duration, log)
     log("SUMO demand ready")
     parts = [Participant(p) for p in tc["participants"]]
     by_role = {p.role: p for p in parts}

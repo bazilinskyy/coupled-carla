@@ -68,8 +68,10 @@ def main():
         heights = next((k for k in ("3dbag", "bdtopo", "nyc", "overture", "osm") if k in meta.get("sources", {})), "osm")
         scen = sum(v for k, v in (meta.get("scenery") or {}).items()
                    if k in ("building", "landmark", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"))
+        tr = meta.get("transit") or {}
+        bus = f"{tr['refs']} ({tr['with_timetable']})" if tr.get("refs") else "–"
         rows.append([name, continent, size, drive, meta["xodr"]["lane_links"], meta.get("buildings", 0), heights,
-                     relief, scen,
+                     relief, scen, bus,
                      summary.get("sumo_vehicles_spawned", "–"), summary.get("rtf", "–"),
                      events.count(";left_road;"), events.count(";stuck;"),
                      events.count(";reset_to_lane;") + events.count(";respawn;"),
@@ -80,11 +82,11 @@ def main():
             print(out[-2500:], file=sys.stderr)
     print(f"Smoke test, {time.strftime('%Y-%m-%d')}: {args.duration:.0f} s headless autopilot trial per map, "
           "CARLA 0.9.16 at Epic, 50 Hz, on lin4080, with the real-world "
-          "scenery and terrain.\n")
+          "scenery, terrain and bus lines.\n")
     print("| Map | Continent | Size | Traffic | Lane links | Buildings | Building heights | Relief (m) "
-          "| Scenery meshes | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane "
+          "| Scenery meshes | Bus lines (with timetable) | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane "
           "| Collisions | Result |")
-    print("|" + "---|" * 16)
+    print("|" + "---|" * 17)
     for r in rows:
         print("| " + " | ".join(str(x) for x in r) + " |")
 

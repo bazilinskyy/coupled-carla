@@ -14,6 +14,7 @@
 import collections
 import enum
 import logging
+import math
 import os
 
 import carla  # pylint: disable=import-error
@@ -304,6 +305,9 @@ def _get_sumo_net(cfg_file):
     sumo_net = sumolib.net.readNet(net_file)
     return sumo_net
 
+LANE_SNAP_M = 0.6   # coupled-carla: farthest a CARLA-driven vehicle may sit from its SUMO lane's centre (see below)
+
+
 class SumoSimulation(object):
     """
     SumoSimulation is responsible for the management of the sumo simulation.
@@ -326,7 +330,11 @@ class SumoSimulation(object):
                 '--collision.check-junctions',
                 # coupled-carla: keep SUMO's own messages next to the trial's SUMO files
                 '--log', os.path.join(os.path.dirname(os.path.abspath(cfg_file)), 'sumo.log')
-            ])
+            ],
+                # coupled-carla: COUPLED_SUMO_TRACE=1 records every TraCI call (replay a SUMO crash without CARLA)
+                traceFile=(os.path.join(os.path.dirname(os.path.abspath(cfg_file)), 'traci_trace.py')
+                           if os.environ.get('COUPLED_SUMO_TRACE') else None),
+                traceGetters=False)
 
         else:
             logging.info('Connection to sumo server. Host: %s Port: %s', host, port)
@@ -485,7 +493,26 @@ class SumoSimulation(object):
         loc_x, loc_y = transform.location.x, transform.location.y
         yaw = transform.rotation.yaw
 
-        traci.vehicle.moveToXY(vehicle_id, "", 0, loc_x, loc_y, angle=yaw, keepRoute=2)
+        # coupled-carla: keep the vehicle inside a SUMO lane. Placed straddling two lanes (CARLA's junction paths are
+        # not SUMO's internal lanes), the sublane model gives it a shadow lane, and SUMO 1.27/1.28 then segfaults in
+        # MSVehicle::getBackPositionOnLane (a shadow further lane with no further lanes) when another vehicle looks
+        # at it as a leader across a junction. Pull it to within LANE_SNAP_M of the lane centre.
+        try:
+            edge, pos, lane = traci.simulation.convertRoad(loc_x, loc_y, False, "passenger")
+            cx, cy = traci.simulation.convert2D(edge, pos, lane)
+            off = math.hypot(loc_x - cx, loc_y - cy)
+            if off > LANE_SNAP_M:
+                k = LANE_SNAP_M / off
+                loc_x, loc_y = cx + (loc_x - cx) * k, cy + (loc_y - cy) * k
+        except traci.exceptions.TraCIException:
+            pass
+        # coupled-carla: map onto a lane its class may use (keepRoute=0) first. keepRoute=2 ignores permissions and,
+        # where a lane closed to cars is nearest (an internal bike or bus lane), leaves the car on no lane at all
+        # while counting it as on the road: SUMO then segfaults on the next query or FCD output (Leuven).
+        try:
+            traci.vehicle.moveToXY(vehicle_id, "", 0, loc_x, loc_y, angle=yaw, keepRoute=0)
+        except traci.exceptions.TraCIException:     # no lane for its class nearby (off the road): place it anyway
+            traci.vehicle.moveToXY(vehicle_id, "", 0, loc_x, loc_y, angle=yaw, keepRoute=2)
         if signals is not None:
             traci.vehicle.setSignals(vehicle_id, signals)
         return True

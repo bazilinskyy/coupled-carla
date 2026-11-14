@@ -21,9 +21,7 @@ cities:
   # Europe (besides Eindhoven, experiments/eindhoven_centre.yaml)
   - {slug: london_westminster, name: "London (Westminster)", country: United Kingdom, continent: Europe, size: large, population: 9000000, lat: 51.5080, lon: -0.1281, drive: left}
   - {slug: lyon, name: "Lyon (Bellecour)", country: France, continent: Europe, size: medium, population: 520000, lat: 45.7578, lon: 4.8320, drive: right}
-  # Leuven without terrain heights: built from the OpenDRIVE with heights, its SUMO net segfaults SUMO at the first
-  # step after the participant's car is moved into it (SUMO alone runs it; a flat SUMO net did not help)
-  - {slug: leuven, name: Leuven, country: Belgium, continent: Europe, size: small, population: 100000, lat: 50.8789, lon: 4.7005, drive: right, traffic: {bikes_per_hour: 1200}, map: {elevation: false}}
+  - {slug: leuven, name: Leuven, country: Belgium, continent: Europe, size: small, population: 100000, lat: 50.8789, lon: 4.7005, drive: right, traffic: {bikes_per_hour: 1200}}
   # North America
   - {slug: new_york_midtown, name: "New York (Midtown)", country: USA, continent: North America, size: large, population: 8300000, lat: 40.7549, lon: -73.9840, drive: right}
   - {slug: portland_or, name: "Portland, Oregon", country: USA, continent: North America, size: medium, population: 650000, lat: 45.5189, lon: -122.6793, drive: right}

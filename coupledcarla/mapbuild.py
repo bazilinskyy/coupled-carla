@@ -253,10 +253,43 @@ def build_scenery(cfg, out, meta, cmap=None):
     return meta
 
 
-def build(cfg, force=False, scenery_only=False):
+def sumo_net(out):
+    """OpenDRIVE -> map.net.xml with CARLA's road ids, by the vendored netconvert_carla.py (CARLA 1.0 does not ship
+    it). The SUMO net never gets the sidewalks (see config.py); bus-only lanes (OpenDRIVE "restricted") are open to
+    buses, taxis and emergency vehicles (bridge/util/data/*.typ.xml)."""
+    subprocess.check_call([sys.executable, str(Path(__file__).parent / "bridge" / "util" / "netconvert_carla.py"),
+                           str(out / "map.xodr"), "--output", str(out / "map.net.xml"), "--guess-tls",
+                           "--no-sidewalks"])
+    log("OpenDRIVE -> CARLA-consistent SUMO net")
+
+
+def build_transit(cfg, out, meta):
+    """Bus lines, stops and timetable frequencies for a built map (transit.py), recorded in meta."""
+    from . import transit
+    try:
+        meta["transit"] = transit.build(out, cfg["map"]["bbox"])
+    except Exception as err:  # noqa: BLE001 - the map still drives, with random buses
+        import traceback
+        traceback.print_exc()
+        log(f"public transport failed ({err}); trials use random bus trips")
+        return meta
+    srcs = meta.setdefault("sources", {})
+    if meta["transit"]["feeds"]:
+        srcs["gtfs"] = {"what": realworld.SOURCES["gtfs"][0], "licence": realworld.SOURCES["gtfs"][1]}
+    return meta
+
+
+def build(cfg, force=False, scenery_only=False, transit_only=False):
     mc = cfg["map"]
     out = config.map_dir(cfg)
     out.mkdir(parents=True, exist_ok=True)
+    if transit_only and (out / "meta.json").exists():
+        meta = json.loads((out / "meta.json").read_text())
+        sumo_net(out)            # nets built before bus lanes were open to buses
+        build_transit(cfg, out, meta)
+        (out / "meta.json").write_text(json.dumps(meta, indent=2))
+        log(f"public transport rebuilt: {out}")
+        return out
     if scenery_only and (out / "meta.json").exists():
         meta = json.loads((out / "meta.json").read_text())
         build_scenery(cfg, out, meta)
@@ -308,10 +341,7 @@ def build(cfg, force=False, scenery_only=False):
     name_signals(xodr)
     stats = check_xodr(xodr)
 
-    # vendored (CARLA 1.0 does not ship it); the SUMO net never gets the sidewalks (see config.py)
-    subprocess.check_call([sys.executable, str(Path(__file__).parent / "bridge" / "util" / "netconvert_carla.py"),
-                           str(xodr), "--output", str(out / "map.net.xml"), "--guess-tls", "--no-sidewalks"])
-    log("OpenDRIVE -> CARLA-consistent SUMO net")
+    sumo_net(out)
     meta = {"name": mc["name"], "lefthand": bool(mc.get("lefthand")), "buildings": 0, "bbox": mc["bbox"],
             "built": time.strftime("%Y-%m-%d %H:%M:%S"),
             "files": {"osm": "map.osm", "geo_net": "geo.net.xml", "xodr": "map.xodr", "sumo_net": "map.net.xml"},
@@ -326,6 +356,8 @@ def build(cfg, force=False, scenery_only=False):
             log(f"scenery failed ({err}); the map has roads only (redo with --scenery)")
     elif mc.get("buildings"):
         meta["buildings"] = fetch_buildings(mc["bbox"], geo_net, out / "buildings.json")
+    if mc.get("transit", True):
+        build_transit(cfg, out, meta)
     (out / "meta.json").write_text(json.dumps(meta, indent=2))
     log(f"done: {out}")
     return out
@@ -336,8 +368,9 @@ def main():
     ap.add_argument("experiment")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--scenery", action="store_true", help="redo only the scenery of a built map")
+    ap.add_argument("--transit", action="store_true", help="redo only the public transport of a built map")
     args = ap.parse_args()
-    build(config.load(args.experiment), args.force, args.scenery)
+    build(config.load(args.experiment), args.force, args.scenery, args.transit)
 
 
 if __name__ == "__main__":

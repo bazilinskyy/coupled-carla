@@ -33,6 +33,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Quick start](#quick-start)
 - [Cities](#cities)
 - [Real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather)
+- [Public transport](#public-transport)
 - [Experiment files](#experiment-files)
 - [Participants, inputs and views](#participants-inputs-and-views)
 - [Coupled experiments (phase 2)](#coupled-experiments-phase-2)
@@ -59,7 +60,8 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 | **Any place** | `map.bbox: [south, west, north, east]` -> OSM download -> pruned road graph -> OpenDRIVE for CARLA + matching SUMO network, in seconds (2.6 s for 1.6 km of central Eindhoven, plus the download). Left- and right-hand traffic. |
 | **Real-world scenery** | Every map is filled from free open data: real terrain on the roads (AHN lidar in the Netherlands, AWS Terrain Tiles elsewhere), buildings at their real footprints and heights (3DBAG, IGN BD TOPO, NYC Open Data, Overture Maps), OSM street trees by species and height, parks, water, lamps, benches, bus shelters, bollards and road signs, and the weather and sun of a real place and time (Open-Meteo) ([Real-world scenery](#real-world-scenery-terrain-and-weather)). |
 | **19 cities** | Eindhoven plus 18 cities on six continents, from Tokyo and Cairo to Luang Prabang and Ushuaia ([Cities](#cities)). |
-| **Traffic models** | SUMO drives everything that is not a participant: EIDM car following, the sublane lane-change model (cyclists and cars share and overtake), a Dutch-flavoured fleet with Gazelle bikes and buses, random demand by city size. The participant's car is mirrored into SUMO, so traffic reacts to them. |
+| **Traffic models** | SUMO drives everything that is not a participant: EIDM car following, the sublane lane-change model (cyclists and cars share and overtake), a Dutch-flavoured fleet with Gazelle bikes and buses, random car and bike demand by city size. The participant's car is mirrored into SUMO, so traffic reacts to them. |
+| **Real public transport** | The bus lines of OpenStreetMap run on their real streets and stop at their real stops (16 of the 19 maps have OSM bus lines); where the city publishes a GTFS timetable (10 maps) they come as often as that timetable says for the trial's hour and day ([Public transport](#public-transport)). |
 | **City-scale, real time** | SUMO simulates the whole map; only actors within 250 m of a participant exist in CARLA (level of detail), which keeps a city real time on one GPU. |
 | **Participants** | Keyboard, Logitech G25 wheel with force feedback, or autopilot; driver, hood or chase view. |
 | **Logging** | coupled-sim-style per-frame CSV at 50 Hz (participants always, AI actors near them), events, live JSON over UDP 40131, SUMO's trajectory output for the whole network, CARLA's recorder for replay. |
@@ -224,33 +226,34 @@ autopilot followed the left-hand OSM lanes' direction in 14 of 15 checked sample
 **Smoke test** of every map (40 s headless autopilot trial each; full table in
 [`docs/city_tests.md`](docs/city_tests.md)):
 
-Smoke test, 2026-11-14: 40 s headless autopilot trial per map, CARLA 0.9.16 at Epic, 50 Hz, on lin4080 (RTX 4080 SUPER, not shared at the time), with the real-world scenery and terrain (Leuven flat, see the README).
+Smoke test, 2026-11-14: 40 s headless autopilot trial per map, CARLA 0.9.16 at Epic, 50 Hz, on lin4080 (RTX 4080 SUPER, not shared at the time), with the real-world scenery, terrain and bus lines.
 
-| Map | Continent | Size | Traffic | Lane links | Buildings | Building heights | Relief (m) | Scenery meshes | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane | Collisions | Result |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Eindhoven | Europe | medium | right | 2246 | 2998 | 3dbag | 11 | 13711 | 16 | 0.982 | 0 | 0 | 2 | 0 | ok |
-| Cairo (Tahrir) | Africa | large | right | 3835 | 1308 | overture | 66 | 10814 | 4 | 0.993 | 0 | 0 | 0 | 0 | ok |
-| Kigali | Africa | medium | right | 1655 | 2942 | overture | 188 | 15270 | 2 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| Stellenbosch | Africa | small | left | 1748 | 1683 | overture | 32 | 8665 | 7 | 0.991 | 0 | 9 | 9 | 0 | ok |
-| Tokyo (Shibuya) | Asia | large | left | 5057 | 3833 | overture | 87 | 15735 | 11 | 0.986 | 0 | 1 | 1 | 0 | ok |
-| Taipei (Main Station) | Asia | medium | right | 2940 | 2679 | overture | 48 | 15461 | 0 | 0.993 | 0 | 2 | 2 | 0 | ok |
-| Luang Prabang | Asia | small | right | 1418 | 3611 | overture | 87 | 10402 | 2 | 0.995 | 0 | 0 | 0 | 0 | ok |
-| London (Westminster) | Europe | large | left | 2751 | 2069 | overture | 30 | 10053 | 1 | 0.994 | 0 | 1 | 1 | 0 | ok |
-| Lyon (Bellecour) | Europe | medium | right | 2276 | 2518 | bdtopo | 135 | 19667 | 3 | 0.991 | 0 | 2 | 2 | 0 | ok |
-| Leuven | Europe | small | right | 1537 | 5049 | overture | – | 19197 | 4 | 0.992 | 0 | 3 | 3 | 0 | ok |
-| New York (Midtown) | North America | large | right | 2229 | 1404 | nyc | 14 | 7463 | 5 | 0.986 | 0 | 0 | 0 | 0 | ok |
-| Portland, Oregon | North America | medium | right | 4368 | 710 | overture | 50 | 14077 | 3 | 0.989 | 0 | 0 | 0 | 0 | ok |
-| Burlington, Vermont | North America | small | right | 2033 | 1974 | overture | 83 | 12027 | 4 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| São Paulo (Sé) | South America | large | right | 2164 | 3182 | overture | 85 | 16300 | 5 | 0.99 | 0 | 0 | 0 | 0 | ok |
-| Montevideo | South America | medium | right | 1917 | 2411 | overture | 64 | 12668 | 8 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| Ushuaia | South America | small | right | 2404 | 2309 | overture | 129 | 12561 | 2 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| Sydney (CBD) | Oceania | large | left | 2609 | 985 | overture | 111 | 14601 | 1 | 0.991 | 0 | 6 | 6 | 0 | ok |
-| Auckland (CBD) | Oceania | medium | left | 3926 | 1142 | overture | 47 | 14633 | 1 | 0.99 | 0 | 0 | 0 | 0 | ok |
-| Nouméa | Oceania | small | right | 1786 | 2465 | overture | 67 | 18425 | 3 | 0.994 | 0 | 1 | 1 | 0 | ok |
+| Map | Continent | Size | Traffic | Lane links | Buildings | Building heights | Relief (m) | Scenery meshes | Bus lines (with timetable) | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane | Collisions | Result |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Eindhoven | Europe | medium | right | 2318 | 2998 | 3dbag | 11 | 13709 | 51 (45) | 12 | 0.991 | 0 | 2 | 2 | 0 | ok |
+| Cairo (Tahrir) | Africa | large | right | 3835 | 1308 | overture | 66 | 10814 | – | 4 | 0.994 | 0 | 0 | 0 | 0 | ok |
+| Kigali | Africa | medium | right | 1655 | 2942 | overture | 188 | 15270 | 18 (0) | 2 | 0.992 | 0 | 1 | 1 | 0 | ok |
+| Stellenbosch | Africa | small | left | 1748 | 1683 | overture | 32 | 8665 | – | 5 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| Tokyo (Shibuya) | Asia | large | left | 5057 | 3833 | overture | 87 | 15735 | 31 (10) | 13 | 0.992 | 0 | 1 | 1 | 0 | ok |
+| Taipei (Main Station) | Asia | medium | right | 2940 | 2679 | overture | 48 | 15461 | 150 (0) | 14 | 0.99 | 0 | 0 | 0 | 0 | ok |
+| Luang Prabang | Asia | small | right | 1418 | 3611 | overture | 87 | 10402 | – | 2 | 0.995 | 0 | 0 | 0 | 0 | ok |
+| London (Westminster) | Europe | large | left | 2751 | 2069 | overture | 30 | 10053 | 31 (0) | 2 | 0.994 | 0 | 1 | 1 | 0 | ok |
+| Lyon (Bellecour) | Europe | medium | right | 2276 | 2518 | bdtopo | 135 | 19667 | 21 (20) | 4 | 0.992 | 0 | 1 | 1 | 0 | ok |
+| Leuven | Europe | small | right | 1537 | 5049 | overture | 26 | 19194 | 26 (26) | 3 | 0.991 | 0 | 1 | 1 | 0 | ok |
+| New York (Midtown) | North America | large | right | 2229 | 1404 | nyc | 14 | 7463 | 67 (54) | 9 | 0.985 | 0 | 0 | 0 | 0 | ok |
+| Portland, Oregon | North America | medium | right | 4368 | 710 | overture | 50 | 14077 | 27 (25) | 5 | 0.988 | 0 | 0 | 0 | 0 | ok |
+| Burlington, Vermont | North America | small | right | 2033 | 1974 | overture | 83 | 12027 | 10 (2) | 3 | 0.992 | 0 | 1 | 1 | 0 | ok |
+| São Paulo (Sé) | South America | large | right | 2164 | 3182 | overture | 85 | 16300 | 64 (56) | 4 | 0.989 | 0 | 0 | 0 | 0 | ok |
+| Montevideo | South America | medium | right | 1917 | 2411 | overture | 64 | 12668 | 3 (0) | 5 | 0.991 | 0 | 0 | 0 | 0 | ok |
+| Ushuaia | South America | small | right | 2404 | 2309 | overture | 129 | 12561 | 2 (0) | 3 | 0.993 | 0 | 0 | 0 | 0 | ok |
+| Sydney (CBD) | Oceania | large | left | 2609 | 985 | overture | 111 | 14601 | 32 (31) | 1 | 0.99 | 0 | 8 | 8 | 0 | ok |
+| Auckland (CBD) | Oceania | medium | left | 3935 | 1142 | overture | 47 | 14632 | 31 (29) | 0 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| Nouméa | Oceania | small | right | 1786 | 2465 | overture | 67 | 18425 | – | 3 | 0.994 | 0 | 0 | 0 | 0 | ok |
 
 All 19 maps load and drive with their scenery. "Scenery meshes" counts the placements on the whole map (about
-2,000-2,700 are loaded at a time around the car); "Relief" is the terrain's height range within the box
-(Leuven is built flat, see [Real-world scenery](#real-world-scenery-terrain-and-weather)). "SUMO vehicles shown"
+2,000-2,700 are loaded at a time around the car); "Relief" is the terrain's height range within the box; "Bus
+lines" counts the OSM line numbers matched onto the map and, in brackets, those with a GTFS timetable (Nouméa's
+three lines have no numbers; see [Public transport](#public-transport)). "SUMO vehicles shown"
 counts the SUMO vehicles that came within the level-of-detail radius of the ego during the 40 s (demand starts at
 the map edges, so the first 40 s are sparse). "Stuck" and "Put back on lane" are autopilot recoveries (it follows
 random lanes). The previous run (2026-11-13, no scenery, GPU shared with another job, spectator not parked) had
@@ -307,9 +310,6 @@ How it is placed (`coupledcarla/scenery.py`, `coupledcarla/realworld.py`):
   fall as the streets do (Kigali: 187 m of relief in the box, Lyon 135 m). Bridges and tunnels keep a straight
   grade between their ends instead of following the river or the hill, and bridges over roads are raised by
   their OSM layer. SUMO vehicles, walkers and the drawn traffic lights all take their height from the road.
-  Leuven is built flat (`map.elevation: false`): with terrain, the SUMO net converted from its OpenDRIVE
-  segfaults SUMO at the first step after the participant's car is moved into it (SUMO alone runs it fine, and a
-  flat SUMO net beside the elevated OpenDRIVE crashed too), and Leuven has only 26 m of relief.
 - **Buildings.** Each footprint is split into rectangles until they cover it well; each rectangle gets the
   CARLA building whose proportions, height and kind (house, apartment block, commercial, tower, industrial,
   church) fit best, turned to the footprint, scaled (0.6 to 1.5) and repeated along long blocks, standing on
@@ -341,6 +341,54 @@ Built from these sources (the test maps of central Eindhoven, Lyon, Kigali and N
 
 Where OSM maps few street lamps, lamps line the roads every 32 m (on by default, `guess_lamps`). The lamp
 meshes give no light at night: CARLA 0.9.16 cannot add lights at run time.
+
+## Public transport
+
+Buses follow the real lines (`coupledcarla/transit.py`), built with the map:
+
+| Step | Source (free, no key) | What happens |
+|---|---|---|
+| Lines and stops | OSM route relations (`route=bus/trolleybus/minibus/share_taxi`) via Overpass, clipped to the box | each line's track is laid on the SUMO net (the edge under each track point that runs the line's way; gaps closed by short bus paths); its stop positions, else platforms, become SUMO bus stops |
+| Bus-only roads and lanes | OSM `highway=busway`, bus lanes | kept in the map; their OpenDRIVE lanes (`restricted`) are open to buses, taxis and emergency vehicles in SUMO |
+| Frequencies | the city's GTFS feed, found in the [Mobility Database](https://mobilitydatabase.org) catalogue by the box (the Dutch national OVapi feed for the Netherlands) | trips of each line entering the box, per hour, for a weekday, a Saturday and a Sunday |
+
+In a trial each line runs at its timetable's frequency for the local hour of `simulation.time` (08:00 on a
+weekday when unset), at the OSM `interval` tag where there is no timetable, else every
+`default_headway_min`; a line the timetable does not run at that hour has no buses. Buses are already spread
+along their line at t = 0 and stop `dwell_s` at each stop; SUMO's `sumo_stops.xml` logs every stop. On maps
+without OSM bus lines the old random bus trips run instead. At 08:00 on a weekday a two-minute Eindhoven trial has
+106 of its 107 line sections running and 33 buses; a one-minute Taipei trial (150 line numbers, no free
+timetable, so every 10 min each) has 186.
+
+| Map | Lines (numbers) | Stops | Timetable |
+|---|---|---|---|
+| Eindhoven | 51 | 19 | OVapi (NL): 45 lines |
+| Lyon | 21 | 40 | SYTRAL Mobilités: 20 |
+| Leuven | 26 | 17 | De Lijn: 26 |
+| New York | 67 | 34 | MTA (five borough feeds): 54 |
+| São Paulo | 64 | 47 | SPTrans: 56 |
+| Sydney | 32 | 8 | Transport for NSW: 31 |
+| Auckland | 31 | 31 | Auckland Transport: 29 |
+| Portland | 27 | 74 | TriMet: 25 |
+| Tokyo | 31 | 24 | Toei Bus: 10 (the rest are private operators) |
+| London, Taipei, Kigali, Montevideo, ... | | | none free (TfL publishes no GTFS); OSM interval or default |
+
+```yaml
+map:
+  transit: true                       # build the bus lines with the map (default)
+traffic:
+  public_transport: {enabled: true, dwell_s: 20, default_headway_min: 10}
+simulation:
+  time: "2026-11-16 17:30"            # the timetable of that day type and hour
+```
+
+```bash
+python -m coupledcarla.mapbuild experiments/cities/lyon.yaml --transit   # redo only the bus lines (seconds)
+```
+
+Trams and trains are left out (CARLA has no tram and the maps have no rails); a line that leaves and
+re-enters the box runs as separate sections; GTFS frequencies are per line and hour, averaged over its
+directions.
 
 ## Experiment files
 
@@ -607,7 +655,8 @@ twin's OpenDRIVE), BGT road surfaces, VR.
 - **Fleet.** Cars from a weighted mix of compact European-style CARLA models; Gazelle omafiets,
   BH crossbike and Diamondback bikes (cyclists at about 5 m/s with spread); a bus.
 - **Demand.** Random trips (`randomTrips.py --validate`) per class and hour, with a fringe factor so traffic
-  enters at the edges of the map; the cities scale demand by size.
+  enters at the edges of the map; the cities scale demand by size. Buses run the real lines (see
+  [Public transport](#public-transport)).
 - **Interaction.** The participant's car is mirrored into SUMO each tick (`moveToXY`), so SUMO vehicles brake
   for it, queue behind it and yield to it.
 - **Level of detail.** SUMO simulates the whole map; a SUMO vehicle exists in CARLA only within
@@ -788,7 +837,8 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
   wired LAN; multi-GPU secondaries are not used yet.
 - **Signal programs:** CARLA's converter replaces SUMO's OSM-derived, junction-coordinated programs with one
   default program per approach (green 42 s, yellow 3 s, red 3 s). Real programs are a follow-up.
-- **Buses** run on random routes, not the real lines (GTFS feeds are the follow-up).
+- **Public transport** is buses only (no trams or trains), with frequencies per hour rather than the exact
+  departures; cities without a free GTFS feed (London, Taipei, Kigali, ...) use OSM intervals or a default.
 - **Autopilot:** the test autopilot follows random lanes; on a few lane drops it leaves the road and is put back
   (logged). Scripted agents use routes (CARLA's route planner with a bounded topology walk, see Lessons
   learned); on some maps (New York) a route between two given points is not found and the agent follows lanes.
@@ -808,8 +858,8 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
    Digital Twin baker is done on lin5080), the Digital Twin pipeline with Dutch national data for
    Eindhoven (AHN terrain, PDOK aerial photos and 3DBAG buildings done, BGT road surfaces next), the baked
    level loaded with the SUMO bridge, VR.
-4. **Phase 4, live data:** real signal programs (Eindhoven's smart traffic lights), real bus lines and
-   near-live vehicles from open feeds (GTFS-RT/OVapi, NDW counts for demand), more cities.
+4. **Phase 4, live data:** real signal programs (Eindhoven's smart traffic lights), near-live buses from
+   GTFS-RT (OVapi), NDW counts for demand, more cities. (Real bus lines at timetable frequencies are done.)
 
 ## Lessons learned (gotchas)
 
@@ -864,6 +914,22 @@ What cost time while building phases 1 and 2, so it does not again:
   `SideWalkCube` scaled and sunk works as paving, `Terrain/Town03/SM_Square_60` as grass.
 - `sumolib`'s `lane.getShape(True)` includes junctions; the 3D shape is `getShape3D()`.
 - `pkill -f "CarlaUE4...port=2000"` inside `ssh host '...'` matches the ssh command line itself and kills it.
+- SUMO 1.27/1.28 segfaults (`MSVehicle::getBackPositionOnLane`, found with a debug build and a replayed TraCI
+  trace) when a vehicle placed with `moveToXY` straddles two lanes under the sublane model: it gets a shadow
+  lane but no further lanes, and the next vehicle that looks at it across a junction crashes SUMO. CARLA's
+  junction paths are not SUMO's internal lanes, so the participant's car did straddle them (Taipei, and
+  Leuven). The bridge now keeps CARLA-driven vehicles within 0.6 m of their SUMO lane's centre.
+- `moveToXY(..., keepRoute=2)` (CARLA's bridge default) ignores lane permissions: where the nearest lane is
+  closed to cars (an internal bike or bus lane), SUMO lists the car but puts it on no lane, and the next query or
+  FCD record dereferences the missing lane (Leuven segfaulted at the first step; it was built flat for this until
+  now). The bridge maps with `keepRoute=0` first and falls back to 2 only off the road.
+  `COUPLED_SUMO_TRACE=1` records a trial's TraCI calls, which replay without CARLA, for such hunts.
+- netconvert writes OSM bus-only lanes as OpenDRIVE `restricted`, and SUMO's OpenDRIVE import closes those to
+  everything, buses included; the vendored type map opens them to buses.
+- Overpass `out geom(bbox)` returns `null` for the points of a way outside the box: split the way there.
+- GTFS line names need Unicode folding to match OSM (Tokyo writes `都０１（Ｔ０１）`, OSM `都01(T01)`), and the
+  Mobility Database files some feeds under a wrong country or box (OVapi's gtfs-nl as AT; Sydney's box covers
+  Taipei): sort feeds by box size and count a feed only when it has stops inside the map.
 
 ## Project layout
 
@@ -873,6 +939,7 @@ coupledcarla/
   mapbuild.py        OSM (+ terrain heights) -> pruned SUMO net -> OpenDRIVE -> CARLA-consistent SUMO net
   realworld.py       real-world data: OSM features, Overture, 3DBAG, BD TOPO, NYC, AHN, Terrain Tiles, Open-Meteo, sun
   scenery.py         buildings, trees, furniture, signs and ground placed from it; streamed in at run time
+  transit.py         bus lines and stops from OSM on the SUMO net, GTFS frequencies (Mobility Database), trial buses
   data/              meshes_0.9.16.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
   traffic.py         SUMO vehicle types and demand per trial
@@ -911,6 +978,8 @@ maps/, logs/         built maps and trial logs (not in git)
 - [CARLA](https://github.com/carla-simulator/carla) (MIT); the SUMO bridge in `coupledcarla/bridge` is
   vendored from CARLA 0.9.16 `Co-Simulation/Sumo` (MIT, © CVC) and modified.
 - [Eclipse SUMO](https://eclipse.dev/sumo/) (EPL-2.0), used as a separate program and through TraCI.
+- Public transport: the GTFS feeds of the transit agencies (each feed's licence is recorded in the map's
+  `transit.json`), found through the [Mobility Database](https://mobilitydatabase.org) catalogue (MobilityData).
 - Scenery data: [Overture Maps](https://overturemaps.org) buildings (ODbL / CDLA Permissive 2.0),
   [IGN BD TOPO](https://geoservices.ign.fr/bdtopo) (Licence Ouverte 2.0), [NYC Open Data](https://data.cityofnewyork.us)
   building footprints, [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen; SRTM, USGS 3DEP and

@@ -46,6 +46,8 @@ SOURCES = {
     "ahn": ("AHN4 DTM 0.5 m via PDOK (Rijkswaterstaat)", "CC0 1.0"),
     "terrarium": ("AWS Terrain Tiles (Mapzen Terrarium: SRTM, 3DEP, national lidar, ...)", "see their attribution"),
     "open-meteo": ("Open-Meteo.com weather API (national weather services, ERA5)", "CC BY 4.0"),
+    "gtfs": ("GTFS timetables of the local transit agencies, found via the Mobility Database catalogue",
+             "per feed (see transit.json)"),
 }
 
 
