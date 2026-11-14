@@ -1,0 +1,35 @@
+# Eindhoven city centre as a baked CARLA 1.0 level with realistic buildings: the carla-digitaltwins twin
+# EhvCentreFacades. Same roads, ground and OpenDRIVE as eindhoven_twin.yaml (EhvCentre); its 3DBAG buildings get a
+# facade style from their BAG construction year and use (brick of three periods, render, concrete and glass offices,
+# industrial cladding, shopfront ground floors, plain party walls) and roofs textured with the PDOK aerial photo
+# (carla-digitaltwins tools/threedbag_buildings.py). Needs a CARLA 1.0 server that has the level (see README).
+name: eindhoven_twin_facades
+
+map:
+  opendrive: twins/EhvCentre.xodr   # the twin's OpenDRIVE, copied next to the experiments (not in git: see README)
+  carla_level: EhvCentreFacades
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 2400
+  bikes_per_hour: 1200
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 51.44453, lon: 5.47883}   # Fellenoord by the station
+
+pois:
+  - {name: eindhoven_centraal, lat: 51.4433, lon: 5.4797}
+  - {name: 18_septemberplein, lat: 51.4385, lon: 5.4780}
+
+trials:
+  - {duration_s: 300}
