@@ -23,7 +23,7 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, inputs, mapbuild, realworld, traffic
+from . import analysis, compat, config, crowdpeds, inputs, mapbuild, realworld, season, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
@@ -131,6 +131,8 @@ def set_weather(world, sc, latlon=None, cache_dir=None, log=print):
             f"at {az:.0f} deg" + (f", clouds {rec['cloud_cover']}%, rain {rec.get('rain')} mm/h, wind "
                                  f"{rec.get('wind_speed_10m')} km/h, {rec.get('temperature_2m')} C"
                                  if real and rec else ""))
+        if real and rec and (rec.get("snow_depth") or 0) >= 0.01:
+            log(f"{rec['snow_depth'] * 100:.0f} cm of snow on the ground that hour: CARLA cannot show snow")
     if sc.get("sun_altitude") is not None:
         weather.sun_altitude_angle = sc["sun_altitude"]
     world.set_weather(weather)
@@ -354,11 +356,14 @@ def run_trial(cfg, trial_idx, args, control=None):
         scenery = None
         if has_scenery:
             t_s = time.time()
+            seas, seas_info = season.for_trial(tc, mdir, world, log)   # leaf state; lamps lit on 1.0 at night
+            (out / "season.json").write_text(json.dumps(seas_info, indent=2))
             scenery = Scenery(client, world, mdir, tc["simulation"].get("scenery") or {}, log,
-                              on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
+                              on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}), season=seas)
             scenery.update([a.get_location() for a in focus_actors])
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
-                f"({time.time() - t_s:.1f} s)")
+                f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
+                                                  f"{scenery.lights_radius:.0f} m" if scenery.light_bp else ""))
         for part in parts:   # BasicAgent planned from (0, 0, 0) before the first tick: plan from the spawn lane
             if hasattr(part.input, "restart"):
                 part.input.restart(world.get_map().get_waypoint(part.actor.get_location()))

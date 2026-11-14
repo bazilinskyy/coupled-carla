@@ -1,0 +1,44 @@
+{
+	"Blueprints": [
+		{
+			"Name": "cc_streetlight06_a",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight06_A.BP_StreetLight06_A"
+		},
+		{
+			"Name": "cc_streetlight06_b",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight06_B.BP_StreetLight06_B"
+		},
+		{
+			"Name": "cc_streetlight06_c",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight06_C.BP_StreetLight06_C"
+		},
+		{
+			"Name": "cc_streetlight06_d",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight06_D.BP_StreetLight06_D"
+		},
+		{
+			"Name": "cc_streetlight06_e",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight06_E.BP_StreetLight06_E"
+		},
+		{
+			"Name": "cc_streetlight01",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight01.BP_StreetLight01"
+		},
+		{
+			"Name": "cc_streetlight02",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight02.BP_StreetLight02"
+		},
+		{
+			"Name": "cc_streetlight03",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight03.BP_StreetLight03"
+		},
+		{
+			"Name": "cc_streetlight04",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight04.BP_StreetLight04"
+		},
+		{
+			"Name": "cc_streetlight05",
+			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight05.BP_StreetLight05"
+		}
+	]
+}

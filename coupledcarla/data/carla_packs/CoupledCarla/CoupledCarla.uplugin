@@ -1,0 +1,10 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "CoupledCarla",
+	"Description": "coupled-carla: CARLA's street lamp blueprints (each with its CarlaLight) in the blueprint library as blueprint.cc_*",
+	"CanContainContent": true,
+	"ExplicitlyLoaded": true,
+	"Modules": []
+}

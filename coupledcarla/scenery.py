@@ -599,6 +599,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     from shapely.ops import unary_union
     from shapely.strtree import STRtree
     from . import realworld as rw
+    from . import season
 
     mc = cfg["map"]
     sc = mc.get("scenery") or {}
@@ -781,8 +782,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     pl.counts["tree_dropped"] += 1
                     continue
                 h = _number(t.get("height")) or canopy_h(x, y)
-                mesh, s = _tree(cat, _tree_family(t, el["lat"], ms.GENUS), h, el["id"])
+                fam = _tree_family(t, el["lat"], ms.GENUS)
+                mesh, s = _tree(cat, fam, h, el["id"])
                 pl.add("tree", mesh, x, y, _h(el["id"]) % 360, s, sink=0.1)
+                season.record(pl, cat, t, fam, mesh, s, el["id"], x, y)
                 tree_pts.append((x, y))
                 pl.counts["tree_osm"] += 1
             elif el["type"] == "way" and t.get("natural") == "tree_row" and el.get("geometry"):
@@ -795,6 +798,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     mesh, s = _tree(cat, fam, _number(t.get("height")) or canopy_h(p.x, p.y),
                                     (el["id"], 0))   # one size per row, unless the canopy map says otherwise
                     pl.add("tree", mesh, p.x, p.y, _h(el["id"], i) % 360, s, sink=0.1)
+                    season.record(pl, cat, t, fam, mesh, s, (el["id"], 0), p.x, p.y)
                     tree_pts.append((p.x, p.y))
                     pl.counts["tree_row"] += 1
         # parks, gardens and woods
@@ -823,6 +827,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                         continue
                     mesh, s = _tree(cat, fam, canopy_h(x, y), (round(x), round(y)))
                     pl.add("tree", mesh, x, y, rng.uniform(0, 360), s, sink=0.1)
+                    season.record(pl, cat, {}, fam, mesh, s, (round(x), round(y)), x, y)
                     planted += 1
         pl.counts["tree_planted"] = planted
         log(f"scenery: {pl.counts['tree']} trees ({pl.counts['tree_osm']} street trees (OSM and registers), "
@@ -1060,9 +1065,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             pl.counts["ground_bgt"], pl.counts["ground_changed"], pl.counts["ground_split"] = bgt_tiles, changed, split
         log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface)")
 
+    leaf = season.finish(pl)        # deciduous trees' autumn and bare stand-ins (meshes after the placed ones)
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
     out = {"version": 1, "catalog": cat.version, "cell_m": CELL, "meshes": [cat.path(m) for m in meshes],
-           "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources)}
+           "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources), "leaf": leaf}
     (mdir / "scenery.json").write_text(json.dumps(out, separators=(",", ":")))
     log(f"scenery: {len(pl.items)} placements -> {mdir / 'scenery.json'}")
     return out
@@ -1071,9 +1077,13 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 # --- run time ------------------------------------------------------------------------------------------------
 
 class Scenery:
-    """Spawns scenery.json's placements in cells around focus points and removes them behind."""
+    """Spawns scenery.json's placements in cells around focus points and removes them behind.
 
-    def __init__(self, client, world, mdir, sc, log=print, on_spawn=None):
+    season (season.for_trial): deciduous trees in autumn colour, bare stand-ins or left out by the trial's date,
+    and on CARLA 1.0 at night lamps spawned as the street-light blueprints that carry a light, in the cells within
+    lights_radius_m of a participant."""
+
+    def __init__(self, client, world, mdir, sc, log=print, on_spawn=None, season=None):
         self.client, self.world, self.log, self.on_spawn = client, world, log, on_spawn
         self.sc = sc
         data = json.loads((Path(mdir) / "scenery.json").read_text())
@@ -1083,7 +1093,22 @@ class Scenery:
         self.cell = float(data.get("cell_m", CELL))
         self.cells = defaultdict(list)
         self.always = []
-        for it in data["items"]:
+        items = data["items"]
+        season = season or {}
+        if season.get("state", "leaf") != "leaf":
+            from . import season as season_mod
+            items = season_mod.apply(items, data.get("leaf"), season, log)
+        # lamps that carry a light (CARLA 1.0 at night): mesh index -> blueprint id
+        by_name = {path.rsplit(".", 1)[-1]: i for i, path in enumerate(self.meshes)}
+        self.light_bp = {by_name[m]: bp for m, bp in (season.get("lights") or {}).items() if m in by_name}
+        self.lights_radius = float(season.get("lights_radius_m", 200.0))
+        self.lit, self.lamps, self.n_lights = set(), {}, 0
+        if self.light_bp:
+            lib = world.get_blueprint_library()
+            self.light_bp = {i: lib.find(bp) for i, bp in self.light_bp.items()}
+        for it in items:
+            if it is None:
+                continue
             if it[6] == "landmark" and "building" in kinds:
                 self.always.append(it)
             elif it[6] not in kinds:
@@ -1097,21 +1122,43 @@ class Scenery:
         if self.always:
             self._spawn(("always",), self.always)
 
-    def _spawn(self, key, items):
+    def _spawn(self, key, items, lit=False):
         import carla
-        cmds = []
+        cmds, lamp = [], []
         for it in items:
-            self.bp.set_attribute("mesh_path", self.meshes[it[0]])
-            self.bp.set_attribute("scale", str(it[5]))
             pitch, roll = (it[7] if len(it) > 7 else (0.0, 0.0))
             tf = carla.Transform(carla.Location(x=it[1], y=it[2], z=it[3]),
                                  carla.Rotation(pitch=pitch, yaw=it[4], roll=roll))
-            cmds.append(carla.command.SpawnActor(self.bp, tf))
-        ids = [r.actor_id for r in self.client.apply_batch_sync(cmds, False) if not r.error]
-        self.loaded[key] = ids
+            light = lit and it[6] == "lamp" and it[0] in self.light_bp and abs(it[5] - 1.0) < 0.01
+            if light:       # the street-light blueprint: the same mesh and pivot, plus its light (no scale)
+                cmds.append(carla.command.SpawnActor(self.light_bp[it[0]], tf))
+            else:
+                self.bp.set_attribute("mesh_path", self.meshes[it[0]])
+                self.bp.set_attribute("scale", str(it[5]))
+                cmds.append(carla.command.SpawnActor(self.bp, tf))
+            lamp.append(it[6] == "lamp" and it[0] in self.light_bp)
+        res = self.client.apply_batch_sync(cmds, False)
+        ids = [r.actor_id for r in res if not r.error]
+        if self.light_bp:
+            self.lamps[key] = [r.actor_id for r, is_lamp in zip(res, lamp) if is_lamp and not r.error]
+            if lit:
+                self.lit.add(key)
+                self.n_lights += len(self.lamps[key])
+        self.loaded.setdefault(key, []).extend(ids)
         self.n += len(ids)
         if self.on_spawn:
             self.on_spawn(ids)
+
+    def _relight(self, key):
+        """A loaded cell that came within lights_radius_m: its lamps again as light blueprints."""
+        import carla
+        old = self.lamps.get(key) or []
+        if old:
+            self.client.apply_batch_sync([carla.command.DestroyActor(i) for i in old], False)
+            gone = set(old)
+            self.loaded[key] = [i for i in self.loaded[key] if i not in gone]
+            self.n -= len(old)
+        self._spawn(key, [it for it in self.cells[key] if it[6] == "lamp" and it[0] in self.light_bp], lit=True)
 
     def update(self, points):
         """Load the cells within radius_m of any point, unload those beyond radius + one cell."""
@@ -1137,10 +1184,31 @@ class Scenery:
                 ids = self.loaded.pop(key)
                 self.client.apply_batch([carla.command.DestroyActor(i) for i in ids])
                 self.n -= len(ids)
+                if key in self.lit:
+                    self.lit.discard(key)
+                    self.n_lights -= len(self.lamps.get(key) or [])
+                self.lamps.pop(key, None)
+        lit = self._lit_cells(points) if self.light_bp else set()
         new = [k for k in want if k in self.cells and k not in self.loaded]
         for key in new:
-            self._spawn(key, self.cells[key])
+            self._spawn(key, self.cells[key], lit=key in lit)
+        for key in [k for k in lit if k in self.loaded and k not in self.lit and self.lamps.get(k)]:
+            self._relight(key)
         return len(new)
+
+    def _lit_cells(self, points):
+        """Cells whose nearest part is within lights_radius_m of a point (all cells for radius_m 0)."""
+        if self.radius <= 0 or self.lights_radius <= 0:
+            return set(self.cells)
+        out, r, c = set(), self.lights_radius, self.cell
+        for p in points:
+            k = int(r // c) + 1
+            for i in range(int(p.x // c) - k, int(p.x // c) + k + 1):
+                for j in range(int(p.y // c) - k, int(p.y // c) + k + 1):
+                    if math.hypot(max(0.0, abs((i + 0.5) * c - p.x) - c / 2),
+                                  max(0.0, abs((j + 0.5) * c - p.y) - c / 2)) <= r:
+                        out.add((i, j))
+        return out
 
     def destroy(self):
         import carla
@@ -1148,3 +1216,4 @@ class Scenery:
         if ids:
             self.client.apply_batch_sync([carla.command.DestroyActor(i) for i in ids], False)
         self.loaded, self.n = {}, 0
+        self.lit, self.lamps, self.n_lights = set(), {}, 0
