@@ -1024,6 +1024,12 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             pl.counts["ground_bgt"], pl.counts["ground_changed"], pl.counts["ground_split"] = bgt_tiles, changed, split
         log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface)")
 
+    if sc.get("parked", True):      # parked cars at the kerbs and on car parks (parking.py, parked.json)
+        from . import parking
+        try:
+            pl.counts.update(parking.build(mdir, cfg, geo, cat, cmap, ground, pl, blds, log))
+        except Exception as err:  # noqa: BLE001 - a map without parked cars still drives
+            log(f"parked: failed ({err}); no parked cars")
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
     out = {"version": 1, "catalog": cat.version, "cell_m": CELL, "meshes": [cat.path(m) for m in meshes],
            "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources)}
@@ -1037,10 +1043,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 class Scenery:
     """Spawns scenery.json's placements in cells around focus points and removes them behind."""
 
-    def __init__(self, client, world, mdir, sc, log=print, on_spawn=None):
+    def __init__(self, client, world, mdir, sc, log=print, on_spawn=None, data=None):
         self.client, self.world, self.log, self.on_spawn = client, world, log, on_spawn
         self.sc = sc
-        data = json.loads((Path(mdir) / "scenery.json").read_text())
+        data = data or json.loads((Path(mdir) / "scenery.json").read_text())   # data: e.g. parking.trial_data
         self.meshes = data["meshes"]
         kinds = set(sc.get("kinds") or ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"])
         self.radius = float(sc.get("radius_m", 400.0))

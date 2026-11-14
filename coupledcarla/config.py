@@ -30,6 +30,8 @@ DEFAULTS = {
             "bgt": "auto",           # the Dutch BGT (bgt.py): ground surfaces (grass, bricks/tiles, asphalt,
                                      # gravel) and municipal street furniture, for maps in the Netherlands; false: off
             "canopy": True,          # trees without a mapped height: sized by Meta/WRI's 1 m canopy height map
+            "parked": True,          # parking stalls at the kerbs (OSM parking tags, BGT parkeervlak, a default by
+                                     # road class) and on car parks, with a car each (parking.py -> parked.json)
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
@@ -60,6 +62,9 @@ DEFAULTS = {
                                      # the sun stands where it did; with weather: real, Open-Meteo's weather
         "scenery": {"radius_m": 400.0,   # scenery cells within this distance of participants (0: all at once)
                     "kinds": ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"]},
+        "parked": {"enabled": True,  # parked cars (map.scenery.parked) in the stalls taken at the trial's hour
+                   "radius_m": 250.0,     # streamed within this distance of the participants
+                   "occupancy": "auto"},  # "auto": by zone and local hour (parking.PRESENCE), or a share 0-1
     },
     "traffic": {
         "seed": 42,

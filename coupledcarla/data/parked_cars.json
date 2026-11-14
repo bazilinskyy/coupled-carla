@@ -1,0 +1,304 @@
+{
+"0.9.16": {
+"/Game/Carla/Static/Car/4Wheeled/AudiA2/SM_AudiA2.SM_AudiA2": {
+"cat": "car",
+"ext": [
+1.85,
+0.89,
+0.77
+],
+"off": [
+-0.0,
+0.0,
+0.78
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Beetle/SM_VolkswagenBeetle.SM_VolkswagenBeetle": {
+"cat": "car",
+"ext": [
+1.95,
+0.89,
+0.72
+],
+"off": [
+0.01,
+0.0,
+0.72
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/BmwGranTourer/SM_BMWGrandTourer.SM_BMWGrandTourer": {
+"cat": "car",
+"ext": [
+2.31,
+1.12,
+0.83
+],
+"off": [
+-0.02,
+0.0,
+0.77
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Chevrolet/SM_ChevroletImpala.SM_ChevroletImpala": {
+"cat": "car",
+"ext": [
+2.68,
+1.02,
+0.71
+],
+"off": [
+0.0,
+0.0,
+0.7
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Citroen/SM_Citroen_C3.SM_Citroen_C3": {
+"cat": "car",
+"ext": [
+1.99,
+0.93,
+0.81
+],
+"off": [
+0.0,
+0.0,
+0.76
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Cybertruck/SM_Cybertruck.SM_Cybertruck": {
+"cat": "car",
+"ext": [
+3.14,
+1.19,
+1.05
+],
+"off": [
+0.0,
+0.0,
+1.05
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Jeep/SM_JeepWranglerRubicon.SM_JeepWranglerRubicon": {
+"cat": "car",
+"ext": [
+1.93,
+0.95,
+0.94
+],
+"off": [
+0.0,
+0.0,
+0.93
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Leon/SM_SeatLeon.SM_SeatLeon": {
+"cat": "car",
+"ext": [
+2.1,
+0.91,
+0.74
+],
+"off": [
+0.0,
+-0.0,
+0.74
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/LincolnMKZ2017/SM_LincolnMkz2017_prop.SM_LincolnMkz2017_prop": {
+"cat": "car",
+"ext": [
+2.45,
+1.06,
+0.76
+],
+"off": [
+0.0,
+0.0,
+0.77
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/MIni/SM_MiniCooperS.SM_MiniCooperS": {
+"cat": "car",
+"ext": [
+1.9,
+0.98,
+0.74
+],
+"off": [
+0.01,
+0.0,
+0.69
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Mercedes/SM_MercedesBenzCoupeC.SM_MercedesBenzCoupeC": {
+"cat": "car",
+"ext": [
+2.51,
+1.08,
+0.82
+],
+"off": [
+0.05,
+0.0,
+0.79
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Mustang/SM_Mustang_prop.SM_Mustang_prop": {
+"cat": "car",
+"ext": [
+2.36,
+0.95,
+0.65
+],
+"off": [
+0.03,
+0.0,
+0.65
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Nissan_Micra/SM_NissanMicra.SM_NissanMicra": {
+"cat": "car",
+"ext": [
+1.82,
+0.92,
+0.75
+],
+"off": [
+0.0,
+-0.06,
+0.78
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Nissan_Patrol/SM_NissanPatrolST.SM_NissanPatrolST": {
+"cat": "car",
+"ext": [
+2.3,
+0.97,
+0.93
+],
+"off": [
+-0.06,
+0.0,
+0.94
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/Charger/SM_ChargerParked.SM_ChargerParked": {
+"cat": "car",
+"ext": [
+2.5,
+1.05,
+0.77
+],
+"off": [
+-0.01,
+0.0,
+0.77
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/FordCrown/SM_FordCrown_parked.SM_FordCrown_parked": {
+"cat": "car",
+"ext": [
+2.68,
+0.97,
+0.79
+],
+"off": [
+0.19,
+0.0,
+0.77
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/Lincoln/SM_LincolnParked.SM_LincolnParked": {
+"cat": "car",
+"ext": [
+2.45,
+1.12,
+0.76
+],
+"off": [
+-0.01,
+0.0,
+0.76
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/MercedesCCC/SM_MercedesCCC_Parked.SM_MercedesCCC_Parked": {
+"cat": "car",
+"ext": [
+2.34,
+1.0,
+0.73
+],
+"off": [
+-0.0,
+0.0,
+0.73
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/Mini2021/SM_Mini2021_parked.SM_Mini2021_parked": {
+"cat": "car",
+"ext": [
+2.28,
+1.09,
+0.88
+],
+"off": [
+-0.03,
+0.0,
+0.89
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/NissanPatrol2021/SM_NissanPatrol2021_parked.SM_NissanPatrol2021_parked": {
+"cat": "car",
+"ext": [
+2.78,
+1.22,
+1.02
+],
+"off": [
+0.03,
+0.0,
+1.02
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/TeslaM3/SM_TeslaM3_parked.SM_TeslaM3_parked": {
+"cat": "car",
+"ext": [
+2.4,
+1.08,
+0.74
+],
+"off": [
+0.03,
+0.0,
+0.74
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/VolkswagenT2/SM_VolkswagenT2_2021_Parked.SM_VolkswagenT2_2021_Parked": {
+"cat": "car",
+"ext": [
+2.22,
+0.94,
+0.99
+],
+"off": [
+0.12,
+0.0,
+0.99
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Tesla/SM_Tesla.SM_Tesla": {
+"cat": "car",
+"ext": [
+2.39,
+1.08,
+0.74
+],
+"off": [
+-0.0,
+0.0,
+0.73
+]
+}
+},
+"about": "Static car meshes measured on a CARLA server with scratch probes (static.prop.mesh bounding box, pivot offset and half extents in metres), per CARLA release; parking.py places them as parked cars."
+}
