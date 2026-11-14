@@ -385,8 +385,8 @@ def _ring_xy(geo, ring):
 
 
 def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
-    """Footprints in CARLA coordinates with height, kind and source: national data (3DBAG, BD TOPO, NYC)
-    > Overture > OSM."""
+    """Footprints in CARLA coordinates with height, kind and source: national data (3DBAG, BD TOPO, NYC,
+    PLATEAU) > Overture > OSM."""
     from shapely.geometry import Polygon
     from . import realworld as rw
     bbox = mc["bbox"]
@@ -394,7 +394,7 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
     national, nat_src = [], None
     if mc.get("national_buildings", True):
         for name, fetch in (("3dbag", rw.threedbag_buildings), ("bdtopo", rw.bdtopo_buildings),
-                            ("nyc", rw.nyc_buildings)):
+                            ("nyc", rw.nyc_buildings), ("plateau", rw.plateau_buildings)):
             try:
                 national = fetch(bbox, rdir / f"{name}.json")
             except Exception as err:  # noqa: BLE001 - a national service down: Overture/OSM heights instead

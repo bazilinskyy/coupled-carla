@@ -20,7 +20,7 @@ DEFAULTS = {
         "buildings": True,           # also fetch building footprints (trial viewer, figures)
         "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
         "overture": True,            # Overture Maps buildings (needs duckdb), else OSM
-        "national_buildings": True,  # measured heights: 3DBAG (NL), IGN BD TOPO (FR), NYC Open Data
+        "national_buildings": True,  # measured heights: 3DBAG (NL), IGN BD TOPO (FR), NYC Open Data, PLATEAU (JP)
         "transit": True,             # the real bus lines and stops of OSM, with GTFS frequencies (transit.py)
         "scenery": {                 # CARLA meshes placed from real-world data (coupledcarla/scenery.py)
             "enabled": True, "buildings": True, "trees": True, "furniture": True, "guess_lamps": True, "signs": True,

@@ -111,3 +111,26 @@ def test_place_top_anchor_with_tilt():
     # the top centre is 20 m from the pivot along the tilted up axis
     assert x == pytest.approx(10 + 20 * math.sin(math.radians(10)), abs=1e-6)
     assert z == pytest.approx(5 - 20 * math.cos(math.radians(10)), abs=1e-6)
+
+
+def test_plateau_buildings_heights_and_kinds(monkeypatch, tmp_path):
+    import json
+    import sys
+    import types
+    monkeypatch.setitem(sys.modules, "duckdb", types.ModuleType("duckdb"))
+    monkeypatch.setattr(rw, "_jp_municipalities", lambda bbox: ["13113"])
+    monkeypatch.setattr(rw, "_plateau_files", lambda codes: [f"https://x/{c}_shibuya-ku_2023_building_lod0.parquet"
+                                                             for c in codes])
+    sq = lambda x, y: json.dumps({"type": "Polygon", "coordinates": [[[x, y], [x + 1e-4, y], [x + 1e-4, y + 1e-4],
+                                                                      [x, y]]]})   # noqa: E731
+    rows = [(11.58, 15.5, "商業施設", 3, sq(139.70, 35.66), "a"),     # LOD1 height, measured kept beside it
+            (0.0, 9999.0, "住宅", 2, sq(139.701, 35.66), "b"),         # no valid height: from the storeys
+            (None, 8.2, "共同住宅", None, sq(139.702, 35.66), "c"),    # measured only
+            (None, None, "その他", None, sq(139.703, 35.66), "d")]     # nothing: the scenery guesses
+    monkeypatch.setattr(rw, "_plateau_rows", lambda url, bbox: rows)
+    out = rw.plateau_buildings([35.652, 139.694, 35.664, 139.709], tmp_path / "plateau.json")
+    assert [b["height"] for b in out] == [11.58, 7.9, 8.2, None]
+    assert [b["measured"] for b in out] == [15.5, None, 8.2, None]
+    assert [b["cls"] for b in out] == ["commercial", "house", "apartments", None]
+    assert len(out[0]["ring"]) == 4 and (tmp_path / "plateau.json").exists()
+    assert rw.plateau_buildings([51.43, 5.47, 51.45, 5.49], tmp_path / "nl.json") == []   # not Japan: no fetch

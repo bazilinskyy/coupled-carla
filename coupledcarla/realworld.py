@@ -9,7 +9,7 @@ where its data came from (SOURCES), and meta.json lists what a map was built fro
 - Overture Maps buildings (S3, GeoParquet via DuckDB): footprints conflated from OSM, Microsoft and Google ML
   buildings and Esri, with height and floor counts where known.
 - National building heights replacing guessed ones: 3DBAG (Netherlands, lidar), IGN BD TOPO (France),
-  NYC Open Data building footprints (New York City).
+  NYC Open Data building footprints (New York City), MLIT PLATEAU (Japan, the cities it covers).
 - Elevation: AHN 0.5 m DTM from PDOK (Netherlands) or the AWS Terrain Tiles (Terrarium, worldwide; SRTM, 3DEP,
   national lidar where available).
 - Open-Meteo: hourly weather for the place and time of a trial (forecast and ERA5 archive back to 1940).
@@ -43,6 +43,8 @@ SOURCES = {
     "3dbag": ("3DBAG by the 3D geoinformation group, TU Delft (BAG + AHN)", "CC BY 4.0"),
     "bdtopo": ("IGN BD TOPO buildings (heights, use) via the Géoplateforme WFS", "Licence Ouverte 2.0 (Etalab)"),
     "nyc": ("NYC Open Data Building Footprints (roof heights, OTI)", "NYC Open Data terms of use"),
+    "plateau": ("MLIT Project PLATEAU 3D city models (LOD1 heights), as GeoParquet by Pacific Spatial Solutions "
+                "(Flateau, Source Cooperative)", "CC BY 4.0 (PLATEAU terms of use)"),
     "ahn": ("AHN4 DTM 0.5 m via PDOK (Rijkswaterstaat)", "CC0 1.0"),
     "terrarium": ("AWS Terrain Tiles (Mapzen Terrarium: SRTM, 3DEP, national lidar, ...)", "see their attribution"),
     "open-meteo": ("Open-Meteo.com weather API (national weather services, ERA5)", "CC BY 4.0"),
@@ -395,6 +397,103 @@ def nyc_buildings(bbox, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out, separators=(",", ":")))
     log(f"NYC Open Data: {len(out)} buildings with roof heights")
+    return out
+
+
+FLATEAU = "https://data.source.coop/pacificspatial/flateau/parquet/"
+FLATEAU_LIST = "https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop"
+GSI_REVERSE = "https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress"
+PLATEAU_USE = {"住宅": "house", "共同住宅": "apartments", "店舗等併用住宅": "retail", "店舗等併用共同住宅": "retail",
+               "作業所併用住宅": "residential", "業務施設": "office", "商業施設": "commercial",
+               "商業系複合施設": "commercial", "宿泊施設": "hotel", "文教厚生施設": "school",
+               "官公庁施設": "government", "防衛施設": "government", "運輸倉庫施設": "warehouse", "工場": "industrial",
+               "供給処理施設": "service", "農林漁業用施設": "farm"}
+
+
+def in_japan(bbox):
+    lat, lon = (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2
+    return 24.0 <= lat <= 45.6 and 122.9 <= lon <= 146.0
+
+
+def _jp_municipalities(bbox, n=5):
+    """JIS municipality codes under the corners and an n x n grid of the box (GSI's reverse geocoder, no key)."""
+    s, w, north, e = bbox
+    codes = []
+    pts = [(s, w), (s, e), (north, w), (north, e)] + [
+        (s + (north - s) * (i + 0.5) / n, w + (e - w) * (j + 0.5) / n) for i in range(n) for j in range(n)]
+    session = requests.Session()
+    for lat, lon in pts:
+        for attempt in range(4):    # the geocoder drops connections when asked quickly
+            try:
+                r = session.get(GSI_REVERSE, params={"lat": f"{lat:.6f}", "lon": f"{lon:.6f}"}, headers=UA,
+                                timeout=30)
+                r.raise_for_status()
+                break
+            except requests.RequestException:
+                if attempt == 3:
+                    raise
+                time.sleep(2 * (attempt + 1))
+        time.sleep(0.2)
+        code = ((r.json() or {}).get("results") or {}).get("muniCd")
+        if code and code not in codes:
+            codes.append(code)
+    return codes
+
+
+def _plateau_files(codes):
+    """Flateau footprint files for the municipalities (a designated city's wards are in the city's file)."""
+    import re
+    out = []
+    for code in codes:
+        for c in dict.fromkeys([code, code[:3] + "00"]):
+            r = requests.get(FLATEAU_LIST, params={"list-type": "2", "prefix": f"pacificspatial/flateau/parquet/{c}_"},
+                             headers=UA, timeout=60)
+            r.raise_for_status()
+            keys = sorted(k for k in re.findall(r"<Key>([^<]+)</Key>", r.text) if k.endswith("_building_lod0.parquet"))
+            if keys:
+                url = FLATEAU + keys[-1].rsplit("/", 1)[-1]    # the newest year
+                if url not in out:
+                    out.append(url)
+                break
+    return out
+
+
+def _plateau_rows(url, bbox):
+    """(height LOD1, measured height, usage, storeys, geojson, id) of the footprints in the box (DuckDB)."""
+    import duckdb
+    s, w, n, e = bbox
+    con = duckdb.connect()
+    con.execute("SET enable_progress_bar=false; INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial;")
+    return con.execute(f"""SELECT cal_height_m, measured_height, usage, storeys_above_ground, ST_AsGeoJSON(GEOM),
+                                  gml_id FROM read_parquet('{url}')
+                           WHERE cal_xmax > {w} AND cal_xmin < {e} AND cal_ymax > {s} AND cal_ymin < {n}""").fetchall()
+
+
+def plateau_buildings(bbox, path):
+    """Japan: [{ring, height, cls, measured, id}] from MLIT PLATEAU (aerial-survey heights of the LOD1 model), []
+    outside Japan or the cities PLATEAU covers. `height` is the LOD1 block's height (a typical roof height, as
+    3DBAG's 70th percentile), `measured` PLATEAU's measuredHeight (to the highest point)."""
+    if path.exists():
+        return json.loads(path.read_text())
+    if not in_japan(bbox):
+        return []
+    try:
+        import duckdb  # noqa: F401
+    except ImportError:
+        log("PLATEAU skipped: pip install duckdb")
+        return []
+    urls = _plateau_files(_jp_municipalities(bbox))
+    out = []
+    for url in urls:
+        for lod1, measured, use, floors, g, gid in _plateau_rows(url, bbox):
+            ok = lambda v: v is not None and 1.0 < v < 700    # noqa: E731 - PLATEAU uses 0 / 9999 / -9999 for none
+            h = lod1 if ok(lod1) else measured if ok(measured) else (3.2 * floors + 1.5 if floors else None)
+            for ring in _rings(json.loads(g)):
+                out.append({"ring": ring, "height": round(h, 2) if h else None, "cls": PLATEAU_USE.get(use),
+                            "measured": round(measured, 2) if ok(measured) else None, "id": gid})
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(out, separators=(",", ":"), ensure_ascii=False))
+    log(f"PLATEAU: {len(out)} buildings from {', '.join(u.rsplit('/', 1)[-1] for u in urls) or 'no covered city'}")
     return out
 
 
