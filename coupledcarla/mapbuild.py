@@ -3,8 +3,9 @@
     python -m coupledcarla.mapbuild experiments/eindhoven_centre.yaml
 
 Steps (all with SUMO's netconvert; carla.Osm2Odr segfaults in 0.9.16 on Linux and Windows):
-1. OSM extract from Overpass (cached in the map folder).
-2. OSM -> SUMO net (geo.net.xml), keeping the configured road types, cycleways and guessed sidewalks.
+1. OSM extract from Overpass (cached in the map folder as map.osm; --force reuses it, --refetch fetches it again).
+2. OSM -> SUMO net (geo.net.xml), keeping the configured road types, cycleways and guessed sidewalks; roads without
+   maxspeed get the country's urban default limit instead of netconvert's rural one (urbanspeeds.py).
 3. Pruning: dead-end chains are removed and only the largest strongly connected road graph is kept, so a car
    that follows lanes can always go on (at the cut edge of the box, roads would otherwise end in the void).
 4. Pruned net -> OpenDRIVE (map.xodr), validated with carla.Map.
@@ -29,7 +30,7 @@ from pathlib import Path
 
 import requests
 
-from . import config, realworld
+from . import config, realworld, urbanspeeds
 
 OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.openstreetmap.fr/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter",
@@ -417,7 +418,7 @@ def absolute_elevation(bbox, out):
             "max_m": round(float(grid.max()), 1), "absolute": True}
 
 
-def build(cfg, force=False, scenery_only=False, transit_only=False):
+def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=False):
     mc = cfg["map"]
     out = config.map_dir(cfg)
     out.mkdir(parents=True, exist_ok=True)
@@ -445,6 +446,10 @@ def build(cfg, force=False, scenery_only=False, transit_only=False):
         sys.exit("map.bbox is required")
 
     osm = out / "map.osm"
+    if refetch:
+        osm.unlink(missing_ok=True)
+    elif osm.exists() and osm.stat().st_size > 0:
+        log(f"OSM: reusing {osm.name} ({osm.stat().st_size / 1e6:.1f} MB; --refetch for a fresh extract)")
     fetch_osm(mc["bbox"], osm)
     elevation = None
     if mc.get("elevation"):
@@ -463,7 +468,8 @@ def build(cfg, force=False, scenery_only=False, transit_only=False):
               "--tls.guess-signals", "--tls.discard-simple", "--tls.join", "--junctions.corner-detail", "5",
               "--default.lanewidth", str(mc["lane_width"])]
     geo_net = out / "geo.net.xml"
-    netconvert("--osm-files", str(osm), *(["--osm.elevation"] if elevation else []),
+    speed_args, speed_defaults = urbanspeeds.netconvert_args(cfg, out, log)
+    netconvert("--osm-files", str(osm), *(["--osm.elevation"] if elevation else []), *speed_args,
                "--keep-edges.by-type", ",".join(types), "--remove-edges.isolated",
                "--osm.bike-access", "--proj.utm", *(["--sidewalks.guess"] if mc["sidewalks"] else []),
                *(["--lefthand"] if mc.get("lefthand") else []),
@@ -488,6 +494,8 @@ def build(cfg, force=False, scenery_only=False, transit_only=False):
             "built": time.strftime("%Y-%m-%d %H:%M:%S"),
             "files": {"osm": "map.osm", "geo_net": "geo.net.xml", "xodr": "map.xodr", "sumo_net": "map.net.xml"},
             "xodr": stats, "elevation": elevation}
+    if speed_defaults:
+        meta["speed_defaults"] = speed_defaults
     sc = mc.get("scenery") or {}
     if sc.get("enabled", True):
         try:
@@ -511,8 +519,9 @@ def main():
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--scenery", action="store_true", help="redo only the scenery of a built map")
     ap.add_argument("--transit", action="store_true", help="redo only the public transport of a built map")
+    ap.add_argument("--refetch", action="store_true", help="fetch the OSM extract again (--force reuses map.osm)")
     args = ap.parse_args()
-    build(config.load(args.experiment), args.force, args.scenery, args.transit)
+    build(config.load(args.experiment), args.force or args.refetch, args.scenery, args.transit, args.refetch)
 
 
 if __name__ == "__main__":

@@ -41,6 +41,9 @@ DEFAULTS = {
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
         "carla_level": None,         # load this CARLA level (by name) instead of generating an OpenDRIVE-only world
+        "urban_speeds": "auto",      # "auto": roads without an OSM maxspeed get the country's urban default limit
+                                     # (speeds.URBAN_KMH) in the net and OpenDRIVE instead of netconvert's rural
+                                     # defaults (100 km/h on primary roads): urban.typ.xml (urbanspeeds.py); false: off
         "lane_width": 3.2,
         "carla": {"vertex_distance": 2.0, "max_road_length": 500.0, "wall_height": 0.0,
                   "additional_width": 0.6, "smooth_junctions": True, "pedestrian_navigation": True,
