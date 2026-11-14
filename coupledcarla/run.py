@@ -23,8 +23,8 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, inputs, mapbuild, realworld, traffic
-from .ai import DEFAULT_EHMI, Crowd, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
+from . import analysis, compat, config, crowdpeds, inputs, mapbuild, realworld, traffic
+from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -364,12 +364,10 @@ def run_trial(cfg, trial_idx, args, control=None):
                 part.input.restart(world.get_map().get_waypoint(part.actor.get_location()))
         walkers_all = [p.actor for p in parts if p.kind == "pedestrian"] + \
                       [a.walker for a in agents if isinstance(a, ScriptedWalker)]
-        wc = tc["traffic"].get("walkers") or {}
-        crowd = None
-        if int(wc.get("count", 0)) > 0:
-            crowd = Crowd(world, [p.actor.get_location() for p in parts], int(wc["count"]),
-                          float(wc.get("radius_m", 120)), int(wc.get("seed", 1)), log=log)
-            # not in walkers_all: they stay on the sidewalks, so no car has to yield to them
+        # the pedestrian crowd: calibrated with CROWD for the map's country (crowdpeds.py), or with behaviour off
+        # ai.Crowd beside the roads; its walkers join walkers_now (cars yield to them) only while on the road
+        crowd = crowdpeds.make_crowd(world, geo, tc, mdir, [p.actor.get_location() for p in parts], wx["night"],
+                                     duration, log)
         sumo_yield = SumoYield()
 
         if tc["logging"]["carla_recorder"]:
@@ -414,15 +412,16 @@ def run_trial(cfg, trial_idx, args, control=None):
                     part.bot.step(t)
                 while part.ehmi_schedule and part.ehmi_schedule[0][0] <= t:
                     part.agent.set_ehmi(part.ehmi_schedule.pop(0)[1], part.role)
+            walkers_now = walkers_all + crowd.on_road() if crowd is not None else walkers_all
             for ag in agents:
-                ag.step(t, step, walkers_all)
+                ag.step(t, step, walkers_now)
             if crowd is not None and summary["ticks"] % 4 == 0:     # a walker keeps its last control
                 crowd.step(t)
             t_a = time.time()
             sync.tick()
             t_b = time.time()
             prof["sync"] += t_b - t_a
-            sumo_yield.step(sync, world, walkers_all)
+            sumo_yield.step(sync, world, walkers_now)
             signals.draw([a.get_location() for a in focus_actors])
             if scenery is not None and summary["ticks"] % 50 == 25:
                 scenery.update([a.get_location() for a in focus_actors])
@@ -525,6 +524,10 @@ def run_trial(cfg, trial_idx, args, control=None):
             for name, detail in sumo_yield.events:
                 logger.event(t, snap.frame, name, "", detail)
             sumo_yield.events.clear()
+            for name, detail in (crowd.events if crowd is not None else ()):
+                logger.event(t, snap.frame, name, "", detail)
+            if crowd is not None:
+                crowd.events.clear()
             logger.log(snap, records, ai, sumo_signals, [])
             prof["log"] += time.time() - t_b
             for c in collisions[seen_col:]:

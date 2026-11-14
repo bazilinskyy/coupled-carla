@@ -432,7 +432,7 @@ class Crowd:
 
     def __init__(self, world, centres, count, radius_m=120.0, seed=1, log=print, path_m=150.0, kerb_m=1.5):
         rng = random.Random(seed)
-        self.walkers, self.follow = [], []
+        self.walkers, self.follow, self.events = [], [], []
         if count <= 0:
             return
         cmap = world.get_map()
@@ -493,6 +493,9 @@ class Crowd:
             on_sidewalks += sidewalk
         log(f"crowd: {len(self.walkers)} walkers beside the roads within {radius_m:.0f} m "
             f"({on_sidewalks} on sidewalk lanes)")
+
+    def on_road(self):
+        return []                      # never on the road
 
     def step(self, t):
         for f in self.follow:
