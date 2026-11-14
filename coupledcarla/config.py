@@ -25,6 +25,8 @@ DEFAULTS = {
         "scenery": {                 # CARLA meshes placed from real-world data (coupledcarla/scenery.py)
             "enabled": True, "buildings": True, "trees": True, "furniture": True, "guess_lamps": True, "signs": True,
             "ground": True, "catalog": "0.9.16",
+            "bgt": "auto",           # the Dutch BGT (bgt.py): ground surfaces (grass, bricks/tiles, asphalt,
+                                     # gravel) and municipal street furniture, for maps in the Netherlands; false: off
         },
         "lane_width": 3.2,
         "carla": {"vertex_distance": 2.0, "max_road_length": 500.0, "wall_height": 0.0,
