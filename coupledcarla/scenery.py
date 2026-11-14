@@ -1140,27 +1140,29 @@ class Scenery:
 
     def _spawn(self, key, items, lit=False):
         import carla
-        cmds, lamp, moves = [], [], {}
+        cmds, lamp, lights = [], [], {}
         for it in items:
             pitch, roll = (it[7] if len(it) > 7 else (0.0, 0.0))
             tf = carla.Transform(carla.Location(x=it[1], y=it[2], z=it[3]),
                                  carla.Rotation(pitch=pitch, yaw=it[4], roll=roll))
             light = lit and it[6] == "lamp" and it[0] in self.light_bp and abs(it[5] - 1.0) < 0.01
             if light:       # the street-light blueprint: the same mesh and pivot, plus its light (no scale)
-                # it has collision, and CARLA refuses a spawn that touches anything: on a baked level its pole
-                # foot touches the real ground, so it is spawned 100 m up and then moved into place
-                moves[len(cmds)] = tf
-                up = carla.Transform(carla.Location(x=it[1], y=it[2], z=it[3] + 100.0), tf.rotation)
-                cmds.append(carla.command.SpawnActor(self.light_bp[it[0]], up))
+                # spawned where it stands: its root mesh is Static, so it cannot be moved after the spawn
+                # (a lamp spawned 100 m up and moved down stayed up there, light and all)
+                lights[len(cmds)] = (it, tf)
+                cmds.append(carla.command.SpawnActor(self.light_bp[it[0]], tf))
             else:
-                self.bp.set_attribute("mesh_path", self.meshes[it[0]])
-                self.bp.set_attribute("scale", str(it[5]))
-                cmds.append(carla.command.SpawnActor(self.bp, tf))
+                cmds.append(self._mesh_cmd(it, tf))
             lamp.append(it[6] == "lamp" and it[0] in self.light_bp)
         res = self.client.apply_batch_sync(cmds, False)
-        if moves:
-            self.client.apply_batch_sync([carla.command.ApplyTransform(res[i].actor_id, tf)
-                                          for i, tf in moves.items() if not res[i].error], False)
+        refused = [i for i in lights if res[i].error]
+        if refused:     # a lamp without its light rather than no lamp
+            why = res[refused[0]].error
+            again = self.client.apply_batch_sync([self._mesh_cmd(*lights[i]) for i in refused], False)
+            for i, r in zip(refused, again):
+                res[i], lamp[i] = r, False
+            self.log(f"scenery: {len(refused)} lamp light blueprints refused ({why}); those lamps stand without "
+                     f"light")
         ids = [r.actor_id for r in res if not r.error]
         if self.light_bp:
             self.lamps[key] = [r.actor_id for r, is_lamp in zip(res, lamp) if is_lamp and not r.error]
@@ -1168,8 +1170,8 @@ class Scenery:
                 self.lit.add(key)
                 self.n_lights += len(self.lamps[key])
                 if self.lamps[key]:
-                    # the server switches street lights on only when the sun goes down: lamps spawned after that
-                    # (every trial at night) stay dark unless switched on here
+                    # the server switches street lights on when the sun goes down, and (ue58-dev) gives a lamp
+                    # spawned after that the night state on the next tick; switched on here as well
                     try:
                         lm = self.world.get_lightmanager()
                         lm.turn_on(lm.get_all_lights(carla.LightGroup.Street))
@@ -1179,6 +1181,12 @@ class Scenery:
         self.n += len(ids)
         if self.on_spawn:
             self.on_spawn(ids)
+
+    def _mesh_cmd(self, it, tf):
+        import carla
+        self.bp.set_attribute("mesh_path", self.meshes[it[0]])
+        self.bp.set_attribute("scale", str(it[5]))
+        return carla.command.SpawnActor(self.bp, tf)
 
     def _relight(self, key):
         """A loaded cell that came within lights_radius_m: its lamps again as light blueprints."""

@@ -251,19 +251,21 @@ class _World:
 
 
 class _Client:
-    def __init__(self):
-        self.next, self.alive, self.spawned = 1, {}, []
+    def __init__(self, refuse=()):
+        self.next, self.alive, self.spawned, self.moves, self.refuse = 1, {}, [], [], set(refuse)
 
     def apply_batch_sync(self, cmds, _due=False):
         out = []
         for c in cmds:
-            if c.kind == "spawn":
+            if c.kind == "spawn" and c.bp in self.refuse:
+                out.append(SimpleNamespace(actor_id=0, error="Spawn failed because of collision at spawn position"))
+            elif c.kind == "spawn":
                 self.alive[self.next] = c
                 self.spawned.append(c)
                 out.append(SimpleNamespace(actor_id=self.next, error=""))
                 self.next += 1
-            elif c.kind == "move":      # lit lamps spawn 100 m up and are moved into place
-                self.alive[c.id].tf = c.tf
+            elif c.kind == "move":      # Unreal ignores it for the lamp blueprints (Static root)
+                self.moves.append(c)
                 out.append(SimpleNamespace(actor_id=c.id, error=""))
             else:
                 self.alive.pop(c.id, None)
@@ -294,6 +296,8 @@ def test_scenery_lamps_lit_and_bare_trees(monkeypatch, tmp_path):
     sc.update([SimpleNamespace(x=0.0, y=0.0)])
     kinds = [(c.bp, c.attrs.get("mesh_path", "").rsplit(".", 1)[-1], round(c.tf.location.x)) for c in client.spawned]
     assert ("blueprint.cc_streetlight06_a", "", 10) in kinds                       # lit lamp near the participant
+    lit = [c for c in client.spawned if c.bp.startswith("blueprint.")]
+    assert lit[0].tf.location.z == 0.0 and not client.moves      # spawned where it stands: it cannot be moved
     assert ("static.prop.mesh", "SM_StreetLight06_A", 450) in kinds                # far lamp: a plain mesh
     assert ("static.prop.mesh", "SM_Maple01_M_A", 20) in kinds                     # bare: the small stand-in
     assert sc.n_lights == 1 and sc.n == 3
@@ -303,6 +307,19 @@ def test_scenery_lamps_lit_and_bare_trees(monkeypatch, tmp_path):
     assert sc.n_lights == 2 and sc.n == 3 and len(client.alive) == 3                # the mesh lamp was replaced
     sc.destroy()
     assert not client.alive and sc.n_lights == 0
+
+
+def test_scenery_refused_light_lamp_stands_as_mesh(monkeypatch, tmp_path):
+    _fake_carla(monkeypatch)
+    _scenery_json(tmp_path)
+    client, msgs = _Client(refuse={"blueprint.cc_streetlight06_a"}), []
+    seas = {"state": "leaf", "lights": dict(season.LAMP_LIGHTS), "lights_radius_m": 150.0}
+    sc = scenery.Scenery(client, _World(), tmp_path, {"radius_m": 600.0}, msgs.append, season=seas)
+    sc.update([SimpleNamespace(x=0.0, y=0.0)])
+    near = [c for c in client.spawned if round(c.tf.location.x) == 10]
+    assert [(c.bp, c.attrs["mesh_path"].rsplit(".", 1)[-1]) for c in near] == [("static.prop.mesh",
+                                                                                   "SM_StreetLight06_A")]
+    assert sc.n == 3 and sc.n_lights == 0 and any("refused" in m for m in msgs)
 
 
 def test_scenery_daylight_unchanged(monkeypatch, tmp_path):

@@ -35,7 +35,11 @@ light and a CarlaLight, BP_StreetLight03 the park lamp's) are not in the bluepri
 list them (data/carla_packs/CoupledCarla: Content/Config/BlueprintParameters.json, loaded by the server started
 with -carla-packs=<that folder> or CARLA_PACKS). Spawned as blueprint.cc_streetlight06_a they register with the
 LightManager as street lights, and the server switches every street light on when the sun is at or below
-the horizon (measured: on at altitude 0, off at 1).
+the horizon (measured: on at altitude 0, off at 1). They must be spawned where they stand: their root mesh is
+Static, so Unreal ignores a later set_transform/ApplyTransform (lamps spawned 100 m up and moved down stayed up
+there with their lights, and the street below was dark). The server makes their spot lights Movable, drops the
+shadows and IES profile, widens the reach to 70 m and gives BP_StreetLight06_A and 03 27000 lm (CarlaLight and
+Content/Carla/Config/Lights/Defaults.json).
 """
 import json
 import math
