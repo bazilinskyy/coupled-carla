@@ -421,14 +421,16 @@ class Placer:
         self.items, self.counts = [], defaultdict(int)
         self.mesh_index = {}
         lt = carla.LaneType
-        self.blocking = lt.Driving | lt.Parking | lt.Biking | lt.Bidirectional
+        self.blocking = lt.Driving | lt.Parking | lt.Bidirectional
         if not sidewalks_free:
             self.blocking = self.blocking | lt.Sidewalk
+        # Biking asked for apart: in one mask with Driving, get_waypoint picks the nearest bike lane and then
+        # finds the point outside it, so a point on a driving lane beside a cycle lane read as free (eindhoven_centre)
+        self.masks = (self.blocking, lt.Biking)
 
     def on_lane(self, x, y, z=0.0):
-        wp = self.cmap.get_waypoint(self.carla.Location(x=x, y=y, z=z), project_to_road=False,
-                                    lane_type=self.blocking)
-        return wp is not None
+        loc = self.carla.Location(x=x, y=y, z=z)
+        return any(self.cmap.get_waypoint(loc, project_to_road=False, lane_type=m) is not None for m in self.masks)
 
     def footprint_clear(self, cx, cy, l, w, yaw, z):
         r = math.radians(yaw)
