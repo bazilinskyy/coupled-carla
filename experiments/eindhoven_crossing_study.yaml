@@ -1,0 +1,94 @@
+# The Eindhoven crossing (eindhoven_crossing.yaml) as a counterbalanced study with the study tools: the pedestrian
+# holds a button while they would cross and sets a slider for how safe they feel; the driver behind the AV rides in
+# an automated car and gets a take-over request; four conditions (the AV's eHMI on or off, by day or at dusk) in a
+# balanced Latin square per participant, after a practice trial.
+#
+#   python -m coupledcarla.validate experiments/eindhoven_crossing_study.yaml          # checks, plans per participant
+#   python -m coupledcarla.run experiments/eindhoven_crossing_study.yaml --participant 3 --dashboard
+#   stations:  python -m coupledcarla.station --host <host> --role pedestrian
+#              python -m coupledcarla.station --host <host> --role av_passenger --input bot
+#              python -m coupledcarla.station --host <host> --role driver --input wheel
+#   (run ... --local runs every role as a bot on the host: scheduled responses, a take-over 1.5 s after the request)
+name: eindhoven_crossing_study
+
+map:
+  name: eindhoven_centre
+  bbox: [51.4360, 5.4700, 51.4500, 5.4930]
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 1800
+  bikes_per_hour: 900
+  buses_per_hour: 6
+
+coupling:
+  port: 2100
+  wait_for_stations_s: 600
+  visual_sync_at_s: [2]
+
+ehmi:
+  states:
+    yielding: {text: "I'M STOPPING", color: [0, 190, 255]}
+    go: {text: "GO AHEAD", color: [0, 230, 120]}
+    driving: {text: "DRIVING", color: [255, 170, 0]}
+
+eye_contact: {angle_deg: 20, distance_m: 30}
+
+participants:
+  - role: pedestrian
+    kind: pedestrian
+    station: true
+    spawn: {lat: 51.4428727, lon: 5.4889750, heading: 165}
+    response: {button: "Hold B while you would cross", slider: "How safe do you feel? (N/M)", slider_start: 50}
+    bot:
+      path: [[51.4427501, 5.4890203]]
+      start_s: 12
+      speed: 1.4
+      look: av1
+      response: [[3, 0, 40], [9, 1, 55], [12, 0, 70]]      # [t, button, slider] for --input bot / --local
+  - role: av_passenger
+    kind: av_passenger
+    station: true
+    agent: av1
+    bot: {ehmi: [[13, yielding], [16, go], [21, driving]]}
+  - role: driver
+    kind: driver
+    station: true
+    vehicle: vehicle.lincoln.mkz_2020
+    automation:                          # drives itself behind the AV until the take-over request
+      route: [[51.4431683, 5.4913458], [51.4428289, 5.4889912], [51.4424551, 5.4863984]]
+      speed_kmh: 30
+      takeover: {at_s: 25, budget_s: 7, no_reaction: brake}
+
+agents:
+  - id: av1
+    kind: car
+    vehicle: vehicle.tesla.model3
+    color: "20,60,140"
+    route: [[51.4430915, 5.4908132], [51.4428289, 5.4889912], [51.4424551, 5.4863984]]
+    speed_kmh: 30
+    accel: 2.0
+    yield_to_pedestrians: true
+    ehmi: manual
+    ehmi_slots: [front, roof, road, eyes]
+    triggers:
+      - {at_m: 230, speed_kmh: 20, blinker: right}
+
+conditions:
+  ehmi_on: {}                            # the passenger sets the eHMI (the experiment's default)
+  ehmi_off:                              # the passenger still chooses (logged), but nothing shows: black states
+    ehmi: {states: {yielding: {color: [0, 0, 0]}, go: {color: [0, 0, 0]}, driving: {color: [0, 0, 0]}}}
+  day: {}
+  dusk: {simulation: {weather: WetCloudySunset, sun_altitude: 4}}
+
+design:
+  factors: {ehmi: [ehmi_on, ehmi_off], light: [day, dusk]}
+  order: latin
+  trial: {duration_s: 45}
+  practice: [{conditions: [ehmi_on, day], duration_s: 30, name: practice}]
+
+logging:
+  radius_m: 150
