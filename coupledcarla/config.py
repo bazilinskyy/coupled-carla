@@ -102,7 +102,21 @@ DEFAULTS = {
         "bike_types": {"vehicle.gazelle.omafiets": 4, "vehicle.bh.crossbike": 1,
                        "vehicle.diamondback.century": 1},
         "bus_type": "vehicle.mitsubishi.fusorosa",
-        "walkers": {"count": 0, "radius_m": 120, "seed": 1},   # pedestrians on the sidewalks (ai.Crowd)
+        "walkers": {                 # the pedestrian crowd near the participants (coupledcarla/crowdpeds.py)
+            "count": 0,              # walkers, or "auto": walkers_per_km x the kerb length within radius_m, scaled by
+                                     # CROWD's pedestrians per minute of the place against the world's (and at night)
+            "radius_m": 120, "seed": 1,
+            "behaviour": "auto",     # "auto": speeds, crossings (how often, where: marked crossing, junction or
+                                     # mid-block) and gap acceptance of the map's country from the CROWD dashcam
+                                     # dataset; "off": walk up and down beside the roads, never crossing (ai.Crowd)
+            "places": "auto",        # walkers start where Overture/OSM places, transit stops and open pedestrian
+                                     # counts (NYC DOT, City of Sydney) are; false: evenly along the kerbs
+            "walkers_per_km": 8,     # count "auto": walkers per km of kerb at CROWD's world pedestrian rate
+            "max_count": 80,         # cap on count "auto" (30 walkers cost the server ~12 ms per tick)
+            "crossings_per_km": 2.0, # crossings per km walked where CROWD's crossing share is the median city's
+            "speed_mps": "auto",     # median walking speed, or "auto": the place's CROWD crossing speed
+            "jaywalk_share": "auto", # share of crossings mid-block, or "auto": the country's in CROWD
+        },
     },
     "participants": [],
     "agents": [],                    # scripted AI cars and walkers (coupledcarla/ai.py)
