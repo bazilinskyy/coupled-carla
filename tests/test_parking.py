@@ -145,6 +145,9 @@ def test_trial_data_filters_by_occupancy(tmp_path):
         {tuple(it[1:3]) for it in day["items"] if it[2] == 50.0}
     tc["simulation"]["parked"] = {"occupancy": 0.5}
     assert len(parking.trial_data(tmp_path, tc, log=lambda m: None)["items"]) == 100
+    tc["map"]["scenery"] = {"parked": False}
+    assert parking.trial_data(tmp_path, tc, log=lambda m: None) is None
+    tc["map"]["scenery"] = {}
     tc["simulation"]["parked"] = {"enabled": False}
     assert parking.trial_data(tmp_path, tc, log=lambda m: None) is None
     assert parking.trial_data(tmp_path / "nowhere", {"map": tc["map"]}, log=lambda m: None) is None

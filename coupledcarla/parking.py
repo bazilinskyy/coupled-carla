@@ -464,6 +464,10 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     mdir = Path(mdir)
     mc = cfg["map"]
     sc = mc.get("scenery") or {}
+    (mdir / "parked.json").unlink(missing_ok=True)      # never leave one for another catalogue behind
+    if mc.get("carla_level"):
+        log("parked: not on a baked level yet (its own ground heights; tools/snap_scenery.py snaps scenery.json only)")
+        return {}
     cars = car_meshes(cat)
     if not cars:
         log(f"parked: no measured car meshes for CARLA {cat.version} (data/parked_cars.json); none placed")
@@ -854,7 +858,8 @@ def trial_data(mdir, tc, log=print):
     """scenery.json-like data of the stalls taken at the trial's local time ({meshes, items, cell_m}), or None."""
     pc = (tc.get("simulation") or {}).get("parked") or {}
     f = Path(mdir) / "parked.json"
-    if not pc.get("enabled", True) or not f.exists():
+    if not pc.get("enabled", True) or not ((tc.get("map") or {}).get("scenery") or {}).get("parked", True) \
+            or not f.exists():
         return None
     data = json.loads(f.read_text())
     from datetime import datetime
