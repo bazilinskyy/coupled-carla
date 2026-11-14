@@ -117,7 +117,9 @@ def test_frames_place_the_panel_on_the_car():
     (c, r, u), = ehmi_design.frames("road", (10, 5, 0.2), 90.0, ext, 3.0, 2.4)
     assert c[1] == pytest.approx(5 + 2.3 + 1.8 + 1.2) and c[2] == pytest.approx(0.26)
     assert u[1] == pytest.approx(-1.0)                       # the top of the projection towards the car
-    assert len(ehmi_design.frames("roof", (0, 0, 0), 0.0, ext, W, H)) == 2
+    (c, r, u), = ehmi_design.frames("roof", (0, 0, 0), 0.0, ext, W, H)
+    assert c[2] == pytest.approx(1.5 + 0.1 + 0.1) and r[1] == pytest.approx(-1.0)
+    assert ehmi_design.frames("roof_rear", (0, 0, 0), 0.0, ext, W, H)[0][1][1] == pytest.approx(1.0)
     assert ehmi_design.frames("front", (0, 0, 0), 0.0, ext, W, H, offset=[0.5, 0, 0.1])[0][0][0] == \
         pytest.approx(2.86)
     with pytest.raises(ValueError):

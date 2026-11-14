@@ -2,7 +2,8 @@
 
 The design (designs.py: a panel of width x height metres, elements per eHMI state) is turned into strokes, thick
 line segments in the panel, and the strokes are placed on the car: on its front (hood), rear, roof (both ways),
-windshield, as a light bar on the bumper, or projected flat on the road ahead (1.8 m from the bumper on). The host
+windshield, as a light bar on the bumper, or projected flat on the road ahead (1.8 m from the bumper on). Debug
+lines have no back face: a panel is seen mirrored from behind (roof: read from the front; roof_rear: from behind). The host
 draws them into the world with debug lines (ai.draw_ehmi's way, so every station's camera sees them); a station
 can draw the same strokes over its own camera image instead (`ehmi.render: station`), which keeps fine detail and
 colours exact but ignores occlusion (a building between the car and the camera does not hide it).
@@ -25,7 +26,7 @@ import math
 from . import designs
 from .strokefont import GLYPHS
 
-PLACEMENTS = ("front", "hood", "rear", "roof", "windshield", "bumper", "road")
+PLACEMENTS = ("front", "hood", "rear", "roof", "roof_rear", "windshield", "bumper", "road")
 MAX_THICK = 0.08          # metres: thicker areas are filled with several lines
 MIN_LIGHT = 0.08          # strokes dimmer than this are not drawn (a blinking element's off phase)
 
@@ -183,9 +184,9 @@ def frames(placement, loc, yaw_deg, ext, W, H, offset=None, road_gap=1.8):
         return [(at(ex * 0.25, 0.0, ez * 1.55), face_front, up)]
     if p == "rear":
         return [(at(-(ex + 0.06), 0.0, ez * 1.05), face_rear, up)]
-    if p == "roof":
-        z = 2 * ez + 0.1 + H / 2
-        return [(at(0.05, 0.0, z), face_front, up), (at(-0.05, 0.0, z), face_rear, up)]
+    if p in ("roof", "roof_rear"):      # a sign on the roof, read from the front (roof_rear: from behind); debug
+        z = 2 * ez + 0.1 + H / 2        # lines have no back face, so each is seen mirrored from the other side
+        return [(at(0.0, 0.0, z), face_front if p == "roof" else face_rear, up)]
     if p == "road":                          # flat on the road; its top (+v) towards the car
         return [(at(ex + road_gap + H / 2, 0.0, 0.06), face_front, (-fx, -fy, 0.0))]
     raise ValueError(f"unknown eHMI placement {placement!r} (one of {', '.join(PLACEMENTS)})")
