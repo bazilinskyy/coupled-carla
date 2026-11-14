@@ -55,9 +55,12 @@ class TrialLogger:
         self.tl_state = {}
         self.rows = 0
         self.sim0 = None    # server time of the trial's first tick: frames.csv and events.csv use trial time
+        self.listeners = []  # callables(ts, frame, name, actor_id, detail) that see every event (the dashboard)
 
     def event(self, ts, frame, name, actor_id="", detail=""):
         self.ew.writerow([f"{ts:.3f}", frame, name, actor_id, detail])
+        for f in self.listeners:
+            f(ts, frame, name, actor_id, detail)
 
     def log(self, snap, participants, ai, sumo_signals, traffic_lights):
         """participants: [{actor, role, kind (participant|agent), ctl, light, ehmi, lights (light state if known)}]

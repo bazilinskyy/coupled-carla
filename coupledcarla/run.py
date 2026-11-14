@@ -23,7 +23,7 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, traffic
+from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, study, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
@@ -35,6 +35,7 @@ from .scenery import Scenery
 from .server import Server
 from .side import Side
 from .signals import Signals
+from .studytools import HostStudy
 
 
 class Laps:
@@ -243,7 +244,7 @@ def welcome_for(part, geo, tc):
             "step": tc["simulation"]["step"], "experiment": tc["name"]}
 
 
-def run_trial(cfg, trial_idx, args, control=None):
+def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     log = Log()
     trial = cfg["trials"][trial_idx]
     tc = config.trial_config(cfg, trial)
@@ -269,10 +270,13 @@ def run_trial(cfg, trial_idx, args, control=None):
     coupling = tc.get("coupling") or {}
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    out = Path(tc["_root"]) / tc["logging"]["dir"] / tc["name"] / f"{stamp}_trial{trial_idx}"
+    # with a participant number: <time>_P07_trial<i>, i the trial's number in the file (study.plan)
+    who = f"_P{trial['_participant']:02d}" if trial.get("_participant") else ""
+    out = Path(tc["_root"]) / tc["logging"]["dir"] / tc["name"] / f"{stamp}{who}_trial{trial.get('_index', trial_idx)}"
     out.mkdir(parents=True, exist_ok=True)
-    (out / "config.yaml").write_text(yaml.safe_dump({k: v for k, v in tc.items() if not k.startswith("_")},
-                                                     sort_keys=False, allow_unicode=True))
+    plan_info = {k[1:]: trial[k] for k in ("_participant", "_position", "_index", "_block", "_condition") if k in trial}
+    (out / "config.yaml").write_text(yaml.safe_dump({**{k: v for k, v in tc.items() if not k.startswith("_")},
+                                                     "study": plan_info}, sort_keys=False, allow_unicode=True))
     log(f"trial {trial_idx} -> {out}")
 
     cfg_file = traffic.prepare(tc, mdir, out / "sumo", duration, log)
@@ -280,9 +284,11 @@ def run_trial(cfg, trial_idx, args, control=None):
     parts = [Participant(p) for p in tc["participants"]]
     by_role = {p.role: p for p in parts}
     state = {"state": "loading", "trial": trial_idx}
+    tools = HostStudy(tc, trial, parts, out, log, control, dashboard, cfg["trials"])   # responses, take-overs, dashboard
     if control is not None:
         control.on_hello = lambda role: (
-            {**welcome_for(by_role[role], geo, tc), **state, "actor_id": _actor_id(by_role.get(role))}
+            {**welcome_for(by_role[role], geo, tc), **tools.welcome(by_role[role]), **state,
+             "actor_id": _actor_id(by_role.get(role))}
             if role in by_role else {"error": f"no participant with role {role}"})
 
     server = Server(tc["server"], log)
@@ -348,8 +354,8 @@ def run_trial(cfg, trial_idx, args, control=None):
 
         for i, part in enumerate(parts):
             p = part.cfg
-            if part.kind == "driver":
-                part.actor = spawn_vehicle(world, geo, p, log)
+            if part.kind == "driver":   # an automated driver's car starts on its route
+                part.actor = tools.spawn(world, geo, part, planner) or spawn_vehicle(world, geo, p, log)
                 if not part.station:
                     part.input = inputs.make(p.get("input", "keyboard"), part.actor)
             elif part.kind == "pedestrian":
@@ -447,12 +453,15 @@ def run_trial(cfg, trial_idx, args, control=None):
             if missing:
                 log(f"starting without stations: {', '.join(sorted(missing))}")
                 logger.event(0.0, 0, "stations_missing", "", ",".join(sorted(missing)))
+        if not tools.ready():          # the dashboard ended the trial (or the session) before it started
+            duration = 0.0
+        tools.started()
         state.update(state="running")
         for part in parts:
             if control is not None:
                 control.send(part.role, {"type": "state", **state, "actor_id": part.actor.id})
         logger.event(0.0, 0, "trial_start", "", json.dumps({"trial": trial_idx, "stations": station_roles,
-                                                            "agents": [a.id for a in agents]}))
+                                                            "agents": [a.id for a in agents], **plan_info}))
 
         types = {}
         prof = {"sync": 0.0, "log": 0.0, "ticks0": 0}
@@ -463,8 +472,10 @@ def run_trial(cfg, trial_idx, args, control=None):
         gaze = MutualGaze(logger, **(tc.get("eye_contact") or {}))
         sync_at = sorted(float(x) for x in coupling.get("visual_sync_at_s", []))
         t_wall0, sim0, next_status, seen_col, t = time.time(), None, 0.0, 0, 0.0
+        tools.bind(logger, queue, station_stats, lambda at: sync_at.insert(0, at), view)
         snap = world.get_snapshot()
         while True:
+            tools.hold()                  # paused on the dashboard
             t_tick = time.time()
             laps.start()
             events = view.events() if view else []
@@ -473,6 +484,8 @@ def run_trial(cfg, trial_idx, args, control=None):
                     continue
                 if part.input is not None:
                     ctl = part.input.control(part.actor, events)
+                    if tools.intercept(part, ctl, t, events):    # the automation drives (take-over watched)
+                        continue
                     if ctl is not None:
                         queue(carla.command.ApplyVehicleControl(part.actor.id, ctl))
                         part.ctl = ctl
@@ -484,6 +497,7 @@ def run_trial(cfg, trial_idx, args, control=None):
             walkers_now = walkers_all + crowd.on_road() if crowd is not None else walkers_all
             for ag in agents:
                 ag.step(t, step, walkers_now)
+            tools.step(t, step, walkers_now, snap.frame)      # automated drivers' cars, dashboard commands
             if crowd is not None and summary["ticks"] % 4 == 0:     # a walker keeps its last control
                 crowd.step(t)
             laps("agents")
@@ -543,6 +557,8 @@ def run_trial(cfg, trial_idx, args, control=None):
             if control is not None:
                 for msg in control.poll():
                     kind, role = msg.get("type"), msg.get("role")
+                    if tools.on_message(msg, t, snap.frame):     # responses, take-over, engage
+                        continue
                     if kind == "ehmi" and role in by_role and by_role[role].agent:
                         by_role[role].agent.set_ehmi(msg.get("state", "off"), role)
                     elif kind == "gaze":
@@ -609,6 +625,7 @@ def run_trial(cfg, trial_idx, args, control=None):
                 r["lights"] = carla_sim.frame_lights.get(r["actor"].id)
             laps("stations_events")
             logger.log(snap, records, ai, sumo_signals, [])
+            tools.log(t, snap.frame)
             laps("log")
             prof["log"] += time.time() - t_b
             for c in collisions[seen_col:]:
@@ -620,7 +637,7 @@ def run_trial(cfg, trial_idx, args, control=None):
                 v = first.actor.get_velocity()
                 lt = first.light
                 view.render([f"{3.6 * (v.x ** 2 + v.y ** 2) ** 0.5:5.1f} km/h", f"t {t:6.1f} s",
-                             f"light {lt[2]} in {lt[1]:.0f} m" if lt else ""])
+                             f"light {lt[2]} in {lt[1]:.0f} m" if lt else "", *tools.hud_lines(first)])
             if t >= next_status:
                 rtf = t / max(1e-6, time.time() - t_wall0)
                 n = max(1, summary["ticks"] - prof["ticks0"])
@@ -633,11 +650,11 @@ def run_trial(cfg, trial_idx, args, control=None):
                 laps.reset()
                 prof.update(sync=0.0, log=0.0, ticks0=summary["ticks"])
                 next_status += 10.0
-            if t >= duration or any(getattr(p.input, "quit", False) for p in parts):
+            if t >= duration or tools.abort or any(getattr(p.input, "quit", False) for p in parts):
                 break
             for part in parts:            # recovery for host-local cars (the autopilot, or a human pressing R)
                 ctl_in = part.input
-                if part.kind != "driver" or ctl_in is None:
+                if part.kind != "driver" or ctl_in is None or tools.drives(part):
                     continue
                 veh = part.actor
                 off_road = veh.get_location().z < -0.25          # down on the ground plane
@@ -687,6 +704,7 @@ def run_trial(cfg, trial_idx, args, control=None):
         logger.event(t, snap.frame, "trial_end", "", json.dumps(summary))
         log(f"trial done: {summary}")
     finally:
+        tools.close(summary)
         state.update(state="ended")
         if control is not None:
             control.broadcast({"type": "state", **state})
@@ -741,8 +759,31 @@ def main():
     ap.add_argument("--step", type=float, help="override simulation.step (s)")
     ap.add_argument("--local", action="store_true",
                     help="run every station participant on the host (their bot), for tests without stations")
+    ap.add_argument("--participant", type=int, default=0,
+                    help="participant number: the trials in this participant's counterbalanced order (design.order)")
+    ap.add_argument("--order", choices=study.ORDERS, help="override design.order")
+    ap.add_argument("--dashboard", action="store_true", help="serve the experimenter dashboard (dashboard.port)")
+    ap.add_argument("--dashboard-host", help="listen there instead of 127.0.0.1 (other machines; needs the token)")
+    ap.add_argument("--dashboard-port", type=int)
     args = ap.parse_args()
     cfg = config.load(args.experiment)
+    from . import validate
+    report, _ = validate.check(yaml.safe_load(Path(args.experiment).read_text()), cfg, roads=False, participants=[])
+    for level, where, msg in report.items:
+        print(f"[validate] {level}  {where}: {msg}  (python -m coupledcarla.validate {args.experiment})", flush=True)
+    # the trials in this participant's order (conditions merged; --trial picks positions in this list)
+    cfg["trials"] = study.plan(cfg, args.participant, args.order)
+    if args.participant:
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        sdir = Path(cfg["_root"]) / cfg["logging"]["dir"] / cfg["name"]
+        sdir.mkdir(parents=True, exist_ok=True)
+        import csv
+        rows = study.session_rows(cfg["trials"])
+        with open(sdir / f"session_P{args.participant:02d}_{stamp}.csv", "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(rows[0]), delimiter=";")
+            w.writeheader()
+            w.writerows(rows)
+        print(f"participant {args.participant}: " + " | ".join(study.label(t) for t in cfg["trials"]), flush=True)
     if args.quality:
         cfg["server"]["quality"] = args.quality
     if args.step:
@@ -761,12 +802,23 @@ def main():
     control = None
     if any(p.get("station") for p in cfg["participants"]):
         control = ControlServer(int((cfg.get("coupling") or {}).get("port", 2100)), Log())
+    dashboard = None
+    dc = cfg.get("dashboard") or {}
+    if args.dashboard or args.dashboard_host or dc.get("enabled"):
+        from .dashboard import Dashboard
+        dashboard = Dashboard(args.dashboard_host or dc.get("host", "127.0.0.1"),
+                              args.dashboard_port or int(dc.get("port", 8780)), Log())
     try:
         for i in args.trial or range(len(cfg["trials"])):
-            run_trial(cfg, i, args, control)
+            summary = run_trial(cfg, i, args, control, dashboard)
+            if summary.get("aborted") == "session stopped":
+                break
     finally:
         if control is not None:
             control.close()
+        if dashboard is not None:
+            dashboard.update(state="session over")
+            dashboard.close()
 
 
 if __name__ == "__main__":
