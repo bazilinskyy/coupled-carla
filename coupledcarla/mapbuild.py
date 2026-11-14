@@ -227,11 +227,16 @@ def name_signals(xodr):
     short = {}
 
     def repl(m):
-        sid = m.group(1)
-        if len(sid) > 32:
+        sid, rest = m.group(1), m.group(2)
+        long_id = len(sid) > 32
+        if long_id:
             sid = short.setdefault(sid, f"sig{len(short)}")
-        return f'<signal id="{sid}" name="{sid}"'
-    text, n = re.subn(r'<signal id="([^"]*)"(?: name="[^"]*")?', repl, text)
+        named = re.search(r'\bname="([^"]*)"', rest)
+        if named and (not long_id or named.group(1) != m.group(1)):
+            return f'<signal id="{sid}"{rest}'      # its own name (a sign type, a short id) stays
+        rest = re.sub(r'\s*\bname="[^"]*"', "", rest)
+        return f'<signal id="{sid}" name="{sid}"{rest}'
+    text, n = re.subn(r'<signal id="([^"]*)"([^>]*)', repl, text)
     xodr.write_text(text, encoding="utf-8")
     log(f"named {n} OpenDRIVE signals ({len(short)} long ids shortened)")
 
