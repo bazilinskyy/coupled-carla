@@ -7,8 +7,8 @@ Leaves. Deciduous trees are in leaf, in autumn colour or bare depending on the d
   phenological clock (DWD: "Vollherbst" in October, "Spatherbst" with the leaf fall at the turn of the month).
   Towards the poles leaf-out comes later and leaf fall earlier (Hopkins' bioclimatic law, 1918: about 4 days per
   degree in spring in North America, where continentality adds to latitude). Here 1.5 days per degree in spring and
-  2 in autumn, which keeps the project's cities near their known dates: Tokyo's ginkgos and zelkovas leaf out in
-  early April and drop in early December, Ushuaia's lenga beeches leaf out late October and turn in April. The
+  2 in autumn, which keeps the project's cities roughly at their usual dates: Tokyo's ginkgos and zelkovas leaf out
+  in early April and drop in early December, Ushuaia's lenga beeches leaf out late October and turn in April. The
   southern hemisphere is half a year apart; within 25 degrees of the equator trees stay in leaf. Latitude alone
   misses continental climates (Burlington, Vermont leafs out about four weeks later than the model's mid-April).
 - Satellite dates where wanted (scenery.leaves "modis"): NASA's MODIS Land Cover Dynamics (MCD12Q2 v6.1, 500 m,
@@ -34,7 +34,8 @@ Lamps. CARLA 1.0's street lamp blueprints (BP_StreetLight06_A is the scenery's S
 light and a CarlaLight, BP_StreetLight03 the park lamp's) are not in the blueprint library, but a content pack can
 list them (data/carla_packs/CoupledCarla: Content/Config/BlueprintParameters.json, loaded by the server started
 with -carla-packs=<that folder> or CARLA_PACKS). Spawned as blueprint.cc_streetlight06_a they register with the
-LightManager as street lights, and the server switches every street light on when the sun is below the horizon.
+LightManager as street lights, and the server switches every street light on when the sun is at or below
+the horizon (measured: on at altitude 0, off at 1).
 """
 import json
 import math
@@ -73,8 +74,8 @@ EVERGREEN_GENERA = {
     "tristaniopsis", "lophostemon", "syzygium", "acmena", "waterhousea", "elaeocarpus", "brachychiton",
     "cocos", "phoenix", "washingtonia", "trachycarpus", "roystonea", "archontophoenix", "syagrus", "livistona",
     "butia", "chamaerops", "dypsis", "mangifera", "terminalia", "tabebuia", "handroanthus", "spathodea",
-    "aporosa", "pongamia", "michelia", "camellia", "viburnum", "prunus laurocerasus", "osmanthus", "quillaja",
-    "acacia", "banksia", "agonis", "angophora", "harpephyllum", "podocarpus", "afrocarpus", "nerium",
+    "aporosa", "pongamia", "michelia", "camellia", "viburnum", "osmanthus", "quillaja",
+    "acacia", "banksia", "agonis", "angophora", "harpephyllum", "afrocarpus", "nerium",
 }
 EVERGREEN_SPECIES = {
     "quercus ilex", "quercus suber", "quercus virginiana", "quercus agrifolia", "quercus coccifera",
