@@ -19,7 +19,15 @@ Where cars park (map build time, `build()`, called by scenery.build; writes park
      parking strips, an untagged side without one keeps 0.3 of the default (parking on the carriageway itself).
   Never within 5 m of an intersection (Dutch RVV art. 24 and most European codes), 5 m of a pedestrian crossing,
   10 m of traffic signals or 12 m of a bus stop; never on a lane CARLA drives, rides or walks on (checked against
-  the CARLA map, as all scenery), clear of trees, lamps, furniture, signs and buildings.
+  the CARLA map, as all scenery), clear of trees, lamps, furniture, signs and buildings. An OpenDRIVE parking lane
+  on a side is where its cars stand (centred in it; under 3.2 m wide parallel, under 4.3 m diagonal, else
+  perpendicular).
+- Baked levels (map.carla_level, e.g. the Eindhoven twin): the level's OpenDRIVE has its real lanes out to the kerb
+  and its pavements as sidewalk lanes, so a car beside the outermost driving lane would stand on the pavement or
+  block the lane SUMO drives. There kerb cars stand only in the OpenDRIVE's parking lanes (the twin has 10.7 km of
+  them, mostly 2.5 m wide between the driving lane and the pavement); crossings and traffic signals come from its
+  crosswalk objects and dynamic signals (there is no map.osm). Heights are the OpenDRIVE's (car parks: the terrain
+  model's); tools/snap_scenery.py then stands the cars on the level's own ground, as it does the scenery.
 - Car parks: OSM amenity=parking areas (parking=surface or untagged; not multi-storey, underground or rooftop) and
   BGT parking surfaces at least 4.6 m wide away from the kerbs are filled with rows of perpendicular stalls
   (2.5 x 5 m, 6 m aisles).
@@ -32,11 +40,13 @@ hour, after CROW's presence percentages (aanwezigheidspercentages, CROW publicat
 parkeren"): residents are all home at night and about half of them in the working day; shops and offices fill the
 centre in the day and empty it at night. An assumption, not a measurement: `simulation.parked.occupancy` overrides it.
 
-Cars: CARLA's static car meshes (data/parked_cars.json, measured per CARLA version), spawned as static.prop.mesh
-scenery in cells around the participants like the rest (scenery.Scenery). A static mesh has the paint it was made
-with, so the body type of each car is drawn from the register's fleet (fleet.py) and, within a body type, the mesh
-whose paint matches the register's colour shares is preferred. Vehicle actors with physics off could take any colour
-but cost the server per actor and tick like SUMO traffic.
+Cars: CARLA's static car meshes (data/parked_cars.json, measured per CARLA version by tools/parked_catalog.py),
+spawned as static.prop.mesh scenery in cells around the participants like the rest (scenery.Scenery). A static mesh
+has the paint it was made with, so the body type of each car is drawn from the register's fleet (fleet.py) and,
+within a body type, the mesh whose paint matches the register's colour shares is preferred. CARLA 1.0's paints are
+read from the meshes' materials (parked_cars.json "paint"); most of its parked cars keep their windows in a second
+mesh with the same pivot ("glass"), placed with the body as a companion slot. Vehicle actors with physics off could
+take any colour but cost the server per actor and tick like SUMO traffic.
 """
 import json
 import math
@@ -74,8 +84,9 @@ CARS_09 = {
     "SM_NissanPatrolST": ("suv", "beige", ["vehicle.nissan.patrol"]),
     "SM_Tesla": ("sedan", "grey", ["vehicle.tesla.model3"]),
 }
-# CARLA 1.0 has a Parked/ folder per model (from its content listing; colours not seen yet). They are used once
-# data/parked_cars.json has their sizes for "1.0" (measure them on a 1.0 server as tools/mesh_catalog.py does).
+# CARLA 1.0's Parked/ folder per model. The paint (None here) is read from each mesh's material by
+# tools/parked_catalog.py into data/parked_cars.json ("paint"), with the sizes and the separate window glass. Left out:
+# the police Charger, the fire truck, ambulance, lorries, the Fuso bus and the 1950s BMW Isetta.
 CARS_10 = {
     "SM_AudiA2": ("hatchback", None, ["vehicle.audi.a2"]),
     "SM_BMWGranTourer_parked": ("mpv", None, ["vehicle.bmw.grandtourer"]),
@@ -97,6 +108,9 @@ CARS_10 = {
     "SM_LincolnMKZ_Parked": ("sedan", None, ["vehicle.lincoln.mkz_2020"]),
     "SM_VolkswagenT2_Parked": ("van", None, ["vehicle.volkswagen.t2_2021"]),
     "SM_MercedesSprinter_Parked": ("van", None, ["vehicle.mercedes.sprinter"]),
+    "SM_FordCrown01_Parked": ("taxi", None, ["vehicle.ford.crown"]),
+    "SM_MiniCooper_Old_Parked": ("hatchback", None, ["vehicle.mini.cooper_s"]),
+    "SM_NissanPatrol_Old_Parked": ("suv", None, ["vehicle.nissan.patrol"]),
 }
 # a body type without a mesh of its own borrows the next one
 MAX_SHARE = 0.15            # no car model takes more than this share of the parked cars
@@ -212,19 +226,30 @@ def _u(*parts):
 
 def car_meshes(cat):
     """{mesh name: (body, colour, blueprints)} of the cars this catalogue's CARLA version has, with their sizes added
-    to the catalogue (data/parked_cars.json). Empty when that version's cars are not measured."""
+    to the catalogue (data/parked_cars.json). Empty when that version's cars are not measured. A colour the table
+    leaves open (CARLA 1.0) is the measured paint; a car whose windows are a separate mesh has it in cat.glass_of
+    (body name -> glass name, also in the catalogue)."""
     from .scenery import major
     table = CARS_09 if major(cat.version) == 0 else CARS_10
     try:
         sizes = json.loads((DATA / "parked_cars.json").read_text()).get(cat.version, {})
     except (OSError, ValueError):
         sizes = {}
-    out = {}
+    out, glass = {}, {}
     for path, m in sizes.items():
         name = path.rsplit(".", 1)[-1]
-        if name in table and m["ext"][0] > 0:
+        if name in table and 0 < m["ext"][0] < 100 and all(math.isfinite(v) for v in m["ext"] + m["off"]):
             cat.by_name.setdefault(name, (path, m))
-            out[name] = table[name]
+            body, colour, bps = table[name]
+            out[name] = (body, colour or m.get("paint"), bps)
+            if m.get("glass") and m.get("glass_box"):
+                g = m["glass"].rsplit(".", 1)[-1]
+                cat.by_name.setdefault(g, (m["glass"], m["glass_box"]))
+                glass[name] = g
+    try:
+        cat.glass_of = glass
+    except AttributeError:
+        pass
     return out
 
 
@@ -352,6 +377,72 @@ def _osm_ways(mdir, geo, road_types):
     return ways, pts_xy
 
 
+def _xodr_points(xodr, cmap):
+    """Crossings and traffic signals of an OpenDRIVE in CARLA coordinates, for a map without map.osm (a baked
+    level's own OpenDRIVE): {"crossing": [polygon], "signals": [(x, y)]}. Crosswalk objects give their outline;
+    pedestrian signals (1000002) count as crossings, vehicle signals (1000001) as signals."""
+    import xml.etree.ElementTree as ET
+    from shapely.geometry import Point, Polygon
+    out = {"crossing": [], "signals": []}
+    try:
+        root = ET.fromstring(Path(xodr).read_text(encoding="utf-8"))
+    except (OSError, ET.ParseError):
+        return out
+
+    def frame(road, s):
+        """Reference-line point, direction and left normal of a road at s, from its innermost lane."""
+        for lid in (-1, 1, -2, 2):
+            try:
+                w = cmap.get_waypoint_xodr(road, lid, s)
+            except RuntimeError:
+                w = None
+            if w is None:
+                continue
+            r = w.transform.get_right_vector()
+            f = w.transform.get_forward_vector()
+            # lane -1 runs along s with its right side away from the reference line; lane 1 runs against s, its
+            # right side away from it too
+            ref = (w.transform.location.x - r.x * w.lane_width / 2, w.transform.location.y - r.y * w.lane_width / 2)
+            d = (f.x, f.y) if lid < 0 else (-f.x, -f.y)
+            left = (-r.x, -r.y) if lid < 0 else (r.x, r.y)
+            return ref, d, left
+        return None
+
+    for road in root.iter("road"):
+        rid = int(road.get("id"))
+        for o in road.iter("object"):
+            if o.get("type") != "crosswalk":
+                continue
+            fr = frame(rid, float(o.get("s", 0)))
+            if fr is None:
+                continue
+            (rx, ry), (dx, dy), (lx, ly) = fr
+            t, h = float(o.get("t", 0)), float(o.get("hdg", 0))
+            px, py = rx + lx * t, ry + ly * t
+            ux, uy = dx * math.cos(h) + lx * math.sin(h), dy * math.cos(h) + ly * math.sin(h)
+            vx, vy = -dx * math.sin(h) + lx * math.cos(h), -dy * math.sin(h) + ly * math.cos(h)
+            corners = [(float(c.get("u")), float(c.get("v"))) for c in o.iter("cornerLocal")]
+            if len(corners) < 3:
+                hl, hw = float(o.get("length", 4)) / 2, float(o.get("width", 4)) / 2
+                corners = [(-hl, -hw), (hl, -hw), (hl, hw), (-hl, hw)]
+            poly = Polygon([(px + u * ux + v * vx, py + u * uy + v * vy) for u, v in corners])
+            out["crossing"].append(poly if poly.is_valid and poly.area > 0.5 else Point(px, py).buffer(2.0))
+        for sg in road.iter("signal"):
+            if sg.get("dynamic") != "yes":
+                continue
+            fr = frame(rid, float(sg.get("s", 0)))
+            if fr is None:
+                continue
+            (rx, ry), _, (lx, ly) = fr
+            t = float(sg.get("t", 0))
+            pt = (rx + lx * t, ry + ly * t)
+            if sg.get("type") == "1000002":
+                out["crossing"].append(Point(pt).buffer(1.0))
+            else:
+                out["signals"].append(pt)
+    return out
+
+
 def osm_parking(bbox, path, log=print):
     """OSM amenity=parking areas in the box (Overpass JSON with geometry and tags, cached); {} when it fails."""
     from . import realworld as rw
@@ -465,10 +556,9 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     mc = cfg["map"]
     sc = mc.get("scenery") or {}
     (mdir / "parked.json").unlink(missing_ok=True)      # never leave one for another catalogue behind
-    if mc.get("carla_level"):
-        log("parked: not on a baked level yet (its own ground heights; tools/snap_scenery.py snaps scenery.json only)")
-        return {}
+    baked = bool(mc.get("carla_level"))
     cars = car_meshes(cat)
+    glass_of = getattr(cat, "glass_of", {}) or {}
     if not cars:
         log(f"parked: no measured car meshes for CARLA {cat.version} (data/parked_cars.json); none placed")
         return {}
@@ -498,6 +588,7 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     for b in blds:
         clear.add(b["poly"])
     cars_grid = _Grid()
+    counts = defaultdict(int)
     ways, pts = _osm_ways(mdir, geo, set(mc.get("road_types") or []) | {"living_street"})
     wseg = _Grid(30.0)
     for wi, (tags, line) in enumerate(ways):
@@ -510,6 +601,13 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
             continue
         for x, y in pts.get(kind, ()):
             no_park.add(Point(x, y).buffer(r, 8))
+    if baked and not pts:        # a baked level has no map.osm: its OpenDRIVE's crosswalks and signals
+        xp = _xodr_points(mdir / "map.xodr", cmap)
+        for poly in xp["crossing"]:
+            no_park.add(poly.buffer(BUFFER["crossing"], 8))
+        for x, y in xp["signals"]:
+            no_park.add(Point(x, y).buffer(BUFFER["signals"], 8))
+        counts["xodr_crossings"], counts["xodr_signals"] = len(xp["crossing"]), len(xp["signals"])
     bgt_data = None
     if sc.get("bgt", "auto") not in (False, "off", "false") and rw.in_netherlands(bbox):
         f = mdir / "real" / "bgt.json"
@@ -603,10 +701,9 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     for w in wps:
         if not w.is_junction and w.lane_type == LT.Driving:     # roads for cars (not cycle paths)
             sections[(w.road_id, w.section_id)].append(w)
-    counts = defaultdict(int)
     slots = []
     mesh_index = {}
-    src_names = ["osm_tag", "bgt", "osm_area", "default", "lot_osm", "lot_bgt"]
+    src_names = ["osm_tag", "bgt", "osm_area", "default", "lot_osm", "lot_bgt", "parking_lane"]
 
     def lane_at(road, lid, s):
         try:
@@ -614,12 +711,18 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
         except RuntimeError:
             return None
 
+    n_stalls = [0]
+
     def place(mesh, cx, cy, z, yaw, zi, u, src):
         x, y, zz, yaw = cat.place(mesh, cx, cy, z, yaw, 1.0)
         mi = mesh_index.setdefault(mesh, len(mesh_index))
-        slots.append([mi, round(x, 2), round(y, 2), round(zz, 2), round(yaw % 360, 1), zi, round(u, 4),
-                      src_names.index(src)])
+        slot = [mi, round(x, 2), round(y, 2), round(zz, 2), round(yaw % 360, 1), zi, round(u, 4), src_names.index(src)]
+        slots.append(slot)
+        if mesh in glass_of:     # the windows (CARLA 1.0): the same transform, flagged as the slot before's companion
+            gi = mesh_index.setdefault(glass_of[mesh], len(mesh_index))
+            slots.append([gi] + slot[1:] + [1])
         counts[src] += 1
+        n_stalls[0] += 1
 
     for (road, sec), lst in sections.items():
         ids = sorted({w.lane_id for w in lst})
@@ -638,12 +741,20 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
             outer, lid = lane_at(road, inner, smid), inner
             if outer is None:
                 continue
+            park = None
             while True:
                 nxt = lid + step if lid + step != 0 else lid + 2 * step
                 w = lane_at(road, nxt, smid)
                 if w is None or w.lane_type not in passable or w.lane_width < 0.5:
                     break
                 outer, lid = w, nxt
+                if w.lane_type == LT.Parking:
+                    park = (w, nxt)
+            if park is not None:        # a parking lane on this side (also inside a cycle lane): the cars stand in it
+                outer, lid = park
+            if baked and outer.lane_type != LT.Parking:
+                counts["side_no_parking_lane"] += 1     # the twin's lanes reach the real kerb: no room beside them
+                continue
             if outer.lane_type == LT.Restricted:
                 counts["side_bus_lane"] += 1
                 continue
@@ -674,6 +785,9 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
             position = "lane"
             if tagged:
                 src, orient, position = "osm_tag", tagged["orientation"], tagged["position"]
+            elif on_parking_lane and baked:     # the twin's own parking lane: its width tells the orientation
+                d = outer.lane_width
+                src, orient = "parking_lane", "parallel" if d < 3.2 else "diagonal" if d < 4.3 else "perpendicular"
             else:
                 src = orient = None
                 probe = Point(ex + nx * 2.0, ey + ny * 2.0).buffer(3.0)
@@ -683,8 +797,9 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                     d = _depth(poly, ex + nx * 2.0, ey + ny * 2.0, nx, ny)
                     orient = "parallel" if d < 3.2 else "diagonal" if d < 4.3 else "perpendicular"
                     src = "bgt" if area_src[id(poly)] == "bgt" else "osm_area"
-                elif on_parking_lane:
-                    src, orient = "osm_tag", "parallel"
+                elif on_parking_lane:       # its width tells the orientation, as for parking areas
+                    d = outer.lane_width
+                    src, orient = "parking_lane", "parallel" if d < 3.2 else "diagonal" if d < 4.3 else "perpendicular"
                 elif _u(road, sec, side, "side") < default_share(highway, reg_name, n_drive, bgt_data is not None):
                     src, orient = "default", "parallel"
             if src is None:
@@ -727,6 +842,9 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                     yaw = math.degrees(math.atan2(math.cos(a) * dy + math.sin(a) * ny,
                                                   math.cos(a) * dx + math.sin(a) * nx)) + 2.0 * jitter
                 if on_parking_lane:
+                    if w.lane_width < (W if orient == "parallel" else 0.8 * depth) - 0.15:
+                        counts["skip_narrow_lane"] += 1     # the lane narrows (its start or end)
+                        continue
                     cx, cy = tf.location.x + ux * along, tf.location.y + uy * along
                 else:
                     lat = GAP + {"on_kerb": 1.0, "half_on_kerb": 0.5}.get(position, 0.0) + depth / 2
@@ -740,7 +858,8 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                 if no_park.hits(fp):
                     counts["skip_crossing_stop_signals"] += 1
                     continue
-                if any(on_lane(px, py, z) for px, py in list(fp.exterior.coords)[:4] + _edge_mids(fp) + [(cx, cy)]):
+                body = _rect(cx, cy, L, W, yaw) if on_parking_lane else fp
+                if any(on_lane(px, py, z) for px, py in list(body.exterior.coords)[:4] + _edge_mids(body) + [(cx, cy)]):
                     counts["skip_lane"] += 1
                     continue
                 if clear.hits(fp) or cars_grid.hits(fp):
@@ -748,7 +867,7 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                     continue
                 cars_grid.add(_rect(cx, cy, L + 0.4, W + 0.3, yaw))
                 place(mesh, cx, cy, z, yaw, zone(cx, cy, highway), u, src)
-    n_kerb = len(slots)
+    n_kerb = n_stalls[0]
 
     # car parks: rows of perpendicular stalls in OSM parking lots and wide BGT parking surfaces
     for ai, (poly, kind, src) in enumerate(areas):
@@ -797,17 +916,18 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                     continue
                 cars_grid.add(_rect(sx, sy, L + 0.3, W + 0.3, yaw))
                 place(mesh, sx, sy, z, yaw, zone(sx, sy, None), _u(*key), "lot_" + src)
-    counts["kerb_stalls"], counts["lot_stalls"] = n_kerb, len(slots) - n_kerb
+    counts["kerb_stalls"], counts["lot_stalls"] = n_kerb, n_stalls[0] - n_kerb
     meshes = sorted(mesh_index, key=mesh_index.get)
     out = {"version": VERSION, "catalog": cat.version, "cell_m": 100.0, "meshes": [cat.path(m) for m in meshes],
            "zones": ZONES, "sources": src_names, "region": reg_name, "fleet": (reg or {}).get("source"),
-           "slots": slots, "counts": dict(counts)}
+           "slots": slots, "counts": dict(counts), **({"level": mc["carla_level"]} if baked else {})}
     (mdir / "parked.json").write_text(json.dumps(out, separators=(",", ":")))
     zc = defaultdict(int)
     for sl in slots:
-        zc[ZONES[sl[5]]] += 1
+        if len(sl) <= 8:
+            zc[ZONES[sl[5]]] += 1
     log(f"parked: {n_kerb} kerb stalls ({', '.join(f'{k[5:]} {v}' for k, v in sorted(counts.items()) if k.startswith('side_'))} "
-        f"road sides), {len(slots) - n_kerb} in car parks ({len(areas)} parking areas); zones "
+        f"road sides), {n_stalls[0] - n_kerb} in car parks ({len(areas)} parking areas); zones "
         f"{', '.join(f'{k} {v}' for k, v in sorted(zc.items()))}; skipped {counts['skip_lane']} on lanes, "
         f"{counts['skip_obstacle']} at objects, {counts['skip_intersection']} at intersections, "
         f"{counts['skip_crossing_stop_signals']} at crossings/stops/signals -> {mdir / 'parked.json'}")
@@ -881,9 +1001,12 @@ def trial_data(mdir, tc, log=print):
     fixed = pc.get("occupancy", "auto")
     occ = {z: (float(fixed) if fixed not in (None, "auto") else occupancy(z, day, hour)) for z in ZONES}
     items = [[s[0], s[1], s[2], s[3], s[4], 1.0, "parked"] for s in data["slots"] if s[6] < occ[ZONES[s[5]]]]
-    n = len(data["slots"])
-    log(f"parked: {len(items)} of {n} stalls taken at {when:%a %H:%M} ({day}; occupancy "
+    n = sum(1 for s in data["slots"] if len(s) <= 8)        # (a car's window glass is a slot of its own)
+    taken = sum(1 for s in data["slots"] if len(s) <= 8 and s[6] < occ[ZONES[s[5]]])
+    log(f"parked: {taken} of {n} stalls taken at {when:%a %H:%M} ({day}; occupancy "
         f"{', '.join(f'{z} {occ[z]:.2f}' for z in ZONES)})")
+    if (tc.get("map") or {}).get("carla_level") and "snapped" not in data:
+        log("parked: at OpenDRIVE heights; tools/snap_scenery.py stands the cars on the level's own ground")
     return {"meshes": data["meshes"], "items": items, "cell_m": data.get("cell_m", 100.0), "catalog": data["catalog"]}
 
 

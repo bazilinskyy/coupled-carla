@@ -151,3 +151,108 @@ def test_trial_data_filters_by_occupancy(tmp_path):
     tc["simulation"]["parked"] = {"enabled": False}
     assert parking.trial_data(tmp_path, tc, log=lambda m: None) is None
     assert parking.trial_data(tmp_path / "nowhere", {"map": tc["map"]}, log=lambda m: None) is None
+
+
+def test_carla10_cars_measured_with_paint_and_glass():
+    from coupledcarla import fleet
+    data = json.loads((parking.DATA / "parked_cars.json").read_text())["1.0"]
+    names = {p.rsplit(".", 1)[-1] for p in data}
+    assert names <= set(parking.CARS_10) and len(names) >= 15
+    for path, m in data.items():
+        assert all(0 < e < 100 for e in m["ext"]) and 1.6 < 2 * m["ext"][0] < 6.5 and 1.4 < 2 * m["ext"][1] < 2.6
+        assert m.get("paint") is None or m["paint"] in fleet.COLORS, path
+        if "glass" in m:      # the window glass lies inside the body's box
+            g, b = m["glass_box"], m
+            assert all(g["off"][k] - g["ext"][k] >= b["off"][k] - b["ext"][k] - 0.1 for k in range(3)), path
+    cat = SimpleNamespace(version="1.0", by_name={})
+    cars = parking.car_meshes(cat)
+    assert set(cars) == names
+    assert cars["SM_LincolnMKZ_Parked"][1] == "black" and cars["SM_DodgeCharger_Parked"][1] == "red"
+    assert cat.glass_of["SM_LincolnMKZ_Parked"] == "SM_LincolnMKZ_Glass_Parked"
+    assert "SM_LincolnMKZ_Glass_Parked" in cat.by_name and "SM_AudiA2" not in cat.glass_of
+    # the 1.0 chooser follows the register's colours with the measured paints
+    ch = parking.Chooser(cars, {"body": {"hatchback": 1}, "colors": {"red": 9, "blue": 1}})
+    reds = sum(ch.weights[m] for m in ch.weights if cars[m][1] == "red")
+    assert reds > 0.5 * sum(ch.weights.values())
+
+
+def test_paint_names_and_glass_pairs():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location(
+        "parked_catalog", Path(__file__).resolve().parent.parent / "tools" / "parked_catalog.py")
+    pc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pc)
+    assert [pc.paint_name(c) for c in ((0, 0, 0), (128, 128, 128), (188, 188, 188), (250, 250, 250))] == \
+        ["black", "grey", "silver", "white"]
+    assert [pc.paint_name(c) for c in ((182, 0, 0), (113, 30, 30), (0, 131, 239), (43, 101, 112), (71, 41, 0),
+                                       (232, 192, 0), (159, 127, 0), (30, 90, 45))] == \
+        ["red", "maroon", "blue", "blue", "brown", "yellow", "gold", "green"]
+    assert pc.srgb((0.5052, 0.5052, 0.5052)) == (188, 188, 188)
+    assert pc.glass_key("SM_LincolnMKZ_Glass_Parked") == pc.glass_key("SM_LincolnMKZ_Parked")
+    assert pc.glass_key("SM_TeslaM3_parked_glass") == pc.glass_key("SM_TeslaM3_parked")
+    assert pc.glass_key("SM_DodgeChargerCop_Parked_Glass") != pc.glass_key("SM_DodgeCharger_Parked")
+    assert pc.glass_key("SM_MiniCooper_Old_Parked") != pc.glass_key("SM_MiniCooper_Glass_Parked")
+    body = {"off": [0, 0, 0.8], "ext": [2.4, 1.1, 0.8]}
+    assert pc.inside({"off": [0, 0, 1.0], "ext": [1.5, 0.9, 0.4]}, body)
+    assert not pc.inside({"off": [0, 0, 2.0], "ext": [1.5, 0.9, 0.4]}, body)
+
+
+def test_trial_data_takes_glass_with_its_car(tmp_path):
+    slots = [[0, 1.0, 0.0, 0.0, 90.0, 0, 0.01, 6], [1, 1.0, 0.0, 0.0, 90.0, 0, 0.01, 6, 1],
+             [0, 9.0, 0.0, 0.0, 90.0, 0, 0.99, 6], [1, 9.0, 0.0, 0.0, 90.0, 0, 0.99, 6, 1]]
+    (tmp_path / "parked.json").write_text(json.dumps({
+        "version": 1, "catalog": "1.0", "cell_m": 100.0, "meshes": ["/Game/Car.Car", "/Game/Glass.Glass"],
+        "zones": parking.ZONES, "slots": slots}))
+    logs = []
+    tc = {"map": {"bbox": [51.43, 5.47, 51.45, 5.49], "carla_level": "EhvCentre"},
+          "simulation": {"time": "2026-11-16 03:00"}}
+    d = parking.trial_data(tmp_path, tc, log=logs.append)
+    assert [(it[0], it[1]) for it in d["items"]] == [(0, 1.0), (1, 1.0)]     # the car and its glass, not the other
+    assert "1 of 2 stalls" in logs[0] and "snap_scenery" in logs[1]           # glass slots are not stalls
+
+
+class _Loc:
+    def __init__(self, x, y, z=0.0):
+        self.x, self.y, self.z = x, y, z
+
+
+class _Tf:
+    def __init__(self, x, y, fwd, right):
+        self.location, self._f, self._r = _Loc(x, y), fwd, right
+
+    def get_forward_vector(self):
+        return _Loc(*self._f)
+
+    def get_right_vector(self):
+        return _Loc(*self._r)
+
+
+class _StraightRoad:
+    """A road along +x from the origin, lanes 3 m wide: lane -1 right of it (+y in CARLA), lane 1 left (-y)."""
+
+    def get_waypoint_xodr(self, road, lane, s):
+        if lane == -1:
+            return SimpleNamespace(transform=_Tf(s, 1.5, (1, 0), (0, 1)), lane_width=3.0)
+        if lane == 1:
+            return SimpleNamespace(transform=_Tf(s, -1.5, (-1, 0), (0, -1)), lane_width=3.0)
+        return None
+
+
+def test_xodr_crosswalks_and_signals(tmp_path):
+    f = tmp_path / "map.xodr"
+    f.write_text('''<OpenDRIVE><road id="7" length="50"><objects>
+      <object id="c1" s="10" t="-2" hdg="1.570796327" type="crosswalk" width="4" length="7"><outline>
+        <cornerLocal u="-3.5" v="-2"/><cornerLocal u="3.5" v="-2"/><cornerLocal u="3.5" v="2"/>
+        <cornerLocal u="-3.5" v="2"/></outline></object></objects>
+      <signals><signal id="s1" s="20" t="1" dynamic="yes" type="1000001"/>
+        <signal id="s2" s="30" t="0" dynamic="no" type="205"/>
+        <signal id="s3" s="40" t="-4" dynamic="yes" type="1000002"/></signals></road></OpenDRIVE>''')
+    pts = parking._xodr_points(f, _StraightRoad())
+    cw = pts["crossing"][0]
+    # OpenDRIVE t > 0 is left of the road (-y in CARLA): t = -2 lies at y = +2; the crosswalk runs across the road
+    assert abs(cw.centroid.x - 10) < 1e-6 and abs(cw.centroid.y - 2) < 1e-6
+    x0, y0, x1, y1 = cw.bounds
+    assert abs((x1 - x0) - 4) < 1e-6 and abs((y1 - y0) - 7) < 1e-6
+    assert pts["signals"] == [(20.0, -1.0)]
+    assert len(pts["crossing"]) == 2 and abs(pts["crossing"][1].centroid.y - 4) < 1e-6   # the pedestrian light
