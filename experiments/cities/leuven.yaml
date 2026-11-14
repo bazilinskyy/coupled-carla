@@ -16,6 +16,7 @@ map:
   - 50.88519
   - 4.71047
   lefthand: false
+  elevation: false
 traffic:
   cars_per_hour: 900
   bikes_per_hour: 1200
