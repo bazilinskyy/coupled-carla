@@ -25,6 +25,7 @@ import yaml
 
 from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
+from . import ehmi_design, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -238,9 +239,13 @@ def welcome_for(part, geo, tc):
     bot = dict(part.cfg.get("bot") or {})
     if "path" in bot:
         bot["path"] = to_carla_path(geo, bot["path"])
-    return {"kind": part.kind, "view": part.cfg.get("view"), "bot": bot,
-            "ehmi_states": list((tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)),
-            "step": tc["simulation"]["step"], "experiment": tc["name"]}
+    out = {"kind": part.kind, "view": part.cfg.get("view"), "bot": bot,
+           "ehmi_states": list((tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)),
+           "step": tc["simulation"]["step"], "experiment": tc["name"]}
+    # sound, in-car displays, haptics and designed eHMIs (stationux.py), when the experiment sets them
+    out.update(stationux.welcome_extras(tc, part.cfg, part.kind, Path(tc["_path"]).parent,
+                                        default_states=list(DEFAULT_EHMI)))
+    return out
 
 
 def run_trial(cfg, trial_idx, args, control=None):
@@ -266,6 +271,8 @@ def run_trial(cfg, trial_idx, args, control=None):
     duration = float(trial.get("duration_s", 300))
     ehmi_states = (tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)
     ehmi_slots = tuple((tc.get("ehmi") or {}).get("slots", ["front"]))
+    ehmi_designed = ehmi_design.drawers(ehmi_design.for_agents(tc, Path(tc["_path"]).parent, log))
+    ehmi_render = (tc.get("ehmi") or {}).get("render", "world")     # designed eHMIs: world | station | both
     coupling = tc.get("coupling") or {}
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -447,6 +454,7 @@ def run_trial(cfg, trial_idx, args, control=None):
             if missing:
                 log(f"starting without stations: {', '.join(sorted(missing))}")
                 logger.event(0.0, 0, "stations_missing", "", ",".join(sorted(missing)))
+        state["agents"] = {ag.id: ag.vehicle.id for ag in agents if isinstance(ag, ScriptedCar)}
         state.update(state="running")
         for part in parts:
             if control is not None:
@@ -517,7 +525,11 @@ def run_trial(cfg, trial_idx, args, control=None):
                 if isinstance(ag, ScriptedCar):
                     sid = sync.carla2sumo_ids.get(ag.vehicle.id)
                     ag.light = signals.next_light(sid) if sid else None
-                    if summary["ticks"] % 2 == 0 and ag.ehmi not in ("", "off"):
+                    if summary["ticks"] % 2 == 0 and ag.id in ehmi_designed:
+                        if ehmi_render != "station":
+                            ehmi_design.draw_world(side.debug, ag.vehicle, ag.ehmi, ehmi_designed[ag.id], t,
+                                                   life=step * 3)
+                    elif summary["ticks"] % 2 == 0 and ag.ehmi not in ("", "off"):
                         here = ag.vehicle.get_location()
                         near = [w.get_location() for w in walkers_all]
                         look = min(near, key=lambda l: l.distance(here)) if near else None
@@ -597,7 +609,12 @@ def run_trial(cfg, trial_idx, args, control=None):
                 for name, detail in ag.events:
                     logger.event(t, snap.frame, name, ag.vehicle.id if isinstance(ag, ScriptedCar) else ag.walker.id,
                                  detail)
+                    if name == "ehmi" and control is not None:   # stations: auditory eHMIs, station-drawn designs
+                        control.broadcast({"type": "ehmi_state", "actor_id": ag.vehicle.id, "state": ag.ehmi})
                 ag.events.clear()
+            if control is not None and summary["ticks"] % 100 == 1:
+                control.broadcast({"type": "ehmi_state", "all": {str(ag.vehicle.id): ag.ehmi for ag in agents
+                                                                 if isinstance(ag, ScriptedCar)}})
             for name, detail in sumo_yield.events:
                 logger.event(t, snap.frame, name, "", detail)
             sumo_yield.events.clear()

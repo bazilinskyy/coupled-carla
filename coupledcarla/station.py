@@ -14,13 +14,17 @@ Controls
                 (or --input wheel: Logitech G25 with force feedback)
   pedestrian    W/S forward/back, A/D sidestep, mouse or left/right arrows to look, Shift to run
   av_passenger  1-9 choose the AV's eHMI message (listed on screen), 0 switches it off
-  everyone      F visual sync (red bar on every station for 1 s), Esc quit
+  everyone      F visual sync (red bar on every station for 1 s), F3 sound calibration tone (with sound), Esc quit
 --input bot drives the role without a human (tests): the driver on CARLA's autopilot, the pedestrian along the
 path in the experiment's `bot`, the passenger by the eHMI schedule in `bot`.
 
 Each station writes logs/stations/<role>_<time>.csv: one row per rendered frame with wall-clock time, CARLA
 frame and simulation time, round trip to the host, and the visual-sync flag, for aligning with eye trackers,
 video or physiology recorded at that station.
+
+With the experiment's `sound`, `displays`, `haptics` or a station-drawn designed eHMI, the station also plays the
+soundscape, draws the in-car displays and messages and gives haptic cues (stationux.py), and logs each cue to
+logs/stations/<role>_<time>_cues.csv.
 """
 import argparse
 import csv
@@ -61,6 +65,7 @@ class Station:
         self.ehmi_states = []
         self.ehmi = "off"
         self.bot = None
+        self.ux = None          # sound, in-car displays, haptics, station-drawn eHMIs (stationux.py), when asked for
         self.screen = None
         self.frames = 0
         self.fps_t0, self.fps_n, self.fps = time.time(), 0, 0.0
@@ -94,6 +99,8 @@ class Station:
             except (OSError, ValueError):
                 pass
             print(f"[station {self.args.role}] trial ended", flush=True)
+            if self.ux is not None:
+                self.ux.stop()      # closes the sound recording
             import os
             os._exit(EXIT_HOST_CLOSED if msg["state"] == "closed" else EXIT_TRIAL_DONE)
 
@@ -122,6 +129,8 @@ class Station:
                         return EXIT_HOST_CLOSED
                 elif kind == "flash":
                     self.flash_until = time.time() + 1.0
+                elif kind == "ehmi_state" and self.ux is not None:
+                    self.ux.on_message(msg)
             if state == "running":
                 if not self.tick():
                     self.stop()
@@ -183,9 +192,17 @@ class Station:
             self.bot = sorted(bot.get("ehmi", []))
         self.t0_sim = None
         self.trial = msg.get("trial")
+        from .stationux import StationUX, wanted
+        if wanted(self.welcome):
+            self.ux = StationUX(self.welcome, args.role, Path(self.log_f.name).with_suffix(""), self.size,
+                                args.headless)
+            self.ux.start(self.world, self.actor, self.camera, self.trial, msg.get("agents"), self.input)
         print(f"[station {args.role}] trial {self.trial}: actor {self.actor.id} {self.actor.type_id}", flush=True)
 
     def stop(self):
+        if self.ux is not None:
+            self.ux.stop()
+            self.ux = None
         if self.camera is not None:
             try:
                 self.camera.stop()
@@ -256,6 +273,8 @@ class Station:
                 self._ehmi_keys(events, t)
         except RuntimeError:
             return True      # our actor went away (end of trial); the host will say so
+        if self.ux is not None:
+            self.ux.tick(snap, t, events, heading=self.heading if kind == "pedestrian" else None)
         self.render(t)
         v = self.actor.get_velocity()
         rtt = self.control.rtt()
@@ -342,6 +361,10 @@ class Station:
             if self.args.frames_every:
                 out = Path(self.args.out) / "stations" / f"{self.args.role}_trial{self.trial}_frames"
                 out.mkdir(parents=True, exist_ok=True)
+                if self.ux is not None and self.ux.wants_frames():     # with the in-car displays drawn over it
+                    arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(image.height, image.width, 4)
+                    self.ux.save_frame(arr[:, :, 2::-1], out / f"{image.frame:08d}.jpg", self.args.fov)
+                    return
                 image.save_to_disk(str(out / f"{image.frame:08d}.jpg"))
             return
         arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(image.height, image.width, 4)
@@ -361,6 +384,8 @@ class Station:
                          + "  0 off")
         for i, line in enumerate(lines):
             self.screen.blit(self.font.render(line, True, (255, 255, 255)), (16, 12 + 26 * i))
+        if self.ux is not None:
+            self.ux.draw(self.screen, self.args.fov)
         if time.time() < self.flash_until:
             pygame.draw.rect(self.screen, (255, 0, 0), (0, 0, self.size[0], 60))
         pygame.display.flip()

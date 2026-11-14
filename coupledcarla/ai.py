@@ -23,6 +23,9 @@ import traci
 
 from . import compat
 from .geo import ground
+# A stroke font (polylines on a 4 x 6 grid): CARLA draws debug *text* only in the spectator view, not in camera
+# sensors, so eHMI text is drawn with debug *lines*, which every station's camera sees.
+from .strokefont import GLYPHS
 
 DEFAULT_EHMI = {
     "off": {"text": "", "color": [0, 0, 0]},
@@ -37,41 +40,6 @@ def _rel(tf, loc):
     yaw = math.radians(tf.rotation.yaw)
     dx, dy = loc.x - tf.location.x, loc.y - tf.location.y
     return dx * math.cos(yaw) + dy * math.sin(yaw), -dx * math.sin(yaw) + dy * math.cos(yaw)
-
-
-# A stroke font (polylines on a 4 x 6 grid): CARLA draws debug *text* only in the spectator view, not in camera
-# sensors, so eHMI text is drawn with debug *lines*, which every station's camera sees.
-GLYPHS = {
-    "A": [[(0, 0), (0, 4), (2, 6), (4, 4), (4, 0)], [(0, 3), (4, 3)]],
-    "B": [[(0, 0), (0, 6), (3, 6), (4, 5), (4, 4), (3, 3), (0, 3)], [(3, 3), (4, 2), (4, 1), (3, 0), (0, 0)]],
-    "C": [[(4, 6), (0, 6), (0, 0), (4, 0)]],
-    "D": [[(0, 0), (0, 6), (3, 6), (4, 5), (4, 1), (3, 0), (0, 0)]],
-    "E": [[(4, 6), (0, 6), (0, 0), (4, 0)], [(0, 3), (3, 3)]],
-    "F": [[(4, 6), (0, 6), (0, 0)], [(0, 3), (3, 3)]],
-    "G": [[(4, 6), (0, 6), (0, 0), (4, 0), (4, 3), (2, 3)]],
-    "H": [[(0, 0), (0, 6)], [(4, 0), (4, 6)], [(0, 3), (4, 3)]],
-    "I": [[(2, 0), (2, 6)], [(1, 0), (3, 0)], [(1, 6), (3, 6)]],
-    "J": [[(4, 6), (4, 0), (0, 0), (0, 2)]],
-    "K": [[(0, 0), (0, 6)], [(4, 6), (0, 3), (4, 0)]],
-    "L": [[(0, 6), (0, 0), (4, 0)]],
-    "M": [[(0, 0), (0, 6), (2, 3), (4, 6), (4, 0)]],
-    "N": [[(0, 0), (0, 6), (4, 0), (4, 6)]],
-    "O": [[(0, 0), (0, 6), (4, 6), (4, 0), (0, 0)]],
-    "P": [[(0, 0), (0, 6), (4, 6), (4, 3), (0, 3)]],
-    "Q": [[(0, 0), (0, 6), (4, 6), (4, 0), (0, 0)], [(2, 2), (4, 0)]],
-    "R": [[(0, 0), (0, 6), (4, 6), (4, 3), (0, 3), (4, 0)]],
-    "S": [[(4, 6), (0, 6), (0, 3), (4, 3), (4, 0), (0, 0)]],
-    "T": [[(0, 6), (4, 6)], [(2, 6), (2, 0)]],
-    "U": [[(0, 6), (0, 0), (4, 0), (4, 6)]],
-    "V": [[(0, 6), (2, 0), (4, 6)]],
-    "W": [[(0, 6), (1, 0), (2, 3), (3, 0), (4, 6)]],
-    "X": [[(0, 0), (4, 6)], [(0, 6), (4, 0)]],
-    "Y": [[(0, 6), (2, 3), (4, 6)], [(2, 3), (2, 0)]],
-    "Z": [[(0, 6), (4, 6), (0, 0), (4, 0)]],
-    "'": [[(2, 6), (2, 4.5)]],
-    "!": [[(2, 6), (2, 2)], [(2, 0.6), (2, 0)]],
-    "-": [[(1, 3), (3, 3)]],
-}
 
 
 def stroke_text(debug, centre, along, up, text, height, colour, life, thickness=0.03):

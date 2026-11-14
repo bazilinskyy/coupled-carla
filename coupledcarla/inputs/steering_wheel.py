@@ -316,6 +316,7 @@ class SteeringWheel(object):
         self._roll_rate_mean = 0.0
         self._rumble = 0.0
         self._kick = 0.0
+        self._cue = 0.0   # a haptic cue's vibration (haptics.py), on top of the road
         self._sdl = None
         self._haptic = None
         if ffb:
@@ -426,6 +427,11 @@ class SteeringWheel(object):
         """Whether the button is held now."""
         return button < self.joystick.get_numbuttons() and bool(self.joystick.get_button(button))
 
+    def vibrate(self, strength):
+        """A haptic cue (take-over request, warning): the wheel vibrates at this strength (0-1) until set to 0;
+        felt through the road rumble effect at the next update_ffb."""
+        self._cue = _clamp(strength, 0.0)
+
     def kick(self, impulse):
         """A jolt for a collision of this normal impulse (N s)."""
         self._kick = random.choice((-1.0, 1.0)) * min(1.0, impulse / 2000.0)
@@ -454,7 +460,7 @@ class SteeringWheel(object):
             self._rumble = max(bump * 0.05, self._rumble * 0.85)
             roll_kick = _clamp(0.006 * (roll_rate - self._roll_rate_mean), -0.35, 0.35)
         texture = 0.03 * min(1.0, kmh / 30.0)  # tyres on asphalt
-        self._road.set(self.ffb_gain * min(0.6, texture + self._rumble))
+        self._road.set(min(1.0, self.ffb_gain * min(0.6, texture + self._rumble) + 0.8 * self._cue))
         kick = self._kick
         self._kick *= math.exp(-dt / 0.08)
 

@@ -1,0 +1,19 @@
+# A designed eHMI in coupled-carla's own state names (the eindhoven_station_ux demo): a light bar on the front
+# with the message above it, and the same on the roof (placement: [front, roof]).
+name: "Light bar and text: I'M STOPPING / GO AHEAD / DRIVING / WAIT"
+width: 1.4
+height: 0.42
+background: "#00000000"
+placement: [front, roof]
+states:
+  yielding:
+    - {type: lightbar, segments: 14, color: "#00BEFF", x: 0.0, y: 0.0, w: 1.0, h: 0.22, animation: pulse, period: 1.2}
+    - {type: text, text: "I'M STOPPING", color: "#00BEFF", x: 0.0, y: 0.35, w: 1.0, h: 0.6}
+  go:
+    - {type: chevrons, segments: 6, direction: right, color: "#00E678", x: 0.0, y: 0.0, w: 1.0, h: 0.22, animation: sweep, period: 1.0}
+    - {type: text, text: "GO AHEAD", color: "#00E678", x: 0.0, y: 0.35, w: 1.0, h: 0.6}
+  driving:
+    - {type: lightbar, segments: 14, color: "#FFAA00", x: 0.0, y: 0.0, w: 1.0, h: 0.22, animation: sweepout, period: 1.4}
+  wait:
+    - {type: rect, color: "#FF2828", x: 0.1, y: 0.02, w: 0.8, h: 0.18, animation: blink, period: 0.8}
+    - {type: text, text: "WAIT", color: "#FF2828", x: 0.0, y: 0.35, w: 1.0, h: 0.6}

@@ -146,7 +146,44 @@ DEFAULTS = {
     "participants": [],
     "agents": [],                    # scripted AI cars and walkers (coupledcarla/ai.py)
     "coupling": {"port": 2100, "wait_for_stations_s": 600, "visual_sync_at_s": []},
-    "ehmi": {},                      # {states: {name: {text, color}}}; default in coupledcarla/ai.py
+    "ehmi": {},                      # {states: {name: {text, color}}, slots}; default in coupledcarla/ai.py; design:
+                                     # a designed eHMI (data/ehmi/<name>, a path or a dict; ehmi_design.py) with
+                                     # placement and render: world | station | both
+    # What the stations add (stationux.py), all off unless set; a participant's own `sound`, `displays` or
+    # `haptics` is merged over these. Sound files and speech are made on the station.
+    "sound": {                       # soundscape.py, calibrated in dB SPL
+        "enabled": False,
+        "reference_db": 94.0,        # dB SPL at the ears of the full-scale 1 kHz tone (F3 at a station plays it)
+        "vehicles": True,            # tyre/engine sound of the nearest max_vehicles within max_distance_m
+        "max_vehicles": 16, "max_distance_m": 150.0,
+        "tyre_db_at_50": 68.0,       # a car's tyre-road noise at 50 km/h, dB at 7.5 m (+30 log10 v)
+        "engine_db": 64.0,           # a combustion engine, dB at 7.5 m (+6 dB by 60 km/h)
+        "electric": "auto",          # electric cars (no engine): "auto" (CARLA's EVs and the scripted agents),
+                                     # true, false, a share 0-1, or blueprint patterns
+        "doppler": 0.5,              # 0: none, 1: physical
+        "own_vehicle": True,         # a driver's or passenger's car from inside: tyres, engine, wind, blinker
+        "interior_reduction_db": 6.0, "wind_db_at_100": 64.0, "blinker_db": 58.0,
+        "ambience": {"kind": "city", "db": 0.0, "file": None},   # city | rural | a sound file; db 0: none
+        "avas": {"enabled": False, "db": 56.0, "until_kmh": 20.0, "vehicles": "electric"},   # db at 2 m
+        "auditory_ehmi": {"enabled": False, "db": 65.0, "cues": []},   # cues: {ehmi: state | on: braking,
+                                     # stopped, driving_off, pedestrian_ahead, at; sound | say | file; db; repeat_s}
+        "takeover_db": 72.0,         # the take-over alarm in the car
+        "record": False,             # also write what the station plays to logs/stations/<role>_<time>_trialN.wav
+    },
+    "displays": {                    # in-car displays over a driver's or AV passenger's view (incar.py)
+        "cluster": None,             # a design (data/incar/<name>, a path or a dict), true for the default, or
+        "hud": None,                 # {design, rect: [x, y, w(, h)]} (screen fractions)
+        "centre": None,
+        "messages": [],              # {at | at_m | on_state, seconds, display, text, color, takeover, sound, say,
+                                     # haptic}
+        "messages_file": None,       # the same as coupled-sim's CSV (at;seconds;display;text;color;atDistance;...)
+    },
+    "haptics": {                     # haptics.py: take-over requests and cues on the wheel, gamepads, UDP devices
+        "enabled": False, "wheel": True, "gamepad": True,
+        "udp": [],                   # ["host:port"]: a JSON datagram per cue
+        "cues": [],                  # {at | on: over_limit, takeover, message, "ehmi:<state>"; pattern, intensity,
+                                     # duration}
+    },
     "pois": [],
     "logging": {
         "dir": "logs",
@@ -182,7 +219,8 @@ def load(path):
 def trial_config(cfg, trial):
     """The experiment config with one trial's overrides merged in."""
     over = {k: v for k, v in trial.items() if k in ("simulation", "traffic", "participants", "agents", "logging",
-                                                      "coupling", "ehmi", "eye_contact")}
+                                                      "coupling", "ehmi", "eye_contact", "sound", "displays",
+                                                      "haptics")}
     return _merge(cfg, over)
 
 

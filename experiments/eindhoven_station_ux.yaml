@@ -1,0 +1,124 @@
+# The Eindhoven crossing (eindhoven_crossing.yaml) with what the stations add: sound, in-car displays and
+# messages, haptic cues and a designed eHMI with auditory cues. A pedestrian crosses in front of an automated
+# vehicle (AV) whose passenger sets its eHMI; a manual driver follows the AV.
+#
+#   host:      python -m coupledcarla.run experiments/eindhoven_station_ux.yaml
+#   stations:  python -m coupledcarla.station --host <host> --role pedestrian     (hears the AV's AVAS and cues)
+#              python -m coupledcarla.station --host <host> --role av_passenger   (centre screen, HUD)
+#              python -m coupledcarla.station --host <host> --role driver --input wheel   (cluster, HUD, take-over)
+#   headless check: add --input bot --headless --frames-every 0.5 to each station: the frames get the displays
+#   drawn over them and the sound goes to logs/stations/<role>_<time>_trial0.wav
+name: eindhoven_station_ux
+
+map:
+  name: eindhoven_centre
+  bbox: [51.4360, 5.4700, 51.4500, 5.4930]
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+  time: "14:30"                    # the cluster's clock
+
+traffic:
+  cars_per_hour: 1800
+  bikes_per_hour: 900
+  buses_per_hour: 6
+
+coupling:
+  port: 2100
+  wait_for_stations_s: 600
+  visual_sync_at_s: [2]
+
+ehmi:
+  states:
+    yielding: {text: "I'M STOPPING", color: [0, 190, 255]}
+    go: {text: "GO AHEAD", color: [0, 230, 120]}
+    driving: {text: "DRIVING", color: [255, 170, 0]}
+    wait: {text: "WAIT", color: [255, 40, 40]}
+  slots: [front]
+  design: stopping_bar             # data/ehmi/stopping_bar.yaml: light bar + text on the front and the roof
+  render: world                    # drawn into the world (every camera sees it); station: over each station's image
+
+sound:
+  enabled: true
+  reference_db: 94                 # measure the F3 tone at the participant's ears and enter the reading here
+  electric: ["vehicle.tesla.*"]    # the AV (a Tesla) is electric: no engine, AVAS; "auto" would make every
+                                   # scripted agent electric, car2 too
+  ambience: {kind: city, db: 48}
+  avas: {enabled: true, db: 56}
+  auditory_ehmi:
+    enabled: true
+    db: 66                         # at 2 m in front of the car
+    cues:
+      - {ehmi: yielding, say: "I am stopping", sound: chime}    # spoken where a speech synthesiser exists
+      - {ehmi: go, sound: chime}
+      - {on: driving_off, sound: beeps}
+  record: true
+
+haptics:
+  enabled: true
+  cues:
+    - {on: over_limit, pattern: double, intensity: 0.6, duration: 0.6}
+
+eye_contact: {angle_deg: 20, distance_m: 30}
+
+participants:
+  - role: pedestrian
+    kind: pedestrian
+    station: true
+    spawn: {lat: 51.4428727, lon: 5.4889750, heading: 165}
+    bot: {path: [[51.4427501, 5.4890203]], start_s: 12, speed: 1.4, look: av1}
+  - role: av_passenger
+    kind: av_passenger
+    station: true
+    agent: av1
+    bot: {ehmi: [[13, yielding], [16, go], [21, driving]]}
+    displays:                      # a participant's own displays (its messages replace the experiment's)
+      centre: centre_screen
+      hud: hud_speed
+      messages:
+        - {at: 10, seconds: 4, display: centre, text: "Pedestrian crossing ahead", color: "#FFD60A", sound: ding}
+  - role: driver
+    kind: driver
+    station: true
+    vehicle: vehicle.lincoln.mkz_2020
+    spawn: {lat: 51.4431683, lon: 5.4913458, heading: 255}
+    displays:
+      cluster: true
+      hud: hud_speed
+      messages:
+        - {at: 3, seconds: 4, display: hud, text: "Follow the blue car"}
+        - {at_m: 120, seconds: 4, display: cluster, text: "Pedestrian ahead", color: "#FFD60A"}
+        - {at: 25, seconds: 5, takeover: true, display: all, text: "TAKE OVER"}   # alarm, wheel vibration, reaction time
+
+agents:
+  - id: av1
+    kind: car
+    vehicle: vehicle.tesla.model3
+    color: "20,60,140"
+    route: [[51.4430915, 5.4908132], [51.4428289, 5.4889912], [51.4424551, 5.4863984]]
+    speed_kmh: 30
+    accel: 2.0
+    yield_to_pedestrians: true
+    ehmi: manual
+    triggers:
+      - {at_m: 230, speed_kmh: 20, blinker: right}
+  - id: car2                       # oncoming combustion car (engine sound), automatic eHMI
+    kind: car
+    vehicle: vehicle.audi.a2
+    route: [[51.4424729, 5.4867262], [51.4431396, 5.4913512]]
+    speed_kmh: 25
+    yield_to_pedestrians: true
+    ehmi: auto
+    ehmi_design: light_bar_cyan    # coupled-sim's design (WALK while yielding, STOP when driving)
+  - id: walker1
+    kind: walker
+    path: [[51.4425625, 5.4876872], [51.4426808, 5.4876436], [51.4427057, 5.4875606]]
+    speed: 1.3
+    start_s: 4
+
+logging:
+  radius_m: 150
+
+trials:
+  - {duration_s: 45}
