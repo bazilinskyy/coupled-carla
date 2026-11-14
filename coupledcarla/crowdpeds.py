@@ -995,12 +995,18 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):
     count = wc.get("count", 0)
     if count != "auto" and int(count or 0) <= 0:
         return None
-    if wc["behaviour"] in ("off", False, None):
+    def legacy():
         from .ai import Crowd
         return Crowd(world, centres, int(count) if count != "auto" else 30, float(wc.get("radius_m", 120)),
                      int(wc.get("seed", 1)), log=log)
+    if wc["behaviour"] in ("off", False, None):
+        return legacy()
     centres_xy = [(c.x, -c.y) for c in centres]
-    params, segs, walkers, stats = prepare(tc, mdir, geo.net, centres_xy, duration_s, night, log)
+    try:
+        params, segs, walkers, stats = prepare(tc, mdir, geo.net, centres_xy, duration_s, night, log)
+    except Exception as err:  # noqa: BLE001 - a map the planner cannot read: the crowd of before
+        log(f"crowd: CROWD behaviour failed ({err!r}); walkers beside the roads instead")
+        return legacy()
     sim = CrowdSim(world, geo, segs, walkers, params, int(wc.get("seed", 1)), log)
     sim.stats = stats
     return sim
