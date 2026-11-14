@@ -18,7 +18,11 @@ static.prop.mesh actors around the participants and removes them behind, in 100 
   In the Netherlands the BGT (bgt.py) says what covers the ground beside the roads: grass, bricks or tiles,
   asphalt or concrete, gravel or sand; mixed tiles are split in four. Its street furniture replaces OSM's nearby.
 
-Nothing is placed on a lane CARLA can drive, ride or walk on.
+Nothing is placed on a lane CARLA can drive, ride or walk on (on a baked level's full-width pavements it may be).
+
+The meshes are CARLA's own, measured per CARLA version (data/meshes_0.9.16.json, data/meshes_1.0.json, made by
+tools/mesh_catalog.py); CARLA 1.0 renamed most of them, so its choices are in meshes10.py. On a baked level
+(map.carla_level) only trees, bushes, lamps, furniture and signs are added, at the terrain model's absolute heights.
 """
 import json
 import math
@@ -26,6 +30,7 @@ import random
 import zlib
 from collections import defaultdict
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -165,6 +170,52 @@ GREEN_LEISURE = {"park", "garden", "pitch", "playground", "dog_park", "common"}
 GREEN_NATURAL = {"wood", "scrub", "grassland", "heath"}
 PLANT_SPACING = {"wood": 7.0, "forest": 7.0, "orchard": 6.0, "park": 16.0, "garden": 14.0, "cemetery": 14.0,
                  "common": 20.0, "village_green": 22.0, "recreation_ground": 30.0, "scrub": 9.0}
+ROOF_OF = {"house": "pitched", "church": "pitched"}     # the other CARLA building kinds have flat roofs
+
+# The tables above name CARLA 0.9.16's meshes. CARLA 1.0 (Unreal Engine 5.8) moved and renamed most of them; its
+# choices are in meshes10.py. A Catalog carries the set of its CARLA version as `cat.m`.
+MESHES_09 = SimpleNamespace(
+    BUILDINGS=BUILDINGS, BROKEN=BROKEN, ROOF_OF=ROOF_OF, TREES=TREES, GENUS=GENUS, BUSHES=BUSHES,
+    FURNITURE=FURNITURE, SHELTER=["SM_BusStop"], LAMP=LAMP, PARK_LAMP=PARK_LAMP, POST=POST, STOP="SM_stopSign",
+    GIVE_WAY="SM_yield_", SPEED="SM_SpeedSign{}", SPEEDS=SPEEDS, SIGN_YAW=0.0, LAMP_YAW=0.0, COMPANIONS={},
+    GROUND_PIVOT=False, GROUND_MESH=GROUND_MESH, PAVING=PAVING)
+
+
+def major(version):
+    """0 for CARLA 0.9.x catalogues and servers, 1 for CARLA 1.0."""
+    try:
+        return int(str(version).split("-")[0].split(".")[0])
+    except ValueError:
+        return 0
+
+
+def mesh_set(version):
+    """The mesh choices for a catalogue's CARLA version."""
+    if major(version) == 0:
+        return MESHES_09
+    from . import meshes10
+    return meshes10.MESHES
+
+
+def _ms(cat):
+    return getattr(cat, "m", None) or MESHES_09
+
+
+def catalog_version(want="auto", server_major=None):
+    """The catalogue (data/meshes_<version>.json) for map.scenery.catalog: that version, or for "auto" the one of
+    the server's major version, or (no server at hand, as at map build time) of the installed carla client, which
+    has to match the server's anyway. None when there is no catalogue for that CARLA version."""
+    if want not in (None, "auto"):
+        return str(want)
+    if server_major is None:
+        try:
+            from importlib.metadata import version
+            server_major = major(version("carla"))
+        except Exception:  # noqa: BLE001 - no carla wheel installed (tests): CARLA 0.9
+            server_major = 0
+    have = sorted(p.stem[len("meshes_"):] for p in DATA.glob("meshes_*.json"))
+    same = [v for v in have if major(v) == server_major]
+    return same[-1] if same else None
 
 
 # --- the mesh catalogue --------------------------------------------------------------------------------------
@@ -175,9 +226,13 @@ class Catalog:
     def __init__(self, version="0.9.16"):
         d = json.loads((DATA / f"meshes_{version}.json").read_text())
         self.version = d["carla"]
+        self.m = mesh_set(self.version)
         self.by_name = {}
         for path, m in d["meshes"].items():
             self.by_name.setdefault(path.rsplit(".", 1)[-1], (path, m))
+        if major(self.version) > 0:     # CARLA 1.0 has some names twice: the path under Static tells them apart
+            for path, m in d["meshes"].items():
+                self.by_name.setdefault(path.rsplit(".", 1)[0].split("/Carla/Static/", 1)[-1], (path, m))
 
     def __contains__(self, name):
         return name in self.by_name
@@ -186,7 +241,7 @@ class Catalog:
         """CARLA's optimised (_Opt, fewer triangles, LODs) version of a mesh if it has one, else the mesh.
         The full Town buildings halve the real-time factor (919 of them: 0.70 -> 0.39 in Stellenbosch)."""
         if not hasattr(self, "_opt"):
-            self._opt = {key_of(n): n for n in self.by_name if n.lower().endswith("opt")}
+            self._opt = {key_of(n): n for n in self.by_name if n.lower().endswith("opt") and "/" not in n}
         return self._opt.get(key_of(name), name)
 
     def path(self, name):
@@ -199,11 +254,16 @@ class Catalog:
 
     def place(self, name, cx, cy, z, yaw, scale, sink=0.0, pitch=0.0, roll=0.0, anchor="bottom"):
         """Actor transform (x, y, z, yaw) that puts the bottom (or top) centre of the mesh's bounding box at
-        (cx, cy, z) for a rotation of (pitch, yaw, roll) in degrees (Unreal's rotation order)."""
+        (cx, cy, z) for a rotation of (pitch, yaw, roll) in degrees (Unreal's rotation order). anchor "ground":
+        the bottom, or the pivot's height for a mesh whose foundation reaches 0.3 to 2 m below its pivot (CARLA
+        1.0's towns stand those with the pivot on the ground: SM_Apt32_A to SM_Apt35_A 1.6 m deep, measured)."""
         m = self.by_name[name][1]
         ox, oy, oz = (scale * v for v in m["off"])
         ez = scale * m["ext"][2]
-        lx, ly, lz = ox, oy, (oz - ez if anchor == "bottom" else oz + ez)
+        if anchor == "ground":
+            below = m["ext"][2] - m["off"][2]       # how far the bounding box reaches below the pivot (scale 1)
+            anchor = "pivot" if 0.3 < below < 2.0 else "bottom"
+        lx, ly, lz = ox, oy, (oz - ez if anchor == "bottom" else 0.0 if anchor == "pivot" else oz + ez)
         X, Y, Z = _axes(pitch, yaw, roll)
         wx = lx * X[0] + ly * Y[0] + lz * Z[0]
         wy = lx * X[1] + ly * Y[1] + lz * Z[1]
@@ -268,7 +328,6 @@ def split_footprint(poly, depth=0, max_width=60.0):
     return [(cx, cy, l, w, yaw)]
 
 
-ROOF_OF = {"house": "pitched", "church": "pitched"}     # the other CARLA building kinds have flat roofs
 PITCHED = {"gabled", "hipped", "half-hipped", "gambrel", "mansard", "saltbox", "pyramidal", "skillion", "round",
            "dome", "onion", "cone", "side_hipped"}
 
@@ -288,10 +347,11 @@ def fit_building(cat, rect, height, kinds, key, roof=None):
     shape (pitched or flat, from 3DBAG or OSM) steers the choice between pitched (house, church) and flat kinds."""
     cx, cy, l, w, yaw = rect
     best = []
+    ms = _ms(cat)
     kinds = kinds or ["apartments", "house", "commercial"]
     if height > 45 and "tower" not in kinds:
         kinds = ["tower"] + kinds
-    pool = [(k, cat.optimised(m)) for k in BUILDINGS for m in BUILDINGS[k] if m in cat and m not in BROKEN]
+    pool = [(k, cat.optimised(m)) for k in ms.BUILDINGS for m in ms.BUILDINGS[k] if m in cat and m not in ms.BROKEN]
     for kind, mesh in pool:
         L, W, H = cat.size(mesh)
         turn = 0.0
@@ -300,7 +360,7 @@ def fit_building(cat, rect, height, kinds, key, roof=None):
         if kind == "church" and "church" not in kinds:
             continue        # a church only where the data says church (else big pitched roofs become churches)
         penalty = 0.0 if kind in kinds[:1] else 0.35 if kind in kinds else 1.0
-        if roof and ROOF_OF.get(kind, "flat") != roof:
+        if roof and ms.ROOF_OF.get(kind, "flat") != roof:
             penalty += 0.3
         for n in range(1, 9):
             pl = l / n
@@ -321,9 +381,9 @@ def fit_building(cat, rect, height, kinds, key, roof=None):
     return near[_h(key) % len(near)][1:]
 
 
-def _tree_family(tags, lat):
+def _tree_family(tags, lat, genera=None):
     genus = (tags.get("genus") or tags.get("species") or tags.get("taxon") or "").split(" ")[0].lower()
-    fam = GENUS.get(genus)
+    fam = (genera or GENUS).get(genus)
     if fam:
         return fam
     if tags.get("leaf_type") == "needleleaved":
@@ -339,7 +399,8 @@ def _tree(cat, fam, height, key):
     """(mesh, scale) of a family nearest to the height (m), or a usual street-tree size when not given."""
     if isinstance(fam, list):
         fam = fam[_h(key, "fam") % len(fam)]
-    meshes = [m for m in TREES[fam] if m in cat] or [m for m in TREES["maple"] if m in cat]
+    trees = _ms(cat).TREES
+    meshes = [m for m in trees.get(fam, ()) if m in cat] or [m for m in trees["maple"] if m in cat]
     target = height or (7.0 + (_h(key, "h") % 70) / 10.0)       # 7 to 14 m
     mesh = min(meshes, key=lambda m: abs(math.log(cat.size(m)[2] / target)) + (_h(key, m) % 10) / 100.0)
     return mesh, max(0.5, min(1.6, target / cat.size(mesh)[2]))
@@ -354,12 +415,14 @@ def _number(text):
 # --- build ---------------------------------------------------------------------------------------------------
 
 class Placer:
-    def __init__(self, cat, cmap, ground, carla):
+    def __init__(self, cat, cmap, ground, carla, sidewalks_free=False):
         self.cat, self.cmap, self.ground, self.carla = cat, cmap, ground, carla
         self.items, self.counts = [], defaultdict(int)
         self.mesh_index = {}
         lt = carla.LaneType
-        self.blocking = lt.Driving | lt.Parking | lt.Biking | lt.Bidirectional | lt.Sidewalk
+        self.blocking = lt.Driving | lt.Parking | lt.Biking | lt.Bidirectional
+        if not sidewalks_free:
+            self.blocking = self.blocking | lt.Sidewalk
 
     def on_lane(self, x, y, z=0.0):
         wp = self.cmap.get_waypoint(self.carla.Location(x=x, y=y, z=z), project_to_road=False,
@@ -386,6 +449,12 @@ class Placer:
             item.append([round(cx, 1), round(cy, 1)])
         self.items.append(item)
         self.counts[kind] += 1
+        return item
+
+    def companion(self, item, mesh):
+        """The same transform with another mesh (a building's separate window glass on CARLA 1.0)."""
+        idx = self.mesh_index.setdefault(mesh, len(self.mesh_index))
+        self.items.append([idx] + item[1:])
 
 
 def tile_cover(size, T):
@@ -504,7 +573,7 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
     return out, src_used
 
 
-def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
+def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major=None):
     """Write scenery.json (placements) and buildings.json (footprints for the viewer) for a built map."""
     import carla
     from shapely.geometry import LineString, Point, Polygon, box
@@ -515,7 +584,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
     mc = cfg["map"]
     sc = mc.get("scenery") or {}
     rdir = mdir / "real"
-    cat = Catalog(sc.get("catalog", "0.9.16"))
+    version = catalog_version(sc.get("catalog", "auto"), server_major)
+    if version is None:
+        raise ValueError(f"no mesh catalogue for CARLA {server_major}.x in {DATA} (tools/mesh_catalog.py makes one)")
+    cat = Catalog(version)
+    ms = cat.m
     if cmap is None:
         cmap = carla.Map(mc["name"], (mdir / "map.xodr").read_text(encoding="utf-8"))
     lat0 = (mc["bbox"][0] + mc["bbox"][2]) / 2
@@ -524,11 +597,17 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
         def ground(x, y):
             lat, lon = geo.to_latlon(x, y)
             return dem.sample(lat, lon) - base
+    elif mc.get("carla_level"):     # a baked level without a terrain model: its nearest road's height
+        def ground(x, y):
+            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
+            return wp.transform.location.z if wp is not None else 0.0
     else:
         def ground(x, y):
             return 0.0
 
-    pl = Placer(cat, cmap, ground, carla)
+    # a baked level's OpenDRIVE has its real, full-width pavements as sidewalk lanes: street trees, lamps and
+    # furniture stand on them (on OSM maps a sidewalk lane is only the walking strip)
+    pl = Placer(cat, cmap, ground, carla, sidewalks_free=bool(mc.get("carla_level")))
     rng = random.Random(42)
     sources = {"osm"}
 
@@ -566,8 +645,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                         pl.counts["building_dropped"] += 1
                         continue
                     # tall buildings stay loaded all trial (the skyline); others stream with their cell
-                    pl.add("landmark" if b["h"] > 40 else "building", mesh, px, py, yaw + turn, ss, sink=0.3,
-                           z=b["z"])
+                    it = pl.add("landmark" if b["h"] > 40 else "building", mesh, px, py, yaw + turn, ss, sink=0.3,
+                                z=b["z"], anchor="ground" if ms.GROUND_PIVOT else "bottom")
+                    for extra in ms.COMPANIONS.get(mesh, ()):
+                        if extra in cat:
+                            pl.companion(it, extra)
         log(f"scenery: {pl.counts['building'] + pl.counts['landmark']} building meshes for {len(blds)} footprints ({'+'.join(bsrc)})")
 
     # OSM features
@@ -666,13 +748,13 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                     pl.counts["tree_dropped"] += 1
                     continue
                 h = _number(t.get("height"))
-                mesh, s = _tree(cat, _tree_family(t, el["lat"]), h, el["id"])
+                mesh, s = _tree(cat, _tree_family(t, el["lat"], ms.GENUS), h, el["id"])
                 pl.add("tree", mesh, x, y, _h(el["id"]) % 360, s, sink=0.1)
                 tree_pts.append((x, y))
                 pl.counts["tree_osm"] += 1
             elif el["type"] == "way" and t.get("natural") == "tree_row" and el.get("geometry"):
                 line = LineString(_ring_xy(geo, [[p["lon"], p["lat"]] for p in el["geometry"]]))
-                fam = _tree_family(t, lat0)
+                fam = _tree_family(t, lat0, ms.GENUS)
                 for i, d in enumerate(np.arange(2.0, line.length, 8.0)):
                     p = line.interpolate(d)
                     if not free(p.x, p.y, 0.4):
@@ -689,7 +771,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
             if not spacing or poly.area < 200:
                 continue
             x0, y0, x1, y1 = poly.bounds
-            fam = _tree_family({}, lat0)
+            fam = _tree_family({}, lat0, ms.GENUS)
             for gx in np.arange(x0 + spacing / 2, x1, spacing):
                 for gy in np.arange(y0 + spacing / 2, y1, spacing):
                     x = gx + rng.uniform(-0.35, 0.35) * spacing
@@ -701,7 +783,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                                                    for i in pts_tree.query(p.buffer(4.0))):
                         continue
                     if kind == "scrub" or (kind in ("park", "garden") and rng.random() < 0.25):
-                        mesh = BUSHES[_h(x, y) % len(BUSHES)]
+                        mesh = ms.BUSHES[_h(x, y) % len(ms.BUSHES)]
                         if mesh in cat:
                             pl.add("bush", mesh, x, y, rng.uniform(0, 360), rng.uniform(0.7, 1.2))
                         continue
@@ -734,16 +816,17 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                 wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
                 far = wp is None or wp.transform.location.distance(carla.Location(x=x, y=y)) > 9
                 far = far or (_number(t.get("height")) or 99) <= 4.5      # a low mast (register): a park lamp
-                pl.add("lamp", PARK_LAMP if far else LAMP, x, y, 0.0 if far or towards is None else towards, 1.0)
+                pl.add("lamp", ms.PARK_LAMP if far else ms.LAMP, x, y,
+                       0.0 if far or towards is None else towards + ms.LAMP_YAW, 1.0)
                 lamps += 1
                 continue
             meshes = None
             if t.get("highway") == "bus_stop" or (t.get("public_transport") == "platform" and t.get("bus") == "yes"):
-                meshes = ["SM_BusStop"] if t.get("shelter", "yes" if t.get("highway") != "bus_stop" else "no") \
+                meshes = ms.SHELTER if t.get("shelter", "yes" if t.get("highway") != "bus_stop" else "no") \
                     in ("yes", "true") else None
-            for (k, v), ms in FURNITURE.items():
+            for (k, v), fm in ms.FURNITURE.items():
                 if t.get(k) == v:
-                    meshes = ms
+                    meshes = fm
             if not meshes:
                 continue
             meshes = [m for m in meshes if m in cat]
@@ -782,7 +865,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                 x, y = tf.location.x + right.x * off, tf.location.y + right.y * off
                 if not free(x, y, 0.3):
                     continue
-                pl.add("lamp", LAMP, x, y, tf.rotation.yaw + 90.0 + 180.0, 1.0)     # arm over the road
+                pl.add("lamp", ms.LAMP, x, y, tf.rotation.yaw + 90.0 + 180.0 + ms.LAMP_YAW, 1.0)   # arm over road
                 done += 1
             log(f"scenery: OSM maps {lamps} street lamps; {done} more along the roads")
         elif m_lamps:
@@ -790,7 +873,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
         log(f"scenery: {pl.counts['furniture']} pieces of street furniture, {pl.counts['lamp']} lamps")
 
     # road signs
-    if sc.get("signs", True) and POST in cat:
+    if sc.get("signs", True) and ms.POST in cat:
         import re
         lefthand = bool(mc.get("lefthand"))
         speed_re = re.compile(r"(?:maxspeed|A1|274|B14|C43|R2-1|C14|R5)\D{0,3}(\d{2,3})", re.I)
@@ -802,14 +885,14 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
             ts = t.get("traffic_sign", "")
             # NL B7 / DE 206 / FR AB4 / US R1-1: stop; NL B6 / DE 205 / FR AB3 / US R1-2: give way
             if t.get("highway") == "stop" or re.search(r"stop|R1-1|:B7\b|:206\b|AB4", ts, re.I):
-                sign = "SM_stopSign"
+                sign = ms.STOP
             elif t.get("highway") == "give_way" or re.search(r"give_way|R1-2|:B6\b|:205\b|AB3", ts, re.I):
-                sign = "SM_yield_"
+                sign = ms.GIVE_WAY
             else:
                 m = speed_re.search(ts) or (re.match(r"(\d{2,3})", t.get("maxspeed", "")) if ts else None)
                 if m:
                     v = int(m.group(1))
-                    sign = f"SM_SpeedSign{min(SPEEDS, key=lambda s_: abs(s_ - v))}"
+                    sign = ms.SPEED.format(min(ms.SPEEDS, key=lambda s_: abs(s_ - v)))
             if sign is None or sign not in cat:
                 continue
             x, y = geo.to_carla(el["lat"], el["lon"])
@@ -836,9 +919,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                 continue
             face = tf.rotation.yaw + 90.0     # plate face (+y) towards the oncoming traffic (checked in a render)
             gz = tf.location.z
-            pl.add("sign", POST, px, py, face, 1.0, z=gz)
+            pl.add("sign", ms.POST, px, py, face, 1.0, z=gz)
             L, W, H = cat.size(sign)
-            pl.add("sign", sign, px, py, face, 1.0, z=gz + cat.size(POST)[2] - H - 0.05)
+            pl.add("sign", sign, px, py, face + ms.SIGN_YAW, 1.0,
+                   z=gz + cat.size(ms.POST)[2] - H - 0.05)
         log(f"scenery: {pl.counts['sign'] // 2} road signs from OSM")
 
     # ground tiles: tilted to the terrain, and always below the road surface (which follows the terrain
@@ -880,9 +964,9 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                     z += gap - 0.15
                     lowered += 1
             tilt = (math.degrees(math.atan(zx)), -math.degrees(math.atan(zy)))
-            mesh = GROUND_MESH.get(kind, PAVING)
+            mesh = ms.GROUND_MESH.get(kind, ms.PAVING)
             if mesh not in cat:
-                mesh, kind = PAVING, "open"
+                mesh, kind = ms.PAVING, "open"
             dz = {"water": -0.5, "open": -0.02}.get(kind, 0.0)
             for i, ((dx, dy), s) in enumerate(tile_cover(cat.size(mesh), T)):
                 pl.add("water" if kind == "water" else "ground", mesh, x + dx, y + dy, 0.0, s,

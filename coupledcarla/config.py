@@ -24,7 +24,9 @@ DEFAULTS = {
         "transit": True,             # the real bus lines and stops of OSM, with GTFS frequencies (transit.py)
         "scenery": {                 # CARLA meshes placed from real-world data (coupledcarla/scenery.py)
             "enabled": True, "buildings": True, "trees": True, "furniture": True, "guess_lamps": True, "signs": True,
-            "ground": True, "catalog": "0.9.16",
+            "ground": True,
+            "catalog": "auto",       # mesh catalogue (data/meshes_<v>.json): "auto" = the CARLA version in use
+                                     # (0.9.16 or 1.0; at run time a scenery built for the other one is rebuilt)
             "bgt": "auto",           # the Dutch BGT (bgt.py): ground surfaces (grass, bricks/tiles, asphalt,
                                      # gravel) and municipal street furniture, for maps in the Netherlands; false: off
         },
