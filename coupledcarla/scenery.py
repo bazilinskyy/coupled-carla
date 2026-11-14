@@ -1065,6 +1065,12 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             pl.counts["ground_bgt"], pl.counts["ground_changed"], pl.counts["ground_split"] = bgt_tiles, changed, split
         log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface)")
 
+    if sc.get("parked", True):      # parked cars at the kerbs and on car parks (parking.py, parked.json)
+        from . import parking
+        try:
+            pl.counts.update(parking.build(mdir, cfg, geo, cat, cmap, ground, pl, blds, log))
+        except Exception as err:  # noqa: BLE001 - a map without parked cars still drives
+            log(f"parked: failed ({err}); no parked cars")
     leaf = season.finish(pl)        # deciduous trees' autumn and bare stand-ins (meshes after the placed ones)
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
     out = {"version": 1, "catalog": cat.version, "cell_m": CELL, "meshes": [cat.path(m) for m in meshes],
@@ -1083,10 +1089,10 @@ class Scenery:
     and on CARLA 1.0 at night lamps spawned as the street-light blueprints that carry a light, in the cells within
     lights_radius_m of a participant."""
 
-    def __init__(self, client, world, mdir, sc, log=print, on_spawn=None, season=None):
+    def __init__(self, client, world, mdir, sc, log=print, on_spawn=None, season=None, data=None):
         self.client, self.world, self.log, self.on_spawn = client, world, log, on_spawn
         self.sc = sc
-        data = json.loads((Path(mdir) / "scenery.json").read_text())
+        data = data or json.loads((Path(mdir) / "scenery.json").read_text())   # data: e.g. parking.trial_data
         self.meshes = data["meshes"]
         kinds = set(sc.get("kinds") or ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"])
         self.radius = float(sc.get("radius_m", 400.0))

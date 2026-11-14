@@ -32,6 +32,8 @@ DEFAULTS = {
             "canopy": True,          # trees without a mapped height: sized by Meta/WRI's 1 m canopy height map
             "ndw_signs": "auto",     # the Dutch national traffic sign register (NDW, ndwsigns.py): every official
                                      # sign at its position, for maps in the Netherlands; false: OSM's signs only
+            "parked": True,          # parking stalls at the kerbs (OSM parking tags, BGT parkeervlak, a default by
+                                     # road class) and on car parks, with a car each (parking.py -> parked.json)
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
@@ -70,6 +72,9 @@ DEFAULTS = {
                     "lamp_lights": "auto",   # CARLA 1.0: lamps spawned as street lights, which the server lights
                                              # when the sun is at or below the horizon; true: always; false: never
                     "lights_radius_m": 200.0},   # ... only within this distance of a participant (0: all)
+        "parked": {"enabled": True,  # parked cars (map.scenery.parked) in the stalls taken at the trial's hour
+                   "radius_m": 250.0,     # streamed within this distance of the participants
+                   "occupancy": "auto"},  # "auto": by zone and local hour (parking.PRESENCE), or a share 0-1
     },
     "traffic": {
         "seed": 42,

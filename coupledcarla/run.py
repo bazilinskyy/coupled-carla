@@ -23,7 +23,7 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, inputs, mapbuild, realworld, season, traffic
+from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
@@ -353,7 +353,7 @@ def run_trial(cfg, trial_idx, args, control=None):
                      [ag.vehicle for ag in agents if isinstance(ag, ScriptedCar)]:
                 a.set_light_state(carla.VehicleLightState(int(a.get_light_state()) | int(lights)))
         world.tick()      # actors have their spawn locations only after a tick
-        scenery = None
+        scenery = parked = None
         if has_scenery:
             t_s = time.time()
             seas, seas_info = season.for_trial(tc, mdir, world, log)   # leaf state; lamps lit on 1.0 at night
@@ -364,6 +364,11 @@ def run_trial(cfg, trial_idx, args, control=None):
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
                                                   f"{scenery.lights_radius:.0f} m" if scenery.light_bp else ""))
+            parked = parking.scenery(client, world, mdir, tc, log,
+                                     on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
+            if parked is not None:
+                parked.update([a.get_location() for a in focus_actors])
+                log(f"parked: {parked.n} cars within {parked.radius:.0f} m of the participants")
         for part in parts:   # BasicAgent planned from (0, 0, 0) before the first tick: plan from the spawn lane
             if hasattr(part.input, "restart"):
                 part.input.restart(world.get_map().get_waypoint(part.actor.get_location()))
@@ -430,6 +435,8 @@ def run_trial(cfg, trial_idx, args, control=None):
             signals.draw([a.get_location() for a in focus_actors])
             if scenery is not None and summary["ticks"] % 50 == 25:
                 scenery.update([a.get_location() for a in focus_actors])
+            if parked is not None and summary["ticks"] % 50 == 35:
+                parked.update([a.get_location() for a in focus_actors])
             if level_stream and focus_actors and summary["ticks"] % 50 == 0:
                 # a baked World Partition level streams its cells (ground, roads, buildings, with their collision)
                 # around the spectator: keep it over the first participant, high up and looking at the sky
@@ -601,7 +608,7 @@ def run_trial(cfg, trial_idx, args, control=None):
         summary.update({"sim_s": round(t, 2), "wall_s": round(wall, 2), "rtf": round(t / max(wall, 1e-6), 3),
                         "rows": logger.rows, "collisions": len(collisions), "agents": len(agents),
                         "stations": station_roles, "sumo_vehicles_spawned": len(types),
-                        "station_stats": station_stats})
+                        "station_stats": station_stats, "parked_cars": parked.n if parked is not None else 0})
         logger.event(t, snap.frame, "trial_end", "", json.dumps(summary))
         log(f"trial done: {summary}")
     finally:
