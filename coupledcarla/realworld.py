@@ -44,6 +44,8 @@ SOURCES = {
     "bdtopo": ("IGN BD TOPO buildings (heights, use) via the Géoplateforme WFS", "Licence Ouverte 2.0 (Etalab)"),
     "nyc": ("NYC Open Data Building Footprints (roof heights, OTI)", "NYC Open Data terms of use"),
     "ahn": ("AHN4 DTM 0.5 m via PDOK (Rijkswaterstaat)", "CC0 1.0"),
+    "bgt": ("Basisregistratie Grootschalige Topografie (BGT, with IMGeo plus objects) via the PDOK OGC API "
+            "(Kadaster and the bronhouders)", "CC0 1.0"),
     "terrarium": ("AWS Terrain Tiles (Mapzen Terrarium: SRTM, 3DEP, national lidar, ...)", "see their attribution"),
     "open-meteo": ("Open-Meteo.com weather API (national weather services, ERA5)", "CC BY 4.0"),
     "eindhoven": ("Gemeente Eindhoven open data: trees (bomen) and street lights (openbare verlichting)",

@@ -15,6 +15,8 @@ static.prop.mesh actors around the participants and removes them behind, in 100 
 - Street furniture: OSM lamps, benches, bins, bus shelters, bollards, post boxes, bicycle racks, hydrants,
   fountains and ad columns at their mapped positions; where OSM maps few lamps, lamps line the roads.
 - Ground: 40 m tiles (20 m on hilly maps), grass in green areas, water on rivers and lakes, paving elsewhere, tilted to the terrain.
+  In the Netherlands the BGT (bgt.py) says what covers the ground beside the roads: grass, bricks or tiles,
+  asphalt or concrete, gravel or sand; mixed tiles are split in four. Its street furniture replaces OSM's nearby.
 
 Nothing is placed on a lane CARLA can drive, ride or walk on.
 """
@@ -144,11 +146,19 @@ FURNITURE = {   # (OSM key, value) -> meshes
     ("advertising", "board"): ["SM_StreetAD02", "SM_StreetAD03"],
     ("advertising", "poster_box"): ["SM_LightBox2"],
     ("man_made", "street_cabinet"): ["SM_StreetCounter"],
+    ("information", "board"): ["SM_MapTable"],
+    ("playground", "swing"): ["SM_Swing"],
+    ("playground", "slide"): ["SM_Slide"],
 }
 LAMP, PARK_LAMP = "SM_Streetlight3_group3", "SM_parkLightV2"     # arm towards +x; a park lamp
 POST = "SM_RoadSigns01"          # a 2.3 m sign post; the sign plates have their face towards +y
 SPEEDS = [30, 40, 50, 60, 70, 80, 90, 100, 110, 120]
 GRASS, PAVING, WATER = "SM_Square_60", "SideWalkCube", "SM_TileLake"
+CONCRETE, DIRT = "SM_Square_61", "SM_Square_131"     # M_Concrete_04; M_Ground01 (grass worn to earth)
+# ground kind (OSM fallback or bgt.surface_kind) -> mesh; bricks and tiles get CARLA's sidewalk paving (no
+# brick ground mesh in the 0.9.16 catalogue)
+GROUND_MESH = {"green": GRASS, "open": PAVING, "closed": CONCRETE, "unpaved": DIRT, "water": WATER}
+SPLIT_SHARE = 0.6     # a BGT tile whose main kind covers less than this of its ground is split in four
 GREEN_LANDUSE = {"grass", "forest", "meadow", "village_green", "recreation_ground", "cemetery", "allotments",
                  "farmland", "orchard", "flowerbed"}
 GREEN_LEISURE = {"park", "garden", "pitch", "playground", "dog_park", "common"}
@@ -365,15 +375,42 @@ class Placer:
                     return False
         return True
 
-    def add(self, kind, mesh, cx, cy, yaw, scale, sink=0.0, tilt=None, z=None, anchor="bottom"):
+    def add(self, kind, mesh, cx, cy, yaw, scale, sink=0.0, tilt=None, z=None, anchor="bottom", centre=False):
         g = self.ground(cx, cy) if z is None else z
         x, y, zz, yaw = self.cat.place(mesh, cx, cy, g, yaw, scale, sink, *(tilt or (0.0, 0.0)), anchor=anchor)
         idx = self.mesh_index.setdefault(mesh, len(self.mesh_index))
         item = [idx, round(x, 2), round(y, 2), round(zz, 2), round(yaw % 360, 1), round(scale, 3), kind]
-        if tilt:
-            item.append([round(tilt[0], 2), round(tilt[1], 2)])
+        if tilt or centre:
+            item.append([round(tilt[0], 2), round(tilt[1], 2)] if tilt else [0.0, 0.0])
+        if centre:      # where the mesh is (Town03 ground meshes have their pivot 100-400 m away): its cell
+            item.append([round(cx, 1), round(cy, 1)])
         self.items.append(item)
         self.counts[kind] += 1
+
+
+def tile_cover(size, T):
+    """[((dx, dy), scale)]: copies of a flat mesh of size (L, W) at yaw 0, uniformly scaled, that cover a T x T
+    square: its long side spans the square, copies side by side along the short one (overlapping a little)."""
+    L, W = size[0], size[1]
+    s = T / max(L, W)
+    a = min(L, W) * s
+    n = max(1, math.ceil(T / a - 1e-6))
+    offs = [0.0] if n == 1 else [-T / 2 + a / 2 + i * (T - a) / (n - 1) for i in range(n)]
+    return [(((o, 0.0) if L < W else (0.0, o)), s) for o in offs]
+
+
+def _bgt(mc, sc, rdir, log):
+    """The BGT for a map in the Netherlands (bgt.py), or None: off, elsewhere, or the service failed."""
+    from . import bgt
+    from . import realworld as rw
+    want = sc.get("bgt", "auto")
+    if want in (False, "off", "false", None) or not rw.in_netherlands(mc["bbox"]):
+        return None
+    try:
+        return bgt.fetch(mc["bbox"], rdir / "bgt.json", rw.UA, log)
+    except Exception as err:  # noqa: BLE001 - PDOK down or offline: OSM ground and furniture as before
+        log(f"scenery: BGT failed ({err}); OSM ground and furniture only")
+        return None
 
 
 def _ring_xy(geo, ring):
@@ -556,6 +593,21 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
     els = els + m_els
     for src in muni.get("sources", []):
         sources.add(src)
+    # the Dutch BGT (bgt.py): what covers the ground beside the roads, and the municipalities' street furniture
+    surf, bgt_data = None, _bgt(mc, sc, rdir, log)
+    if bgt_data:
+        from . import bgt
+        n_osm = len(els)
+        els, st = bgt.merge(els, bgt_data, geo, skip_lamps=m_lamps, skip_trees=bool(m_trees))
+        surf = bgt.Surfaces(bgt_data, geo)
+        sources.add("bgt")
+        pl.counts["bgt_surfaces"], pl.counts["bgt_objects"] = len(surf), st["bgt_objects"]
+        pl.counts["bgt_added"], pl.counts["bgt_replaced"] = sum(st["added"].values()), sum(st["replaced"].values())
+        log(f"scenery: BGT {len(surf)} ground surfaces; {st['bgt_objects']} plus objects -> "
+            f"{pl.counts['bgt_added']} added ({', '.join(f'{k} {v}' for k, v in sorted(st['added'].items()))}), "
+            f"replacing {pl.counts['bgt_replaced']} of {n_osm} OSM/register features "
+            f"({', '.join(f'{k} {v}' for k, v in sorted(st['replaced'].items()))}); "
+            f"{st['skipped_register']} left to the city's register")
     green, water, tunnels = [], [], []
     for el in els:
         t = el.get("tags", {})
@@ -582,6 +634,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
                 water.append(poly)
             elif nat in GREEN_NATURAL or lu in GREEN_LANDUSE or le in GREEN_LEISURE:
                 green.append((poly, nat or lu or le))
+    if surf is not None and surf.wood:     # BGT woods and shrubs that OSM does not map: planted like OSM's
+        osm_green = unary_union([g for g, _ in green]) if green else None
+        for poly, kind in surf.wood:
+            extra = poly.difference(osm_green) if osm_green is not None else poly
+            green += [(g, kind) for g in getattr(extra, "geoms", [extra]) if g.geom_type == "Polygon"]
     water_u = unary_union(water) if water else None
     green_u = unary_union([g for g, _ in green]) if green else None
     occ_tree = STRtree(occupied) if occupied else None
@@ -806,28 +863,64 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print):
         gx0, gy0 = math.floor((min(xs) - pad) / TILE) * TILE, math.floor((min(ys) - pad) / TILE) * TILE
         gx1, gy1 = max(xs) + pad, max(ys) + pad
         tiles = lowered = 0
+        bgt_tiles, changed, split, kinds, moves = 0, 0, 0, defaultdict(int), defaultdict(int)
+
+        def lay(kind, x, y, T):
+            """One square of ground: tilted to the terrain, under the road surface, covered by its mesh."""
+            nonlocal lowered
+            z = ground(x, y) - 0.05
+            zx = (ground(x + T / 2, y) - ground(x - T / 2, y)) / T if dem is not None else 0.0
+            zy = (ground(x, y + T / 2) - ground(x, y - T / 2)) / T if dem is not None else 0.0
+            key = (int(x // TILE), int(y // TILE))
+            near = [q for i in (-1, 0, 1) for j in (-1, 0, 1) for q in road.get((key[0] + i, key[1] + j), [])
+                    if abs(q[0] - x) <= T / 2 + 1 and abs(q[1] - y) <= T / 2 + 1]
+            if near:
+                gap = min(q[2] - (z + zx * (q[0] - x) + zy * (q[1] - y)) for q in near)
+                if gap < 0.15:
+                    z += gap - 0.15
+                    lowered += 1
+            tilt = (math.degrees(math.atan(zx)), -math.degrees(math.atan(zy)))
+            mesh = GROUND_MESH.get(kind, PAVING)
+            if mesh not in cat:
+                mesh, kind = PAVING, "open"
+            dz = {"water": -0.5, "open": -0.02}.get(kind, 0.0)
+            for i, ((dx, dy), s) in enumerate(tile_cover(cat.size(mesh), T)):
+                pl.add("water" if kind == "water" else "ground", mesh, x + dx, y + dy, 0.0, s,
+                       z=z + zx * dx + zy * dy + dz - 0.01 * i, tilt=tilt, anchor="top", centre=True)
+            kinds[kind] += 1
+
         for x in np.arange(gx0 + TILE / 2, gx1, TILE):
             for y in np.arange(gy0 + TILE / 2, gy1, TILE):
                 p = Point(x, y)
-                z = ground(x, y) - 0.05
-                zx = (ground(x + TILE / 2, y) - ground(x - TILE / 2, y)) / TILE if dem is not None else 0.0
-                zy = (ground(x, y + TILE / 2) - ground(x, y - TILE / 2)) / TILE if dem is not None else 0.0
-                key = (int(x // TILE), int(y // TILE))
-                near = [q for i in (-1, 0, 1) for j in (-1, 0, 1) for q in road.get((key[0] + i, key[1] + j), [])
-                        if abs(q[0] - x) <= TILE / 2 + 1 and abs(q[1] - y) <= TILE / 2 + 1]
-                if near:
-                    gap = min(q[2] - (z + zx * (q[0] - x) + zy * (q[1] - y)) for q in near)
-                    if gap < 0.15:
-                        z += gap - 0.15
-                        lowered += 1
-                tilt = (math.degrees(math.atan(zx)), -math.degrees(math.atan(zy)))
                 if water_u is not None and water_u.contains(p):
-                    pl.add("water", WATER, x, y, 0.0, TILE / 100.0, z=z - 0.5, tilt=tilt, anchor="top")
+                    osm_kind = "water"
                 elif green_u is not None and green_u.contains(p):
-                    pl.add("ground", GRASS, x, y, 0.0, TILE / 80.0, z=z, tilt=tilt, anchor="top")
+                    osm_kind = "green"
                 else:
-                    pl.add("ground", PAVING, x, y, 0.0, TILE, z=z - 0.02, tilt=tilt, anchor="top")
+                    osm_kind = "open"
+                parts = [(x, y, TILE, osm_kind)]
+                if surf is not None and osm_kind != "water":
+                    kind, share = surf.classify(x, y, TILE)
+                    if kind is not None:
+                        bgt_tiles += 1
+                        parts = [(x, y, TILE, kind)]
+                        if share < SPLIT_SHARE and kind != "water":
+                            q = TILE / 4
+                            parts = [(x + a, y + b, TILE / 2, surf.classify(x + a, y + b, TILE / 2)[0] or kind)
+                                     for a in (-q, q) for b in (-q, q)]
+                            split += 1
+                        changed += any(k != osm_kind for *_, k in parts)
+                        for *_, k in parts:
+                            if k != osm_kind:
+                                moves[f"{osm_kind}->{k}"] += 1
+                for px, py, T, kind in parts:
+                    lay(kind, px, py, T)
                 tiles += 1
+        if surf is not None:
+            log(f"scenery: BGT chose {bgt_tiles} of {tiles} tiles ({changed} changed from OSM, {split} split in four)"
+                f": {', '.join(f'{k} {v}' for k, v in sorted(kinds.items()))}; squares changed "
+                f"{', '.join(f'{k} {v}' for k, v in sorted(moves.items(), key=lambda kv: -kv[1]))}")
+            pl.counts["ground_bgt"], pl.counts["ground_changed"], pl.counts["ground_split"] = bgt_tiles, changed, split
         log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface)")
 
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
@@ -859,7 +952,8 @@ class Scenery:
             elif it[6] not in kinds:
                 continue
             else:
-                self.cells[(int(it[1] // self.cell), int(it[2] // self.cell))].append(it)
+                cx, cy = it[8] if len(it) > 8 else it[1:3]      # the mesh's centre where its pivot is far off
+                self.cells[(int(cx // self.cell), int(cy // self.cell))].append(it)
         self.loaded = {}
         self.bp = world.get_blueprint_library().find("static.prop.mesh")
         self.n = 0

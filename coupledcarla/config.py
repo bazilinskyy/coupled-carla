@@ -25,6 +25,8 @@ DEFAULTS = {
         "scenery": {                 # CARLA meshes placed from real-world data (coupledcarla/scenery.py)
             "enabled": True, "buildings": True, "trees": True, "furniture": True, "guess_lamps": True, "signs": True,
             "ground": True, "catalog": "0.9.16",
+            "bgt": "auto",           # the Dutch BGT (bgt.py): ground surfaces (grass, bricks/tiles, asphalt,
+                                     # gravel) and municipal street furniture, for maps in the Netherlands; false: off
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
