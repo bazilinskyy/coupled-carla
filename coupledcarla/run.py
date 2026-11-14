@@ -45,6 +45,11 @@ class Log:
 
 
 def load_world(client, xodr, mc, slab=False):
+    if mc.get("carla_level"):   # a baked level (its own roads, buildings and ground): load it by name
+        client.set_timeout(600.0)
+        world = client.load_world(mc["carla_level"])
+        client.set_timeout(60.0)
+        return world
     p = mc["carla"]
     params = carla.OpendriveGenerationParameters(
         vertex_distance=p["vertex_distance"], max_road_length=p["max_road_length"], wall_height=p["wall_height"],
@@ -214,12 +219,16 @@ def run_trial(cfg, trial_idx, args, control=None):
             p["input"] = args.input
         if args.headless:
             p["window"] = False
+            if not args.input and not p.get("station") and p.get("input", "keyboard") in ("keyboard", "wheel"):
+                p["input"] = "autopilot"     # nobody to steer without a window
         if args.view:
             p["view"] = args.view
     mdir = config.map_dir(tc)
     if not (mdir / "meta.json").exists():
         mapbuild.build(tc)
     geo = Geo(mdir / "geo.net.xml")
+    if not tc["map"].get("bbox"):   # a map built from an OpenDRIVE file: its box is in meta.json
+        tc["map"]["bbox"] = json.loads((mdir / "meta.json").read_text())["bbox"]
     step = tc["simulation"]["step"]
     duration = float(trial.get("duration_s", 300))
     ehmi_states = (tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)
@@ -250,7 +259,7 @@ def run_trial(cfg, trial_idx, args, control=None):
     summary = {"trial": trial_idx, "ticks": 0}
     try:
         has_scenery = (mdir / "scenery.json").exists() and compat.server_major(client) == 0 \
-            and tc["map"].get("scenery", {}).get("enabled", True)
+            and tc["map"].get("scenery", {}).get("enabled", True) and not tc["map"].get("carla_level")
         world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery)
         bb = tc["map"]["bbox"]
         wx = set_weather(world, tc["simulation"], ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real", log)

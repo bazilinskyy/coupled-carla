@@ -279,6 +279,49 @@ def build_transit(cfg, out, meta):
     return meta
 
 
+def _bbox_of(geo_net):
+    """[south, west, north, east] of a projected SUMO net."""
+    import sumolib
+    net = sumolib.net.readNet(str(geo_net), withInternal=False, withPedestrianConnections=False)
+    (x0, y0), (x1, y1) = net.getBBoxXY()
+    lon0, lat0 = net.convertXY2LonLat(x0, y0)
+    lon1, lat1 = net.convertXY2LonLat(x1, y1)
+    return [round(min(lat0, lat1), 6), round(min(lon0, lon1), 6), round(max(lat0, lat1), 6), round(max(lon0, lon1), 6)]
+
+
+def build_from_opendrive(cfg, out):
+    """A map from a given OpenDRIVE file instead of OSM: a baked CARLA level's own road network (map.opendrive,
+    e.g. a carla-digitaltwins twin, with map.carla_level naming the level). SUMO's net is made from the same file,
+    so SUMO and the level share their roads. geo.net.xml is the same net without netconvert's shift to the
+    origin, so its (x, y) equal the OpenDRIVE's and CARLA (x, y) = (geo x, -geo y) holds as for OSM maps.
+    No scenery: the level brings its own buildings and ground."""
+    import re
+    mc = cfg["map"]
+    src = Path(mc["opendrive"]).expanduser()
+    if not src.is_absolute():
+        src = Path(cfg["_root"]) / src
+    xodr = out / "map.xodr"
+    # without geoid grids (SUMO's and pyproj's PROJ have none; the vertical datum does not matter for x, y). The
+    # server reads the level's own copy, this one is SUMO's.
+    xodr.write_text(re.sub(r"\s*\+geoidgrids=\S+|\s*\+vunits=\S+", "", src.read_text(encoding="utf-8")),
+                    encoding="utf-8")
+    name_signals(xodr)
+    stats = check_xodr(xodr)
+    netconvert("--opendrive-files", str(xodr), "--offset.disable-normalization", "--no-internal-links",
+               "-o", str(out / "geo.net.xml"))
+    sumo_net(out)
+    bbox = mc.get("bbox") or _bbox_of(out / "geo.net.xml")
+    meta = {"name": mc["name"], "lefthand": bool(mc.get("lefthand")), "buildings": 0, "bbox": bbox,
+            "built": time.strftime("%Y-%m-%d %H:%M:%S"), "opendrive": str(src), "carla_level": mc.get("carla_level"),
+            "files": {"geo_net": "geo.net.xml", "xodr": "map.xodr", "sumo_net": "map.net.xml"},
+            "xodr": stats, "elevation": None}
+    if mc.get("transit", True):
+        build_transit(dict(cfg, map=dict(mc, bbox=bbox)), out, meta)
+    (out / "meta.json").write_text(json.dumps(meta, indent=2))
+    log(f"done (from {src.name}): {out}")
+    return out
+
+
 def build(cfg, force=False, scenery_only=False, transit_only=False):
     mc = cfg["map"]
     out = config.map_dir(cfg)
@@ -299,6 +342,8 @@ def build(cfg, force=False, scenery_only=False, transit_only=False):
     if (out / "meta.json").exists() and not force:
         log(f"{out} already built (use --force to rebuild)")
         return out
+    if mc.get("opendrive"):
+        return build_from_opendrive(cfg, out)
     if not mc["bbox"]:
         sys.exit("map.bbox is required")
 

@@ -1,0 +1,33 @@
+# Eindhoven city centre as a baked CARLA 1.0 level: the carla-digitaltwins twin EhvCentre (roads with lane markings,
+# kerbs and sidewalks, 3DBAG buildings, AHN ground), with SUMO driving on the twin's own OpenDRIVE.
+# Needs a CARLA 1.0 server that has the level (baked with carla-digitaltwins bake_level.py; see README).
+name: eindhoven_twin
+
+map:
+  opendrive: twins/EhvCentre.xodr   # the twin's OpenDRIVE, copied next to the experiments (not in git: see README)
+  carla_level: EhvCentre
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 2400
+  bikes_per_hour: 1200
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 51.44453, lon: 5.47883}   # Fellenoord by the station
+
+pois:
+  - {name: eindhoven_centraal, lat: 51.4433, lon: 5.4797}
+  - {name: 18_septemberplein, lat: 51.4385, lon: 5.4780}
+
+trials:
+  - {duration_s: 300}
