@@ -23,7 +23,7 @@ too (WALK = yielding or go, STOP = driving or wait). State "off" draws nothing.
 """
 import math
 
-from . import designs
+from . import designs, look
 from .strokefont import GLYPHS
 
 PLACEMENTS = ("front", "hood", "rear", "roof", "roof_rear", "windshield", "bumper", "road")
@@ -238,7 +238,7 @@ def draw_world(debug, vehicle, state, ehmi, t, life):
     for p0, p1, th, rgb, f in segs:
         if f < MIN_LIGHT:
             continue
-        col = carla.Color(*(int(min(255, c * f)) for c in rgb))
+        col = carla.Color(*look.debug_colour([int(min(255, c * f)) for c in rgb]))     # without bloom (look.py)
         debug.draw_line(carla.Location(*p0), carla.Location(*p1), thickness=th, color=col, life_time=life)
     return len(segs)
 

@@ -1,73 +1,208 @@
-"""Render views of a map with all its real-world scenery, for the README.
+"""Render views of a map with all its real-world scenery and parked cars, for the README.
 
     python tools/scenery_shots.py experiments/cities/lyon.yaml --time "2026-11-13 10:00" \
         --view bellecour:45.7578,4.8320,80,270,-15 --out docs/img/
+    python tools/scenery_shots.py experiments/eindhoven_centre.yaml --weather doc --size 1280x720 \
+        --chase parked_eindhoven:51.4417,5.4754,200 --name "{view}" --out docs/img/
 
-Each --view is name:lat,lon,height above the road,compass heading,pitch. Starts its own CARLA server.
+Each --view is name:lat,lon,height above the road,compass heading,pitch[,fov]; each --chase is name:lat,lon,compass
+heading: a car on the nearest driving lane there, seen by the chase camera of display.py. Images are taken with
+simulation.capture (coupledcarla/look.py): rendered at 2x and downscaled, no motion blur, bloom 0.3, and a manual
+exposure chosen per view among EVs around look.exposure_ev (the one whose median ground luminance is nearest
+look.target_luminance). --weather doc is look.DOC_WEATHER with the sun's azimuth of --time. --before DIR also saves
+the view with the cameras as they were (1x, CARLA's default post-processing, auto exposure) for comparison.
+A shot the realism guard rejects (look.realism_problems: an empty world by the semantic camera, too dark or bright,
+clipped, glaring) is not saved; the reason is printed (--force saves it anyway).
+Starts its own CARLA server (or uses the one at the experiment's server port).
 """
 import argparse
-import queue
 import sys
 from pathlib import Path
 
 import carla
+import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from coupledcarla import config  # noqa: E402
+from coupledcarla import config, look, parking  # noqa: E402
+from coupledcarla.display import VIEWS  # noqa: E402
 from coupledcarla.geo import Geo, ground, heading_to_yaw  # noqa: E402
 from coupledcarla.run import load_world, set_weather  # noqa: E402
 from coupledcarla.scenery import Scenery  # noqa: E402
 from coupledcarla.server import Server  # noqa: E402
+
+SKY = 11      # CARLA 0.9.14+ semantic tag of the sky
+
+
+def keep(q, img):
+    q[img.frame] = img
+    for k in sorted(q)[:-2]:
+        q.pop(k, None)
+
+
+def median_ground(rgb, sem):
+    lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
+    m = sem != SKY
+    return float(np.median(lum[m])) if m.any() else float(np.median(lum))
+
+
+def shoot(world, tf, size, fov, cap, weather, parent=None, before=False, settle=100):
+    """Render tf with a few exposures (and the old camera when before): {name: rgb}, the picked image's name, the
+    best EV and the median ground luminance of each exposure."""
+    lib = world.get_blueprint_library()
+    rsize = look.capture_size(size, cap)
+    base_ev = look.exposure_ev(weather.sun_altitude_angle, weather.cloudiness) + float(cap.get("ev_bias") or 0)
+    cams = {}
+
+    def spawn(name, bp):
+        cam = world.spawn_actor(bp, tf, attach_to=parent) if parent else world.spawn_actor(bp, tf)
+        q = {}
+        cam.listen(lambda img, q=q: keep(q, img))
+        cams[name] = (cam, q)
+    for dev in (-1.0, -0.5, 0.0, 0.5, 1.0, 1.5):    # aerial views want up to +1.2 EV
+        bp = lib.find("sensor.camera.rgb")
+        for k, v in (("image_size_x", rsize[0]), ("image_size_y", rsize[1]), ("fov", fov)):
+            bp.set_attribute(k, str(v))
+        look.apply_09(bp, {**cap, "ev_bias": float(cap.get("ev_bias") or 0) + dev}, weather)
+        spawn(f"ev{base_ev + dev:.2f}", bp)
+    if before:
+        bp = lib.find("sensor.camera.rgb")
+        for k, v in (("image_size_x", size[0]), ("image_size_y", size[1]), ("fov", fov)):
+            bp.set_attribute(k, str(v))
+        spawn("before", bp)
+    sbp = lib.find("sensor.camera.semantic_segmentation")
+    for k, v in (("image_size_x", size[0]), ("image_size_y", size[1]), ("fov", fov)):
+        sbp.set_attribute(k, str(v))
+    spawn("_sem", sbp)
+    frame = None
+    for _ in range(settle):          # meshes stream in, temporal anti-aliasing and shadows settle
+        frame = world.tick()
+    for _ in range(50):
+        if all(frame in q for _, q in cams.values()):
+            break
+        frame = world.tick()
+    import time
+    time.sleep(0.5)
+    sem = np.frombuffer(cams["_sem"][1][frame].raw_data, dtype=np.uint8).reshape(size[1], size[0], 4)[:, :, 2]
+    out, meds = {}, {}
+    for name, (cam, q) in cams.items():
+        if name == "_sem":
+            continue
+        out[name] = look.downscale(look.to_rgb(q[frame]), size)
+        if name.startswith("ev"):
+            meds[name] = round(median_ground(out[name], sem), 1)
+    for cam, q in cams.values():
+        cam.stop()
+        cam.destroy()
+    ev = look.best_ev([(float(n[2:]), m, weather.sun_altitude_angle) for n, m in meds.items()])
+    pick = min(meds, key=lambda n: abs(float(n[2:]) - ev))
+    return out, pick, ev, meds, sem
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("experiment")
     ap.add_argument("--time", default="12:00")
-    ap.add_argument("--weather", default="real")
-    ap.add_argument("--view", action="append", required=True)
+    ap.add_argument("--weather", default="real", help="real | doc | a carla.WeatherParameters preset")
+    ap.add_argument("--sun", type=float, default=None, help="sun altitude (deg), overrides the weather's")
+    ap.add_argument("--view", action="append", default=[])
+    ap.add_argument("--chase", action="append", default=[])
     ap.add_argument("--out", default="docs/img")
+    ap.add_argument("--name", default="scenery_{exp}_{view}", help="file name pattern ({exp}, {view})")
     ap.add_argument("--size", default="1600x900")
+    ap.add_argument("--before", default=None, help="also save the old camera's image here")
+    ap.add_argument("--no-parked", action="store_true")
+    ap.add_argument("--quality", type=int, default=88)
+    ap.add_argument("--force", action="store_true", help="save shots the realism guard rejects (look.py)")
     args = ap.parse_args()
     cfg = config.load(args.experiment)
     mdir = config.map_dir(cfg)
     geo = Geo(mdir / "geo.net.xml")
+    cap = look.settings(cfg["simulation"])
+    cap["enabled"] = True
     server = Server(cfg["server"])
     client = server.start()
     try:
         world = load_world(client, mdir / "map.xodr", cfg["map"], slab=True)
-        sc = dict(cfg["simulation"], weather=args.weather, time=args.time)
+        sc = dict(cfg["simulation"], time=args.time)
+        if args.weather == "doc":       # its own clouds and haze, the sun's azimuth at that time, 40 deg up
+            sc.update(weather=dict(look.DOC_WEATHER), sun_altitude=look.DOC_WEATHER["sun_altitude_angle"])
+        else:
+            sc["weather"] = args.weather
+        if args.sun is not None:
+            sc["sun_altitude"] = args.sun
         bb = cfg["map"]["bbox"]
         set_weather(world, sc, ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real")
-        scen = Scenery(client, world, mdir, {"radius_m": 0})
-        scen.update([])
-        print(f"{scen.n} scenery meshes", flush=True)
-        w, h = args.size.split("x")
-        bp = world.get_blueprint_library().find("sensor.camera.rgb")
-        bp.set_attribute("image_size_x", w)
-        bp.set_attribute("image_size_y", h)
-        bp.set_attribute("fov", "80")
+        weather = world.get_weather()
+        settings = world.get_settings()
+        settings.synchronous_mode, settings.fixed_delta_seconds = True, 0.05
+        world.apply_settings(settings)
+        world.get_spectator().set_transform(carla.Transform(carla.Location(z=3000), carla.Rotation(pitch=90)))
         cmap = world.get_map()
+        shots = []
         for v in args.view:
             name, spec = v.split(":")
-            lat, lon, up, heading, pitch = (float(x) for x in spec.split(","))
+            vals = [float(x) for x in spec.split(",")]
+            lat, lon, up, heading, pitch = vals[:5]
             x, y = geo.to_carla(lat, lon)
             loc = ground(cmap, x, y) + carla.Location(z=up)
-            q = queue.Queue()
-            cam = world.spawn_actor(bp, carla.Transform(loc, carla.Rotation(yaw=heading_to_yaw(heading), pitch=pitch)))
-            cam.listen(q.put)
-            for _ in range(120):          # let the meshes stream in and the exposure settle
-                world.wait_for_tick()
-            img = None
-            while not q.empty():
-                img = q.get()
-            cam.destroy()
-            path = Path(args.out) / f"scenery_{cfg['name']}_{name}.jpg"
-            img.save_to_disk(str(path.with_suffix(".png")))
+            shots.append((name, carla.Transform(loc, carla.Rotation(yaw=heading_to_yaw(heading), pitch=pitch)),
+                          vals[5] if len(vals) > 5 else 80, None, loc))
+        for v in args.chase:
+            name, spec = v.split(":")
+            lat, lon, heading = (float(x) for x in spec.split(","))
+            x, y = geo.to_carla(lat, lon)
+            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
+            want = heading_to_yaw(heading)
+            for cand in (wp, wp.get_left_lane(), wp.get_right_lane()):
+                if cand is not None and cand.lane_type == carla.LaneType.Driving and \
+                        abs((cand.transform.rotation.yaw - want + 180) % 360 - 180) < 90:
+                    wp = cand
+                    break
+            shots.append((name, VIEWS["chase"], 90, wp, wp.transform.location))
+        scen = Scenery(client, world, mdir, {"radius_m": 0.0})     # all of it: aerial views see the whole map
+        parked = None if args.no_parked else parking.scenery(client, world, mdir, cfg)
+        lib = world.get_blueprint_library()
+        for name, tf, fov, wp, at in shots:
+            scen.update([at])
+            if parked is not None:
+                parked.update([at])
+            car = None
+            if wp is not None:
+                vbp = lib.find("vehicle.lincoln.mkz_2020")
+                if vbp.has_attribute("color"):
+                    vbp.set_attribute("color", "52,58,66")
+                t = wp.transform
+                t.location.z += 0.3
+                car = world.spawn_actor(vbp, t)
+                for _ in range(40):         # let it settle on its wheels
+                    world.tick()
+                car.set_simulate_physics(False)
+            w, h = (int(v) for v in args.size.split("x"))
+            imgs, pick, ev, meds, sem = shoot(world, tf, (w, h), fov, cap, weather, parent=car, before=bool(args.before))
             from PIL import Image
-            Image.open(path.with_suffix(".png")).convert("RGB").save(path, quality=85)
-            path.with_suffix(".png").unlink()
-            print(path, flush=True)
+            stem = args.name.format(exp=cfg["name"], view=name)
+            path = Path(args.out) / f"{stem}.jpg"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            probs = look.realism_problems(imgs[pick], sem)      # never an empty world, a black or a glaring frame
+            if probs and not args.force:
+                print(f"REJECTED {path}: {'; '.join(probs)} (--force saves it anyway)", flush=True)
+                if car is not None:
+                    car.destroy()
+                continue
+            Image.fromarray(np.ascontiguousarray(imgs[pick])).save(path, quality=args.quality)
+            if args.before:
+                Path(args.before).mkdir(parents=True, exist_ok=True)
+                Image.fromarray(np.ascontiguousarray(imgs["before"])).save(Path(args.before) / f"{stem}.jpg",
+                                                                            quality=args.quality)
+            print(f"{path} ({path.stat().st_size // 1024} KB): EV {pick[2:]} (best {ev:.2f}; median ground by EV "
+                  f"{meds}; sun {weather.sun_altitude_angle:.1f} deg, clouds {weather.cloudiness:.0f})", flush=True)
+            if car is not None:
+                car.destroy()
+        scen.destroy()
+        if parked is not None:
+            parked.destroy()
+        settings.synchronous_mode, settings.fixed_delta_seconds = False, None
+        world.apply_settings(settings)
     finally:
         server.stop()
 

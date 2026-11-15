@@ -4,6 +4,7 @@ import queue
 import carla
 import numpy as np
 
+from . import look
 from .compat import setup_camera
 
 VIEWS = {  # camera mounts relative to the vehicle centre
@@ -15,18 +16,23 @@ VIEWS = {  # camera mounts relative to the vehicle centre
 
 class View:
     def __init__(self, world, vehicle, view="driver", size=(1280, 720), fov=90, window=True,
-                 save_dir=None, save_every_s=0.0, profile="Dashcam"):
+                 save_dir=None, save_every_s=0.0, profile="Dashcam", capture=None):
         self.window = window
         self.latest = None
         self.save_dir = save_dir
+        saving = not window and save_every_s > 0
+        # headless snapshots with simulation.capture (look.py): rendered at 2x and downscaled, no motion blur, an
+        # exposure from the sun and clouds, rendered at 10 Hz on CARLA 0.9.x and every frame on 1.0 (its auto
+        # exposure adapts), every save_every_s-th second kept here. capture None/off: on 0.9.x only the kept frames
+        # are rendered, with a fixed daylight exposure (shutter 400) as before.
+        cap = look.settings(capture) if (saving and capture is not None) else None
+        self.out_size = tuple(size)
+        rsize = look.capture_size(size, cap) if cap else tuple(size)
         bp = world.get_blueprint_library().find("sensor.camera.rgb")
-        bp.set_attribute("image_size_x", str(size[0]))
-        bp.set_attribute("image_size_y", str(size[1]))
+        bp.set_attribute("image_size_x", str(rsize[0]))
+        bp.set_attribute("image_size_y", str(rsize[1]))
         bp.set_attribute("fov", str(fov))
-        # headless snapshots: on CARLA 0.9.x only the kept frames are rendered, with a fixed daylight exposure
-        # (shutter 400: the default 200 overexposes the pale ground); on 1.0 every frame is rendered so its auto
-        # exposure adapts, and every save_every_s-th second is kept here (compat.setup_camera)
-        self.keep_every = setup_camera(bp, save_every_s if (not window and save_every_s > 0) else 0.0, profile, 400)
+        self.keep_every = setup_camera(bp, save_every_s if saving else 0.0, profile, 400, world=world, capture=cap)
         self._kept_at = None
         self.camera = None
         if window or save_every_s > 0:
@@ -51,7 +57,7 @@ class View:
                 if self._kept_at is not None and image.timestamp - self._kept_at < self.keep_every - 1e-6:
                     return
                 self._kept_at = image.timestamp
-            image.save_to_disk(str(self.save_dir / f"view_{image.frame:08d}.jpg"))
+            look.save_frame(image, self.save_dir / f"view_{image.frame:08d}.jpg", self.out_size)
 
     def events(self):
         if not self.window:

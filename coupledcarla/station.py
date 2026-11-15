@@ -51,7 +51,7 @@ from pathlib import Path
 import carla
 import numpy as np
 
-from . import labcheck, multigpu
+from . import labcheck, look, multigpu
 from .compat import set_manual_exposure
 from .coupling import ControlClient
 from .studytools import CSV_COLUMNS, StationStudy
@@ -199,22 +199,32 @@ class Station:
                 break
             self.world.wait_for_tick(5.0)
         kind = self.welcome.get("kind")
+        # headless frames with simulation.capture (look.py): rendered at 2x and downscaled, no motion blur, on
+        # CARLA 0.9.x an exposure from the sun and clouds and at least 10 Hz rendering (anti-aliasing history)
+        cap = look.settings(self.welcome.get("capture")) if (args.headless and args.frames_every and
+                                                             self.welcome.get("capture") is not None) else None
+        self.capture = cap if cap and cap["enabled"] else None
+        rsize = look.capture_size(self.size, self.capture) if self.capture else self.size
         bp = self.world.get_blueprint_library().find("sensor.camera.rgb")
-        bp.set_attribute("image_size_x", str(self.size[0]))
-        bp.set_attribute("image_size_y", str(self.size[1]))
+        bp.set_attribute("image_size_x", str(rsize[0]))
+        bp.set_attribute("image_size_y", str(rsize[1]))
         bp.set_attribute("fov", str(args.fov))
         # CARLA 1.0: exposure from a post-process profile with auto exposure, which adapts only over consecutive
         # frames: a headless camera renders every tick (unless --camera-hz) and frames are kept every --frames-every
         # (compat.setup_camera). CARLA 0.9.x: a slow headless camera gets a fixed manual exposure instead.
         self.every_tick = bp.has_attribute("post_process_profile")
-        if self.every_tick and self.welcome.get("camera_profile", "Dashcam"):
-            bp.set_attribute("post_process_profile", str(self.welcome.get("camera_profile", "Dashcam")))
+        profile = (self.capture or {}).get("profile") or self.welcome.get("camera_profile", "Dashcam")
+        if self.every_tick and profile:
+            bp.set_attribute("post_process_profile", str(profile))
         hz = self.camera_hz()
         if hz > 0:
             bp.set_attribute("sensor_tick", str(1.0 / hz))
-        if not self.every_tick and args.headless and 0 < hz <= 5:
+        shutter = {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220)
+        if not self.every_tick and self.capture:
+            look.apply_09(bp, self.capture, self.world.get_weather(), shutter)
+        elif not self.every_tick and args.headless and 0 < hz <= 5:
             # few frames: auto exposure would never adapt
-            set_manual_exposure(bp, {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220))
+            set_manual_exposure(bp, shutter)
         if kind == "pedestrian":
             self.heading = self.actor.get_transform().rotation.yaw
 
@@ -279,7 +289,11 @@ class Station:
             return max(0.0, float(a.camera_hz))
         if getattr(self, "every_tick", False):      # CARLA 1.0: every tick, so auto exposure adapts
             return 0.0
-        return (1.0 / (a.frames_every or 1.0)) if a.headless else 0.0
+        hz = (1.0 / (a.frames_every or 1.0)) if a.headless else 0.0
+        cap = getattr(self, "capture", None)
+        if hz and cap and cap.get("render_hz"):     # capture (look.py): keep rendering at render_hz
+            hz = max(hz, float(cap["render_hz"]))
+        return hz
 
     @staticmethod
     def _destroy(cam):
@@ -479,10 +493,10 @@ class Station:
                 out = Path(self.args.out) / "stations" / f"{self.args.role}_trial{self.trial}_frames"
                 out.mkdir(parents=True, exist_ok=True)
                 if self.ux is not None and self.ux.wants_frames():     # with the in-car displays drawn over it
-                    arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(image.height, image.width, 4)
-                    self.ux.save_frame(arr[:, :, 2::-1], out / f"{image.frame:08d}.jpg", self.args.fov)
+                    rgb = look.downscale(look.to_rgb(image), self.size)
+                    self.ux.save_frame(np.ascontiguousarray(rgb), out / f"{image.frame:08d}.jpg", self.args.fov)
                     return
-                image.save_to_disk(str(out / f"{image.frame:08d}.jpg"))
+                look.save_frame(image, out / f"{image.frame:08d}.jpg", self.size)
             return
         arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(image.height, image.width, 4)
         self.image = arr[:, :, 2::-1]

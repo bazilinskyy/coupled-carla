@@ -248,7 +248,8 @@ def welcome_for(part, geo, tc):
     out = {"kind": part.kind, "view": part.cfg.get("view"), "bot": bot,
            "ehmi_states": list((tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)),
            "step": tc["simulation"]["step"], "experiment": tc["name"],
-           "camera_profile": tc["simulation"].get("camera_profile", "Dashcam")}
+           "camera_profile": tc["simulation"].get("camera_profile", "Dashcam"),
+           "capture": tc["simulation"].get("capture")}
     # sound, in-car displays, haptics and designed eHMIs (stationux.py), when the experiment sets them
     out.update(stationux.welcome_extras(tc, part.cfg, part.kind, Path(tc["_path"]).parent,
                                         default_states=list(DEFAULT_EHMI)))
@@ -312,6 +313,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
 
     server = Server(tc["server"], log)
     client = server.start()
+    from . import look
+    look.DEBUG_COMPRESS = compat.server_major(client) == 0     # debug colours (traffic lights, eHMIs): look.py
     sync = view = recorder = world = logger = drone_world = None
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
@@ -349,8 +352,12 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # is the difference between map.net.xml's and geo.net.xml's offsets (CARLA x,y = geo.net x,-y).
         mo, go = sumo.net.getLocationOffset(), geo.net.getLocationOffset()
         BridgeHelper.offset = (mo[0] - go[0], mo[1] - go[1])
-        signals = Signals(world, sumo.net, BridgeHelper.offset, step=step, debug=side.debug)
-        log(f"traffic lights: {len(signals.heads)} signalled lanes from SUMO drawn near participants")
+        signals = Signals(world, sumo.net, BridgeHelper.offset, step=step, debug=side.debug,
+                          style=(tc["simulation"].get("traffic_lights") or {}).get("style", "head"),
+                          lefthand=bool(tc["map"].get("lefthand")), log=log)
+        log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
+            f"{', meshes' if signals.meshes else ''}) drawn near participants")
+        carla_sim._kinds.update({a.id: False for a in signals.actors})     # static: never looked up per tick
         world.tick()
 
         # AI agents (scripted cars and walkers); an AV passenger rides in one of them
@@ -405,14 +412,16 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 if window or tc["logging"]["frames_every_s"] > 0:
                     view = View(world, part.actor, p.get("view", "driver"), window=window, save_dir=out,
                                 save_every_s=tc["logging"]["frames_every_s"],
-                                profile=tc["simulation"].get("camera_profile", "Dashcam"))
+                                profile=tc["simulation"].get("camera_profile", "Dashcam"),
+                                capture=tc["simulation"].get("capture"))
             if not part.station and part.kind == "drone":
                 window = p.get("window", p.get("input", "keyboard") in ("keyboard", "gamepad", "rc"))
                 drone_world.local_input(part.drone, window and (i == 0))
                 if i == 0 and (window or tc["logging"]["frames_every_s"] > 0):
                     view = DroneView(drone_world, part.drone, window=window, save_dir=out,
                                      save_every_s=tc["logging"]["frames_every_s"],
-                                     profile=tc["simulation"].get("camera_profile", "Dashcam"))
+                                     profile=tc["simulation"].get("camera_profile", "Dashcam"),
+                                     capture=tc["simulation"].get("capture"))
             log(f"{part.role}: {part.kind} {part.actor.type_id} "
                 f"{'at a station' if part.station else 'on the host (' + str(p.get('input', 'bot')) + ')'}")
         for ag in agents:

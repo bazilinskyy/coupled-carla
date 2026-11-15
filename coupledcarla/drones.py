@@ -681,23 +681,27 @@ class DroneWorld:
         z = self.ground_z(x, y) + float(c.get("height_m", 1.7))
         bp = self.world.get_blueprint_library().find("sensor.camera.rgb")
         size = c.get("size", [1280, 720])
-        bp.set_attribute("image_size_x", str(size[0]))
-        bp.set_attribute("image_size_y", str(size[1]))
-        bp.set_attribute("fov", str(c.get("fov", 70)))
+        from . import look
         from .compat import setup_camera
+        cap = self.tc["simulation"].get("capture")      # look.py: supersampled, clean, exposure from the sun
+        rsize = look.capture_size(size, look.settings(cap)) if cap is not None else size
+        bp.set_attribute("image_size_x", str(rsize[0]))
+        bp.set_attribute("image_size_y", str(rsize[1]))
+        bp.set_attribute("fov", str(c.get("fov", 70)))
         every = float(c.get("every_s", self.tc["logging"].get("frames_every_s") or 1.0))
-        keep = setup_camera(bp, every, self.tc["simulation"].get("camera_profile", "Dashcam"), 400)
+        keep = setup_camera(bp, every, self.tc["simulation"].get("camera_profile", "Dashcam"), 400,
+                            world=self.world, capture=cap)
         cam = self.world.spawn_actor(bp, carla.Transform(carla.Location(x=x, y=y, z=z)))
         name = c.get("name", f"observer{len(self.cameras) + 1}")
         d = self.out / f"{name}_frames"
         d.mkdir(parents=True, exist_ok=True)
         state = {"kept": None}
 
-        def on_image(img, d=d, keep=keep or every, state=state):
+        def on_image(img, d=d, keep=keep or every, state=state, size=tuple(size)):
             if state["kept"] is not None and img.timestamp - state["kept"] < keep - 1e-6:
                 return
             state["kept"] = img.timestamp
-            img.save_to_disk(str(d / f"{img.frame:08d}.jpg"))
+            look.save_frame(img, d / f"{img.frame:08d}.jpg", size)
         cam.listen(on_image)
         look = c.get("look", "nearest")
         self.cameras.append({"cam": cam, "pos": (x, y, z), "look": look, "name": name})
@@ -1216,17 +1220,22 @@ class DroneView:
     attached: the gimbal stays level), in a pygame window with the HUD, or saved every frames_every_s."""
 
     def __init__(self, drones, pilot, window=True, size=(1280, 720), fov=84, save_dir=None, save_every_s=0.0,
-                 profile="Dashcam"):
+                 profile="Dashcam", capture=None):
         import carla
+        from . import look
         from .compat import setup_camera
         world = drones.world
         self.drones, self.pilot, self.window, self.save_dir = drones, pilot, window, save_dir
         self.latest = None
+        saving = not window and save_every_s > 0
+        cap = look.settings(capture) if (saving and capture is not None) else None     # look.py, as display.View
+        self.out_size = tuple(size)
+        rsize = look.capture_size(size, cap) if cap else tuple(size)
         bp = world.get_blueprint_library().find("sensor.camera.rgb")
-        bp.set_attribute("image_size_x", str(size[0]))
-        bp.set_attribute("image_size_y", str(size[1]))
+        bp.set_attribute("image_size_x", str(rsize[0]))
+        bp.set_attribute("image_size_y", str(rsize[1]))
         bp.set_attribute("fov", str(fov))
-        self.keep_every = setup_camera(bp, save_every_s if (not window and save_every_s > 0) else 0.0, profile, 400)
+        self.keep_every = setup_camera(bp, save_every_s if saving else 0.0, profile, 400, world=world, capture=cap)
         self._kept = None
         self.camera = world.spawn_actor(bp, drones.camera_transform(pilot, 0.02))
         self.camera.listen(self._on_image)
@@ -1249,7 +1258,9 @@ class DroneView:
                 if self._kept is not None and image.timestamp - self._kept < self.keep_every - 1e-6:
                     return
                 self._kept = image.timestamp
-            image.save_to_disk(str(Path(self.save_dir) / f"drone_{self.pilot.role}_{image.frame:08d}.jpg"))
+            from . import look
+            look.save_frame(image, Path(self.save_dir) / f"drone_{self.pilot.role}_{image.frame:08d}.jpg",
+                            self.out_size)
 
     def events(self):
         if not self.window:

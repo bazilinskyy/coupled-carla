@@ -126,7 +126,7 @@ def server_major(client):
         return 0
 
 
-def setup_camera(bp, every_s=0.0, profile="Dashcam", shutter=400):
+def setup_camera(bp, every_s=0.0, profile="Dashcam", shutter=400, world=None, capture=None):
     """Exposure of an RGB camera; returns the interval at which the caller should keep frames itself (0: all).
 
     CARLA 0.9.x: a camera that keeps a frame only every few seconds renders only then (sensor_tick) with a fixed
@@ -135,11 +135,26 @@ def setup_camera(bp, every_s=0.0, profile="Dashcam", shutter=400):
     (Content/Carla/Config/PostProcess), all with histogram auto exposure. Rendered every few seconds it never adapts
     (a cloudy day clipped 25 % of the frame to white, night was 99.7 % black), so it renders every tick and the
     caller keeps every every_s seconds; "Dashcam" was the best of CARLA's profiles at the Eindhoven twin (day mean
-    brightness 105-116 of 255 with nothing clipped, night 30 with 1 % crushed; the default profile: 101 and 5)."""
+    brightness 105-116 of 255 with nothing clipped, night 30 with 1 % crushed; the default profile: 101 and 5).
+
+    capture (simulation.capture, look.py), for a camera whose frames are kept: on 0.9.x no motion blur, bloom 0.3,
+    a manual exposure from the sun and clouds of world's weather, and it renders at least capture.render_hz (the
+    caller keeps every every_s); on 1.0 capture.profile instead of profile when set. None: as before."""
+    from . import look
+    cap = look.settings(capture) if capture is not None else None
+    if cap is not None and not cap["enabled"]:
+        cap = None
     if bp.has_attribute("post_process_profile"):
-        if profile:
-            bp.set_attribute("post_process_profile", str(profile))
+        prof = (cap or {}).get("profile") or profile
+        if prof:
+            bp.set_attribute("post_process_profile", str(prof))
         return float(every_s or 0.0)
+    if cap is not None:
+        look.apply_09(bp, cap, world.get_weather() if world is not None else None, shutter)
+        tick = look.render_interval(every_s, cap)
+        if tick > 0 and bp.has_attribute("sensor_tick"):
+            bp.set_attribute("sensor_tick", str(tick))
+        return float(every_s) if 0 < tick < float(every_s or 0) else 0.0
     if every_s and every_s > 0:
         if bp.has_attribute("sensor_tick"):
             bp.set_attribute("sensor_tick", str(every_s))

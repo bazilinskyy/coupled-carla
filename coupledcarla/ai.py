@@ -21,7 +21,7 @@ import zlib
 import carla
 import traci
 
-from . import compat
+from . import compat, look
 from .geo import ground
 # A stroke font (polylines on a 4 x 6 grid): CARLA draws debug *text* only in the spectator view, not in camera
 # sensors, so eHMI text is drawn with debug *lines*, which every station's camera sees.
@@ -83,8 +83,10 @@ def draw_ehmi(debug, vehicle, state, states, life, slots=("front",), look_at=Non
     fwd, right = tf.get_forward_vector(), tf.get_right_vector()
     fwd, right = carla.Location(fwd.x, fwd.y, 0.0), carla.Location(right.x, right.y, 0.0)
     up = carla.Location(z=1.0)
-    colour = carla.Color(*rgb)
-    dim = carla.Color(*(int(c * 0.55) for c in rgb))     # debug lines glow (bloom); text a little dimmer stays legible
+    # CARLA 0.9.16 saturates debug colours from a channel value of 3 (look.debug_colour): mapped, the bar stays
+    # its colour without a bloom halo and the text a step dimmer
+    colour = carla.Color(*look.debug_colour(rgb))
+    dim = carla.Color(*look.debug_colour([int(c * 0.55) for c in rgb]))
     text = spec.get("text", "")
 
     def bar(a, b, thick=0.12):
@@ -132,7 +134,7 @@ def draw_ehmi(debug, vehicle, state, states, life, slots=("front",), look_at=Non
                 dx = (target.x * right.x + target.y * right.y) if target else 0.0
                 dz = target.z if target else 0.0
                 pupil = eye + right * (0.08 * dx) + up * (0.08 * dz) + fwd * 0.02
-                debug.draw_point(pupil, size=0.09, color=carla.Color(20, 20, 20), life_time=life)
+                debug.draw_point(pupil, size=0.09, color=carla.Color(*look.debug_colour((20, 20, 20))), life_time=life)
                 debug.draw_point(pupil + fwd * 0.01, size=0.05, color=colour, life_time=life)
 
 
