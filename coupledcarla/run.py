@@ -476,6 +476,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         sumo_yield = SumoYield()
         if crowd is not None:     # SUMO's speeds: CARLA reads 0 m/s for a SUMO vehicle placed with physics off
             crowd.velocities = sync.velocity
+            crowd.poses = sync.poses
             if hasattr(crowd, "signals"):     # cross at signals with the light (pedsignals.py)
                 from .pedsignals import PedSignals
                 crowd.signals = PedSignals.from_sumo(sumo.net, BridgeHelper.offset)

@@ -18,6 +18,7 @@ from pathlib import Path
 
 NEAR_M = 20.0          # stop lines this close to a crossing control it
 SCRAMBLE_S = 30        # the all-pedestrian phase (s); no open timing for Shibuya, 30 s is a typical scramble phase
+AMBER_S = 3           # amber for streams still green when the all-pedestrian phase starts
 SCRAMBLE_REACH_M = 60  # a scramble tag this close to a traffic light's junction belongs to it
 
 
@@ -147,6 +148,10 @@ def scramble_programs(net, tls_ids, path, seconds=SCRAMBLE_S):
             rows.append(f'  <tlLogic id="{tid}" type="static" programID="{pid}_scramble" offset="0">')
             for ph in phases:
                 rows.append(f'    <phase duration="{ph.duration:g}" state="{ph.state}"/>')
+            last = phases[-1].state
+            if any(c in "Gg" for c in last):       # streams still green: amber before the all-red phase
+                amber = "".join("y" if c in "Gg" else c for c in last)
+                rows.append(f'    <phase duration="{AMBER_S:g}" state="{amber}"/>')
             rows.append(f'    <phase duration="{seconds:g}" state="{"r" * size}"/>')
             rows.append("  </tlLogic>")
             n += 1

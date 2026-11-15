@@ -135,7 +135,7 @@ class SumoYield:
                     if self.t - self.held[sid] >= CLEAR_S:
                         self._release(sid)
                     else:       # not clear for long enough: keep slowing (a SUMO speed command stays until changed)
-                        self._command(sid, max(0.0, speed - COMFORT * dt * self.every))
+                        self._command(sid, speed, COMFORT, dt * self.every)
                 continue
             a, emergency = braking(speed, d)
             if a <= 0.0 and sid not in self.held:
@@ -148,15 +148,21 @@ class SumoYield:
                     traci.vehicle.setSpeedMode(sid, 27)          # may brake harder than its decel
                     self.hard.add(sid)
                     self.events.append(("sumo_emergency_stop", f"{sid} {a:.1f} m/s^2, walker {d:.1f} m"))
-                traci.vehicle.setSpeed(sid, max(0.0, speed - a * dt * self.every))
+                self._command(sid, speed, a, dt * self.every)
                 self.held[sid] = self.t
             except traci.TraCIException:
                 self.held.pop(sid, None)
         self._yaw = {c: v for c, v in self._yaw.items() if c in poses}
 
-    def _command(self, sid, v):
+    def _command(self, sid, speed, decel, period):
+        """Slows from speed at decel over the period until the next check (slowDown spreads it over the steps; a
+        setSpeed would take the whole drop in the first step: 16 m/s^2 for 8 every two ticks); standing: holds."""
         try:
-            traci.vehicle.setSpeed(sid, v)
+            target = max(0.0, speed - decel * period)
+            if speed < 0.1 or target <= 0.0:
+                traci.vehicle.setSpeed(sid, 0.0)
+            else:
+                traci.vehicle.slowDown(sid, target, period)
         except traci.TraCIException:
             self.held.pop(sid, None)
 

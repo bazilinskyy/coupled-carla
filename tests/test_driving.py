@@ -137,6 +137,7 @@ def yielding(monkeypatch):
     calls = {"speed": {}, "mode": {}}
     fake = types.SimpleNamespace(
         vehicle=types.SimpleNamespace(setSpeed=lambda s, v: calls["speed"].__setitem__(s, v),
+                                      slowDown=lambda s, v, d: calls["speed"].__setitem__(s, v),
                                       setSpeedMode=lambda s, m: calls["mode"].__setitem__(s, m)),
         TraCIException=RuntimeError)
     monkeypatch.setitem(sys.modules, "traci", fake)
@@ -287,13 +288,14 @@ def test_crossing_links_and_all_red():
 def test_scramble_programs(tmp_path):
     from coupledcarla import pedsignals as P
     phase = lambda d, s: types.SimpleNamespace(duration=d, state=s)   # noqa: E731
-    prog = types.SimpleNamespace(getPhases=lambda: [phase(30, "GGrr"), phase(3, "yyrr"), phase(30, "rrGG")])
+    prog = types.SimpleNamespace(getPhases=lambda: [phase(30, "GGrr"), phase(3, "yyrr"), phase(30, "rrGg")])
     tls = types.SimpleNamespace(getPrograms=lambda: {"0": prog})
     net = types.SimpleNamespace(getTLS=lambda tid: tls)
     assert P.scramble_programs(net, ["J"], tmp_path / "s.add.xml", seconds=25) == 1
     root = ET.parse(tmp_path / "s.add.xml").getroot()
     states = [(p.get("duration"), p.get("state")) for p in root.iter("phase")]
-    assert states[-1] == ("25", "rrrr") and len(states) == 4 and root.find("tlLogic").get("id") == "J"
+    assert states[-1] == ("25", "rrrr") and root.find("tlLogic").get("id") == "J"
+    assert states[-2] == ("3", "rryy") and len(states) == 5            # amber first for the streams still green
 
 
 def test_scramble_points(tmp_path):
@@ -304,3 +306,11 @@ def test_scramble_points(tmp_path):
         '<way id="9"><nd ref="2"/><nd ref="3"/><tag k="crossing:scramble" v="yes"/></way></osm>')
     assert sorted(P.scramble_points(tmp_path / "map.osm")) == [(35.0, 139.0), (35.1, 139.1), (35.2, 139.2)]
     assert P.scramble_points(tmp_path / "missing.osm") == []
+
+
+def test_crowd_walker_blocked_by_standing_car():
+    from coupledcarla import crowdpeds
+    poses = {1: (10.0, 0.0, 0.0, 0.0, 2.3, 0.9)}       # a car along +x centred at x = 10
+    assert crowdpeds.blocked(12.4, 0.0, poses)           # just ahead of its bumper (within the margin)
+    assert not crowdpeds.blocked(13.0, 0.0, poses) and not crowdpeds.blocked(10.0, 1.5, poses)
+    assert not crowdpeds.blocked(0.0, 0.0, None)
