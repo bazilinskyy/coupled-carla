@@ -546,6 +546,14 @@ class _Grid:
 OBSTACLE_R = {"tree": 0.6, "lamp": 0.35, "sign": 0.3, "furniture": 0.4, "bush": 0.8}
 
 
+def median_side(lefthand):
+    """The side ("left"/"right" of a road's lanes) at the inner edge of a carriageway, towards the other direction.
+    netconvert writes each direction as a road with its lanes right of the reference line, which runs along the
+    centre of the street in right-hand traffic and along the kerb in left-hand traffic (London: all 200 "left" sides
+    once skipped as a median had no lane within 8 m beyond them)."""
+    return "right" if lefthand else "left"
+
+
 def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     """parked.json: every stall (kerb and car park) with its car, zone and draw; returns counts for meta.json."""
     import carla
@@ -557,6 +565,7 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     sc = mc.get("scenery") or {}
     (mdir / "parked.json").unlink(missing_ok=True)      # never leave one for another catalogue behind
     baked = bool(mc.get("carla_level"))
+    median = median_side(mc.get("lefthand"))
     cars = car_meshes(cat)
     glass_of = getattr(cat, "glass_of", {}) or {}
     if not cars:
@@ -778,7 +787,7 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                                      or tags.get("highway", "").endswith("_link")):
                 counts["side_roundabout_or_link"] += 1
                 continue
-            if side == "left" and not on_parking_lane and (tags is None or tags.get("oneway") not in
+            if side == median and not on_parking_lane and (tags is None or tags.get("oneway") not in
                                                            ("yes", "true", "1", "-1")):
                 counts["side_median"] += 1      # the inner edge of a carriageway that is not a one-way street
                 continue

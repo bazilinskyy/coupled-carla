@@ -58,3 +58,10 @@ def test_weather_now_east_of_utc_after_local_midnight(monkeypatch):
     assert local == datetime(2026, 11, 15, 5, 30)
     assert rec["time"] == "2026-11-15T05:00"
 
+
+def test_parking_median_side_follows_the_traffic_side():
+    # left-hand maps skipped every kerb of a two-way street as a "median" (London 926 kerb stalls -> 1479 fixed)
+    from coupledcarla import parking
+    assert parking.median_side(False) == "left"
+    assert parking.median_side(True) == "right"
+
