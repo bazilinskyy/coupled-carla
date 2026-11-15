@@ -140,6 +140,15 @@ class ControlServer:
         with self._lock:
             return set(self.stations)
 
+    def rewelcome(self, roles):
+        """Sends each connected station of `roles` a welcome made now (on_hello). A station's next trial process
+        says hello while the host is still closing the previous trial, so its welcome came from that trial's
+        on_hello: the previous trial's eHMI states, sound, displays, responses and take-over settings."""
+        if self.on_hello is None:
+            return
+        for role in sorted(set(roles) & self.connected()):
+            self.send(role, {"type": "welcome", "role": role, **(self.on_hello(role) or {})})
+
     def wait_for(self, roles, timeout, log_every=15.0):
         """Block until every role in `roles` has a station, or timeout (s). Returns the roles still missing."""
         t0, last = time.time(), 0.0

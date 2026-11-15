@@ -85,8 +85,31 @@ class Keyboard:
         self.lights = carla.VehicleLightState.NONE
         self.steer = 0.0
         self.send = None   # the runner's command queue: the light state goes with the tick's batch (run.py)
+        self.keep = None   # the car's other lights (headlights after dark), read at the first control()
 
     def control(self, vehicle, events=()):
+        self._keys(vehicle, events)
+        self._send_lights(vehicle)
+        return self.ctl
+
+    def _send_lights(self, vehicle):
+        """Blinkers and brake light from this input, the car's other lights as they were: the runner (and the
+        host, for a station's car) switches the headlights on after dark, which every tick's light state from
+        here switched off again."""
+        LS = carla.VehicleLightState
+        if self.keep is None:
+            try:
+                self.keep = int(vehicle.get_light_state()) & ~(int(LS.LeftBlinker) | int(LS.RightBlinker) |
+                                                               int(LS.Brake))
+            except (RuntimeError, AttributeError):
+                self.keep = 0
+        lights = carla.VehicleLightState(self.keep | int(self.lights) | (int(LS.Brake) if self.ctl.brake > 0 else 0))
+        if self.send is not None:
+            self.send(carla.command.SetVehicleLightState(vehicle.id, lights))
+        else:
+            vehicle.set_light_state(lights)
+
+    def _keys(self, vehicle, events):
         import pygame
         for e in events:
             if e.type == pygame.KEYDOWN:
@@ -107,12 +130,6 @@ class Keyboard:
         self.steer += max(-0.05, min(0.05, 0.6 * target - self.steer)) if target else -self.steer * 0.3
         self.ctl.steer = max(-1.0, min(1.0, self.steer))
         self.ctl.hand_brake = bool(k[pygame.K_SPACE])
-        lights = carla.VehicleLightState(self.lights | (carla.VehicleLightState.Brake if self.ctl.brake > 0 else 0))
-        if self.send is not None:
-            self.send(carla.command.SetVehicleLightState(vehicle.id, lights))
-        else:
-            vehicle.set_light_state(lights)
-        return self.ctl
 
 
 class Wheel(Keyboard):
@@ -128,12 +145,13 @@ class Wheel(Keyboard):
             raise RuntimeError(f"no joystick named like {pattern!r}")
 
     def control(self, vehicle, events=()):
-        super().control(vehicle, events)
+        self._keys(vehicle, events)
         steer, throttle, brake, _clutch = self.wheel.read(vehicle)
         self.ctl.steer, self.ctl.throttle, self.ctl.brake = steer, throttle, brake
         gear = self.wheel.gear() if hasattr(self.wheel, "gear") else None
         if gear in ("R", "D"):
             self.ctl.reverse = gear == "R"
+        self._send_lights(vehicle)      # after the pedals: the brake light follows the brake pedal
         self.wheel.update_ffb(vehicle)
         return self.ctl
 

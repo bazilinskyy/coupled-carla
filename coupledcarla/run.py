@@ -255,6 +255,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     log = Log()
     trial = cfg["trials"][trial_idx]
     tc = config.trial_config(cfg, trial)
+    if getattr(args, "local", False):    # also a trial's or condition's own participants list (main sees only the top's)
+        _make_local(tc["participants"])
     for p in tc["participants"]:
         if args.input and not p.get("station") and p.get("kind", "driver") == "driver":
             p["input"] = args.input
@@ -471,6 +473,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         if not tools.ready():          # the dashboard ended the trial (or the session) before it started
             duration = 0.0
         tools.started()
+        if control is not None:      # this trial's settings, before the stations start (see ControlServer.rewelcome)
+            control.rewelcome(station_roles)
         state.update(state="running")
         for part in parts:
             if control is not None:
@@ -488,7 +492,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         sync_at = sorted(float(x) for x in coupling.get("visual_sync_at_s", []))
         t_wall0, sim0, next_status, seen_col, t = time.time(), None, 0.0, 0, 0.0
         tools.bind(logger, queue, station_stats, lambda at: sync_at.insert(0, at), view)
-        snap = world.get_snapshot()
+        # snapshots from the connection that ticks (carla_sim's): another connection's get_snapshot() right after
+        # the tick was still the frame before in 58 % of ticks (lin4080, 0.9.16), so frames.csv repeated frames
+        snap = carla_sim.world.get_snapshot()
         while True:
             tools.hold()                  # paused on the dashboard
             t_tick = time.time()
@@ -564,7 +570,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if summary["ticks"] % 5 == 0:
                 gaze.update(t, snap.frame, parts, agents, station_gaze)
             laps("next_light_ehmi")
-            snap = world.get_snapshot()
+            snap = carla_sim.world.get_snapshot()
             if control is not None:          # every tick, for the stations' latency measurement
                 control.broadcast({"type": "tick", "frame": carla_sim.tick_frame, "t": carla_sim.tick_wall})
             sim_t = snap.timestamp.elapsed_seconds
@@ -764,6 +770,23 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     return summary
 
 
+def _make_local(participants):
+    """--local: every station participant runs on the host as its bot (a driver on the autopilot)."""
+    for p in participants:
+        if p.get("station"):
+            p["station"] = False
+            if p.get("kind", "driver") == "driver":
+                p["input"] = "autopilot"
+
+
+def _needs_control(cfg, local=False):
+    """Whether any trial has a station participant (a trial or condition may bring its own participants list)."""
+    if local:
+        return False
+    return any(p.get("station") for t in cfg["trials"] for p in config.trial_config(cfg, t)["participants"]) or \
+        any(p.get("station") for p in cfg["participants"])
+
+
 def _actor_id(part):
     return part.actor.id if part is not None and part.actor is not None else None
 
@@ -820,13 +843,9 @@ def main():
         for t in cfg["trials"]:
             t["duration_s"] = args.duration
     if args.local:
-        for p in cfg["participants"]:
-            if p.get("station"):
-                p["station"] = False
-                if p.get("kind", "driver") == "driver":
-                    p["input"] = "autopilot"
+        _make_local(cfg["participants"])
     control = None
-    if any(p.get("station") for p in cfg["participants"]):
+    if _needs_control(cfg, args.local):
         control = ControlServer(int((cfg.get("coupling") or {}).get("port", 2100)), Log())
     dashboard = None
     dc = cfg.get("dashboard") or {}

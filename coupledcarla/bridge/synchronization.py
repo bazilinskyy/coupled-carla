@@ -126,6 +126,16 @@ class SimulationSynchronization(object):
             if sumo_actor_id in self.sumo2carla_ids:
                 self.carla.destroy_actor(self.sumo2carla_ids.pop(sumo_actor_id))
 
+        # coupled-carla: SUMO also removes the twin of a CARLA-driven car: one standing still for time-to-teleport
+        # (120 s, e.g. a participant waiting with SUMO traffic queued behind it) is teleported along its one-edge
+        # route and arrives. get_actor() on the gone twin raised KeyError and ended the trial; it gets a new twin
+        # below instead, where new CARLA actors get theirs.
+        lost_twins = {carla_actor_id for carla_actor_id, sumo_actor_id in self.carla2sumo_ids.items()
+                      if sumo_actor_id in self.sumo.destroyed_actors}
+        for carla_actor_id in lost_twins:
+            logging.warning('SUMO removed the twin %s of CARLA actor %s; adding a new one',
+                            self.carla2sumo_ids.pop(carla_actor_id), carla_actor_id)
+
         # Level of detail: every 5 ticks (and for actors that just appeared), spawn in carla what is near a
         # participant and remove what has gone far.
         self._lod_tick += 1
@@ -204,9 +214,12 @@ class SimulationSynchronization(object):
         laps("carla_tick")
 
         # Spawning new carla actors (not controlled by sumo)
-        carla_spawned_actors = self.carla.spawned_actors - set(self.sumo2carla_ids.values())
+        carla_spawned_actors = (self.carla.spawned_actors | (lost_twins - self.carla.destroyed_actors)) - \
+            set(self.sumo2carla_ids.values())
         for carla_actor_id in carla_spawned_actors:
             carla_actor = self.carla.get_actor(carla_actor_id)
+            if carla_actor is None:     # coupled-carla: gone meanwhile (a lost twin's car)
+                continue
 
             type_id = BridgeHelper.get_sumo_vtype(carla_actor)
             color = carla_actor.attributes.get('color', None) if self.sync_vehicle_color else None

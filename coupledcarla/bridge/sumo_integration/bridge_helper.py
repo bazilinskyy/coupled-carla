@@ -304,10 +304,12 @@ class BridgeHelper(object):
             current_lights ^= SumoVehSignal.BLINKER_LEFT
 
         # Emergency.
+        # coupled-carla: bool() on both sides (the vendored code compared True with 4, so the hazard bit
+        # flipped every tick while both blinkers were on)
         if (all([
                 bool(carla_lights & carla.VehicleLightState.RightBlinker),
                 bool(carla_lights & carla.VehicleLightState.LeftBlinker)
-        ]) != (current_lights & SumoVehSignal.BLINKER_EMERGENCY)):
+        ]) != bool(current_lights & SumoVehSignal.BLINKER_EMERGENCY)):
             current_lights ^= SumoVehSignal.BLINKER_EMERGENCY
 
         # Break.
