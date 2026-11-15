@@ -1,6 +1,6 @@
 # Running a session with people
 
-A practical guide to running coupled-carla with human participants on the win5090 rendering server: which
+A practical guide to running Coupled CARLA with human participants on the win5090 rendering server: which
 machine does what, what each station needs, the network, the order to start things in, the checks before a
 session, what to watch during it, where the data ends up, and what to do when something goes wrong. The one-page
 list to keep next to the keyboard is [session_checklist.md](session_checklist.md).
@@ -59,7 +59,7 @@ CARLA Python client for macOS. **lin5080** is on Wi-Fi (above). wsl5090 is win50
 | Python | 3.10 exactly (the wheel is cp310), e.g. `uv venv --python 3.10 .venv58` | 3.10 (`uv venv --python 3.10 .venv58`) |
 | CARLA client | `C:\cc58\carla\Build\Package\Carla-1.0-Win64-Shipping\PythonAPI\carla\dist\carla-1.0-cp310-cp310-win_amd64.whl` (copy it from win5090) | `carla-1.0-cp310-cp310-linux_x86_64.whl` built on lin5080 from the same commit (copies: wsl5090 `~/cc58/`, lin4080 `~/cc-wt-labprep/`) |
 | Packages | `pip install <wheel> numpy pygame pyyaml` (+ `shapely networkx` for `--input bot` drivers) | the same |
-| coupled-carla | a checkout of the same commit as the host (the station imports its modules) | the same |
+| Coupled CARLA | a checkout of the same commit as the host (the station imports its modules) | the same |
 | `CARLA_ROOT` | only for `--input bot` drivers: a folder with `PythonAPI/carla/agents` from the ue58-dev tree | the same (lin4080: `~/cc-wt-labprep/carla_root`) |
 | Speech (spoken eHMI cues) | built in (SAPI) | `espeak-ng` |
 | Wheel | Logitech G HUB, the G25 at 900 degrees, force feedback at the top | the kernel driver; force feedback through SDL |
@@ -80,7 +80,7 @@ joysticks (the G25, gamepads) and the screens (`--display N`, `--fullscreen`).
 | 2000 TCP | CARLA RPC | the server (Windows) | the host, every station |
 | 2001 TCP | CARLA streaming (camera images, world snapshots) | the server (Windows) | every station |
 | 2002 TCP | CARLA secondary port | the server (Windows) | multi-GPU secondaries only |
-| 2100 TCP | coupled-carla control channel | the host (WSL) | every station |
+| 2100 TCP | Coupled CARLA control channel | the host (WSL) | every station |
 | 8780 TCP | experimenter dashboard | the host (WSL) | a browser on another PC (`--dashboard-host`) |
 | 3000-3002, 4000-4002, ... | multi-GPU secondaries | secondaries | stations whose camera such a secondary renders |
 
@@ -111,7 +111,7 @@ get no images (the Wi-Fi problem above).
 
 ## Before the first session (once)
 
-1. **Stop win5090's yield scripts from pausing coupled-carla.** win5090 pauses background work while someone uses
+1. **Stop win5090's yield scripts from pausing Coupled CARLA.** win5090 pauses background work while someone uses
    its desktop (keyboard or mouse input in 12 of the last 30 20-s slots), or while a CARLA server started at the
    desk runs: `wsl_yield.py` (wsl5090 `~/compute-dash/`, cron) sends SIGSTOP to every `python`, `sumo` and
    `netconvert` of the `crowd` user in WSL, which includes the host, SUMO and WSL stations; `win_yield.pyw`
@@ -120,7 +120,7 @@ get no images (the Wi-Fi problem above).
    keyboard the session would freeze within a minute. Decide one of (this changes the shared dashboard-workstations
    setup, so it is Pavlo's call):
    - in `wsl_yield.py` set `KEEP_GOING = [os.path.expanduser('~/cc58/coupled-carla')]` (jobs whose working folder
-     is the coupled-carla checkout keep going), and start the server at the desk instead of through the task
+     is the Coupled CARLA checkout keep going), and start the server at the desk instead of through the task
      (programs started at the desk are never suspended; a CARLA server running at the desk also counts as "a
      simulation", which frees the GPU from the crowd workers), or
    - drop `C:\cc58` from `PROJECTS` in `win_yield.pyw` for the study period, plus the `KEEP_GOING` change.
@@ -294,7 +294,7 @@ End the GPU window (`rm ~/cc58/gpu_flag` on wsl5090) so the crowd workers contin
 ## Rendering on more GPUs (multi-GPU, untested)
 
 CARLA 1.0 can split a simulation over a primary server (physics, actors, clients; `-nullrhi`, no GPU) and
-secondary servers that render the sensors on their own GPUs. coupled-carla supports it through
+secondary servers that render the sensors on their own GPUs. Coupled CARLA supports it through
 `server.multigpu` (`coupledcarla/multigpu.py`); the configuration, the command lines, the relay and the camera
 turns are tested without CARLA, **nothing has run on real GPUs yet**.
 
@@ -313,7 +313,7 @@ arguments (`-nullrhi`), each secondary's ports and command line, and the checks.
 100.80.224.203` runs that secondary and restarts it whenever the primary restarts. Every server needs the same
 CARLA build and the same content packs (`-carla-packs`, and the twin's `OpenDrive/` and `TM/` folders).
 
-What CARLA decides and how coupled-carla deals with it:
+What CARLA decides and how Coupled CARLA deals with it:
 
 - The primary gives each new camera to the next connected secondary, round-robin; a client cannot choose. A
   station whose role a secondary lists asks the host for a camera turn, listens, sees through its relay which

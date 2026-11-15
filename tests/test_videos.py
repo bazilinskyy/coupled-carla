@@ -256,3 +256,12 @@ def test_hears_first_participant():
     assert h({"kind": "film", "camera": {"kind": "follow", "offset": [0.22, 0, 0.72]}})
     assert not h({"kind": "film", "camera": {"kind": "follow", "offset": [-8.5, 0, 3.4]}})
     assert not h({"kind": "film", "camera": {"kind": "orbit"}})
+
+
+def test_realism_ignores_blind_semantic_samples(tmp_path):
+    class Rig:
+        sem_tags = [np.zeros((18, 32), np.uint8)] * 10       # all unlabeled: the semantic camera saw nothing
+        dir = tmp_path
+    assert film.realism(Rig, 10) == []
+    Rig.sem_tags = [np.full((18, 32), 1, np.uint8)] * 10    # all road: an empty world
+    assert film.realism(Rig, 10)

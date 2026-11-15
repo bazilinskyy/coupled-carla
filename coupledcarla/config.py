@@ -79,11 +79,25 @@ DEFAULTS = {
         "weather": "CloudyNoon",     # a carla.WeatherParameters preset name, a dict of its fields, or "real"
         "sun_altitude": None,
         "tls_manager": "sumo",       # who runs the traffic lights: sumo | carla | none
+        "traffic_lights": {"style": "head"},   # how SUMO's lights show in CARLA (signals.py): "head" (a signal
+                                     # head on a kerb pole per approach, CARLA's meshes, the lit lamp drawn) or
+                                     # "marker" (a line pole and a big glowing point per lane, as before)
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
         "traffic_manager": False,    # start CARLA's Traffic Manager (only for CARLA-driven autopilot cars)
         "camera_profile": "Dashcam", # CARLA 1.0: the post-process profile of every camera (exposure; CARLA's
                                      # Content/Carla/Config/PostProcess: Dashcam, AutomotiveHDR, Cinematic, ...;
                                      # "" for the server's default). CARLA 0.9.x ignores it
+        "capture": {                 # cameras whose frames are kept (--frames-every, stations' --frames-every,
+                                     # drone observers, tools/scenery_shots.py): coupledcarla/look.py
+            "enabled": True,         # 0.9.x: no motion blur, bloom 0.3, no lens flare, a manual exposure from
+                                     # the sun's altitude and the cloudiness; false: the cameras as before
+            "supersample": 2,        # render at this multiple of the frame size and downscale (Lanczos); 1: off
+            "render_hz": 10.0,       # 0.9.x: a camera that keeps a frame every few s still renders this often
+                                     # (temporal anti-aliasing needs recent frames; at 1 Hz leaves and paint dither)
+            "ev_bias": 0.0,          # added to the exposure (EV; +1 = one stop darker)
+            "profile": None,         # CARLA 1.0: post-process profile of these cameras (e.g. "CoupledClean",
+                                     # coupledcarla/data/postprocess); None: camera_profile
+        },
         "time": None,                # local time at the place, "YYYY-MM-DD HH:MM", "HH:MM" (today) or "now":
                                      # the sun stands where it did; with weather: real, Open-Meteo's weather
         "scenery": {"radius_m": 400.0,   # scenery cells within this distance of participants (0: all at once)
@@ -181,6 +195,37 @@ DEFAULTS = {
                                      # {lat, lon, height_m} | nearest, every_s, fov, size}
         "centre": None,              # {lat, lon} missions plan round (default: the first pilot, participant, box)
         "seed": 1,
+        "routing": {                 # delivery and patrol routes in 3D (droneplan.Router); a mission's `routing`
+                                     # overrides these keys for that mission
+            "mode": "band",          # band: cruise in a fixed height band and fly round what reaches into it |
+                                     # over: the old way, cruise clearance_m above everything under the route
+            "band_m": [40.0, 60.0],  # cruise band above the ground (m): Wing cruises at about 45 m, Manna 50-80 m,
+                                     # Amazon's MK30 55-85 m out and 85-115 m back; all under the EU's 120 m
+            "layer_m": 4.0,          # layers within the band, by the route's heading (Doole et al. 2021,
+            "layers": "heading",     # Aerospace 8(2) 38) | drone (one per drone, as before)
+            "max_altitude_m": 120.0, # never cruise higher (EU 2019/947 open category, U-space airspace)
+            "lateral_clearance_m": "auto",   # from buildings and trees reaching into the band: auto = SORA's
+            "vertical_clearance_m": "auto",  # operational volume (flight geography half-width + contingency volume:
+                                     # GNSS, position hold, map error, reaction distance, stopping distance), from
+                                     # the airframe and speed (FOCA GM SORA 13.3.2); about 34 m and 17 m for the
+                                     # industrial drone at 12 m/s
+            "reaction_s": 1.0,       # ... its reaction time
+            "gnss_m": 3.0,           # ... GNSS error (SORA's default; RTK: less)
+            "position_hold_m": 3.0,  # ... position-holding error
+            "map_error_m": 1.0,      # ... map and path-definition error
+            "altimeter_m": 1.0,      # ... height error (barometric; 4 m for GNSS heights)
+            "climb_over": True,      # climb above the band over a tall building when that costs less energy (the
+                                     # battery model) than flying round it
+            "over_penalty": 1.0,     # ... only when its energy times this is still less (> 1: stay in the band)
+            "over_step_m": 10.0,     # ... heights tried above the band, this far apart
+            "turn_accel_mps2": 2.0,  # sideways acceleration in turns: corners become arcs of v^2 / a, slower when
+                                     # tighter (the industrial drone's tilt limit allows 5.6 m/s^2)
+            "cell_m": 4.0,           # planning grid (A* with line-of-sight smoothing)
+            "no_fly": [],            # areas never flown over: [[[lat, lon], ...], ...]
+            "no_fly_osm": False,     # also OSM's aerodromes, heliports, helipads and military land (Overpass,
+                                     # cached in real/osm_nofly.json)
+            "no_fly_buffer_m": "auto",   # around them: auto = the lateral clearance
+        },
     },
     "coupling": {"port": 2100, "wait_for_stations_s": 600, "visual_sync_at_s": []},
     "ehmi": {},                      # {states: {name: {text, color}}, slots}; default in coupledcarla/ai.py; design:
