@@ -34,9 +34,9 @@ declare -A SCN=([before]=before [trees]=after [cars]=after [look]=after [overcas
 declare -A OPT=(
   [before]="--no-parked --moving-cars 0 --profile Dashcam"
   [trees]="--no-parked --moving-cars 0 --profile Dashcam"
-  [cars]="--moving-cars 6 --profile Dashcam"
-  [look]="--moving-cars 6 --profile CoupledReal"
-  [overcast]="--moving-cars 6 --profile CoupledReal --cloud-scale 1.0"
+  [cars]="--moving-cars 20 --profile Dashcam"
+  [look]="--moving-cars 20 --profile CoupledReal"
+  [overcast]="--moving-cars 20 --profile CoupledReal --cloud-scale 1.0"
 )
 
 use_scenery() {        # before | after: put that set in place

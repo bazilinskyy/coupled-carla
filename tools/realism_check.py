@@ -171,7 +171,9 @@ def write_attribution(views, path):
 class MovingCars:
     """A few cars on the driving lanes in each view, as a street photo has them: vehicle actors with physics off at
     points of the lanes 10-80 m in front of the camera and inside its field of view, cars_per_km per km of lane
-    (in both directions) and at least 8 m apart, drawn anew for every view (seeded by its id) and removed after it."""
+    (in both directions) and at least 8 m apart, drawn anew for every view (seeded by its id) and removed after it.
+    eindhoven_centre (0.9.16, 350 views, with its parked cars): more than 0.5 % of the view is car in 22 % of the
+    renders without moving cars, 32 % at 6 per km, 45 % at 20 per km (the default), and in 58 % of the photos."""
 
     SPACING = 4.0
 
@@ -856,7 +858,7 @@ def main():
     p.add_argument("--budget-min", type=float, default=10.0, help="stop rendering after this many minutes")
     p.add_argument("--no-scenery", action="store_true")
     p.add_argument("--no-parked", action="store_true")
-    p.add_argument("--moving-cars", type=float, default=6.0, help="cars per km of driving lane in view (0: none)")
+    p.add_argument("--moving-cars", type=float, default=20.0, help="cars per km of driving lane in view (0: none)")
     p.add_argument("--seed", type=int, default=1, help="draw of the moving cars")
     p.add_argument("--look", default="capture", choices=["capture", "auto"],
                    help="CARLA 0.9.x: capture (look.py: manual exposure from sun and clouds, no blur or flare) or "
