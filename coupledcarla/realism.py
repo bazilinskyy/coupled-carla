@@ -43,6 +43,8 @@ _CARLA_GROUP = {1: 0, 24: 0, 27: 0, 2: 1, 3: 2, 4: 2, 5: 2, 26: 2, 28: 2, 6: 3, 
 CARLA_TO_GROUP = np.full(256, IGNORE, np.uint8)
 for _k, _g in _CARLA_GROUP.items():
     CARLA_TO_GROUP[_k] = _g
+COARSE = np.full(256, IGNORE, np.uint8)      # groups -> ground, building, vegetation, sky (pole/vehicle: none)
+COARSE[[0, 1, 2, 3, 4, 5, 6]] = [0, 0, 1, 254, 2, 3, 254]
 PALETTE = np.array([[128, 64, 128], [244, 35, 232], [70, 70, 70], [220, 220, 0], [107, 142, 35], [70, 130, 180],
                     [0, 0, 142]], np.uint8)
 
@@ -588,6 +590,17 @@ def compare_labels(real, render, hfov):
         out[f"render_{name}"] = fd[name]
     out["miou"] = float(np.mean(ious)) if ious else float("nan")
     out["layout_tv"] = 0.5 * sum(abs(fr[k] - fd[k]) for k in GROUPS)
+    # coarse: ground (road + sidewalk: Dutch red cycle paths and brick pavements swap between the two), building,
+    # vegetation, sky; the robust score (the alignment search uses it)
+    cr, cd = COARSE[real], COARSE[render]
+    out["pix_acc_coarse"] = float(((cr == cd) & valid).sum()) / n
+    cious = []
+    for i in range(4):
+        a, b = (cr == i) & valid, (cd == i) & valid
+        union = int((a | b).sum())
+        if union >= 0.005 * n:
+            cious.append(float((a & b).sum()) / union)
+    out["miou_coarse"] = float(np.mean(cious)) if cious else float("nan")
     sa, sb = skyline(real, hfov), skyline(render, hfov)
     both = ~np.isnan(sa) & ~np.isnan(sb)
     out["skyline_mae_deg"] = float(np.mean(np.abs(sa[both] - sb[both]))) if both.any() else float("nan")
@@ -629,22 +642,40 @@ def colour_hist_sim(a, b, mask=None, bins=8):
     return float(np.minimum(hist(a), hist(b)).sum())
 
 
+def _score(m):
+    return m["miou_coarse"] if not math.isnan(m["miou_coarse"]) else -1.0
+
+
 def align(real_g, wide_g, hfov, w, h, wide_hfov, yaw_range=12.0, pitch_range=6.0, step=3.0):
-    """The yaw/pitch offset (deg) of the render view that best matches the real view's layout (mIoU), to separate
-    pose errors of the photo (heading +-10 deg, unknown pitch) from differences of the twin. Returns
-    (dyaw, dpitch, render group map at that offset, metrics)."""
+    """Photo with a fixed frame (a pinhole photo): the yaw/pitch offset (deg) of the render view, cut from the wider
+    render, that best matches the photo's layout (coarse mIoU). It separates pose errors of the photo (heading,
+    unknown pitch) from differences of the twin. Returns (heading error = the offset: the photo looks that much
+    right of / above its stated direction, dpitch, render group map there, metrics)."""
     best = None
-    ys = np.arange(-yaw_range, yaw_range + 1e-6, step)
-    ps = np.arange(-pitch_range, pitch_range + 1e-6, step)
-    for dy in ys:
-        for dp in ps:
+    for dy in np.arange(-yaw_range, yaw_range + 1e-6, step):
+        for dp in np.arange(-pitch_range, pitch_range + 1e-6, step):
             g = reproject(wide_g, "pinhole", w, h, hfov, yaw=float(dy), pitch=float(dp), src_hfov=wide_hfov,
                           nearest=True, fill=IGNORE)
             m = compare_labels(real_g, g, hfov)
-            score = m["miou"] if not math.isnan(m["miou"]) else -1
-            if best is None or score > best[0]:
-                best = (score, float(dy), float(dp), g, m)
+            if best is None or _score(m) > best[0]:
+                best = (_score(m), float(dy), float(dp), g, m)
     return best[1], best[2], best[3], best[4]
+
+
+def align_pano(pano_g, render_g, hfov, w, h, src_yaw, yaw_range=30.0, pitch_range=6.0, step=3.0, pitch0=0.0):
+    """Panorama photo: the render stays at the stated pose and the photo is cut at yaw/pitch offsets from its labelled
+    panorama (no margin needed, so a wider yaw range: the panoramas' headings come from the GPS track). Returns
+    (heading error: the true direction of the stated heading's column is stated + this, dpitch, the photo's group map
+    there, metrics, (dy, dp) of the cut)."""
+    best = None
+    for dy in np.arange(-yaw_range, yaw_range + 1e-6, step):
+        for dp in np.arange(-pitch_range, pitch_range + 1e-6, step):
+            g = reproject(pano_g, "equirect", w, h, hfov, yaw=float(dy), pitch=pitch0 + float(dp), src_yaw=src_yaw,
+                          nearest=True)
+            m = compare_labels(g, render_g, hfov)
+            if best is None or _score(m) > best[0]:
+                best = (_score(m), float(dy), float(dp), g, m)
+    return -best[1], -best[2], best[3], best[4], (best[1], best[2])
 
 
 # ---------------------------------------------------------------- segmentation model
@@ -662,13 +693,15 @@ class Segmenter:
         self.width = width
         self.name = model
 
-    def __call__(self, rgb):
-        """uint8 (h, w, 3) -> Cityscapes train ids (h, w) uint8."""
+    def __call__(self, rgb, width=None):
+        """uint8 (h, w, 3) -> Cityscapes train ids (h, w) uint8, inferred at `width` px (panoramas: 2048 x 1024,
+        Cityscapes' own frame size)."""
         from PIL import Image
         h, w = rgb.shape[:2]
+        width = width or self.width
         im = Image.fromarray(rgb)
-        if w != self.width:
-            im = im.resize((self.width, int(round(h * self.width / w))), Image.BILINEAR)
+        if w != width:
+            im = im.resize((width, int(round(h * width / w))), Image.BILINEAR)
         inp = self.proc(images=im, return_tensors="pt", do_resize=False).to(self.device)
         with self.torch.no_grad():
             logits = self.model(**inp).logits

@@ -61,32 +61,50 @@ def _download(url, tries=3):
             time.sleep(2 + 3 * k)
 
 
-def real_image(v, out, sd=False):
-    """<out>/real/<id>.jpg: a panorama cut to the view, or the photo scaled to the view's width."""
+PANO_W = 4096     # panoramas are kept at this width (768 px per 90 deg view needs 3072)
+
+
+def _fetch_photo(v, sd=False):
     import io
     from PIL import Image, ImageOps
+    urls = [u for u in ((v.get("url_sd"), v["url"]) if sd else (v["url"], v.get("url_sd"))) if u]
+    for k, url in enumerate(urls):      # KartaView's storage URLs are sometimes gone where its CDN still has them
+        try:
+            return ImageOps.exif_transpose(Image.open(io.BytesIO(_download(url, tries=2)))).convert("RGB")
+        except Exception:  # noqa: BLE001
+            if k == len(urls) - 1:
+                raise
+
+
+def pano_image(v, out, sd=False):
+    """<out>/panos/<src_id>.jpg: the panorama of an equirect view (at most PANO_W wide), fetched once."""
+    from PIL import Image
+    path = Path(out) / "panos" / f"{v['src_id']}.jpg"
+    if not path.exists():
+        im = _fetch_photo(v, sd)
+        if im.width > PANO_W:
+            im = im.resize((PANO_W, PANO_W // 2), Image.LANCZOS)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        im.save(path, quality=92)
+    return path
+
+
+def real_image(v, out, sd=False):
+    """<out>/real/<id>.jpg: a panorama cut to the view, or the photo scaled to the view's width."""
+    from PIL import Image
     path = Path(out) / "real" / f"{v['id']}.jpg"
-    if path.exists():
+    if path.exists() and (v["projection"] != "equirect" or (Path(out) / "panos" / f"{v['src_id']}.jpg").exists()):
         im = Image.open(path)
         if im.width != v["width"]:      # prepared at another --size: scaled, not fetched again
             im.convert("RGB").resize((v["width"], int(round(im.height * v["width"] / im.width))),
                                      Image.LANCZOS).save(path, quality=92)
         return path
-    urls = [u for u in ((v.get("url_sd"), v["url"]) if sd else (v["url"], v.get("url_sd"))) if u]
-    data = None
-    for k, url in enumerate(urls):      # KartaView's storage URLs are sometimes gone where its CDN still has them
-        try:
-            data = _download(url, tries=2)
-            break
-        except Exception:  # noqa: BLE001
-            if k == len(urls) - 1:
-                raise
-    im = ImageOps.exif_transpose(Image.open(io.BytesIO(data))).convert("RGB")
     if v["projection"] == "equirect":
-        arr = R.reproject(np.asarray(im), "equirect", v["width"], v["height"], v["hfov"],
-                          src_yaw=float(v["src_heading"]) - float(v["heading"]))
-        im = Image.fromarray(arr)
+        pano = np.asarray(Image.open(pano_image(v, out, sd)).convert("RGB"))
+        im = Image.fromarray(R.reproject(pano, "equirect", v["width"], v["height"], v["hfov"],
+                                         src_yaw=float(v["src_heading"]) - float(v["heading"])))
     else:
+        im = _fetch_photo(v, sd)
         im = im.resize((v["width"], int(round(im.height * v["width"] / im.width))), Image.LANCZOS)
     path.parent.mkdir(parents=True, exist_ok=True)
     im.save(path, quality=92)
@@ -121,7 +139,21 @@ def cmd_prepare(args):
     print("views by source and camera: " + ", ".join(f"{s}/{k} {n}" for (s, k), n in sorted(by.items())), flush=True)
     if not args.no_images:
         fetch_images(views, out, args.threads, args.sd)
+        for v in [v for v in views if v["projection"] == "equirect"]:     # the panoramas themselves, for alignment
+            try:
+                pano_image(v, out, args.sd)
+            except Exception as err:  # noqa: BLE001
+                print(f"{v['id']}: panorama not fetched ({err})", flush=True)
     write_attribution(views, out / "ATTRIBUTION.csv")
+    if args.labels:      # label the real side now, so compare only has the renders left to segment
+        labels, t0 = Labels(out, args.model, args.device), time.time()
+        for k, v in enumerate(views):
+            try:
+                real_spec(v, out, labels, args.sd)
+            except Exception as err:  # noqa: BLE001
+                print(f"{v['id']}: not labelled ({err})", flush=True)
+            if (k + 1) % 50 == 0:
+                print(f"{k + 1}/{len(views)} real views labelled ({time.time() - t0:.0f} s)", flush=True)
 
 
 def write_attribution(views, path):
@@ -333,16 +365,23 @@ class Labels:
         self.dir.mkdir(parents=True, exist_ok=True)
         self.model, self.device, self.seg = model, device, None
 
-    def __call__(self, name, rgb):
+    def __call__(self, name, rgb, width=None):
         from PIL import Image
         p = self.dir / f"{name}.png"
         if p.exists():
             return np.asarray(Image.open(p))
         if self.seg is None:
             self.seg = R.Segmenter(self.model, self.device)
-        lab = self.seg(rgb)
+        lab = self.seg(rgb, width)
         Image.fromarray(lab).save(p)
         return lab
+
+    def pano(self, src_id, path):
+        """Labels of a whole panorama, inferred at 2048 x 1024 (Cityscapes' frame size), and the image at that size."""
+        from PIL import Image
+        im = Image.open(path).convert("RGB")
+        rgb = np.asarray(im.resize((2048, 1024), Image.BILINEAR)) if im.width != 2048 else np.asarray(im)
+        return self(f"pano_{src_id}", rgb, 2048), np.asarray(im)
 
 
 def _load(path):
@@ -350,34 +389,63 @@ def _load(path):
     return np.asarray(Image.open(path).convert("RGB"))
 
 
-def view_metrics(real_rgb, wide_rgb, real_lab, wide_lab, v, wide_hfov, gt_wide=None, args=None):
-    """All metrics of one view: nominal pose and best alignment."""
+def _fit(g, w, h):
+    from PIL import Image
+    return g if g.shape[:2] == (h, w) else np.asarray(Image.fromarray(g).resize((w, h), Image.NEAREST))
+
+
+def view_metrics(v, real, wide_rgb, wide_lab, wide_hfov, gt_wide=None, yaw_range=12.0, pitch_range=6.0,
+                 pano_yaw_range=30.0):
+    """All metrics of one view, at the stated pose (nom_) and at the best alignment (al_).
+
+    real: ("photo", rgb, labels) for a pinhole photo (the render is cut at offsets from its wider frame), or
+    ("pano", pano_rgb, pano_labels, src_yaw) for a panorama (the photo is cut at offsets, the render stays)."""
     w, h, hfov = v["width"], v["height"], v["hfov"]
-    rg = R.groups_of(real_lab)
     wg = R.groups_of(wide_lab)
-    if rg.shape != (h, w):
-        from PIL import Image
-        rg = np.asarray(Image.fromarray(rg).resize((w, h), Image.NEAREST))
-        real_rgb = np.asarray(Image.fromarray(real_rgb).resize((w, h), Image.BILINEAR))
     nominal_g = R.reproject(wg, "pinhole", w, h, hfov, src_hfov=wide_hfov, nearest=True, fill=R.IGNORE)
-    m = {f"nom_{k}": val for k, val in R.compare_labels(rg, nominal_g, hfov).items()}
-    yr = args.yaw_margin if args else 12.0
-    pr = args.pitch_margin if args else 6.0
-    dy, dp, al_g, am = R.align(rg, wg, hfov, w, h, wide_hfov, yaw_range=min(12.0, yr), pitch_range=min(6.0, pr))
+    nominal_rgb = R.reproject(wide_rgb, "pinhole", w, h, hfov, src_hfov=wide_hfov)
+    if real[0] == "pano":
+        _, pano_rgb, pano_lab, src_yaw = real
+        pg = R.groups_of(pano_lab)
+        p0 = float(v.get("pitch") or 0.0)      # the render's camera pitch
+        rg = R.reproject(pg, "equirect", w, h, hfov, pitch=p0, src_yaw=src_yaw, nearest=True)
+        m = {f"nom_{k}": val for k, val in R.compare_labels(rg, nominal_g, hfov).items()}
+        err, perr, real_al_g, am, (cy, cp) = R.align_pano(pg, nominal_g, hfov, w, h, src_yaw, pano_yaw_range,
+                                                          pitch_range, pitch0=p0)
+        real_rgb = R.reproject(pano_rgb, "equirect", w, h, hfov, yaw=cy, pitch=p0 + cp, src_yaw=src_yaw)
+        ren_g, ren_rgb, real_g = nominal_g, nominal_rgb, real_al_g
+    else:
+        _, real_rgb, real_lab = real
+        rg = _fit(R.groups_of(real_lab), w, h)
+        if real_rgb.shape[:2] != (h, w):
+            from PIL import Image
+            real_rgb = np.asarray(Image.fromarray(real_rgb).resize((w, h), Image.BILINEAR))
+        m = {f"nom_{k}": val for k, val in R.compare_labels(rg, nominal_g, hfov).items()}
+        err, perr, ren_g, am = R.align(rg, wg, hfov, w, h, wide_hfov, yaw_range, pitch_range)
+        ren_rgb = R.reproject(wide_rgb, "pinhole", w, h, hfov, yaw=err, pitch=perr, src_hfov=wide_hfov)
+        real_g = rg
     m.update({f"al_{k}": val for k, val in am.items()})
-    m.update(align_dyaw=dy, align_dpitch=dp)
-    al_rgb = R.reproject(wide_rgb, "pinhole", w, h, hfov, yaw=dy, pitch=dp, src_hfov=wide_hfov)
-    mask = (rg != R.IGNORE) & (al_g != R.IGNORE)
-    sr, sd = R.image_stats(real_rgb, mask), R.image_stats(al_rgb, mask)
+    m.update(heading_error=err, pitch_error=perr, heading_error_abs=abs(err))
+    mask = (real_g != R.IGNORE) & (ren_g != R.IGNORE)
+    sr, sd = R.image_stats(real_rgb, mask), R.image_stats(ren_rgb, mask)
     for k in sr:
         m[f"real_{k}"], m[f"render_{k}"] = sr[k], sd[k]
-    m["colour_hist_sim"] = R.colour_hist_sim(real_rgb, al_rgb, mask)
+    m["colour_hist_sim"] = R.colour_hist_sim(real_rgb, ren_rgb, mask)
     if gt_wide is not None:     # the model on the render against CARLA's own labels: how far to trust it there
         gt = R.reproject(R.groups_of(gt_wide, R.CARLA_TO_GROUP), "pinhole", w, h, hfov, src_hfov=wide_hfov,
                          nearest=True, fill=R.IGNORE)
         g = R.compare_labels(gt, nominal_g, hfov)
-        m["model_vs_carla_pix_acc"], m["model_vs_carla_miou"] = g["pix_acc"], g["miou"]
-    return m, rg, al_g, al_rgb, real_rgb
+        m["model_vs_carla_pix_acc"], m["model_vs_carla_miou_coarse"] = g["pix_acc"], g["miou_coarse"]
+    return m, real_g, ren_g, ren_rgb, real_rgb
+
+
+def real_spec(v, out, labels, sd=False):
+    """The real side of a view for view_metrics (fetched and labelled as needed)."""
+    if v["projection"] == "equirect":
+        pl, prgb = labels.pano(v["src_id"], pano_image(v, out, sd))
+        return ("pano", prgb, pl, float(v["src_heading"]) - float(v["heading"]))     # labels at 2048 x 1024
+    rgb = _load(real_image(v, out, sd))
+    return ("photo", rgb, labels(f"real_{v['id']}", rgb))
 
 
 def contact_sheets(rows, out, name, per_sheet=12, thumb=384):
@@ -404,8 +472,10 @@ def contact_sheets(rows, out, name, per_sheet=12, thumb=384):
     return paths
 
 
-SUMMARY_KEYS = ["nom_miou", "al_miou", "nom_pix_acc", "al_pix_acc", "nom_layout_tv", "al_layout_tv",
-                "nom_skyline_mae_deg", "al_skyline_mae_deg", "colour_hist_sim", "model_vs_carla_miou"]
+SUMMARY_KEYS = ["nom_miou_coarse", "al_miou_coarse", "nom_pix_acc_coarse", "al_pix_acc_coarse", "nom_miou", "al_miou",
+                "nom_pix_acc", "al_pix_acc", "nom_layout_tv", "al_layout_tv", "nom_skyline_mae_deg",
+                "al_skyline_mae_deg", "colour_hist_sim", "heading_error_abs", "model_vs_carla_pix_acc",
+                "model_vs_carla_miou_coarse"]
 
 
 def summarise(rows, keys=SUMMARY_KEYS, by="source"):
@@ -444,6 +514,7 @@ def _write_rows(path, rows):
 
 
 def cmd_compare(args):
+    from PIL import Image
     out = Path(args.out)
     views = {v["id"]: v for v in R.read_views(out / "views.csv")}
     renders = {}
@@ -459,38 +530,65 @@ def cmd_compare(args):
         if v is None or not rp.exists():
             continue
         try:
-            real_path = real_image(v, out, args.sd)
+            real = real_spec(v, out, labels, args.sd)
         except Exception as err:  # noqa: BLE001
             print(f"{vid}: no real image ({err})", flush=True)
             continue
-        real_rgb, wide_rgb = _load(real_path), _load(rp)
+        wide_rgb = _load(rp)
         sp = out / "renders" / f"{vid}_sem.png"
-        from PIL import Image
         gt = np.asarray(Image.open(sp)) if sp.exists() else None
-        m, rg, ag, arg, real_rgb = view_metrics(real_rgb, wide_rgb, labels(f"real_{vid}", real_rgb),
-                                                labels(f"render_{vid}", wide_rgb), v, float(rr["wide_hfov"]), gt, args)
-        row = {"id": vid, "source": v["source"], "kind": v["kind"], "lat": v["lat"], "lon": v["lon"],
-               "heading": v["heading"], "local_time": v["local_time"], **m}
-        rows.append(row)
+        m, rg, ag, arg, real_rgb = view_metrics(v, real, wide_rgb, labels(f"render_{vid}", wide_rgb),
+                                                float(rr["wide_hfov"]), gt, args.yaw_margin, args.pitch_margin,
+                                                args.pano_yaw)
+        rows.append({"id": vid, "source": v["source"], "kind": v["kind"], "lat": v["lat"], "lon": v["lon"],
+                     "heading": v["heading"], "local_time": v["local_time"], **m})
         sheet_rows.append({"imgs": [real_rgb, arg, R.colourise(rg), R.colourise(ag)],
-                           "caption": f"{vid} {v['source']} {v['local_time']}  mIoU {m['al_miou']:.2f} "
-                                      f"(nominal {m['nom_miou']:.2f}, yaw {m['align_dyaw']:+.0f} pitch "
-                                      f"{m['align_dpitch']:+.0f})  skyline {m['al_skyline_mae_deg']:.1f} deg"})
+                           "caption": _caption(vid, v["source"] + " " + v["local_time"], m)})
         if (k + 1) % 20 == 0:
             print(f"{k + 1}/{len(renders)} compared ({(time.time() - t0) / (k + 1):.1f} s each)", flush=True)
     _write_rows(out / "compare.csv", rows)
-    summ = {"views": summarise(rows), "model": args.model,
-            "groups": R.GROUPS, "ignored": "person, rider, motorcycle, bicycle (both images)"}
+    summ = {"views": summarise(rows), "model": args.model, "groups": R.GROUPS,
+            "ignored": "person, rider, motorcycle, bicycle (both images)"}
     pairs = out / "pairs_summary.json"
     if pairs.exists():
         summ["real_vs_real"] = json.loads(pairs.read_text())
+        summ["realism_index"] = realism_index(summ["views"]["all"], summ["real_vs_real"])
     (out / "summary.json").write_text(json.dumps(summ, indent=1))
-    order = sorted(range(len(rows)), key=lambda i: -float(rows[i]["al_miou"]) if not math.isnan(rows[i]["al_miou"])
-                   else 1.0)     # best match first
+    order = sorted(range(len(rows)), key=lambda i: -_num(rows[i]["al_miou_coarse"]))     # best match first
     paths = contact_sheets([sheet_rows[i] for i in order], out, "twin")
-    print(json.dumps(summ["views"]["all"], indent=1))
+    print(json.dumps({k: summ["views"]["all"].get(k) for k in ["n"] + SUMMARY_KEYS}, indent=1))
+    if "realism_index" in summ:
+        print("realism index (0 = like a random real place, 1 = like a real photo of the same place):",
+              json.dumps(summ["realism_index"]))
     print(f"{len(rows)} views compared; {out / 'compare.csv'}, {out / 'summary.json'}, {len(paths)} sheets in "
           f"{out / 'sheets'}", flush=True)
+
+
+def _num(x):
+    try:
+        x = float(x)
+        return x if not math.isnan(x) else -1.0
+    except (TypeError, ValueError):
+        return -1.0
+
+
+def _caption(vid, what, m):
+    return (f"{vid} {what}  coarse mIoU {m['al_miou_coarse']:.2f} (stated pose {m['nom_miou_coarse']:.2f}; heading "
+            f"{m['heading_error']:+.0f}, pitch {m['pitch_error']:+.0f})  pix {m['al_pix_acc']:.2f}  skyline "
+            f"{m['al_skyline_mae_deg']:.1f} deg")
+
+
+def realism_index(twin, rr, ref="neighbour"):
+    """Per metric: where the twin's median lies between real photos of random places (0) and real photos of the same
+    street 10-25 m on ('neighbour', 1)."""
+    out = {}
+    lo, hi = rr.get("random") or {}, rr.get(ref) or {}
+    for k in ("al_miou_coarse", "al_pix_acc_coarse", "al_miou", "al_layout_tv", "al_skyline_mae_deg",
+              "colour_hist_sim"):
+        a, b, t = lo.get(k), hi.get(k), twin.get(k)
+        if None not in (a, b, t) and abs(b - a) > 1e-6:
+            out[k] = round((t - a) / (b - a), 2)
+    return out
 
 
 # ---------------------------------------------------------------- validation: real against real
@@ -525,11 +623,8 @@ def make_pairs(views, records, max_pairs=60, seed=1):
 
 
 def cmd_pairs(args):
-    """Real-vs-real baseline: what the metrics give for two real photos of the same place, of places 10-25 m
-    apart, and of random places; a twin render should score between 'random' and 'same'."""
-    import io
-
-    from PIL import Image
+    """Real-vs-real baseline: what the metrics give for two real photos of the same place (another ride within 8 m),
+    of the same street 10-25 m on, and of random places; a twin render should score between 'random' and the others."""
     cfg, mdir, bbox = _map(args.experiment)
     out = Path(args.out)
     recs = R.fetch(mdir, bbox, sources=("panoramax", "kartaview"), refresh=False)
@@ -538,32 +633,28 @@ def cmd_pairs(args):
     print(f"{len(pairs)} pairs: " + ", ".join(f"{k} {sum(p[2] == k for p in pairs)}"
                                              for k in ("same", "neighbour", "random")), flush=True)
     labels = Labels(out, args.model, args.device)
-    cache = Path(out) / "pairs_src"
-    cache.mkdir(parents=True, exist_ok=True)
     rows, sheet_rows = [], []
     for k, (v, r, kind) in enumerate(pairs):
         try:
-            real_rgb = _load(real_image(v, out, args.sd))
-            p = cache / f"{r['src_id']}.jpg"
-            if not p.exists():
-                im = Image.open(io.BytesIO(_download(r["url_sd"] if args.sd else (r["url"] or r["url_sd"]))))
-                im.convert("RGB").save(p, quality=92)
-            pano = _load(p)
+            real = real_spec(v, out, labels, args.sd)
+            ov = dict(r, id="", projection="equirect")
+            ppath = pano_image(ov, out, args.sd)
+            ol, orgb = labels.pano(r["src_id"], ppath)
         except Exception as err:  # noqa: BLE001
             print(f"pair {v['id']}: skipped ({err})", flush=True)
             continue
+        # b plays the render: cut wide at a's heading (b's own heading for a random place), labels from its panorama
         w2, h2, f2 = R.wide_size(v["width"], v["height"], v["hfov"], args.yaw_margin, args.pitch_margin)
-        # b cut as a wide 'render' at a's heading (b's own heading for random places)
         head = v["heading"] if kind != "random" else r["heading"]
-        wide = R.reproject(pano, "equirect", w2, h2, f2, src_yaw=r["heading"] - head)
-        m, rg, ag, arg, real_rgb = view_metrics(real_rgb, wide, labels(f"real_{v['id']}", real_rgb),
-                                                labels(f"pair_{r['src_id']}_{int(head)}", wide), v, f2, None, args)
+        wide = R.reproject(orgb, "equirect", w2, h2, f2, src_yaw=r["heading"] - head)
+        wide_lab = R.reproject(ol, "equirect", w2, h2, f2, src_yaw=r["heading"] - head, nearest=True)
+        m, rg, ag, arg, real_rgb = view_metrics(v, real, wide, wide_lab, f2, None, args.yaw_margin,
+                                                args.pitch_margin, args.pano_yaw)
         rows.append({"id": v["id"], "other": r["src_id"], "kind": kind,
                      "dist_m": round(R.metres(r["lat"], r["lon"], v["lat"], v["lon"]), 1), **m})
-        if k < 36:
+        if len(sheet_rows) < 36:
             sheet_rows.append({"imgs": [real_rgb, arg, R.colourise(rg), R.colourise(ag)],
-                               "caption": f"{kind} {v['id']} vs {r['src_id'][:8]} ({rows[-1]['dist_m']} m)  "
-                                          f"mIoU {m['al_miou']:.2f} (nominal {m['nom_miou']:.2f})"})
+                               "caption": _caption(v["id"], f"{kind} vs {r['src_id'][:8]} ({rows[-1]['dist_m']} m)", m)})
         if (k + 1) % 20 == 0:
             print(f"{k + 1}/{len(pairs)} pairs", flush=True)
     _write_rows(out / "pairs.csv", rows)
@@ -583,6 +674,7 @@ def main():
     common.add_argument("--yaw-margin", type=float, default=12.0, help="render this much wider each side (deg)")
     common.add_argument("--pitch-margin", type=float, default=6.0)
     common.add_argument("--sd", action="store_true", help="2048 px panoramas instead of full resolution")
+    common.add_argument("--pano-yaw", type=float, default=30.0, help="heading search for panoramas (+- deg)")
     views = argparse.ArgumentParser(add_help=False)
     views.add_argument("experiment")
     views.add_argument("--sources", default="panoramax,kartaview,commons")
@@ -595,8 +687,9 @@ def main():
     seg = argparse.ArgumentParser(add_help=False)
     seg.add_argument("--model", default="nvidia/segformer-b2-finetuned-cityscapes-1024-1024")
     seg.add_argument("--device", default=None)
-    p = sub.add_parser("prepare", parents=[common, views])
+    p = sub.add_parser("prepare", parents=[common, views, seg])
     p.add_argument("--no-images", action="store_true")
+    p.add_argument("--labels", action="store_true", help="also segment the real images (torch, transformers)")
     p.add_argument("--threads", type=int, default=4)
     p = sub.add_parser("render", parents=[common, views])
     p.add_argument("--host", default="127.0.0.1")

@@ -143,6 +143,10 @@ def test_metrics_identical_and_different():
     g = scene()
     m = R.compare_labels(g, g, 90.0)
     assert m["pix_acc"] == 1.0 and m["miou"] == 1.0 and m["layout_tv"] == 0.0 and m["skyline_mae_deg"] == 0.0
+    assert m["miou_coarse"] == 1.0 and m["pix_acc_coarse"] == 1.0
+    road_as_walk = np.where(g == R.GROUPS.index("road"), R.GROUPS.index("sidewalk"), g).astype(np.uint8)
+    rw = R.compare_labels(g, road_as_walk, 90.0)
+    assert rw["miou_coarse"] == 1.0 and rw["miou"] < 1.0      # road/sidewalk swaps cost only the fine score
     sky = np.full_like(g, R.GROUPS.index("sky"))
     d = R.compare_labels(g, sky, 90.0)
     assert d["miou"] < 0.5 and d["layout_tv"] > 0.4 and math.isnan(d["skyline_mae_deg"])
@@ -163,6 +167,26 @@ def test_align_recovers_a_heading_error():
     nominal = R.compare_labels(real, R.reproject(wide, "pinhole", w, h, hfov, src_hfov=wf, nearest=True,
                                                  fill=R.IGNORE), hfov)
     assert nominal["miou"] < m["miou"]
+
+
+def test_align_pano_recovers_the_heading_of_a_panorama():
+    w, h, hfov = 320, 180, 90.0
+    # a 'panorama' of the synthetic street: labels per azimuth/elevation; its labelled heading is 20 deg off
+    W, H = 1440, 720
+    az = (np.arange(W) + 0.5) / W * 360 - 180
+    el = 90 - (np.arange(H) + 0.5) / H * 180
+    A, E = np.meshgrid(az, el)
+    pano = np.full((H, W), R.GROUPS.index("building"), np.uint8)
+    top = 10 + 8 * np.sin(np.radians(A * 4)) + 6 * (A > 20)
+    pano[E > top] = R.GROUPS.index("sky")
+    pano[E < -8] = R.GROUPS.index("road")
+    pano[(E < -8) & (A < -25)] = R.GROUPS.index("sidewalk")
+    pano[(E >= -8) & (E < 2) & (np.abs(A - 5) < 4)] = R.GROUPS.index("vegetation")
+    render = scene(w, h, hfov)            # the twin at the true heading (azimuth 0)
+    # the panorama's metadata says its centre column looks 21 deg right of where it really looks (azimuth 0), so
+    # the true direction is the stated one minus 21
+    err, perr, g, m, cut = R.align_pano(pano, render, hfov, w, h, src_yaw=21.0, yaw_range=30, step=3)
+    assert err == pytest.approx(-21.0, abs=3.1) and m["miou_coarse"] > 0.9
 
 
 def test_group_tables_and_image_stats():
