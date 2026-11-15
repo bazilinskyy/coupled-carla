@@ -60,6 +60,16 @@ DEFAULTS = {
         "quality": "Epic",
         "offscreen": True,
         "extra_args": [],
+        "multigpu": {                # CARLA 1.0 multi-GPU (multigpu.py): secondaries render the cameras
+            "secondaries": [],       # {name, host, rpc_port (3000, 4000, ...), gpu, launch, roles: [station roles
+                                     # whose camera it renders], root, packs, os, extra_args}; []: one server
+            "primary_renders": False,    # False: the primary runs with -nullrhi (no GPU, no cameras of its own)
+            "secondary_port": None,  # where the primary listens for secondaries (default port + 2)
+            "primary_host": None,    # the primary's LAN address, for secondaries on other machines
+            "relay": "auto",         # stations relay streams of secondaries on other machines (off: never)
+            "placement": True,       # a station retries until its camera is on its role's own secondary
+            "wait_s": 180,           # how long the host waits for the secondaries' ports at start-up
+        },
     },
     "simulation": {
         "step": 0.02,                # 50 Hz, as coupled-sim's fixed-time log
