@@ -262,6 +262,25 @@ def test_near_vehicles_follow_with_physics_and_speeds_reach_carla(mods, monkeypa
     assert s.poses[ids["near"]][3] == 5.0
 
 
+def test_vehicles_touching_in_sumo_are_placed_not_pushed(mods, monkeypatch):
+    """Two SUMO vehicles whose bodies overlap (a SUMO collision) would push each other round with physics on."""
+    c = mods.carla
+    monkeypatch.setattr(mods.sync.BridgeHelper, "offset", (0.0, 0.0))
+    monkeypatch.setattr(mods.sync.BridgeHelper, "get_carla_blueprint", staticmethod(lambda a, color=False: "bp"))
+    sumo, carla_sim = _FakeSumo(c), _FakeCarlaSim()
+    s = _sync(mods, sumo, carla_sim, c.Location(0.0, 0.0, 0.0))
+    s.animate_radius = 40.0
+    sumo.pos = {"a": (10.0, 0.0), "b": (10.0, 1.0), "c": (25.0, 0.0)}     # a and b side by side, 1 m apart
+    sumo.spawned_actors = {"a", "b", "c"}
+    s.tick()                                   # no poses yet: all followed
+    carla_sim.followed, carla_sim.synced = [], []
+    sumo.spawned_actors = set()
+    s.tick()
+    ids = s.sumo2carla_ids
+    assert {i for i, _ in carla_sim.followed} == {ids["c"]}
+    assert {i for i, _ in carla_sim.synced} == {ids["a"], ids["b"]}
+
+
 def test_adopted_car_is_driven_by_sumo_never_twinned_or_destroyed(mods, monkeypatch):
     c = mods.carla
     monkeypatch.setattr(mods.sync.BridgeHelper, "offset", (0.0, 0.0))

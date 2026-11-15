@@ -195,6 +195,15 @@ class SimulationSynchronization(object):
         laps("lod")
 
         # Updating sumo actors in carla.
+        # coupled-carla: vehicles whose SUMO bodies touch another's (a SUMO collision, logged, not resolved) are placed
+        # with physics off: with physics on CARLA pushed them apart, and they spun round (bridge/animate.py)
+        touching = set()
+        if self.animate_radius > 0 and self.poses:
+            from coupledcarla.drivecheck import frame_conflicts  # pylint: disable=import-outside-toplevel
+            boxes = {cid: (p[0], p[1], p[2], p[4], p[5]) for cid, p in self.poses.items()}
+            if len(boxes) > 1:
+                pairs, _ = frame_conflicts(boxes, {}, shrink=0.05)
+                touching = {c for pair in pairs for c in pair}
         self.velocity.clear()
         self.poses.clear()
         for sumo_actor_id in self.sumo2carla_ids:
@@ -224,8 +233,8 @@ class SimulationSynchronization(object):
             animated = False
             if self.animate_radius > 0 and (centres or sumo_actor_id in self.adopted):
                 reach = self.animate_radius + (10.0 if carla_actor_id in self.carla._physics else 0.0)
-                animated = sumo_actor_id in self.adopted or any(
-                    (loc.x - c.x) ** 2 + (loc.y - c.y) ** 2 <= reach * reach for c in (centres or ()))
+                animated = sumo_actor_id in self.adopted or (carla_actor_id not in touching and any(
+                    (loc.x - c.x) ** 2 + (loc.y - c.y) ** 2 <= reach * reach for c in (centres or ())))
             if self.sync_vehicle_lights:
                 # coupled-carla: the lights the bridge last gave it, instead of asking the server for every car
                 # every tick (a blocking round trip each)

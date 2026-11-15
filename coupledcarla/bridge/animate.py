@@ -22,8 +22,8 @@ TELEPORT_M = 1.2      # farther off than this: put back with a transform
 TELEPORT_DEG = 25.0
 THROTTLE = 0.3        # while moving: the bike's pedalling (and a car's drive wheels)
 MAX_STEER_DEG = 60.0  # steer 1.0 as a front-wheel angle (CARLA cars: 60-70 deg)
-UNSTABLE_TELEPORTS = 3        # this many put-backs within UNSTABLE_TICKS: placed with physics off instead ...
-UNSTABLE_TICKS = 100
+UNSTABLE_TELEPORTS = 2        # this many put-backs within UNSTABLE_TICKS: placed with physics off instead ...
+UNSTABLE_TICKS = 150
 UNSTABLE_PAUSE_TICKS = 500    # ... for this many ticks (10 s at 50 Hz)
 FLIP_DEG = 60.0               # a SUMO heading that jumps more than this in one tick is a flip, not a turn
 
