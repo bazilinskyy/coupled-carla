@@ -61,7 +61,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
 - [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
 - [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
-- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
+- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [VR stations](docs/lab_guide.md#vr-stations), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
 - [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
 - [Traffic](#traffic) · [Traffic lights](#traffic-lights)
 - [Data](#logging-and-data): [logging](#logging-and-data), [analysis](#analysis), [trial viewer](#trial-viewer)
@@ -135,7 +135,7 @@ card):
 
 **Every day:** double-click `make_map.bat` (Windows), `Make a map.command` (macOS) or `make_map.sh` (Linux). The
 browser opens a world map. Type a place (a town, a square, an address, coordinates; any language) or click on the
-map, choose small (about 1 km), medium (1.4 km) or large (2 km), press **Build this map**, then **Drive it**.
+map, choose small (about 1 km), medium (1.4 km) or large (2 km), press **Build this map**, then **Drive it**. The launchers take the map maker's options (e.g. `./make_map.sh --no-browser --port 8790`) and were tested on Windows 11, Ubuntu 22.04 and macOS 15 ([make_a_map.md](docs/make_a_map.md)).
 
 The map maker fills in what you would otherwise have to know: the driving side from the country, how busy the
 traffic is from the size of the town (OSM's population figures; a big city nearby counts), a readable name, and a
@@ -832,6 +832,15 @@ shown in a pygame window with a HUD (speed, time, next light).
 Spawning: a `spawn: {lat, lon}` snaps to the nearest driving lane (1.5 m off for the Eindhoven example);
 without it a random driving lane outside junctions is used. A car that leaves the road (falls onto the ground
 plane) is logged (`left_road`) and, for the autopilot, put back on the nearest lane (`reset_to_lane`).
+
+**VR.** `view: vr` (or `--display vr` at the station) shows a station's view in a headset through OpenXR
+(`pip install -e ".[vr]"`; `python -m coupledcarla.vrxr` checks the headset). The station renders two cameras at the
+participant's eyes, 63 mm apart (`vr.ipd_mm`), moved every tick from the head pose on the seat's eye point and
+predicted ahead by the measured latency; in-car displays are drawn in each eye, the station's text on a panel 1.5 m
+ahead, and head pose and motion-to-photon are logged per frame. CARLA renders each eye as a camera, so expect about
+45 Hz images that the runtime reprojects to the headset's rate (on CARLA 0.9.16 two 960x1056 eyes cost 13 ms of
+server time; pose to images 30-70 ms). Tested with a simulated headset (Monado); a real headset is still to be
+tried. Install per headset and numbers: [lab guide, VR stations](docs/lab_guide.md#vr-stations).
 
 ## Coupled experiments (phase 2)
 
