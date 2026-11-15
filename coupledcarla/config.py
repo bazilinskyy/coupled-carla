@@ -116,7 +116,8 @@ DEFAULTS = {
             "render_hz": 10.0,       # 0.9.x: a camera that keeps a frame every few s still renders this often
                                      # (temporal anti-aliasing needs recent frames; at 1 Hz leaves and paint dither)
             "ev_bias": 0.0,          # added to the exposure (EV; +1 = one stop darker)
-            "profile": None,         # CARLA 1.0: post-process profile of these cameras (e.g. "CoupledClean",
+            "profile": None,         # CARLA 1.0: post-process profile of these cameras (e.g. "CoupledClean", or
+                                     # "CoupledReal" fitted to Eindhoven photos by tools/look_fit.py; both in
                                      # coupledcarla/data/postprocess); None: camera_profile
         },
         "time": None,                # local time at the place, "YYYY-MM-DD HH:MM", "HH:MM" (today) or "now":
