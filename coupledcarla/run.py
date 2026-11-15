@@ -25,7 +25,7 @@ import yaml
 
 from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, soundrec, study, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, livemap, multigpu, stationux
+from . import ehmi_design, livemap, multigpu, placement, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -78,7 +78,9 @@ class Log:
         print(f"[{time.time() - self.t0:7.1f}s] {msg}", flush=True)
 
 
-def load_world(client, xodr, mc, slab=False):
+def load_world(client, xodr, mc, slab=False, keep_lights=False):
+    """The trial's world: a baked level by name, else generated from the OpenDRIVE (without its traffic lights
+    unless keep_lights: placement.carla_xodr; SUMO's lights are drawn by signals.py)."""
     if mc.get("carla_level"):   # a baked level (its own roads, buildings and ground): load it by name
         client.set_timeout(600.0)
         world = client.load_world(mc["carla_level"])
@@ -90,7 +92,10 @@ def load_world(client, xodr, mc, slab=False):
         additional_width=p["additional_width"], smooth_junctions=p["smooth_junctions"],
         enable_mesh_visibility=True, enable_pedestrian_navigation=p["pedestrian_navigation"])
     client.set_timeout(600.0)
-    world = client.generate_opendrive_world(Path(xodr).read_text(encoding="utf-8"), params)
+    text, n = placement.carla_xodr(Path(xodr).read_text(encoding="utf-8"), keep_lights)
+    if n:
+        print(f"[run] OpenDRIVE for CARLA: {n} traffic-light signals left out (SUMO's are drawn)", flush=True)
+    world = client.generate_opendrive_world(text, params)
     client.set_timeout(60.0)
     if p["ground"]:
         # A 3 km plane (with collision) 0.3 m under the road surface (roads dip a little in places): the
@@ -325,7 +330,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # scenery.json names the meshes of one CARLA version's catalogue: rebuilt first when made for the other
         has_scenery = tc["map"].get("scenery", {}).get("enabled", True) and \
             mapbuild.scenery_for_server(tc, mdir, compat.server_major(client), log)
-        world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery)
+        world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery,
+                           keep_lights=tc["simulation"]["tls_manager"] == "carla")
         bb = tc["map"]["bbox"]
         wx = set_weather(world, tc["simulation"], ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real", log)
         (out / "weather.json").write_text(json.dumps(wx, indent=2))
@@ -360,7 +366,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         BridgeHelper.offset = (mo[0] - go[0], mo[1] - go[1])
         signals = Signals(world, sumo.net, BridgeHelper.offset, step=step, debug=side.debug,
                           style=(tc["simulation"].get("traffic_lights") or {}).get("style", "head"),
-                          lefthand=bool(tc["map"].get("lefthand")), log=log)
+                          lefthand=bool(tc["map"].get("lefthand")), log=log,
+                          surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None)
         log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
             f"{', meshes' if signals.meshes else ''}) drawn near participants")
         carla_sim._kinds.update({a.id: False for a in signals.actors})     # static: never looked up per tick

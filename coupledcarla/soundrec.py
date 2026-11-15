@@ -91,7 +91,7 @@ class PedSignals:
         self.traci = traci
         self.radius = radius
         self.poles = []          # (tls, link idxs, (x, y, z) CARLA, unit direction of the lane (SUMO x, y))
-        for tls, idxs, loc in signals.heads:
+        for tls, idxs, loc, *_ in signals.heads:      # (Signals.heads also carry the travel yaw)
             try:
                 links = traci.trafficlight.getControlledLinks(tls)
                 lane = net.getLane(links[idxs[0]][0][0])
