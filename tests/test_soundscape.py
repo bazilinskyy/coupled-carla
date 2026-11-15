@@ -114,6 +114,9 @@ def test_level_model():
     assert ss.classify("vehicle.gazelle.omafiets", 2) == "bike"
     assert ss.classify("vehicle.yamaha.yzf", 2) == "motorbike"
     assert ss.classify("vehicle.mitsubishi.fusorosa") == "bus"
+    assert ss.classify("vehicle.fuso.mitsubishi") == "bus"           # CARLA 1.0 names
+    assert ss.classify("vehicle.firetruck.actors") == "truck" and ss.classify("vehicle.sprinter.mercedes") == "van"
+    assert any(k in "vehicle.dodgecop.charger" for k in ss.EMERGENCY)
     assert ss.classify("vehicle.mercedes.sprinter") == "van"
     assert ss.classify("walker.pedestrian.0001") == "walker"
     assert ss.is_electric("auto", "vehicle.tesla.model3", 1)

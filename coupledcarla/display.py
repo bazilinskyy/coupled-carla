@@ -5,7 +5,7 @@ import carla
 import numpy as np
 
 from . import cockpit, look
-from .compat import setup_camera
+from .compat import listen, setup_camera
 
 VIEWS = {  # camera mounts relative to the vehicle centre
     "chase": carla.Transform(carla.Location(x=-6.5, z=2.8), carla.Rotation(pitch=-10)),
@@ -42,7 +42,7 @@ class View:
         if window or save_every_s > 0:
             self.camera = world.spawn_actor(bp, mount, attach_to=vehicle,
                                             attachment_type=carla.AttachmentType.Rigid)
-            self.camera.listen(self._on_image)
+            listen(self.camera, self._on_image, lambda m: print(f"[view] {m}", flush=True), "view")
         self.screen = None
         self.font = None
         if window:
@@ -81,8 +81,11 @@ class View:
 
     def destroy(self):
         if self.camera:
-            self.camera.stop()
-            self.camera.destroy()
+            try:
+                self.camera.stop()
+                self.camera.destroy()
+            except RuntimeError:
+                pass
         if self.window:
             import pygame
             pygame.quit()

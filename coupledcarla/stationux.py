@@ -184,7 +184,10 @@ class StationUX:
             tf = carla.Transform(carla.Location(x=view[0], y=view[1], z=view[2]), carla.Rotation(pitch=view[3]))
             self._depth_cam = world.spawn_actor(bp, tf, attach_to=actor, attachment_type=carla.AttachmentType.Rigid)
             self._depth_cam.listen(self._on_depth)
-        except RuntimeError as e:
+        except RuntimeError as e:      # e.g. a CARLA 1.0 -nullrhi server, which renders nothing
+            if self._depth_cam is not None:
+                self._depth_cam.destroy()
+                self._depth_cam = None
             self.log(f"cockpit: no depth image of the cabin ({e}); panels hidden only behind the wheel's rim")
         self.log(f"cockpit: {actor.type_id} {'measured' if entry else 'default'} seat at "
                  f"({view[0]:.2f}, {view[1]:.2f}, {view[2]:.2f}), fov {fov:.0f}, "

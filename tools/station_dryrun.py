@@ -119,6 +119,9 @@ def report(trial_dir, th, join_s=None, camera_hz=None, out=print):
                 out(f"  {r['role']}: {name} = {value} (limit {limit})")
         if r.get("camera_on"):
             out(f"  {r['role']}: camera rendered by secondary {r['camera_on']}")
+        if r.get("no_render"):
+            out(f"  {r['role']}: no camera images: the server cannot render (-nullrhi); images, ready_s and latency "
+                "need a rendering server")
     if trial["missing"]:
         out(f"stations missing at the start: {', '.join(trial['missing'])}")
     if not tchk[0][3]:
