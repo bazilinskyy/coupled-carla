@@ -50,8 +50,7 @@ def fetch_osm(bbox, path):
     for attempt in range(2):
         for url in OVERPASS:
             try:
-                r = requests.post(url, data={"data": query}, headers={"User-Agent": "coupled-carla/0.1"},
-                                  timeout=120)
+                r = requests.post(url, data={"data": query}, headers=realworld.UA, timeout=120)
                 r.raise_for_status()
                 if b"<way" in r.content:
                     path.write_bytes(r.content)
@@ -79,7 +78,7 @@ def fetch_buildings(bbox, geo_net, path):
         data = None
         for url in OVERPASS:
             try:
-                r = requests.post(url, data={"data": query}, headers={"User-Agent": "coupled-carla/0.1"}, timeout=120)
+                r = requests.post(url, data={"data": query}, headers=realworld.UA, timeout=120)
                 r.raise_for_status()
                 data = r.json()
                 break

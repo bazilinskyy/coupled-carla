@@ -121,3 +121,27 @@ def test_overture_down_falls_back_to_osm_buildings(tmp_path, monkeypatch):
     f = tmp_path / "overture_buildings.json"
     assert rw.overture_buildings([-22.28, 166.45, -22.27, 166.46], f) is None
     assert not f.exists()          # not cached: the next build tries again
+
+
+def test_city_table_names_plateau_heights():
+    # Tokyo's heights come from PLATEAU, but the smoke-test table said "overture"
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+    import test_cities
+    assert test_cities.height_source({"sources": {"canopy": 1, "osm": 1, "overture": 1, "plateau": 1}}) == "plateau"
+    assert test_cities.height_source({"sources": {"osm": 1}}) == "osm"
+
+
+def test_osm_extract_sent_with_the_project_user_agent(tmp_path, monkeypatch):
+    from coupledcarla import mapbuild
+
+    class R:
+        content = b"<osm><way id='1'/></osm>"
+
+        def raise_for_status(self):
+            pass
+    sent = []
+    monkeypatch.setattr(mapbuild.requests, "post", lambda url, **kw: sent.append(kw["headers"]) or R())
+    mapbuild.fetch_osm([0, 0, 1, 1], tmp_path / "map.osm")
+    assert sent == [rw.UA]
