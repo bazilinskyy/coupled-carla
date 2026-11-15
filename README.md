@@ -1101,8 +1101,8 @@ RTF 0.75 with 707 parked cars and 1,004 scenery meshes around the participant.
 
 #### A twin of any place
 
-The same pipeline now makes a twin of any place, with the best open data of its country (carla-digitaltwins
-`twinmodel/regions.py`): national aerial photos, terrain models and building registers where they are open and need
+The same pipeline now makes a twin of any place, with the best open data of its country (carla-digitaltwins branch
+[`anytwin`](https://github.com/bazilinskyy/carla-digitaltwins/tree/anytwin), `twinmodel/regions.py`): national aerial photos, terrain models and building registers where they are open and need
 no key (PDOK/AHN/3DBAG in the Netherlands; PNOA, MDT05 and the Catastro's buildings with their floors, year and use in
 Spain; BD ORTHO, RGE ALTI and BD TOPO in France; the Flemish orthophoto; SWISSIMAGE and swissALTI3D; NAIP and 3DEP in
 the US; GSI's photo and DEM and PLATEAU in Japan), Overture Maps' buildings and the AWS Terrain Tiles elsewhere (there
