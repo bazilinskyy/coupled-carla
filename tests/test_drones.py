@@ -235,7 +235,7 @@ def test_delivery_cruises_over_the_roofs_and_comes_back():
         p = f.pos[i]
         if abs(p[0] - 60) < 14 and abs(p[1]) < 14:
             lowest.append(p[2])
-    fly(f, [ms], 75.0, every=watch)
+    fly(f, [ms], 90.0, every=watch)     # 12 m/s as set (the guidance flew 25 % faster before)
     assert ms.delivered == 1
     assert min(lowest) > 25.0 + 15.0, "over the building at cruise height"
     names = [e[1] for e in ms.events]
@@ -297,6 +297,214 @@ def test_separation_and_obstacle_floor():
     assert floor[a] == pytest.approx(34.0)
 
 
+# -- 3D routes ---------------------------------------------------------------------------------------------------
+
+def tower_obs(top=80.0):
+    """A tower 30 m square at (100, 0) and a low house."""
+    return plan.Obstacles([square(100, 0, 15, top, "office"), square(40, 60, 6, 10.0)])
+
+
+def footprint_distance(points, cx, cy, half):
+    """Smallest horizontal distance from a polyline (sampled every 0.5 m) to a square footprint."""
+    best = math.inf
+    for a, b in zip(points[:-1], points[1:]):
+        a, b = np.asarray(a, float)[:2], np.asarray(b, float)[:2]
+        for t in np.linspace(0, 1, max(2, int(np.linalg.norm(b - a) / 0.5))):
+            p = a + (b - a) * t
+            dx, dy = max(0.0, abs(p[0] - cx) - half), max(0.0, abs(p[1] - cy) - half)
+            best = min(best, math.hypot(dx, dy))
+    return best
+
+
+def test_margins_follow_sora():
+    lat, ver = plan.margins(dm.INDUSTRIAL, 12.0)
+    cd = 2 * (dm.INDUSTRIAL.arm + dm.INDUSTRIAL.rotor_radius)
+    stop = 12.0 ** 2 / (2 * 9.81 * math.tan(dm.INDUSTRIAL.max_tilt))
+    assert lat == pytest.approx(1.5 * cd + 3 + 3 + 1 + 12.0 * 1.0 + stop)
+    assert ver == pytest.approx(1.5 * cd + 1 + dm.INDUSTRIAL.max_climb + 12.0 ** 2 / (2 * 9.81))
+    assert 30 < lat < 38 and 14 < ver < 19
+    assert plan.margins(dm.CONSUMER, 8.0)[0] < lat, "slower and smaller: closer"
+    assert plan.margins(dm.INDUSTRIAL, 12.0, plan.routing({"lateral_clearance_m": 15}))[0] == 15.0
+
+
+def test_steady_power_matches_the_flight_model():
+    q = dm.Quadrotor(dm.INDUSTRIAL, (0, 0, 10))
+    q.fleet.on_ground[:] = False
+    for _ in range(300):
+        q.command(mode="position", pos=(0, 0, 10))
+        q.step(0.02)
+    assert float(q.fleet.power_w[0]) == pytest.approx(dm.steady_power(dm.INDUSTRIAL, 0.0), rel=0.03)
+    for _ in range(200):          # climbing at 4 m/s costs the work of lifting it too
+        q.command(mode="velocity", vel=(0, 0, 4.0))
+        q.step(0.02)
+    assert float(q.fleet.power_w[0]) == pytest.approx(dm.steady_power(dm.INDUSTRIAL, 0.0, 4.0), rel=0.06)
+    assert dm.steady_power(dm.INDUSTRIAL, 0.0, 4.0) - dm.steady_power(dm.INDUSTRIAL, 0.0) > \
+        dm.INDUSTRIAL.mass * 9.81 * 4.0 / dm.INDUSTRIAL.drive_efficiency
+    assert plan.leg_energy_wh(dm.INDUSTRIAL, 1000, 0, 0, 12.0) < plan.leg_energy_wh(dm.INDUSTRIAL, 1000, 50, 50, 12.0)
+
+
+def test_router_goes_round_a_tower_in_the_band():
+    r = plan.Router(tower_obs())
+    lat, ver = plan.margins(dm.INDUSTRIAL, 12.0)
+    leg = r.leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0, 7.0)
+    assert leg.how == "band" and 40.0 <= leg.z <= 60.0
+    assert 200.0 < leg.length < 260.0 and leg.straight == pytest.approx(200.0)
+    assert footprint_distance(leg.points, 100, 0, 15) >= lat - 1.0, "keeps its lateral clearance"
+    assert all(abs(p[2] - leg.z) < 1e-9 for p in leg.points)
+    lims = [v for v in leg.limits if v is not None]
+    assert lims and max(lims) <= 12.0 + 1e-9 and min(lims) > 2.0, "arcs flown at sqrt(a r)"
+    assert leg.points[0][:2] == (0.0, 0.0) and leg.points[-1][:2] == (200.0, 0.0)
+    # a low building does not reach into the band: straight over it
+    r2 = plan.Router(tower_obs(top=20.0))
+    leg2 = r2.leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0, 7.0)
+    assert leg2.length == pytest.approx(200.0) and leg2.z == pytest.approx(40.0)
+
+
+def test_router_layers_by_heading():
+    r = plan.Router(tower_obs(top=20.0))
+    out = r.leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0)
+    back = r.leg((200, 0, 0), (0, 0, 0), dm.INDUSTRIAL, 12.0)
+    assert out.z == pytest.approx(40.0) and back.z == pytest.approx(52.0), "east 0-60 deg, west 180-240 deg"
+    north = r.leg((0, 0, 0), (0, 200, 0), dm.INDUSTRIAL, 12.0)
+    assert north.z == pytest.approx(44.0)
+    by_drone = plan.Router(tower_obs(top=20.0), {"layers": "drone"})
+    assert by_drone.leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0, k=2).z == pytest.approx(48.0)
+    assert by_drone.leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0, k=8).z == pytest.approx(48.0), "wraps"
+
+
+def test_router_climbs_over_only_when_going_round_costs_more():
+    wall = [{"p": [[100, -400], [104, -400], [104, 400], [100, 400]], "top": 70.0}]
+    r = plan.Router(plan.Obstacles(wall))
+    lat, ver = plan.margins(dm.INDUSTRIAL, 12.0)
+    leg = r.leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0, 7.0)
+    assert leg.how == "over the band" and leg.length == pytest.approx(200.0)
+    assert leg.z == pytest.approx(70.0 + ver, abs=0.6) and leg.z <= 120.0
+    assert any(t[1] is not None and t[1] > 800 for t in leg.tried), "the way round was tried and is far longer"
+    stay = plan.Router(plan.Obstacles(wall), {"climb_over": False}).leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0)
+    assert stay.how == "band" and stay.length > 800
+    # a wall above the 120 m cap: no climbing over it, always round
+    high = plan.Router(plan.Obstacles([dict(wall[0], top=115.0)])).leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0)
+    assert high.z <= 120.0 and high.length > 800
+
+
+def test_router_keeps_out_of_no_fly_areas():
+    nf = [[(80, -60), (120, -60), (120, 60), (80, 60)]]
+    r = plan.Router(plan.Obstacles([square(-50, -50, 5, 8.0)]), {"no_fly_buffer_m": 10.0}, nf)
+    leg = r.leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0)
+    p = np.array(leg.points)
+    inside = (p[:, 0] > 74) & (p[:, 0] < 126) & (np.abs(p[:, 1]) < 66)
+    assert not inside.any() and leg.length > 200, "round it, at every height"
+    assert all(t[1] is None or t[1] > 200 for t in leg.tried)
+
+
+def test_over_mode_is_the_old_cruise_height():
+    obs = tower_obs()
+    r = plan.Router(obs, {"mode": "over"})
+    leg = r.leg((0, 0, 0), (200, 0, 0), dm.INDUSTRIAL, 12.0, k=1)
+    assert leg.how == "over" and leg.z == pytest.approx(obs.corridor_top((0, 0), (200, 0), 10.0) + 20.0 + 4.0)
+    assert len(leg.points) == 2
+
+
+def test_router_leaves_a_drop_point_beside_a_tall_building():
+    """A drop 6 m from a tower's wall: the leg starts there but never comes nearer to the tower."""
+    r = plan.Router(tower_obs())
+    leg = r.leg((121.0, 0, 0), (300, 150, 0), dm.INDUSTRIAL, 12.0)
+    assert leg.how == "band"
+    assert footprint_distance(leg.points, 100, 0, 15) >= 6.0 - 1.5
+    assert footprint_distance(leg.points[1:], 100, 0, 15) > 6.0
+
+
+def test_planned_delivery_flies_round_the_tower(carla_mod):
+    obs = tower_obs()
+    r = plan.Router(obs)
+    f = dm.Fleet()
+    i = f.add(dm.INDUSTRIAL, (0, 0, 0), 0.0)
+    drop = (200.0, 0.0, 0.0)
+    legs = [(r.leg((0, 0, 0), drop, dm.INDUSTRIAL, 12.0, 7.0), r.leg(drop, (0, 0, 0), dm.INDUSTRIAL, 12.0, 0.3))]
+    ms = plan.Delivery("d", f, i, (0.0, 0.0, 0.0), [drop], None, None, dwell_s=2.0, cruise=12.0, drop="winch",
+                       loop=False, legs=legs)
+    assert ms.cruise_z == [legs[0][0].z]
+    track = []
+    fly(f, [ms], 110.0, every=lambda t: track.append(f.pos[i].copy()))
+    assert ms.delivered == 1 and ms.phase == "done"
+    tr = np.array(track)
+    lat, ver = plan.margins(dm.INDUSTRIAL, 12.0)
+    assert footprint_distance(tr[tr[:, 2] > 20], 100, 0, 15) > lat - 6.0, "the flown track keeps clear too"
+    assert tr[:, 2].max() < 60.0 + 2.0, "never above the band"
+    assert np.linalg.norm(f.pos[i][:2]) < 2.0 and f.on_ground[i]
+
+
+def test_waypoint_speed_limits_are_braked_for():
+    f = dm.Fleet()
+    i = f.add(dm.INDUSTRIAL, (0, 0, 30), 0.0, on_ground=False)
+    wp = dm.Waypoints([(0, 0, 30), (100, 0, 30), (101, 0, 30), (200, 0, 30)], cruise=12.0,
+                      limits=[None, 4.0, 4.0, None])
+    passing = []
+    for _ in range(int(30 / 0.02)):
+        tgt, vel = wp.step(f.pos[i], 0.02)
+        f.set_command(i, "position", pos=tgt, vel=vel, yaw=0.0)
+        f.step(0.02)
+        if 99.0 < f.pos[i][0] < 102.0:
+            passing.append(np.linalg.norm(f.vel[i]))
+    assert passing and max(passing) < 5.5
+    assert wp.done or f.pos[i][0] > 150
+
+
+def test_patrol_loop_goes_round_a_tower():
+    obs = tower_obs()
+    r = plan.Router(obs)
+    ring = [(100 + 40 * math.cos(a), 40 * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 12, endpoint=False)]
+    lp = r.loop(ring, (0, 0, 0), dm.CONSUMER, 8.0)
+    lat, _ = plan.margins(dm.CONSUMER, 8.0)
+    assert lp.how == "band" and lp.z == pytest.approx(40.0)
+    assert footprint_distance(lp.points + lp.points[:1], 100, 0, 15) >= lat - 1.0
+    assert len(lp.limits) == len(lp.points)
+    f = dm.Fleet()
+    i = f.add(dm.CONSUMER, (0, 0, 0), 0.0)
+    ms = plan.Patrol("p", f, i, lp.points, 8.0, limits=lp.limits, transit=lp.transit, transit_limits=lp.transit_limits)
+    fly(f, [ms], 60.0)
+    assert not ms.route.done and abs(f.pos[i][2] - 40.0) < 2.0
+
+
+def test_osm_no_fly_is_cached_and_fails_soft(tmp_path, monkeypatch):
+    import requests
+    def down(*a, **k):
+        raise requests.ConnectionError("offline")
+    monkeypatch.setattr(requests, "post", down)
+    assert plan.osm_no_fly([51.43, 5.46, 51.45, 5.49], tmp_path / "nf.json") == []
+    assert not (tmp_path / "nf.json").exists(), "a failure is not cached"
+
+    class R:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"elements": [
+                {"type": "node", "lat": 51.44, "lon": 5.47, "tags": {"aeroway": "helipad"}},
+                {"type": "way", "geometry": [{"lat": 51.441, "lon": 5.471}, {"lat": 51.442, "lon": 5.471},
+                                             {"lat": 51.442, "lon": 5.473}, {"lat": 51.441, "lon": 5.471}]}]}
+    monkeypatch.setattr(requests, "post", lambda *a, **k: R())
+    rings = plan.osm_no_fly([51.43, 5.46, 51.45, 5.49], tmp_path / "nf.json")
+    assert len(rings) == 2 and len(rings[0]) == 16
+    monkeypatch.setattr(requests, "post", down)
+    assert plan.osm_no_fly([51.43, 5.46, 51.45, 5.49], tmp_path / "nf.json") == rings, "from the cache"
+
+
+def test_world_routes_a_delivery_round_a_tower(carla_mod, tmp_path):
+    bld = [{"h": 90.0, "z": 0.0, "k": "office", "p": [[40, -15], [70, -15], [70, 15], [40, 15], [40, -15]]}]
+    m = {"kind": "delivery", "id": "parcel", "depot": {"lat": 51.44, "lon": 5.47},
+         "addresses": [[51.44, 5.47 + 160 / 70000.0]], "loop": False}
+    dw, _ = make_world(carla_mod, tmp_path, [], [m], bld)
+    ms = dw.missions[0]
+    out, back = ms.legs[0]
+    assert out.how == "band" and out.length > out.straight and 40 <= out.z <= 60
+    m2 = dict(m, routing={"mode": "over"})
+    dw2, _ = make_world(carla_mod, tmp_path, [], [m2], bld)
+    assert dw2.missions[0].cruise_z[0] >= 90.0 + 20.0, "the old way climbs over it"
+    dw.close()
+    dw2.close()
+
+
 # -- config, validator, logs -------------------------------------------------------------------------------------
 
 EXP = {
@@ -326,6 +534,18 @@ def _check(raw, tmp_path):
 def test_validator_accepts_drones(tmp_path, carla_mod):
     rep = _check(EXP, tmp_path)
     assert rep.errors == [], rep.items
+
+
+def test_validator_checks_routing(tmp_path, carla_mod):
+    import copy
+    raw = copy.deepcopy(EXP)
+    raw["drones"]["routing"] = {"band_m": [40, 60], "no_fly": [[[51.44, 5.47], [51.441, 5.47], [51.441, 5.471]]]}
+    raw["drones"]["missions"][0]["routing"] = {"mode": "over"}
+    assert _check(raw, tmp_path).errors == []
+    raw["drones"]["routing"] = {"band_m": [60, 40], "bands": 3, "mode": "around", "no_fly": [[1, 2]]}
+    msgs = " ".join(str(e) for e in _check(raw, tmp_path).errors)
+    for word in ("band_m", "bands", "around", "no_fly"):
+        assert word in msgs, (word, msgs)
 
 
 def test_validator_flags_drone_mistakes(tmp_path, carla_mod):
@@ -533,7 +753,8 @@ def test_world_flies_a_delivery_over_a_building(carla_mod, tmp_path):
          "addresses": [[51.44, 5.47 + 100 / 70000.0]], "loop": False, "dwell_s": 2.0}
     dw, _ = make_world(carla_mod, tmp_path, [], [m], bld)
     ms = dw.missions[0]
-    assert ms.cruise_z[0] >= 22.0 + 20.0
+    assert 40.0 <= ms.cruise_z[0] <= 60.0, "in the cruise band"
+    assert ms.cruise_z[0] >= 22.0 + plan.margins(dm.INDUSTRIAL, 12.0)[1], "the vertical clearance over the roof"
     lg = FakeLogger()
     run_world(dw, 60.0, lg)
     assert ms.delivered == 1, lg.events
