@@ -266,9 +266,11 @@ class ScriptedCar:
                 if spec.get("yield_s"):
                     self.yield_until = t + float(spec["yield_s"])
                 if "blinker" in spec:
-                    ls = {"left": carla.VehicleLightState.LeftBlinker, "right": carla.VehicleLightState.RightBlinker,
-                          "hazard": carla.VehicleLightState.LeftBlinker | carla.VehicleLightState.RightBlinker}
-                    self.vehicle.set_light_state(carla.VehicleLightState(ls.get(spec["blinker"], 0)))
+                    LS = carla.VehicleLightState
+                    both = int(LS.LeftBlinker) | int(LS.RightBlinker)
+                    ls = {"left": int(LS.LeftBlinker), "right": int(LS.RightBlinker), "hazard": both}
+                    keep = int(self.vehicle.get_light_state()) & ~both      # headlights stay on at night
+                    self.vehicle.set_light_state(LS(keep | ls.get(spec["blinker"], 0)))
                 if "ehmi" in spec:
                     self.set_ehmi(spec["ehmi"], "trigger")
         # speed profile: ramp the target speed at the configured acceleration
