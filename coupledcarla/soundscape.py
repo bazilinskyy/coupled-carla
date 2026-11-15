@@ -227,6 +227,11 @@ class Soundscape:
         out = []
         for c in cues:
             c = dict(c)
+            if "on" not in c:       # YAML reads an unquoted `on:` key as true (and the welcome's JSON as "true")
+                for k in (True, "true"):
+                    if k in c:
+                        c["on"] = c.pop(k)
+                        break
             c.setdefault("db", ae.get("db", 65.0))
             c["_buf"] = self.sound_for(c)
             out.append(c)
