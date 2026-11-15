@@ -20,6 +20,7 @@
 </p>
 
 <p align="center">
+  <a href="https://bazilinskyy.github.io/coupled-carla/">Project page</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#make-a-map-of-any-place">Make a map</a> ·
   <a href="#videos">Videos</a> ·
@@ -218,7 +219,7 @@ download). They are made headless by [`tools/make_videos.py`](tools/make_videos.
 fps of simulation time, so even a run slower than real time gives a smooth clip; first-person clips carry what the
 participant hears (`--record-audio`), outside cameras what can be heard where the camera is. All files:
 [release demo-videos](https://github.com/bazilinskyy/coupled-carla/releases/tag/demo-videos). Clips of the CARLA 1.0
-Eindhoven digital twin follow.
+Eindhoven digital twin follow. Watch them in the browser on the [project page](https://bazilinskyy.github.io/coupled-carla/).
 
 <table>
 <tr>
@@ -2038,7 +2039,7 @@ maps/, logs/         built maps and trial logs (not in git)
 Coupled CARLA is free and stays free. If it is useful to you and you would like to give something back, you can
 [sponsor it on GitHub](https://github.com/sponsors/bazilinskyy) (monthly or once) or
 [buy me a coffee on Ko-fi](https://ko-fi.com/bazilinskyy). Bug reports, ideas, new cities and pull requests help
-just as much. If you use it in research, please cite it (the "Cite this repository" button on GitHub, from
+just as much; how to report bugs, propose features and run the tests: [CONTRIBUTING.md](CONTRIBUTING.md). If you use it in research, please cite it (the "Cite this repository" button on GitHub, from
 [`CITATION.cff`](CITATION.cff)).
 
 ## Credits, data and licences
