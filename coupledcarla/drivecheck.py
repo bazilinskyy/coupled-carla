@@ -1,0 +1,274 @@
+"""Measures of how realistic the driving is, from SUMO's outputs (tools/traffic_check.py) and a trial's frames.csv
+(tools/drive_check.py). Plain Python: no SUMO binary, no CARLA, so the measures are unit-tested.
+
+SUMO side (per vehicle class): accelerations and jerk from the FCD (10 Hz), time gaps to the leader (gap / speed,
+moving traffic only), free-flow speed / limit, vehicles standing inside junctions, red-light entries (a vehicle
+entering a junction's internal lane over a link that shows red), plus SUMO's own counts (teleports, collisions,
+emergency braking) from its statistic output.
+
+CARLA side: oriented bounding boxes of the vehicles logged in frames.csv every frame: vehicle-vehicle overlaps,
+vehicle-walker contacts, and the participants' own accelerations, jerk and events (stuck, reset_to_lane, collisions).
+"""
+import bisect
+import math
+import xml.etree.ElementTree as ET
+
+
+# -- small statistics ---------------------------------------------------------------------------------------------
+
+def pct(values, p):
+    """The p-th percentile (0-100) of values by linear interpolation, None for no values."""
+    v = sorted(values)
+    if not v:
+        return None
+    k = (len(v) - 1) * p / 100.0
+    lo, hi = int(math.floor(k)), int(math.ceil(k))
+    return v[lo] + (v[hi] - v[lo]) * (k - lo)
+
+
+def share(values, test):
+    v = list(values)
+    return sum(1 for x in v if test(x)) / len(v) if v else None
+
+
+def summary(values, digits=2):
+    v = list(values)
+    if not v:
+        return {"n": 0}
+    r = lambda x: round(x, digits) if x is not None else None   # noqa: E731
+    return {"n": len(v), "mean": r(sum(v) / len(v)), "p50": r(pct(v, 50)), "p95": r(pct(v, 95)), "max": r(max(v))}
+
+
+# -- SUMO FCD ---------------------------------------------------------------------------------------------------------
+
+class FcdStats:
+    """Accumulates FCD records (one dict per vehicle per sample) into the measures above.
+
+    lane_speed: lane id -> speed limit (m/s); kind_of(type id) -> "car" | "bus" | "bike". A sample counts for the
+    time gap when the vehicle moves faster than 5 m/s with a leader within 60 m (car following, not queues), and for
+    free-flow speed when it has no leader within 80 m on a normal lane, moving.
+    """
+
+    def __init__(self, lane_speed, kind_of, period=0.1):
+        self.lane_speed, self.kind_of, self.period = lane_speed, kind_of, period
+        self.acc, self.jerk, self.gap, self.free = {}, {}, {}, {}
+        self.last = {}                  # vehicle -> (time, accel)
+        self.junction_stop = {}         # vehicle -> seconds standing on an internal lane in a row
+        self.junction_waits = []        # completed stops inside junctions longer than 5 s (s)
+        self.samples = 0
+
+    def add(self, t, rec):
+        vid, kind = rec["id"], self.kind_of(rec.get("type", ""))
+        speed, lane = float(rec.get("speed", 0.0)), rec.get("lane", "")
+        self.samples += 1
+        a = rec.get("acceleration")
+        if a is not None:
+            a = float(a)
+            self.acc.setdefault(kind, []).append(a)
+            prev = self.last.get(vid)
+            if prev is not None and abs(t - prev[0] - self.period) < 1e-6:
+                self.jerk.setdefault(kind, []).append((a - prev[1]) / self.period)
+            self.last[vid] = (t, a)
+        gap, leader = rec.get("leaderGap"), rec.get("leaderID")
+        has_leader = leader not in (None, "") and gap not in (None, "") and float(gap) >= 0
+        if has_leader and speed > 5.0 and float(gap) < 60.0:
+            self.gap.setdefault(kind, []).append(float(gap) / speed)
+        limit = self.lane_speed.get(lane)
+        if limit and not lane.startswith(":") and speed > 1.0 and (not has_leader or float(gap) > 80.0):
+            self.free.setdefault(kind, []).append(speed / limit)
+        if lane.startswith(":") and speed < 0.1:
+            self.junction_stop[vid] = self.junction_stop.get(vid, 0.0) + self.period
+        elif vid in self.junction_stop:
+            w = self.junction_stop.pop(vid)
+            if w > 5.0:
+                self.junction_waits.append(w)
+
+    def result(self):
+        out = {}
+        for kind in sorted(set(self.acc) | set(self.gap) | set(self.free)):
+            acc = self.acc.get(kind, [])
+            jerk = [abs(j) for j in self.jerk.get(kind, [])]
+            gaps = self.gap.get(kind, [])
+            free = self.free.get(kind, [])
+            out[kind] = {
+                "abs_accel": summary(abs(a) for a in acc),
+                "decel_over_4.5_share": round(share(acc, lambda a: a < -4.5) or 0.0, 5),
+                "decel_over_7_share": round(share(acc, lambda a: a < -7.0) or 0.0, 5),
+                "abs_jerk": summary(jerk),
+                "jerk_over_10_share": round(share(jerk, lambda j: j > 10.0) or 0.0, 5),
+                "time_gap_s": summary(gaps),
+                "time_gap_under_1s_share": round(share(gaps, lambda g: g < 1.0) or 0.0, 4),
+                "time_gap_under_0.5s_share": round(share(gaps, lambda g: g < 0.5) or 0.0, 4),
+                "free_speed_over_limit": summary(free, 3),
+                "free_speed_over_110pct_share": round(share(free, lambda r: r > 1.1) or 0.0, 4),
+            }
+        waits = self.junction_waits + [w for w in self.junction_stop.values() if w > 5.0]
+        out["junction_stops_over_5s"] = len(waits)
+        out["junction_stop_s"] = summary(waits, 1)
+        return out
+
+
+def iter_fcd(path):
+    """(time, record dict) for each vehicle of each timestep of a SUMO FCD file (plain or .gz), streaming."""
+    import gzip
+    opener = gzip.open if str(path).endswith(".gz") else open
+    with opener(path, "rb") as f:
+        t = None
+        for ev, el in ET.iterparse(f, events=("start", "end")):
+            if ev == "start" and el.tag == "timestep":
+                t = float(el.get("time"))
+            elif ev == "end" and el.tag == "vehicle":
+                yield t, dict(el.attrib)
+                el.clear()
+            elif ev == "end" and el.tag == "timestep":
+                el.clear()
+
+
+def sumo_statistics(path):
+    """SUMO's --statistic-output as a flat dict: teleports (total, jam, yield, wrongLane), safety (collisions,
+    emergencyStops, emergencyBraking), vehicles (loaded, inserted, running, waiting), trip means."""
+    root = ET.parse(path).getroot()
+    out = {}
+    for tag, prefix in (("teleports", "teleports"), ("safety", ""), ("vehicles", "vehicles"),
+                        ("vehicleTripStatistics", "trip")):
+        el = root.find(tag)
+        if el is None:
+            continue
+        for k, v in el.attrib.items():
+            key = (f"{prefix}_{k}" if prefix and k != "total" else (prefix or k)) if prefix else k
+            try:
+                out[key] = float(v) if "." in v else int(v)
+            except ValueError:
+                out[key] = v
+    return out
+
+
+def collisions(path):
+    """Counts of SUMO's --collision-output by type (collision, frontal, side, junction, ...) and by vehicle pair
+    class, and the list of (time, collider, victim, type)."""
+    rows = []
+    for el in ET.parse(path).getroot().iter("collision"):
+        rows.append((float(el.get("time")), el.get("collider"), el.get("victim"), el.get("type", "")))
+    kinds = {}
+    for r in rows:
+        kinds[r[3]] = kinds.get(r[3], 0) + 1
+    return {"n": len(rows), "by_type": kinds, "rows": rows[:50]}
+
+
+def link_state_on_entry(links, internal_lane):
+    """The state character of the link from a normal lane into internal_lane, from traci.lane.getLinks(lane,
+    extended=True) tuples (approached lane, hasPrio, isOpen, hasFoe, approached internal lane, state, direction,
+    length); None when no link leads there."""
+    for link in links:
+        if len(link) > 5 and link[4] == internal_lane:
+            return link[5]
+    return None
+
+
+TLS_STATES = set("GgrRyYuoO")      # link states of signalised links (priority junctions: M, m, =, s, w)
+
+
+def is_red(state):
+    return state in ("r", "R")
+
+
+# -- CARLA frames.csv ---------------------------------------------------------------------------------------------
+
+def obb_corners(x, y, yaw_deg, hx, hy):
+    """Corners of a box centred at x, y with half lengths hx (forward) and hy, turned by yaw (CARLA degrees)."""
+    c, s = math.cos(math.radians(yaw_deg)), math.sin(math.radians(yaw_deg))
+    return [(x + c * dx - s * dy, y + s * dx + c * dy) for dx, dy in ((hx, hy), (hx, -hy), (-hx, -hy), (-hx, hy))]
+
+
+def obb_overlap(a, b, shrink=0.0):
+    """Whether two oriented boxes (x, y, yaw_deg, hx, hy) overlap (separating axis test), each first shrunk by
+    `shrink` metres on every side (a tolerance for bounding boxes that are larger than the body)."""
+    pa = obb_corners(a[0], a[1], a[2], max(0.0, a[3] - shrink), max(0.0, a[4] - shrink))
+    pb = obb_corners(b[0], b[1], b[2], max(0.0, b[3] - shrink), max(0.0, b[4] - shrink))
+    for yaw in (a[2], a[2] + 90.0, b[2], b[2] + 90.0):
+        ux, uy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+        da = [px * ux + py * uy for px, py in pa]
+        db = [px * ux + py * uy for px, py in pb]
+        if max(da) < min(db) or max(db) < min(da):
+            return False
+    return True
+
+
+def point_in_obb(px, py, box, margin=0.0):
+    """Whether a point lies within an oriented box (x, y, yaw_deg, hx, hy) grown by margin."""
+    x, y, yaw, hx, hy = box
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    dx, dy = px - x, py - y
+    f, l = dx * c + dy * s, -dx * s + dy * c
+    return abs(f) <= hx + margin and abs(l) <= hy + margin
+
+
+class Grid:
+    """A 2D hash of boxes by cell, for overlap checks among a few hundred actors per frame."""
+
+    def __init__(self, cell=10.0):
+        self.cell, self.cells = cell, {}
+
+    def add(self, key, x, y):
+        self.cells.setdefault((int(x // self.cell), int(y // self.cell)), []).append(key)
+
+    def near(self, x, y):
+        cx, cy = int(x // self.cell), int(y // self.cell)
+        for i in (-1, 0, 1):
+            for j in (-1, 0, 1):
+                yield from self.cells.get((cx + i, cy + j), ())
+
+
+def frame_conflicts(vehicles, walkers, shrink=0.15, walker_margin=0.1):
+    """Overlapping vehicle pairs and vehicle-walker contacts in one frame. vehicles: {id: (x, y, yaw, hx, hy)},
+    walkers: {id: (x, y)}. Returns (set of (id, id) vehicle pairs, set of (vehicle, walker))."""
+    g = Grid()
+    for vid, b in vehicles.items():
+        g.add(vid, b[0], b[1])
+    pairs, hits = set(), set()
+    for vid, b in vehicles.items():
+        for o in g.near(b[0], b[1]):
+            if str(o) <= str(vid):          # each pair once, never with itself
+                continue
+            ob = vehicles[o]
+            if (b[0] - ob[0]) ** 2 + (b[1] - ob[1]) ** 2 > (b[3] + ob[3] + 1.0) ** 2:
+                continue
+            if obb_overlap(b, ob, shrink):
+                pairs.add((vid, o))
+    for wid, (x, y) in walkers.items():
+        for vid in g.near(x, y):
+            if point_in_obb(x, y, vehicles[vid], walker_margin + 0.25):     # a walker's radius is ~0.25 m
+                hits.add((vid, wid))
+    return pairs, hits
+
+
+def episodes(frames_with_keys, gap_frames=25):
+    """Number of distinct episodes per key: a key seen in frames that are at most gap_frames apart counts once.
+    frames_with_keys: iterable of (frame, key)."""
+    last, n = {}, {}
+    for frame, key in sorted(frames_with_keys):
+        if key not in last or frame - last[key] > gap_frames:
+            n[key] = n.get(key, 0) + 1
+        last[key] = frame
+    return sum(n.values())
+
+
+def series_jerk(times, speeds_xy):
+    """|longitudinal accel| and |jerk| of one actor from its logged velocities (vx, vy) per time; the accel is the
+    rate of change of speed, smoothed over 0.1 s, so 50 Hz logging noise does not dominate."""
+    sp = [math.hypot(vx, vy) for vx, vy in speeds_xy]
+    acc, jerk = [], []
+    if len(times) < 3:
+        return acc, jerk
+    # resample on 0.1 s
+    t0, t1 = times[0], times[-1]
+    grid = [t0 + 0.1 * i for i in range(int((t1 - t0) / 0.1) + 1)]
+    vs = []
+    for tg in grid:
+        k = min(max(1, bisect.bisect_left(times, tg)), len(times) - 1)
+        ta, tb = times[k - 1], times[k]
+        w = (tg - ta) / (tb - ta) if tb > ta else 0.0
+        vs.append(sp[k - 1] + (sp[k] - sp[k - 1]) * w)
+    acc = [(vs[i + 1] - vs[i]) / 0.1 for i in range(len(vs) - 1)]
+    jerk = [(acc[i + 1] - acc[i]) / 0.1 for i in range(len(acc) - 1)]
+    return [abs(a) for a in acc], [abs(j) for j in jerk]

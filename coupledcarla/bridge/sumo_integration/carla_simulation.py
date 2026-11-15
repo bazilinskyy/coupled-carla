@@ -18,6 +18,11 @@ import carla  # pylint: disable=import-error
 
 from .constants import INVALID_ACTOR_ID, SPAWN_OFFSET_Z
 
+def _lifted(transform, dz=0.15):
+    """coupled-carla: a transform a little above the road, so a vehicle with physics on lands on its wheels."""
+    return carla.Transform(transform.location + carla.Location(z=dz), transform.rotation)
+
+
 # ==================================================================================================
 # -- carla simulation ------------------------------------------------------------------------------
 # ==================================================================================================
@@ -43,6 +48,9 @@ class CarlaSimulation(object):
         self._side_tls = {}      # coupled-carla: the light actors on the side connection (use_side)
         self.spawned_actors = set()
         self.destroyed_actors = set()
+        self.snapshot = None     # coupled-carla: the world snapshot after the last tick (poses of physics actors)
+        self._physics = set()    # coupled-carla: SUMO vehicles moved with physics on (bridge/animate.py)
+        self._teleports, self._unstable = {}, {}     # coupled-carla: recent follow teleports; placed-until frame
 
         # Set traffic lights.
         self._tls = {}  # {landmark_id: traffic_ligth_actor}
@@ -185,6 +193,53 @@ class CarlaSimulation(object):
             self._pending.append(carla.command.SetVehicleLightState(vehicle_id, carla.VehicleLightState(lights)))
         return True
 
+    def follow_vehicle(self, vehicle_id, transform, speed, yaw_rate, length, lights=None):
+        """
+        coupled-carla: moves a SUMO vehicle with physics on along its SUMO pose (bridge/animate.py), so its wheels
+        roll and steer and a cyclist pedals. Falls back to a transform while CARLA has no pose for it yet.
+        """
+        from .. import animate  # pylint: disable=import-outside-toplevel
+        cmd = carla.command
+        frame = getattr(self, 'tick_frame', 0) or 0
+        if self._unstable.get(vehicle_id, -1) > frame:      # it kept leaving its pose: placed for a while
+            return self.place_vehicle(vehicle_id, transform, lights)
+        snap = self.snapshot.find(vehicle_id) if self.snapshot is not None else None
+        if vehicle_id not in self._physics or snap is None:
+            self._physics.add(vehicle_id)
+            self._pending.append(cmd.SetSimulatePhysics(vehicle_id, True))
+            self._pending.append(cmd.ApplyTransform(vehicle_id, _lifted(transform)))
+            vx, vy = animate.velocity(speed, transform.rotation.yaw)
+            self._pending.append(cmd.ApplyTargetVelocity(vehicle_id, carla.Vector3D(vx, vy, 0.0)))
+        else:
+            now = snap.get_transform()
+            f = animate.follow((transform.location.x, transform.location.y, transform.rotation.yaw),
+                               (now.location.x, now.location.y, now.rotation.yaw), speed, yaw_rate,
+                               animate.wheelbase(length), snap.get_velocity().z)
+            if f["teleport"]:
+                self._pending.append(cmd.ApplyTransform(vehicle_id, _lifted(transform)))
+                recent = [t for t in self._teleports.get(vehicle_id, []) if frame - t < animate.UNSTABLE_TICKS]
+                self._teleports[vehicle_id] = recent + [frame]
+                if len(recent) + 1 >= animate.UNSTABLE_TELEPORTS:
+                    # two bikes side by side in SUMO push each other round with physics on (they spun on the spot):
+                    # placed with physics off for a while instead
+                    self._unstable[vehicle_id] = frame + animate.UNSTABLE_PAUSE_TICKS
+                    self._teleports.pop(vehicle_id, None)
+                    return self.place_vehicle(vehicle_id, transform, lights)
+            self._pending.append(cmd.ApplyTargetVelocity(vehicle_id, carla.Vector3D(*f["velocity"])))
+            self._pending.append(cmd.ApplyTargetAngularVelocity(vehicle_id, carla.Vector3D(0.0, 0.0, f["angular_z"])))
+            self._pending.append(cmd.ApplyVehicleControl(vehicle_id, carla.VehicleControl(
+                throttle=f["throttle"], steer=f["steer"], brake=f["brake"])))
+        if lights is not None and self._lights.get(vehicle_id) != lights:
+            self._lights[vehicle_id] = lights
+            self._pending.append(cmd.SetVehicleLightState(vehicle_id, carla.VehicleLightState(lights)))
+
+    def place_vehicle(self, vehicle_id, transform, lights=None):
+        """coupled-carla: synchronize_vehicle, switching physics off first for a vehicle that followed with it."""
+        if vehicle_id in self._physics:
+            self._physics.discard(vehicle_id)
+            self._pending.append(carla.command.SetSimulatePhysics(vehicle_id, False))
+        return self.synchronize_vehicle(vehicle_id, transform, lights)
+
     def synchronize_traffic_light(self, landmark_id, state):
         """
         Updates traffic light state.
@@ -221,13 +276,17 @@ class CarlaSimulation(object):
 
         # Update data structures for the current frame. coupled-carla: from the local snapshot, asking the
         # server only about actors not seen before (get_actors() every tick was another bottleneck).
-        ids = {a.id for a in self.world.get_snapshot()}
+        self.snapshot = self.world.get_snapshot()
+        ids = {a.id for a in self.snapshot}
         for new_id in ids - self._kinds.keys():
             actor = self.world.get_actor(new_id)
             self._kinds[new_id] = actor is not None and actor.type_id.startswith('vehicle.')
         for gone in self._kinds.keys() - ids:
             del self._kinds[gone]
             self._lights.pop(gone, None)
+            self._physics.discard(gone)
+            self._teleports.pop(gone, None)
+            self._unstable.pop(gone, None)
         current_actors = {i for i in ids if self._kinds.get(i)}
         self.spawned_actors = current_actors.difference(self._active_actors)
         self.destroyed_actors = self._active_actors.difference(current_actors)

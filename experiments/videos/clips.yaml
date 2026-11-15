@@ -26,6 +26,9 @@ clips:
     time: "2026-06-17 17:15"
     set: {traffic: {cars_per_hour: 3600, bikes_per_hour: 2400}}
     hold: {driver: 96}
+    # a planned route (SUMO driver, sumodriver.py): Fellenoord, across Kennedyplein to the John F. Kennedylaan, on
+    # towards Fuutlaan; the car enters SUMO at its spawn when the hold ends, with the rush hour already going
+    patch: {participants: {driver: {route: [[51.44479, 5.48053], [51.4423, 5.4852]]}}}
     start_s: 100
     duration_s: 20
     camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}

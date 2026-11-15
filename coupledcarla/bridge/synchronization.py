@@ -33,6 +33,7 @@ from .sumo_integration.bridge_helper import BridgeHelper  # pylint: disable=wron
 from .sumo_integration.carla_simulation import CarlaSimulation  # pylint: disable=wrong-import-position
 from .sumo_integration.constants import INVALID_ACTOR_ID  # pylint: disable=wrong-import-position
 from .sumo_integration.sumo_simulation import SumoSimulation  # pylint: disable=wrong-import-position
+from . import animate  # pylint: disable=wrong-import-position
 
 # ==================================================================================================
 # -- synchronization_loop --------------------------------------------------------------------------
@@ -52,7 +53,8 @@ class SimulationSynchronization(object):
                  sync_vehicle_lights=False,
                  tm_port=8000,
                  focus=None,
-                 radius=None):
+                 radius=None,
+                 animate_radius=0.0):
 
         self.sumo = sumo_simulation
         self.carla = carla_simulation
@@ -72,6 +74,16 @@ class SimulationSynchronization(object):
         # cyclist about 3 ms), so this is what keeps a city-sized map real time.
         self.focus = focus
         self.radius = radius
+        # coupled-carla: SUMO vehicles within animate_radius of a participant move with physics on, so wheels roll
+        # and cyclists pedal (bridge/animate.py); velocity and poses give every SUMO vehicle's speed to the CARLA
+        # side (CARLA reads 0 m/s for one placed with physics off): {carla id: (vx, vy)}, {carla id: (x, y, yaw,
+        # speed, half length, half width)}, refilled in place every tick
+        self.animate_radius = float(animate_radius or 0.0)
+        self.velocity, self.poses, self._prev_yaw = {}, {}, {}
+        # coupled-carla: CARLA actors whose SUMO vehicle drives them (a participant on the SUMO driver, inputs.py):
+        # {sumo id: carla id}; mapped like SUMO's own vehicles once SUMO has inserted them, never spawned, despawned
+        # or destroyed by the bridge. arrived_adopted: those SUMO took off the network this tick.
+        self.adopted, self.arrived_adopted = {}, set()
         self._sumo_live = set()   # SUMO-controlled actors currently in SUMO (subscribed)
         self._lod_tick = 0
         self._common_landmarks = None   # coupled-carla: traffic lights both sides know (cached, see tick())
@@ -113,6 +125,10 @@ class SimulationSynchronization(object):
         # New sumo actors (not controlled by carla) are subscribed; whether they appear in carla is decided
         # by the level-of-detail pass below. coupled-carla: with level of detail, to their pose only until then.
         sumo_spawned_actors = self.sumo.spawned_actors - set(self.carla2sumo_ids.values())
+        for sumo_actor_id in sumo_spawned_actors & self.adopted.keys():     # coupled-carla: a SUMO-driven participant
+            self.sumo.subscribe(sumo_actor_id)
+            self.sumo2carla_ids[sumo_actor_id] = self.adopted[sumo_actor_id]
+        sumo_spawned_actors -= self.adopted.keys()
         for sumo_actor_id in sumo_spawned_actors:
             if lod:
                 self.sumo.subscribe_pose(sumo_actor_id)
@@ -121,7 +137,10 @@ class SimulationSynchronization(object):
             self._sumo_live.add(sumo_actor_id)
 
         # Destroying sumo arrived actors in carla.
-        for sumo_actor_id in self.sumo.destroyed_actors:
+        self.arrived_adopted = self.sumo.destroyed_actors & self.adopted.keys()
+        for sumo_actor_id in self.arrived_adopted:      # coupled-carla: the participant's car stays in CARLA
+            self.sumo2carla_ids.pop(sumo_actor_id, None)
+        for sumo_actor_id in self.sumo.destroyed_actors - self.adopted.keys():
             self._sumo_live.discard(sumo_actor_id)
             if sumo_actor_id in self.sumo2carla_ids:
                 self.carla.destroy_actor(self.sumo2carla_ids.pop(sumo_actor_id))
@@ -176,13 +195,46 @@ class SimulationSynchronization(object):
         laps("lod")
 
         # Updating sumo actors in carla.
+        # coupled-carla: vehicles whose SUMO bodies touch another's (a SUMO collision, logged, not resolved) are placed
+        # with physics off: with physics on CARLA pushed them apart, and they spun round (bridge/animate.py)
+        touching = set()
+        if self.animate_radius > 0 and self.poses:
+            from coupledcarla.drivecheck import frame_conflicts  # pylint: disable=import-outside-toplevel
+            boxes = {cid: (p[0], p[1], p[2], p[4], p[5]) for cid, p in self.poses.items()}
+            if len(boxes) > 1:
+                pairs, _ = frame_conflicts(boxes, {}, shrink=0.05)
+                touching = {c for pair in pairs for c in pair}
+        self.velocity.clear()
+        self.poses.clear()
         for sumo_actor_id in self.sumo2carla_ids:
             carla_actor_id = self.sumo2carla_ids[sumo_actor_id]
 
-            sumo_actor = self.sumo.get_actor(sumo_actor_id)
+            try:
+                sumo_actor = self.sumo.get_actor(sumo_actor_id)
+            except KeyError:     # coupled-carla: off the network for a moment (a SUMO teleport of an adopted car)
+                continue
 
             carla_transform = BridgeHelper.get_carla_transform(sumo_actor.transform,
                                                                sumo_actor.extent)
+            loc = carla_transform.location
+            yaw = animate.steady_yaw(self._prev_yaw.get(carla_actor_id), carla_transform.rotation.yaw,
+                                     sumo_actor.speed)
+            if yaw != carla_transform.rotation.yaw:  # a SUMO heading flip is not shown (animate.steady_yaw): the
+                # centre was put half a length behind SUMO's front bumper along the flipped heading; along this one
+                (ox, oy), (nx, ny) = (animate.velocity(sumo_actor.extent.x, carla_transform.rotation.yaw),
+                                      animate.velocity(sumo_actor.extent.x, yaw))
+                loc.x, loc.y = loc.x + ox - nx, loc.y + oy - ny
+                carla_transform.rotation.yaw = yaw
+            yaw_rate = animate.yaw_rate(self._prev_yaw.get(carla_actor_id, yaw), yaw, self.carla.step_length)
+            self._prev_yaw[carla_actor_id] = yaw
+            self.velocity[carla_actor_id] = animate.velocity(sumo_actor.speed, yaw)
+            self.poses[carla_actor_id] = (loc.x, loc.y, yaw, sumo_actor.speed, sumo_actor.extent.x,
+                                          sumo_actor.extent.y)
+            animated = False
+            if self.animate_radius > 0 and (centres or sumo_actor_id in self.adopted):
+                reach = self.animate_radius + (10.0 if carla_actor_id in self.carla._physics else 0.0)
+                animated = sumo_actor_id in self.adopted or (carla_actor_id not in touching and any(
+                    (loc.x - c.x) ** 2 + (loc.y - c.y) ** 2 <= reach * reach for c in (centres or ())))
             if self.sync_vehicle_lights:
                 # coupled-carla: the lights the bridge last gave it, instead of asking the server for every car
                 # every tick (a blocking round trip each)
@@ -191,7 +243,13 @@ class SimulationSynchronization(object):
             else:
                 carla_lights = None
 
-            self.carla.synchronize_vehicle(carla_actor_id, carla_transform, carla_lights)
+            if animated:
+                self.carla.follow_vehicle(carla_actor_id, carla_transform, sumo_actor.speed, yaw_rate,
+                                          2.0 * sumo_actor.extent.x, carla_lights)
+            else:
+                self.carla.place_vehicle(carla_actor_id, carla_transform, carla_lights)
+        for gone in [i for i in self._prev_yaw if i not in self.velocity]:
+            del self._prev_yaw[gone]
         laps("sumo_to_carla")
 
         # Updates traffic lights in carla based on sumo information.
@@ -215,7 +273,7 @@ class SimulationSynchronization(object):
 
         # Spawning new carla actors (not controlled by sumo)
         carla_spawned_actors = (self.carla.spawned_actors | (lost_twins - self.carla.destroyed_actors)) - \
-            set(self.sumo2carla_ids.values())
+            set(self.sumo2carla_ids.values()) - set(self.adopted.values())
         for carla_actor_id in carla_spawned_actors:
             carla_actor = self.carla.get_actor(carla_actor_id)
             if carla_actor is None:     # coupled-carla: gone meanwhile (a lost twin's car)
@@ -231,6 +289,10 @@ class SimulationSynchronization(object):
 
         # Destroying required carla actors in sumo.
         for carla_actor_id in self.carla.destroyed_actors:
+            for sid in [k for k, v in self.adopted.items() if v == carla_actor_id]:   # coupled-carla
+                self.adopted.pop(sid)
+                if self.sumo2carla_ids.pop(sid, None) is not None:
+                    self.sumo.destroy_actor(sid)
             if carla_actor_id in self.carla2sumo_ids:
                 self.sumo.destroy_actor(self.carla2sumo_ids.pop(carla_actor_id))
 
@@ -266,6 +328,16 @@ class SimulationSynchronization(object):
                 # Updates all the sumo links related to this landmark.
                 self.sumo.synchronize_traffic_light(landmark_id, sumo_tl_state)
         laps("carla_to_sumo")
+
+    def adopt(self, sumo_actor_id, carla_actor_id):
+        """
+        coupled-carla: SUMO's vehicle sumo_actor_id (added to SUMO, perhaps not yet inserted) drives the existing CARLA
+        actor carla_actor_id from now on; that actor gets no SUMO twin. Call it before the actor's first tick() here.
+        """
+        self.adopted[sumo_actor_id] = carla_actor_id
+        twin = self.carla2sumo_ids.pop(carla_actor_id, None)
+        if twin is not None:
+            self.sumo.destroy_actor(twin)
 
     def close(self):
         """

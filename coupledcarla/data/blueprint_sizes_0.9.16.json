@@ -1,0 +1,293 @@
+{
+ "carla": "0.9.16",
+ "note": "vehicle bounding boxes (m), tools: one spawn per blueprint",
+ "blueprints": {
+  "vehicle.audi.a2": {
+   "length": 3.705,
+   "width": 1.789,
+   "height": 1.549,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.audi.etron": {
+   "length": 4.856,
+   "width": 2.033,
+   "height": 1.649,
+   "centre_x": -0.004,
+   "wheels": 4
+  },
+  "vehicle.audi.tt": {
+   "length": 4.181,
+   "width": 1.994,
+   "height": 1.385,
+   "centre_x": -0.0,
+   "wheels": 4
+  },
+  "vehicle.bh.crossbike": {
+   "length": 1.509,
+   "width": 0.866,
+   "height": 1.612,
+   "centre_x": 0.0,
+   "wheels": 2
+  },
+  "vehicle.bmw.grandtourer": {
+   "length": 4.611,
+   "width": 2.242,
+   "height": 1.667,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.carlamotors.carlacola": {
+   "length": 5.204,
+   "width": 2.627,
+   "height": 2.467,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.carlamotors.european_hgv": {
+   "length": 7.936,
+   "width": 2.891,
+   "height": 3.462,
+   "centre_x": 0.013,
+   "wheels": 6
+  },
+  "vehicle.carlamotors.firetruck": {
+   "length": 8.468,
+   "width": 2.891,
+   "height": 3.827,
+   "centre_x": -0.253,
+   "wheels": 4
+  },
+  "vehicle.chevrolet.impala": {
+   "length": 5.357,
+   "width": 2.033,
+   "height": 1.411,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.citroen.c3": {
+   "length": 3.988,
+   "width": 1.851,
+   "height": 1.617,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.diamondback.century": {
+   "length": 1.656,
+   "width": 0.582,
+   "height": 1.62,
+   "centre_x": 0.0,
+   "wheels": 2
+  },
+  "vehicle.dodge.charger_2020": {
+   "length": 5.008,
+   "width": 1.882,
+   "height": 1.535,
+   "centre_x": -0.005,
+   "wheels": 4
+  },
+  "vehicle.dodge.charger_police": {
+   "length": 4.974,
+   "width": 2.038,
+   "height": 1.542,
+   "centre_x": 0.024,
+   "wheels": 4
+  },
+  "vehicle.dodge.charger_police_2020": {
+   "length": 5.238,
+   "width": 1.93,
+   "height": 1.638,
+   "centre_x": 0.109,
+   "wheels": 4
+  },
+  "vehicle.ford.ambulance": {
+   "length": 6.366,
+   "width": 2.351,
+   "height": 2.431,
+   "centre_x": -0.289,
+   "wheels": 4
+  },
+  "vehicle.ford.crown": {
+   "length": 5.366,
+   "width": 1.801,
+   "height": 1.575,
+   "centre_x": 0.185,
+   "wheels": 4
+  },
+  "vehicle.ford.mustang": {
+   "length": 4.718,
+   "width": 1.895,
+   "height": 1.301,
+   "centre_x": 0.032,
+   "wheels": 4
+  },
+  "vehicle.gazelle.omafiets": {
+   "length": 1.843,
+   "width": 0.659,
+   "height": 1.776,
+   "centre_x": -0.01,
+   "wheels": 2
+  },
+  "vehicle.harley-davidson.low_rider": {
+   "length": 2.35,
+   "width": 0.766,
+   "height": 1.649,
+   "centre_x": 0.0,
+   "wheels": 2
+  },
+  "vehicle.jeep.wrangler_rubicon": {
+   "length": 3.866,
+   "width": 1.905,
+   "height": 1.878,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.kawasaki.ninja": {
+   "length": 2.044,
+   "width": 0.797,
+   "height": 1.523,
+   "centre_x": 0.0,
+   "wheels": 2
+  },
+  "vehicle.lincoln.mkz_2017": {
+   "length": 4.902,
+   "width": 2.128,
+   "height": 1.511,
+   "centre_x": 0.004,
+   "wheels": 4
+  },
+  "vehicle.lincoln.mkz_2020": {
+   "length": 4.892,
+   "width": 1.837,
+   "height": 1.49,
+   "centre_x": -0.006,
+   "wheels": 4
+  },
+  "vehicle.mercedes.coupe": {
+   "length": 5.027,
+   "width": 2.152,
+   "height": 1.651,
+   "centre_x": -0.0,
+   "wheels": 4
+  },
+  "vehicle.mercedes.coupe_2020": {
+   "length": 4.674,
+   "width": 1.812,
+   "height": 1.442,
+   "centre_x": -0.003,
+   "wheels": 4
+  },
+  "vehicle.mercedes.sprinter": {
+   "length": 5.915,
+   "width": 1.988,
+   "height": 2.561,
+   "centre_x": -0.011,
+   "wheels": 4
+  },
+  "vehicle.micro.microlino": {
+   "length": 2.207,
+   "width": 1.481,
+   "height": 1.376,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.mini.cooper_s": {
+   "length": 3.806,
+   "width": 1.97,
+   "height": 1.475,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.mini.cooper_s_2021": {
+   "length": 4.553,
+   "width": 2.097,
+   "height": 1.767,
+   "centre_x": -0.031,
+   "wheels": 4
+  },
+  "vehicle.mitsubishi.fusorosa": {
+   "length": 10.273,
+   "width": 3.944,
+   "height": 4.253,
+   "centre_x": -0.445,
+   "wheels": 4
+  },
+  "vehicle.nissan.micra": {
+   "length": 3.633,
+   "width": 1.845,
+   "height": 1.501,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.nissan.patrol": {
+   "length": 4.605,
+   "width": 1.932,
+   "height": 1.855,
+   "centre_x": -0.057,
+   "wheels": 4
+  },
+  "vehicle.nissan.patrol_2021": {
+   "length": 5.566,
+   "width": 2.15,
+   "height": 2.045,
+   "centre_x": 0.028,
+   "wheels": 4
+  },
+  "vehicle.seat.leon": {
+   "length": 4.193,
+   "width": 1.816,
+   "height": 1.474,
+   "centre_x": -0.0,
+   "wheels": 4
+  },
+  "vehicle.tesla.cybertruck": {
+   "length": 6.274,
+   "width": 2.39,
+   "height": 2.098,
+   "centre_x": 0.0,
+   "wheels": 4
+  },
+  "vehicle.tesla.model3": {
+   "length": 4.792,
+   "width": 2.163,
+   "height": 1.488,
+   "centre_x": 0.029,
+   "wheels": 4
+  },
+  "vehicle.toyota.prius": {
+   "length": 4.514,
+   "width": 2.007,
+   "height": 1.525,
+   "centre_x": 0.002,
+   "wheels": 4
+  },
+  "vehicle.vespa.zx125": {
+   "length": 1.817,
+   "width": 0.866,
+   "height": 1.59,
+   "centre_x": 0.01,
+   "wheels": 2
+  },
+  "vehicle.volkswagen.t2": {
+   "length": 4.48,
+   "width": 2.069,
+   "height": 2.038,
+   "centre_x": 0.001,
+   "wheels": 4
+  },
+  "vehicle.volkswagen.t2_2021": {
+   "length": 4.442,
+   "width": 1.775,
+   "height": 1.987,
+   "centre_x": 0.117,
+   "wheels": 4
+  },
+  "vehicle.yamaha.yzf": {
+   "length": 2.191,
+   "width": 0.866,
+   "height": 1.53,
+   "centre_x": 0.0,
+   "wheels": 2
+  }
+ }
+}

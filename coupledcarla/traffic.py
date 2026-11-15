@@ -13,19 +13,19 @@ from pathlib import Path
 
 
 def _vtypes(tc):
+    """Car, bike and bus types; how their drivers drive (car following, junctions, sizes): drivers.py."""
+    from . import drivers
     cf = tc["car_following"]
+    sf = tc.get("_speed_factor") or "normc(1.0,0.1,0.8,1.2)"
     rows = ['<additional>']
     rows.append('  <vTypeDistribution id="cars">')
     for bp, w in tc["car_types"].items():
         cls = "delivery" if "sprinter" in bp or "t2" in bp else "passenger"
-        rows.append(f'    <vType id="{bp}" vClass="{cls}" probability="{w}" carFollowModel="{cf}" '
-                    f'speedFactor="{tc.get("_speed_factor") or "normc(1.0,0.1,0.8,1.2)"}" tau="1.2" minGap="2.0" '
-                    f'jmIgnoreFoeProb="0" impatience="0.1"/>')
+        rows.append("    " + drivers.car(bp, cls, cf, sf, w))
     rows.append('  </vTypeDistribution>')
     rows.append('  <vTypeDistribution id="bikes">')
     for bp, w in tc["bike_types"].items():
-        rows.append(f'    <vType id="{bp}" vClass="bicycle" probability="{w}" maxSpeed="6.5" '
-                    f'speedFactor="normc(0.8,0.15,0.5,1.1)" latAlignment="right" minGapLat="0.4"/>')
+        rows.append("    " + drivers.bike(bp, cf, w))
     rows.append('  </vTypeDistribution>')
     rows.append("  " + _bus_vtype(tc))
     rows.append('</additional>')
@@ -33,7 +33,8 @@ def _vtypes(tc):
 
 
 def _bus_vtype(tc):
-    return f'<vType id="{tc["bus_type"]}" vClass="bus" carFollowModel="{tc["car_following"]}" tau="1.2"/>'
+    from . import drivers
+    return drivers.bus(tc["bus_type"], tc["car_following"])
 
 
 def prepare(cfg, map_dir, work, duration_s, log=print):
@@ -57,6 +58,13 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     random_trips = Path(sumo.SUMO_HOME) / "tools" / "randomTrips.py"
     end = int(duration_s) + 60
     routes, additional = [], [vss] if vss else []
+    try:     # scramble crossings: an all-pedestrian phase in their signal programmes (pedsignals.py)
+        from . import pedsignals
+        scramble = pedsignals.prepare(map_dir, net, work, log)
+        if scramble:
+            additional.append(scramble)
+    except Exception as err:  # noqa: BLE001 - a refinement: never fail the trial for it
+        log(f"scramble crossings: not used ({type(err).__name__}: {err})")
     pc = tc.get("public_transport") or {}
     pt = None
     from . import transit

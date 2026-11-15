@@ -40,8 +40,10 @@ class View:
             x, y, z, pitch = cockpit.actor_eye(vehicle, "driver", lefthand)
             mount = carla.Transform(carla.Location(x=x, y=y, z=z), carla.Rotation(pitch=pitch))
         if window or save_every_s > 0:
+            # chase: CARLA's spring arm, which pulls the camera in front of a bus or a wall behind the car
             self.camera = world.spawn_actor(bp, mount, attach_to=vehicle,
-                                            attachment_type=carla.AttachmentType.Rigid)
+                                            attachment_type=carla.AttachmentType.SpringArm if view == "chase" else
+                                            carla.AttachmentType.Rigid)
             listen(self.camera, self._on_image, lambda m: print(f"[view] {m}", flush=True), "view")
         self.screen = None
         self.font = None
