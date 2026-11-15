@@ -26,6 +26,24 @@ from urllib.parse import parse_qs, urlparse
 
 LOCAL = ("127.0.0.1", "localhost", "::1")
 COMMANDS = ("start", "pause", "resume", "abort", "stop", "sync", "takeover")
+COOKIE = "cc_token"
+
+
+def request_allowed(handler, local, token, cookie=False):
+    """The rule for every request to a dashboard (this one and the session dashboard, session.py): a local one
+    answers only requests addressed to localhost (no DNS rebinding); any other needs the token, in the X-Token
+    header, the ?token= query or (cookie=True) the SameSite=Strict cookie the page set."""
+    if local:
+        hostname = (handler.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]")
+        return hostname in LOCAL
+    q = parse_qs(urlparse(handler.path).query)
+    given = handler.headers.get("X-Token") or (q.get("token") or [""])[0]
+    if not given and cookie:
+        for part in (handler.headers.get("Cookie") or "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == COOKIE:
+                given = v
+    return bool(token) and secrets.compare_digest(given.encode("utf-8", "replace"), token.encode())
 
 
 class Dashboard:
@@ -43,12 +61,7 @@ class Dashboard:
                 pass
 
             def _allowed(self):
-                if dash.local:
-                    hostname = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]")
-                    return hostname in LOCAL
-                q = parse_qs(urlparse(self.path).query)
-                given = self.headers.get("X-Token") or (q.get("token") or [""])[0]
-                return secrets.compare_digest(given.encode("utf-8", "replace"), dash.token.encode())
+                return request_allowed(self, dash.local, dash.token)
 
             def _send(self, code, body, ctype="application/json"):
                 data = body if isinstance(body, bytes) else body.encode()
@@ -127,7 +140,6 @@ class Dashboard:
 
 
 def _lan_ip():
-    import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("192.0.2.1", 9))      # no packet is sent: picks the interface of the default route

@@ -1,0 +1,116 @@
+# The session dashboard's demo (python -m coupledcarla.session): the Eindhoven crossing with its pedestrian crowd
+# (eindhoven_crowd.yaml) and four stations: a pedestrian, an AV passenger, a manual driver and a drone pilot, plus
+# two AI drones over the street. Two conditions (day, dusk), counterbalanced per participant.
+#
+#   python -m coupledcarla.session --experiment experiments/eindhoven_session.yaml
+#   on each station PC: python -m coupledcarla.station --host <session machine>      (the dashboard gives the role)
+#   for a test without people: "Add a bot station" on the dashboard, once per role
+name: eindhoven_session
+
+map:
+  name: eindhoven_centre
+  bbox: [51.4360, 5.4700, 51.4500, 5.4930]
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  walkers: {count: 30, radius_m: 120}   # background pedestrians, calibrated with CROWD for the Netherlands (crowdpeds.py)
+  cars_per_hour: 1800
+  bikes_per_hour: 900
+  buses_per_hour: 6
+
+coupling:
+  port: 2100
+  wait_for_stations_s: 600
+  visual_sync_at_s: [2]            # red bar on every station, for aligning recordings
+
+ehmi:
+  states:
+    yielding: {text: "I'M STOPPING", color: [0, 190, 255]}
+    go: {text: "GO AHEAD", color: [0, 230, 120]}
+    driving: {text: "DRIVING", color: [255, 170, 0]}
+    wait: {text: "WAIT", color: [255, 40, 40]}
+  slots: [front]                   # default for every car: front, rear, roof, road, eyes (see README)
+
+eye_contact: {angle_deg: 20, distance_m: 30}   # logs eye_contact_start/_end between pedestrians and vehicles
+
+participants:
+  - role: pilot                      # a drone pilot on the pavement east of the crossing, 25 m from the buildings
+    kind: drone
+    station: true
+    airframe: consumer
+    mode: position
+    view: fpv
+    gimbal_pitch_deg: -20
+    spawn: {lat: 51.44295, lon: 5.48930, heading: 255}
+    geofence: {radius_m: 400, max_altitude_m: 120}
+    bot:                             # up over the street, along it towards the crossing and back, then land
+      path: [[51.44295, 5.48930, 25], [51.44280, 5.48860, 30], [51.44255, 5.48700, 35], [51.44290, 5.48900, 25],
+             [51.44295, 5.48930, 2]]
+      speed: 5
+      start_s: 3
+      land: true
+  - role: pedestrian
+    kind: pedestrian
+    station: true
+    spawn: {lat: 51.4428727, lon: 5.4889750, heading: 165}     # kerb on the north side, facing the street
+    bot: {path: [[51.4427501, 5.4890203]], start_s: 12, speed: 1.4, look: av1}   # across, watching the AV
+  - role: av_passenger
+    kind: av_passenger
+    station: true
+    agent: av1
+    bot: {ehmi: [[13, yielding], [16, go], [21, driving]]}
+  - role: driver
+    kind: driver
+    station: true
+    vehicle: vehicle.lincoln.mkz_2020
+    spawn: {lat: 51.4431683, lon: 5.4913458, heading: 255}     # 38 m behind the AV, same lane
+
+agents:
+  - id: av1                          # the AV the passenger rides in
+    kind: car
+    vehicle: vehicle.tesla.model3
+    color: "20,60,140"
+    route: [[51.4430915, 5.4908132], [51.4428289, 5.4889912], [51.4424551, 5.4863984]]
+    speed_kmh: 30
+    accel: 2.0
+    yield_to_pedestrians: true
+    ehmi: manual                     # set by the av_passenger station
+    ehmi_slots: [front, roof, road, eyes]
+    triggers:
+      - {at_m: 230, speed_kmh: 20, blinker: right}
+  - id: car2                         # oncoming AI car with an automatic eHMI
+    kind: car
+    vehicle: vehicle.audi.a2
+    route: [[51.4424729, 5.4867262], [51.4431396, 5.4913512]]
+    speed_kmh: 25
+    yield_to_pedestrians: true
+    ehmi: auto
+  - id: walker1                      # crosses further down the street, in front of car2
+    kind: walker
+    path: [[51.4425625, 5.4876872], [51.4426808, 5.4876436], [51.4427057, 5.4875606]]
+    speed: 1.3
+    start_s: 4
+  - id: walker2                      # walks along the north kerb
+    kind: walker
+    path: [[51.4430273, 5.4900988], [51.4427445, 5.4881367]]
+    speed: 1.2
+
+logging:
+  radius_m: 150
+
+drones:                              # AI drones round the crossing (drones.py)
+  missions:
+    - {kind: patrol, id: patrol, centre: {lat: 51.44270, lon: 5.48850}, radius_m: 150}
+    - {kind: hover, id: inspect, point: {lat: 51.44250, lon: 5.48800, height_m: 40},
+       look: {lat: 51.44275, lon: 5.48890}, orbit_speed: 2.0, start_s: 1}
+
+conditions:
+  day: {simulation: {weather: CloudyNoon}}
+  dusk: {simulation: {weather: WetCloudySunset, sun_altitude: 4}}
+design:
+  factors: {light: [day, dusk]}
+  order: latin                       # participant 1: day then dusk, participant 2: dusk then day
+  trial: {duration_s: 45}

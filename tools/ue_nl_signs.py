@@ -1,4 +1,4 @@
-"""Dutch sign faces into a CARLA 1.0 (Unreal Engine 5.8) source tree: one texture, material instance and plate mesh
+r"""Dutch sign faces into a CARLA 1.0 (Unreal Engine 5.8) source tree: one texture, material instance and plate mesh
 per face of coupledcarla/data/nl_sign_faces.json, under /Game/CoupledCarla/Signs/NL. Editor Python, headless:
 
     UnrealEditor-Cmd <CarlaUnreal.uproject> -run=pythonscript -script="<abs>/ue_nl_signs.py --textures <dir>

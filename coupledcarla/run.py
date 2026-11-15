@@ -25,7 +25,7 @@ import yaml
 
 from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, soundrec, study, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, multigpu, stationux
+from . import ehmi_design, livemap, multigpu, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -267,6 +267,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     tc = config.trial_config(cfg, trial)
     if getattr(args, "local", False):    # also a trial's or condition's own participants list (main sees only the top's)
         _make_local(tc["participants"])
+    if getattr(args, "station_roles", None) is not None:    # the session dashboard says who has a station
+        _set_stations(tc["participants"], args.station_roles)
     for p in tc["participants"]:
         if args.input and not p.get("station") and p.get("kind", "driver") == "driver":
             p["input"] = args.input
@@ -549,6 +551,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                                                             "agents": [a.id for a in agents], **plan_info}))
 
         types = {}
+        # with a session dashboard: positions for its live map, and its eHMI and weather commands (livemap.py)
+        live = livemap.LiveFeed(control, geo, tc, mdir, parts, agents, signals, step, log, tools) \
+            if hasattr(control, "live") else None
         prof = {"sync": 0.0, "log": 0.0, "ticks0": 0}
         laps = Laps()
         sync.laps = laps
@@ -690,15 +695,15 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             for sid, cid in sync.sumo2carla_ids.items():
                 if sid in sync.adopted:      # a participant's car driven by SUMO: logged as the participant
                     continue
+                sa = sync.sumo.get_actor(sid)
                 if cid not in types:
                     a = world.get_actor(cid)
                     tid = a.type_id if a else ""
-                    kind = ("bike" if tid in tc["traffic"]["bike_types"] else
-                            "bus" if tid == tc["traffic"]["bus_type"] else "car")
+                    kind = compat.traffic_kind(tid, sa.vclass if sa else None, tc["traffic"]["bike_types"],
+                                               tc["traffic"]["bus_type"])
                     types[cid] = (kind, tid)
                     logger.event(t, snap.frame, "spawn", cid, f"{kind} {tid} sumo:{sid}")
                 ai[cid] = types[cid]
-                sa = sync.sumo.get_actor(sid)
                 sumo_signals[cid] = sa.signals if sa else 0
             if crowd is not None:
                 for w in crowd.walkers:
@@ -745,6 +750,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if drone_world is not None:
                 drone_world.log_frame(logger, t, snap.frame)
             tools.log(t, snap.frame)
+            if live is not None:
+                live.tick(t, snap, summary["ticks"], logger, world, sync, types, crowd, drone_world)
             laps("log")
             if host_audio is not None:
                 host_audio.tick(t, snap, carla_sim.frame_lights)
@@ -881,6 +888,17 @@ def _make_local(participants):
                 p["input"] = "autopilot"
 
 
+def _set_stations(participants, roles):
+    """--station-roles: these roles have a station (station: true), every other station participant runs on the
+    host as its bot (as with --local); the session dashboard passes the roles the experimenter gave out."""
+    roles = set(roles)
+    for p in participants:
+        if p["role"] in roles:
+            p["station"] = True
+        elif p.get("station"):
+            _make_local([p])
+
+
 def _needs_control(cfg, local=False):
     """Whether any trial has a station participant (a trial or condition may bring its own participants list)."""
     if local:
@@ -919,6 +937,15 @@ def main():
     ap.add_argument("--dashboard", action="store_true", help="serve the experimenter dashboard (dashboard.port)")
     ap.add_argument("--dashboard-host", help="listen there instead of 127.0.0.1 (other machines; needs the token)")
     ap.add_argument("--dashboard-port", type=int)
+    # run by the session dashboard (session.py): stations through its link, its commands and live map
+    ap.add_argument("--control-relay", help=argparse.SUPPRESS)          # 127.0.0.1:PORT of the session's link
+    ap.add_argument("--relay-token", help=argparse.SUPPRESS)
+    ap.add_argument("--station-roles", type=lambda v: [r for r in v.split(",") if r],
+                    help="comma-separated roles that have a station; other station roles run as bots on the host")
+    ap.add_argument("--server-host", help="override server.host (a CARLA server on another machine)")
+    ap.add_argument("--server-port", type=int, help="override server.port")
+    ap.add_argument("--no-launch", action="store_true", help="use a running CARLA server (server.launch: false)")
+    ap.add_argument("--real-time", choices=["on", "off"], help="override simulation.real_time")
     args = ap.parse_args()
     cfg = config.load(args.experiment)
     from . import validate
@@ -927,7 +954,7 @@ def main():
         print(f"[validate] {level}  {where}: {msg}  (python -m coupledcarla.validate {args.experiment})", flush=True)
     # the trials in this participant's order (conditions merged; --trial picks positions in this list)
     cfg["trials"] = study.plan(cfg, args.participant, args.order)
-    if args.participant:
+    if args.participant and not args.control_relay:      # the session dashboard writes the session file itself
         stamp = time.strftime("%Y%m%d-%H%M%S")
         sdir = Path(cfg["_root"]) / cfg["logging"]["dir"] / cfg["name"]
         sdir.mkdir(parents=True, exist_ok=True)
@@ -940,6 +967,14 @@ def main():
         print(f"participant {args.participant}: " + " | ".join(study.label(t) for t in cfg["trials"]), flush=True)
     if args.quality:
         cfg["server"]["quality"] = args.quality
+    if args.server_host:
+        cfg["server"]["host"] = args.server_host
+    if args.server_port:
+        cfg["server"]["port"] = args.server_port
+    if args.no_launch:
+        cfg["server"]["launch"] = False
+    if args.real_time:
+        cfg["simulation"]["real_time"] = args.real_time == "on"
     if args.step:
         cfg["simulation"]["step"] = args.step
     if args.frames_every:
@@ -950,11 +985,15 @@ def main():
     if args.local:
         _make_local(cfg["participants"])
     control = None
-    if _needs_control(cfg, args.local):
-        control = ControlServer(int((cfg.get("coupling") or {}).get("port", 2100)), Log())
     dashboard = None
     dc = cfg.get("dashboard") or {}
-    if args.dashboard or args.dashboard_host or dc.get("enabled"):
+    if args.control_relay:            # the session dashboard owns the stations and the controls
+        from .coupling import RelayControl
+        control = RelayControl(args.control_relay, args.relay_token or "", Log())
+        dashboard = control.dashboard
+    elif _needs_control(cfg, args.local):
+        control = ControlServer(int((cfg.get("coupling") or {}).get("port", 2100)), Log())
+    if dashboard is None and (args.dashboard or args.dashboard_host or dc.get("enabled")):
         from .dashboard import Dashboard
         dashboard = Dashboard(args.dashboard_host or dc.get("host", "127.0.0.1"),
                               args.dashboard_port or int(dc.get("port", 8780)), Log())

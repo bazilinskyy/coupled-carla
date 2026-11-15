@@ -230,6 +230,20 @@ def test_kerbs_of_a_two_way_street_and_a_one_way_street():
     assert len(c) == 1 and c[0].length <= 60 and c[0].crossings and c[0].junction == (False, False)
 
 
+def test_prepare_takes_opendrive_crossings_without_map_osm(tmp_path):
+    # a baked level's map folder has no map.osm: make_crowd passes its OpenDRIVE crosswalks (geo.net x, y)
+    east = _Edge("7", [_Lane([(0, -1.6), (200, -1.6)])])
+    west = _Edge("-7", [_Lane([(200, 1.6), (0, 1.6)])])
+    net = _Net([east, west])
+    net.convertLonLat2XY = lambda lon, lat: (0.0, 0.0)
+    tc = {"traffic": {"walkers": {"count": 6, "places": False, "radius_m": 300}}, "map": {"bbox": NL},
+          "simulation": {"time": "2026-11-17 14:00"}}
+    _, segs, walkers, stats = cp.prepare(tc, tmp_path, net, [(100.0, 0.0)], 60, fetch=False,
+                                         crossings_xy=[(100.0, 0.4), (100.0, 40.0)])
+    assert stats["osm_crossings"] == 0 and stats["xodr_crossings"] == 2 and stats["crossings_snapped"] == 1
+    assert any(s.crossings for s in segs) and len(walkers) == 6
+
+
 def test_osm_crossings(tmp_path):
     f = tmp_path / "map.osm"
     f.write_text('<osm><node id="1" lat="51.1" lon="5.1"><tag k="highway" v="crossing"/>'

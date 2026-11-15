@@ -1,4 +1,4 @@
-<h1 align="center"><img src="docs/logo.svg" width="48" alt="" align="top">&nbsp;coupled-carla</h1>
+<h1 align="center"><img src="docs/logo.svg" width="48" alt="" align="top">&nbsp;Coupled CARLA</h1>
 
 <p align="center">
   <b>A human-factors driving simulator for real places.</b><br>
@@ -25,13 +25,14 @@
   <a href="#videos">Videos</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#coupled-experiments-phase-2">Coupled experiments</a> ·
+  <a href="#session-dashboard">Session dashboard</a> ·
   <a href="#phase-3-carla-10-and-the-eindhoven-digital-twin">Digital twin</a> ·
   <a href="#drones">Drones</a> ·
   <a href="docs/lab_guide.md">Lab guide</a> ·
   <a href="#support-coupled-carla">Support</a>
 </p>
 
-coupled-carla builds a drivable [CARLA](https://carla.org)
+Coupled CARLA builds a drivable [CARLA](https://carla.org)
 world for any bounding box on Earth from OpenStreetMap, fills it with traffic from [SUMO](https://eclipse.dev/sumo/)
 (cars, cyclists, buses with proper car-following and lane-change models), puts a participant at the wheel
 (keyboard, Logitech G25 with force feedback, or an autopilot for tests) and logs every trial at 50 Hz in the
@@ -55,41 +56,33 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 ---
 
 ## Contents
-
-- [License](#license)
-- [What you get](#what-you-get)
-- [Make a map of any place](#make-a-map-of-any-place)
-- [Videos](#videos)
-- [Screenshots](#screenshots)
-- [How it works](#how-it-works)
-- [Quick start](#quick-start)
-- [Cities](#cities)
-- [Real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather)
-- [Public transport](#public-transport)
-- [Experiment files](#experiment-files)
-- [Participants, inputs and views](#participants-inputs-and-views)
-- [Coupled experiments (phase 2)](#coupled-experiments-phase-2)
-- [Phase 3: CARLA 1.0 and the Eindhoven digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin)
-- [Drones](#drones)
-- [Traffic](#traffic)
-- [Traffic lights](#traffic-lights)
-- [Logging and data](#logging-and-data)
-- [Analysis](#analysis)
-- [Trial viewer](#trial-viewer)
-- [Performance](#performance)
-- [coupled-sim features in coupled-carla](#coupled-sim-features-in-coupled-carla)
-- [Known limits](#known-limits)
-- [Roadmap](#roadmap)
-- [Lessons learned (gotchas)](#lessons-learned-gotchas)
-- [Project layout](#project-layout)
-- [Support coupled-carla](#support-coupled-carla)
+- [Citation](#citation) · [License](#license) · [Support](#support-coupled-carla)
+- [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
+- [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
+- [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport)
+- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [session dashboard](#session-dashboard), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
+- [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
+- [Traffic](#traffic) · [Traffic lights](#traffic-lights)
+- [Data](#logging-and-data): [logging](#logging-and-data), [analysis](#analysis), [trial viewer](#trial-viewer)
+- [Performance](#performance) · [coupled-sim features](#coupled-sim-features-in-coupled-carla) · [Known limits](#known-limits) · [Roadmap](#roadmap)
+- [Lessons learned](#lessons-learned-gotchas) · [Project layout](#project-layout)
 - [Credits, data and licences](#credits-data-and-licences)
 
----
+## Citation
+If you use Coupled CARLA for academic work, please cite the software (GitHub's "Cite this repository" button gives
+it in APA and BibTeX, from [`CITATION.cff`](CITATION.cff)):
+
+> Bazilinskyy, P. (2026). Coupled CARLA: a human-factors driving simulator for real places [Computer software].
+> https://github.com/bazilinskyy/coupled-carla
+
+and the coupled simulator it builds on:
+
+> Bazilinskyy, P., Kooijman, L., Dodou, D., & De Winter, J. C. F. (2020). Coupled simulator for research on the
+> interaction between pedestrians and (automated) vehicles. 19th Driving Simulation Conference (DSC). Antibes, France.
 
 ## License
 
-The source code of coupled-carla is released under the [MIT License](LICENSE). Third-party code and data used by
+The source code of Coupled CARLA is released under the [MIT License](LICENSE). Third-party code and data used by
 it are not covered by this license and remain under the licenses of their developers: the SUMO bridge vendored in
 `coupledcarla/bridge` (CARLA, MIT, © CVC), CARLA and Eclipse SUMO themselves (MIT, EPL-2.0), and the map and
 city data (OpenStreetMap under the ODbL, so built maps are derived databases under the ODbL; the other sources
@@ -113,7 +106,7 @@ under CC0, CC BY 4.0, Licence Ouverte, ODbL or their open data terms). See
 | **Experiment files** | YAML: map, server, simulation, traffic, participants, points of interest, logging, a trial sequence with per-trial overrides. |
 | **Coupled experiments** | Stations for a driver, a pedestrian and an AV passenger on any machine of the LAN; scripted AI cars (routes, coupled-sim-style triggers, eHMI on the front, rear, roof, road or as "eyes") and walkers; a pedestrian crowd; SUMO traffic yields to pedestrians; eye-contact events; visual sync; round trips and frame latency logged. |
 | **Two CARLA generations** | The same experiment files for CARLA 0.9.16 (UE 4.26) and CARLA 1.0 (UE 5.8): renamed blueprints are mapped to their closest stand-ins, and the scenery has a mesh catalogue per version. |
-| **Study tools** | Counterbalanced trial plans per participant, an experiment validator, continuous responses (hold button, slider), take-over requests in automated driving, an experimenter dashboard, station sound (vehicles, AVAS, spoken eHMIs), in-car displays, haptic cues and eHMIs from design files: coupled-sim's study tools on CARLA ([Study tools](#study-tools)). |
+| **Study tools** | Counterbalanced trial plans per participant, an experiment validator, continuous responses (hold button, slider), take-over requests in automated driving, a session dashboard to run a whole experiment from a browser, station sound (vehicles, AVAS, spoken eHMIs), in-car displays, haptic cues and eHMIs from design files: coupled-sim's study tools on CARLA ([Study tools](#study-tools)). |
 | **Eindhoven digital twin** | Central Eindhoven baked into a CARLA 1.0 level from Dutch open data (AHN terrain, 3DBAG buildings, OSM roads with lane markings, kerbs and sidewalks), driven with SUMO traffic on its own OpenDRIVE ([The Eindhoven digital twin](#the-eindhoven-digital-twin)). |
 
 ## Make a map of any place
@@ -123,7 +116,7 @@ traffic by hand used to keep a team of 3D artists busy for months. Today most of
 download: OpenStreetMap's streets, lanes, signs and trees, mapped by volunteers; building footprints and heights
 from national registers (3DBAG, BD TOPO, PLATEAU, NYC) and Overture Maps; terrain from lidar and global elevation
 models; the weather and the sun of a real day; bus timetables; open traffic counts. Free, open simulators, CARLA
-for the 3D world and SUMO for the traffic, turn it into a world you can drive. coupled-carla puts these together,
+for the 3D world and SUMO for the traffic, turn it into a world you can drive. Coupled CARLA puts these together,
 and the map maker reduces it to typing a place and pressing a button. It is meant for people who do not program:
 researchers in psychology and human factors, designers, students, city planners.
 
@@ -132,11 +125,11 @@ researchers in psychology and human factors, designers, students, city planners.
 **Set up once** (a computer with an internet connection; to drive, a Windows or Linux PC with a gaming graphics
 card):
 
-1. Download coupled-carla (the green Code button, Download ZIP) and unpack it.
-2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then, in the coupled-carla folder:
+1. Download Coupled CARLA (the green Code button, Download ZIP) and unpack it.
+2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then, in the `coupled-carla` folder:
    `uv venv --python 3.12 .venv` and `uv pip install -r requirements.txt`.
 3. To drive: unpack [CARLA 0.9.16](https://github.com/carla-simulator/carla/releases/tag/0.9.16) as a folder
-   `CARLA_0.9.16` next to the coupled-carla folder.
+   `CARLA_0.9.16` next to the `coupled-carla` folder.
 
 **Every day:** double-click `make_map.bat` (Windows), `Make a map.command` (macOS) or `make_map.sh` (Linux). The
 browser opens a world map. Type a place (a town, a square, an address, coordinates; any language) or click on the
@@ -168,7 +161,7 @@ answered 502 and 504 several times and the map maker moved on to the next).
 | **Plaza Mayor, Salamanca** | **Hallstatt** |
 | ![Preview of Plaza Mayor, Salamanca](docs/img/mapmaker_salamanca.png) | ![Preview of Hallstatt](docs/img/mapmaker_hallstatt.png) |
 
-![Chase-camera frames of the test drives: Seoul, New Delhi (left-hand), Hallstatt, Salamanca](docs/img/mapmaker_drives.jpg)
+<img src="docs/img/mapmaker_drives.jpg" width="100%" alt="Chase-camera frames of the test drives: Seoul, New Delhi (left-hand), Hallstatt, Salamanca">
 
 *The test drives in CARLA (chase camera): Seoul and New Delhi (left-hand traffic, buses) above, Hallstatt and
 Salamanca below.*
@@ -271,7 +264,7 @@ driver follows. Each view below was rendered by a separate station process (here
 |---|---|
 | ![pedestrian sees I'M STOPPING](docs/img/ehmi_pedestrian_stopping.jpg) | ![pedestrian sees GO AHEAD on the AV's front, roof and the road](docs/img/ehmi_pedestrian_go.jpg) |
 
-![Four stations in one trial at the same moment, east of Eindhoven station: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot](docs/img/stations_four_views.jpg)
+<img src="docs/img/stations_four_views.jpg" width="100%" alt="Four stations in one trial at the same moment, east of Eindhoven station: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot">
 
 The same moment in the trial viewer: the pedestrian (red) crossing, the AV (dark blue) stopped with its cyan
 eHMI bar, an AI walker further down the street; the event list shows the AV stopping, the passenger's eHMI
@@ -428,7 +421,7 @@ real-time factors of 0.55-0.99; see [Performance](#performance) for what changed
 
 ## Real-world scenery, terrain and weather
 
-CARLA builds only the roads of an OpenDRIVE map. coupled-carla fills every map with CARLA's own meshes, placed
+CARLA builds only the roads of an OpenDRIVE map. Coupled CARLA fills every map with CARLA's own meshes, placed
 from real-world data that free services give without an account or key, and runs a trial at the weather and
 sun of a real place and time. Everything is fetched once at map build time and cached in `maps/<name>/real/`;
 `meta.json` lists the sources a map was built from.
@@ -537,7 +530,7 @@ modis` uses MODIS MCD12Q2 dates (keyless) where they agree with the model; in ci
 lawns. CARLA cannot show snow; Open-Meteo's snow depth is logged.
 
 **Street lamps at night (CARLA 1.0).** A small content pack (`coupledcarla/data/carla_packs`) puts CARLA's
-street-light blueprints in the blueprint library (coupled-carla adds `-carla-packs=` when it starts the server);
+street-light blueprints in the blueprint library (Coupled CARLA adds `-carla-packs=` when it starts the server);
 at night the scenery lamps within `lights_radius_m` (200 m) of a participant are spawned as those blueprints and
 the server lights them when the sun sets. Headless: 225 lit lamps add 0.2 ms per tick, 781 add 0.7 ms (the cost to
 rendering is not measured). CARLA 1.0's OpenDRIVE worlds also bring generic lamps of their own along every road.
@@ -877,7 +870,7 @@ and Eindhoven built from Dutch national open data instead of OSM alone.
 
 ### Running on CARLA 1.0
 
-coupled-carla takes the same experiment files on CARLA 0.9.16 and CARLA 1.0. CARLA 1.0 renamed or dropped
+Coupled CARLA takes the same experiment files on CARLA 0.9.16 and CARLA 1.0. CARLA 1.0 renamed or dropped
 most vehicle blueprints; [`compat.py`](coupledcarla/compat.py) maps every 0.9 name used here to the closest 1.0
 blueprint (by body type and size, then by `base_type`, then by wheel count) and logs each substitution once.
 The SUMO conversion script that CARLA 1.0 no longer ships is vendored in `bridge/util/`. Set up a second
@@ -900,11 +893,25 @@ visible; lin5080 (driver 595, RTX 5080) is the 1.0 machine.
 about 15 minutes once the UE 5.8 engine fork is built (`cmake --preset Release`, then the `carla-server`,
 `carla-client`, `carla-python-api-install`, `carla-unreal` and `carla-unreal-editor` targets; the venv needs
 `build` installed). The server is the editor binary in `-game` mode; the first start spends a few minutes building
-derived data. The first coupled-carla run on it: `eindhoven_centre.yaml`, 40 s, autopilot driver with SUMO traffic,
+derived data. The first Coupled CARLA run on it: `eindhoven_centre.yaml`, 40 s, autopilot driver with SUMO traffic,
 RTF 0.82, 0 collisions, every 0.9 blueprint mapped to a 1.0 stand-in. That run used `-nullrhi` (no rendering, so no
 cameras or stations), because the RTX 5080 was full with other jobs. The real-world scenery has its own 1.0 mesh
 catalogue ([Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). Install the 1.0 wheel after
 `requirements.txt`, which pins `carla==0.9.16`.
+
+### Tested on CARLA 1.0
+
+`python tools/test_carla10.py --port <port>` runs the features first built on 0.9.16 against a 1.0 server, one
+short trial each, and prints a table ([results](docs/carla10_tests.md); `--launch CMD` starts and restarts the server
+itself under a memory watchdog). On lin5080 (`ue58-dev` editor server, `-nullrhi`, 60 s trials, 2026-11-15) all 13
+passed: the Eindhoven twin with `--local` bots, SUMO traffic, parked cars, snapped scenery, signals and CROWD
+pedestrians (RTF 1.15 without real-time sleep, `carla_to_sumo` 0.9 ms per tick), `generate_opendrive_world` maps
+(`eindhoven_centre` and a map-maker map), `--record-audio` for a driver and a pedestrian (exactly one step of
+samples per tick), drones (3 deliveries, 4.4 ms per tick), real weather, night lights, winter trees, film cameras and
+bot stations. A `-nullrhi` server refuses to stream cameras ("this server cannot render"); Coupled CARLA's cameras then
+go on without images, so film keeps its camera path, timing grid and sound, and stations run and report why they
+have no images. What needs frames (film images, station image rate and latency, drone FPV, night and winter
+frames) runs on a rendering server with `bash tools/render_checks_carla10.sh`.
 
 ### The Eindhoven digital twin
 
@@ -953,7 +960,7 @@ The baked level's folders (`Content/Carla/Maps/Twins/EhvCentre`, `Content/Carla/
 level's `__ExternalActors__`) are plain uasset files: copied into another CARLA 1.0 tree (win5090) the level loads
 there too, and `-DCARLA_MAPS_TO_COOK=.../Twins/EhvCentre/EhvCentre` cooks it into a package.
 
-coupled-carla drives it with [`experiments/eindhoven_twin.yaml`](experiments/eindhoven_twin.yaml):
+Coupled CARLA drives it with [`experiments/eindhoven_twin.yaml`](experiments/eindhoven_twin.yaml):
 `map.opendrive` names the twin's OpenDRIVE (copy `build/ehv_centre/EhvCentre.xodr` to `twins/`) and
 `map.carla_level` the level. `mapbuild` then makes the SUMO net from that same OpenDRIVE (so SUMO and the level
 share their roads; the real bus lines and GTFS timetables are matched onto it as on any map), and the trial
@@ -1018,7 +1025,7 @@ joined within a second, ran the practice trial with responses and left cleanly.
 **Camera exposure on CARLA 1.0 (2026-11-15).** CARLA 1.0's RGB camera has no exposure attributes: exposure comes
 from a post-process profile (`Content/Carla/Config/PostProcess`), and every profile uses histogram auto exposure,
 which adapts over consecutive frames. Cameras that rendered only every few seconds never adapted (a cloudy day
-clipped 25 % of the frame to white, night was 99.7 % black). On 1.0 coupled-carla's cameras now render every tick
+clipped 25 % of the frame to white, night was 99.7 % black). On 1.0 Coupled CARLA's cameras now render every tick
 and keep frames at the requested interval, with `simulation.camera_profile` (default `Dashcam`, the best of CARLA's
 profiles at the twin: day mean brightness 105-116 of 255 with nothing clipped, night 30 with 1 % crushed).
 
@@ -1111,7 +1118,9 @@ Tools for running studies with participants, ported from coupled-sim (#80, #88, 
 - **Experimenter dashboard** (`--dashboard`, `coupledcarla/dashboard.py`): a dependency-free page at
   http://127.0.0.1:8780/ with the plan, the trial's state and real-time factor, every participant (station, speed,
   round trip, responses, automation), collisions and events; buttons Start trial, Pause, End trial, Stop session,
-  Visual sync and Take-over request. Localhost only unless `--dashboard-host` (then with a token in the link).
+  Visual sync and Take-over request. Localhost only unless `--dashboard-host` (then with a token in the link). It
+  watches one host run; the [session dashboard](#session-dashboard) runs a whole session, stations and live map
+  included.
 - **Running sessions with people** ([docs/lab_guide.md](docs/lab_guide.md), [docs/session_checklist.md](docs/session_checklist.md)):
   machines, what a station PC needs (Python 3.10, the carla 1.0 wheel of the server's build, pygame, a wired link),
   ports and Windows firewall rules, start order, calibration, what to watch, where the data goes, troubleshooting.
@@ -1129,6 +1138,87 @@ Tools for running studies with participants, ported from coupled-sim (#80, #88, 
   Debug drawings are not mirrored: use `ehmi.render: station` with secondaries.
 - **Analysis**: `python -m coupledcarla.analysis` also summarises responses and take-overs per trial and writes
   `study_responses.csv` and `study_takeovers.csv` per experiment; the viewer shows the responses.
+
+## Session dashboard
+
+`python -m coupledcarla.session` serves one page from which the experimenter runs a whole session with several
+participants, in a browser on the host machine or (with `--host 0.0.0.0`) on a tablet or another PC of the lab
+network: Coupled CARLA's counterpart of coupled-sim's experimenter dashboard. Unlike `run --dashboard`, which watches
+one host run, it stays up for the whole session. Every trial still runs in its own host process, so a trial that
+crashes does not take the dashboard or the stations with it.
+
+```bash
+python -m coupledcarla.session --experiment experiments/eindhoven_session.yaml       # opens http://127.0.0.1:8790/
+python -m coupledcarla.station --host <dashboard machine>     # on every station PC, without --role
+```
+
+![The session dashboard during a live trial of eindhoven_session.yaml: four bot stations (pedestrian, AV passenger, driver, drone pilot) connected and ready, ringed on the live map over the PDOK aerial photo with the map's own roads and buildings, the AI drones with their height, the crowd, the AV with its eHMI state, the agents table and the events](docs/img/session_dashboard.jpg)
+
+*The dashboard 42 s into a trial of [`experiments/eindhoven_session.yaml`](experiments/eindhoven_session.yaml) on
+lin4080: the pedestrian crosses in front of the stopped AV while the driver waits behind it, the drone pilot flies
+35 m up, two AI drones circle, the crowd walks the pavements.*
+
+**Before the trial (Session):**
+- choose the experiment (`experiments/`, the cities, places made with the map maker, the twins), or make a map of any
+  place: type a name, an address or `lat,lon[,radius in m]` and the map maker builds it with its steps shown; the new
+  place is then chosen;
+- the participant number gives that participant's counterbalanced trial plan ([study tools](#study-tools)); the
+  experiment is checked (`validate.py`) and its problems are listed in plain words;
+- the CARLA server: a fresh one started here for every trial (`CARLA_ROOT` or `--carla-root`), or one that is already
+  running (`--attach host:port`); quality, real time, a window on the host, the trial length;
+- stations started without `--role` join a lobby (up to 8) and are listed with their machine, address, input devices
+  (keyboard, wheel, gamepad), GPU and round trip; give each a role from the experiment's participants (pedestrian,
+  AV passenger, driver, drone pilot, ...) by dropdown; a station is ready when it waits for the trial. Roles without a
+  station run as bots on the host (or the host waits for them). Stations started with `--role` still work and show
+  up with their role fixed. `Add a bot station` starts a station without a human on this machine, for tests;
+- `Initialise` loads the trial (CARLA world, SUMO, agents) and waits for the stations, `Start` starts it on every
+  station at once, `Next trial` ends the current trial (if one runs) and loads the next; with "go on to the next
+  trial by itself" the plan runs without pressing.
+
+**During the trial:**
+- a live map from above, updated five times a second: the map's own roads (cycleways in red) and buildings over an
+  open aerial photo (PDOK in the Netherlands, IGN in France, USGS in the US, GSI in Japan; OpenStreetMap elsewhere),
+  with every participant ringed and labelled with their speed (a drone pilot with their height), AVs with their eHMI
+  state, scripted cars and walkers, SUMO cars, bicycles and buses, the pedestrian crowd, AI drones with their height
+  and the state of every traffic light; click on anything for its details;
+- the agents table: kind, name, speed and position, and for participants whether the station is connected, its round
+  trip, frame rate, image lag, responses and automation state; the header shows the state, the map, trial n of N,
+  simulation time, real-time factor and frame rate;
+- eHMI: every AV at once (off and each state the experiment defines) or one car; a take-over request per automated
+  driver; the weather (CARLA's presets) and the time of day (the sun at that place and hour) for everyone at once;
+  visual sync; the latest events and collisions; Pause, End trial, Stop session.
+
+**After the trial:** every finished trial with its numbers (simulation time, real-time factor, collisions, SUMO
+vehicles, stations), opened in the [trial viewer](#trial-viewer) (exported when asked) or downloaded as a zip of its
+log folder; earlier trials of the experiment are listed too.
+
+How it works: the stations connect to the dashboard (port 2100, `--stations-port`) instead of to a host, and stay
+connected across trials and participants (`coupledcarla/hub.py`). A station without `--role` says hello without a
+role and waits in the lobby (`coupledcarla/lobby.py`); once it has a role it runs each trial in a child process with
+that role, as a station started with `--role` does. Each trial's host is `run --trial N --control-relay ...`, which
+attaches to the dashboard over a loopback link instead of listening for stations; the dashboard passes the messages
+both ways, sends the experimenter's commands and gets back the trial's state and the positions for the map
+(`coupledcarla/livemap.py`). A plain `run` answers a station without `--role` with a message to start it with one.
+Security as `run --dashboard`: it listens on 127.0.0.1 unless `--host` says otherwise, and then every request needs
+the token in the link it prints (kept in a SameSite cookie for the viewer and zip links); commands are POSTs with a
+custom header, which a page on another site cannot send; a local dashboard answers only requests addressed to
+localhost. The page needs the internet for Leaflet and the map tiles; the logs are in `logs/sessions/`.
+
+**Test run** (15 Nov 2026, lin4080, CARLA 0.9.16 at Low quality on a GPU shared with three other CARLA servers; the
+dashboard driven by Playwright in headless Chromium, as an experimenter would click):
+
+| | |
+|---|---|
+| Stations | four bot stations added on the page as pedestrian, AV passenger, driver and drone pilot; in the lobby and ready within 5 s; round trip 0.1-0.2 ms; 31-35 fps each |
+| Trials | participant 1's plan (day, dusk): trial 1 loaded in 15-20 s (server attached), ended early with Next trial at 22.8 s, which loaded trial 2; trial 2 ran its 40 s; both trials with all four stations, 0 collisions |
+| Real-time factor | 0.61-0.73 (host plus four station cameras on the shared GPU) |
+| Commands applied | eHMI "yielding" on both AVs (6.4 s), weather WetCloudySunset at 19:30 (7.0 s, sun -25 deg), visual sync (7.7 s), End trial, Next trial; each logged in events.csv |
+| Live map | 38-39 things five times a second (participants, AVs, AI walkers, SUMO cars and bicycles, 29 crowd walkers, two AI drones) and 210 signal heads |
+| After the trial | viewer export 1 s (trial.json 1.1 MB), zip 2.0 MB |
+
+Not yet: the page cannot edit an experiment file or a station's options (screen, sound device), a station's role
+can change only between trials, live weather leaves the cars' headlights as they were at the start, and without
+internet the page has no map tiles or Leaflet.
 
 ## Sound, in-car displays and designed eHMIs
 
@@ -1164,7 +1254,7 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   lin4080 the sound costs 5-7 ms per 50 ms tick. Models, recordings and licences: [sound
   credits](coupledcarla/data/sound_credits.md).
 
-  ![What a pedestrian waiting at the Fellenoord crossing in Eindhoven hears: pass-bys, idling queues and the crossing signal (spectrogram and A-weighted level)](docs/img/sound_ped_crossing.jpg)
+  <img src="docs/img/sound_ped_crossing.jpg" width="100%" alt="What a pedestrian waiting at the Fellenoord crossing in Eindhoven hears: pass-bys, idling queues and the crossing signal (spectrogram and A-weighted level)">
 - **Audio for videos** (`run --record-audio`, or `sound.record: true`): the host renders the first participant's
   soundscape (the driver in the car, the AV passenger, the pedestrian's head, the drone pilot's camera) in
   simulation time and writes `audio.wav` (44.1 kHz stereo) to the trial's folder. Sample 0 is simulation time 0 and
@@ -1218,8 +1308,21 @@ drones:
 | ↑/↓ (Space/Shift), ←/→ (Q/E) | climb/descend, turn (left stick) |
 | I/K, C, M, H | gimbal up/down, view, position/attitude mode, return to home |
 
-Delivery drones cruise 20 m (`clearance_m`) above the highest roof or tree within 10 m of their route, 4 m apart in
-height per drone, and descend to land or lower the parcel on a winch. Swarms flock by Vásárhelyi et al. (2018,
+Delivery and patrol drones cruise in a fixed band, 40-60 m above the ground by default (`drones.routing.band_m`;
+Wing cruises at about 45 m, Manna at 50-80 m, Amazon's MK30 at 55-115 m, all under the EU's 120 m), in a layer by
+their heading so that opposite directions never meet (Doole et al. 2021, Aerospace 8(2) 38), and descend to land or
+lower the parcel on a winch. Buildings and trees that reach into the band are kept at SORA's operational-volume
+clearances (GNSS, position-hold and map errors, the reaction distance and the stopping distance; FOCA GM SORA
+13.3.2): 34 m sideways and 16.5 m above for the industrial drone at 12 m/s. Routes go round them (A* on a 4 m grid,
+smoothed into arcs flown at √(a·r)) and climb over only when the battery model says the way round costs more;
+no-fly polygons and OSM aerodromes, helipads and military land can be added (`no_fly`, `no_fly_osm`). On Eindhoven's
+3DBAG heights this keeps every cruise at 40-60 m (before: up to 122 m), with routes 2 % longer and 8 % less energy
+([`tools/drone_routes.py`](tools/drone_routes.py)). `routing: {mode: over}` keeps the old way: 20 m above the
+highest roof under a straight route.
+
+<img src="docs/img/drone_routes.png" width="100%" alt="Delivery routes over Eindhoven's building heights: around the tall buildings inside the 40-60 m band, with the areas kept clear at 40 m shaded">
+
+Swarms flock by Vásárhelyi et al. (2018,
 Science Robotics 3(20)): `coupled_sim` (6 m/s, 15 m apart) or `vasarhelyi2018` (the authors'
 [robotsim](https://github.com/csviragh/robotsim) parameter set, 4 m/s, 26 m apart); buildings that reach up to them
 act through shill agents. AI drones keep 10 m from each other and from the pilots' drones. A pilot crashes into what
@@ -1240,7 +1343,7 @@ arms and rotor discs. [`experiments/eindhoven_drones.yaml`](experiments/eindhove
 Eindhoven twin: on lin5080 (CARLA 1.0, `-nullrhi`, 120 s) 14 drones cost 3.1 ms per tick, 3 parcels were delivered,
 every AI drone stayed 19-43 m above the roofs, and the pilot bot flew 587 m and landed at 0.5 m/s. Not yet checked:
 the rendered looks and views, the rotor sound by ear, a station pilot with a real camera, and the 0.9.16 fallback on
-a 0.9.16 server. Delivery routes climb over tall buildings rather than around them.
+a 0.9.16 server.
 
 ## Traffic
 
@@ -1449,9 +1552,9 @@ cyclist** (the bike carries an animated rider), which is why the level of detail
 Epic is about 20 ms, which is the whole budget at 50 Hz; on an unshared GPU (or at `--quality Low`) the trial
 runs in real time. Map building takes 2-4 s per city plus the Overpass downloads.
 
-## coupled-sim features in coupled-carla
+## coupled-sim features in Coupled CARLA
 
-| coupled-sim | coupled-carla | Status |
+| coupled-sim | Coupled CARLA | Status |
 |---|---|---|
 | Roles: manual driver, AV passenger, pedestrian | `participants` with kind driver / av_passenger / pedestrian, each host-local or at a station | done |
 | Experiment definitions, trial sequence, run automatically | YAML experiment, `trials` with overrides, run in order | done |
@@ -1475,7 +1578,7 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 | Video recording | CARLA recorder + re-render from any viewpoint | recorder done |
 | A small fictional US town | any place on Earth, 19 cities ready | done |
 | Trial files, counterbalancing, validator (#80, #92) | conditions, factorial designs, Latin-square orders per participant, `coupledcarla.validate` | done |
-| Experimenter dashboard (#88) | local web page with live state and trial controls | done |
+| Experimenter dashboard (#88, #200) | session dashboard: experiment and place, station lobby with roles, live map over aerial photos, eHMI, weather, take-over, trials with viewer and zip | done |
 | Take-over requests (#94) | automated driving with scheduled or triggered take-over requests, reaction times | done |
 | Continuous responses (#130) | hold button and slider per frame, coupled-sim's CSV columns | done |
 | Soundscape, AVAS, auditory eHMIs (#95, #135) | station soundscape from the CARLA world, synthesised sounds, spoken cues | done |
@@ -1520,7 +1623,7 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
    events, tick-to-station and tick-to-image latency, a pedestrian crowd. **Still open from phase 2:** CARLA
    multi-GPU secondaries for station rendering, Xsens suit, SUMO persons, head tracking for the driver's gaze,
    a human (not bot) pilot study.
-3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8: coupled-carla runs on it with scenery (its own mesh
+3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8: Coupled CARLA runs on it with scenery (its own mesh
    catalogue), the Eindhoven digital twin (AHN terrain, PDOK aerial photos, 3DBAG buildings) is baked into a
    CARLA 1.0 level and driven with the SUMO bridge on its own OpenDRIVE, and CARLA 1.0 builds and renders on
    Windows (win5090), where a packaged server renders the styled twin (facades, photo ground, Dutch sign faces,
@@ -1664,7 +1767,9 @@ coupledcarla/
   validate.py        experiment validator (python -m coupledcarla.validate)
   responses.py       continuous participant responses (hold button, slider)
   takeover.py        automated driving with take-over requests
-  dashboard.py       experimenter dashboard (local web page)
+  dashboard.py       experimenter dashboard (local web page) for one host run
+  session.py         session dashboard: run a whole experiment from a browser (hub.py stations and trial host,
+                     lobby.py stations without --role, livemap.py the live map and live commands)
   soundscape.py      station sound: vehicles, own car, ambience, AVAS, auditory eHMIs (audio.py synthesises)
   incar.py           cluster, HUD, centre screen, timed messages; haptics.py: wheel/gamepad/UDP cues
   ehmi_design.py     eHMIs from design files (designs.py loads coupled-sim's format)
@@ -1707,9 +1812,9 @@ tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
 ```
 
-## Support coupled-carla
+## Support Coupled CARLA
 
-coupled-carla is free and stays free. If it is useful to you and you would like to give something back, you can
+Coupled CARLA is free and stays free. If it is useful to you and you would like to give something back, you can
 [sponsor it on GitHub](https://github.com/sponsors/bazilinskyy) (monthly or once) or
 [buy me a coffee on Ko-fi](https://ko-fi.com/bazilinskyy). Bug reports, ideas, new cities and pull requests help
 just as much. If you use it in research, please cite it (the "Cite this repository" button on GitHub, from
@@ -1717,7 +1822,7 @@ just as much. If you use it in research, please cite it (the "Cite this reposito
 
 ## Credits, data and licences
 
-- coupled-carla's own code is released under the [MIT License](LICENSE).
+- Coupled CARLA's own code is released under the [MIT License](LICENSE).
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL. Built maps and
   `buildings.json` are derived databases under the ODbL.
