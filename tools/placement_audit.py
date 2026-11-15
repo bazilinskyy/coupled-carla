@@ -70,8 +70,8 @@ def label(h):
 
 def ground_at(world, x, y, z_top, z_bottom, none_below=None):
     """(z, label) of the first ground-like hit of a vertical ray from z_top down to z_bottom, or (None, None).
-    CARLA labels its cycle lanes' and junctions' surfaces None, as it does parts of some lamps: a None hit counts
-    as ground below none_below (an object's bottom + 1.5 m) only."""
+    CARLA labels its cycle lanes' and junctions' surfaces None, as it does static cars and parts of lamps: a None
+    hit counts as ground below none_below only (an object's bottom: under it, never its own body)."""
     for h in world.cast_ray(carla.Location(x=x, y=y, z=z_top), carla.Location(x=x, y=y, z=z_bottom)):
         lab = label(h)
         if lab in GROUND or (lab == "none" and none_below is not None and h.location.z < none_below):
@@ -194,6 +194,8 @@ class TileTops:
         self.tree = STRtree(polys) if polys else None
 
     def z(self, x, y):
+        """The top of the tile whose centre is nearest among those whose box covers (x, y) (neighbouring tilted
+        tiles' boxes overlap at their edges)."""
         if self.tree is None:
             return None
         from shapely.geometry import Point
@@ -205,9 +207,10 @@ class TileTops:
             x0, y0, z0, nx, ny, nz = self.faces[i]
             if nz < 0.5:
                 continue
-            v = z0 - (nx * (x - x0) + ny * (y - y0)) / nz
-            best = v if best is None else max(best, v)
-        return best
+            d = math.hypot(x - x0, y - y0)
+            if best is None or d < best[0]:
+                best = (d, z0 - (nx * (x - x0) + ny * (y - y0)) / nz)
+        return None if best is None else best[1]
 
 
 def check_ground(world, recs, tops=None):
@@ -222,7 +225,7 @@ def check_ground(world, recs, tops=None):
             pts = [(cx, cy)] + [(cx + 0.6 * (px - cx), cy + 0.6 * (py - cy)) for px, py in r["foot"][:4]]
         zs = []
         for px, py in pts:
-            z, lab = ground_at(world, px, py, r["top"] + 1.0, r["bottom"] - 30.0, r["bottom"] + 1.5)
+            z, lab = ground_at(world, px, py, r["top"] + 1.0, r["bottom"] - 30.0, r["bottom"] + 0.05)
             t = tops.z(px, py) if tops is not None else None
             if t is not None and t <= r["top"] + 1.0 and (z is None or t > z):
                 z, lab = t, "tile"
