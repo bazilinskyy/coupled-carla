@@ -1099,6 +1099,34 @@ their PLUTO construction year and use, USGS 3DEP ground under the NYS orthophoto
 markings, kerbs and sidewalks; SUMO drives on the twin's own OpenDRIVE. A 40 s trial on the Windows package ran at
 RTF 0.75 with 707 parked cars and 1,004 scenery meshes around the participant.
 
+#### Photorealistic tiles (optional)
+
+`map.photoreal: google` ([`experiments/eindhoven_twin_photoreal.yaml`](experiments/eindhoven_twin_photoreal.yaml))
+streams Google's Photorealistic 3D Tiles into a baked level with [Cesium for
+Unreal](https://github.com/CesiumGS/cesium-unreal) (v2.31.0, Apache 2.0) and the `CoupledPhotoreal` plugin
+([`unreal/`](unreal/)), after the approach of the open-source flight simulator
+[FableFlight](https://github.com/Rolandjg/fableflight). The photogrammetry mesh replaces the twin's buildings and
+ground on screen; CARLA's roads (smooth surface, lane markings) stay, as the mesh is clipped above the twin's
+carriageway cut from its OpenDRIVE. Collision, LiDAR and navigation keep the twin's geometry, so cars drive on CARLA's
+roads and walkers on its sidewalks. At night the twin's buildings with their lit windows come back inside a cut along
+their footprints, and CARLA's street lamps light the photo streets. Heights are NAP + NLGEO2018 (43.93 m at
+Eindhoven) plus the ETRS89 → ITRF drift (0.90 m north-east in 2026).
+
+It needs your own Google Maps Platform key with billing, on the server machine only (`GOOGLE_MAPS_API_KEY` or
+`~/.config/coupled-carla/google_maps_key`, mode 600; never stored in a file of ours, a log or content). Photorealistic
+3D Tiles is an Enterprise SKU: 1,000 billable root requests a month are free, then USD 6.00 per 1,000, each opening a
+session of up to three hours (Google's pricing, November 2026). Each level load sends one root request; the server
+counts them (`~/.config/coupled-carla/google_tiles_usage.json`) and stops at `day_cap` (50) and `month_cap` (1,000).
+Also set a Cloud quota cap of about 50 root requests a day so a bug cannot run up a bill. Tiles stream and are never
+stored beyond their Cache-Control lifetime, baked into packages or content packs, or redistributed; saved frames
+carry Google's attribution. Limits: it is photogrammetry (parked cars and people baked into the streets, no semantic
+labels for sensors, sun and shadows baked in, so they double when relit by day). Without a key, the plugin or the
+level data the trial runs on the normal twin. Status: built and checked on lin5080 without a key (one root request
+per level load, caps, fail-soft); not yet seen with a key on a rendering server. Shareable open alternatives:
+[PLATEAU](https://www.mlit.go.jp/plateau/)'s textured LoD2 buildings for Japan (used by the twin of any place),
+[Helsinki's reality mesh](https://hel.fi/3d) and Espoo's (CC BY 4.0), [Rotterdam 3D](https://data.overheid.nl/dataset/10230-rotterdam-3d)
+(public domain, LoD2 textured from aerial photos).
+
 #### A twin of any place
 
 The same pipeline now makes a twin of any place, with the best open data of its country (carla-digitaltwins branch
