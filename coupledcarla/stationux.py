@@ -28,6 +28,8 @@ def welcome_extras(tc, pcfg, kind=None, base=None, log=print, default_states=(),
                           "fov": (pcfg or {}).get("fov"), "screens": (pcfg or {}).get("screens"),
                           "wheel": {True: True, False: False}.get(disp.get("wheel", "auto"), "auto"),
                           "ev_bias": float(disp.get("cabin_ev_bias", -1.0)),
+                          "rhd": str(disp.get("rhd") or "").lower() == "mirror"
+                          and bool((tc.get("map") or {}).get("lefthand")),
                           "hud": {k: disp[k] for k in ("hud_distance_m", "hud_fov_deg", "hud_down_deg") if k in disp}}
     for k in ("sound", "displays", "haptics"):
         merged = config._merge(tc.get(k) or {}, (pcfg or {}).get(k) or {})
@@ -124,11 +126,13 @@ class StationUX:
                 self.cues_w.writerow(["wall_time", "sim_time", "trial", "kind", "name", "detail"])
         self.cues_w.writerow([f"{time.time():.4f}", f"{self.t:.3f}", self.trial, kind, name, detail])
 
-    def start(self, world, actor, camera, trial, agents=None, input_=None, view=None, fov=90.0, version="0.9"):
+    def start(self, world, actor, camera, trial, agents=None, input_=None, view=None, fov=90.0, version="0.9",
+              rhd=None):
         """view: (x, y, z, pitch) of the camera in the vehicle's frame for a driver's or AV passenger's view
         (cockpit.actor_eye): the displays then go onto the car's own panels and the steering wheel turns."""
         from . import audio
         self.world, self.actor, self.camera, self.trial = world, actor, camera, trial
+        self.rhd = rhd         # rhd.RhdCabin: the cabin's depth image comes from its mirrored seat
         self.agents = dict(agents or {})
         w = self.w
         snd = w.get("sound") or {}
@@ -207,6 +211,9 @@ class StationUX:
         hud = {k[4:]: v for k, v in (ck.get("hud") or {}).items()}
         self.cabin = cockpit.CabinView(entry, view[:3], view[3], self.size, fov, ck.get("lefthand", False), hud=hud)
         self.incar.set_cabin(self.cabin)
+        if getattr(self, "rhd", None) is not None:      # the mirrored cabin's depth: from rhd's plan (_cabin_tick)
+            self.log(f"cockpit: {actor.type_id} right-hand-drive cabin (rhd: mirror), fov {fov:.0f}")
+            return
         try:
             bp = world.get_blueprint_library().find("sensor.camera.depth")
             bp.set_attribute("image_size_x", str(self.size[0]))
@@ -232,6 +239,13 @@ class StationUX:
         self._depth = (a[..., 2] + a[..., 1] * 256.0 + a[..., 0] * 65536.0) / (256 ** 3 - 1) * 1000.0
 
     def _cabin_tick(self):
+        rhd = getattr(self, "rhd", None)
+        if rhd is not None:
+            if self.cabin is not None and self.cabin.depth is None and rhd.cabin_depth is not None:
+                self.cabin.set_depth(rhd.cabin_depth)
+                self.log(f"cockpit: mirrored cabin depth in; steering wheel "
+                         f"{'found' if self.cabin.spin else 'not found'} in the view")
+            return
         if self._depth is None or self._depth_cam is None:
             return
         try:
@@ -330,7 +344,7 @@ class StationUX:
         self.t = t
         if self.actor is None:
             return
-        if self._depth_cam is not None:
+        if self._depth_cam is not None or (getattr(self, "rhd", None) is not None and self.cabin is not None):
             self._cabin_tick()
         self.keys(events)
         try:

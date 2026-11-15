@@ -323,6 +323,9 @@ DEFAULTS = {
         "hud_fov_deg": 20.0,
         "hud_down_deg": 5.0,
         "cabin_ev_bias": -1.0,       # CARLA 0.9.x cabin views: exposure this many EV off the street's (look.py)
+        "rhd": False,                # left-hand-traffic maps: "mirror" makes CARLA's left-hand-drive cabins right-hand
+                                     # drive (rhd.py: a second camera at the mirrored seat, its cabin mirrored and
+                                     # the street from the real seat; about halves the station's frame rate)
                                      # The seat comes from data/driver_eyes.json; a participant's `fov` (deg) or
                                      # `screens` (1: 90 deg, 3: 180) sets the view's width unless --fov is given.
     },
