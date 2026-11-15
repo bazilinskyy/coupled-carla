@@ -4,6 +4,10 @@
     python -m coupledcarla.station --host 131.155.x.y --role driver --input wheel
     python -m coupledcarla.station --host 127.0.0.1 --role av_passenger --input bot --headless --frames-every 2
     python -m coupledcarla.station --list-devices      # audio outputs, joysticks and screens of this machine
+    python -m coupledcarla.station --host <session machine>     # no role: the session dashboard gives it one
+
+Without --role the station joins the lobby of a session dashboard (python -m coupledcarla.session, see lobby.py):
+it shows up there with its machine, input devices and GPU, and the experimenter picks its role.
 
 The station connects to the host's control channel (port 2100) to learn its role (driver, pedestrian,
 av_passenger) and, at each trial start, which actor is theirs; and to the CARLA server (port 2000) to render
@@ -44,6 +48,7 @@ import argparse
 import csv
 import math
 import socket
+import sys
 import threading
 import time
 from pathlib import Path
@@ -52,7 +57,7 @@ import carla
 import numpy as np
 
 from . import labcheck, look, multigpu
-from .compat import set_manual_exposure
+from .compat import listen, set_manual_exposure
 from .coupling import ControlClient
 from .studytools import CSV_COLUMNS, StationStudy
 
@@ -73,7 +78,10 @@ class Station:
         self.size = tuple(int(v) for v in args.size.split("x"))
         self.running = False
         self.control = ControlClient(args.control_host or args.host, args.control_port, args.role,
-                                     on_message=self._on_message)
+                                     on_message=self._on_message,
+                                     hello={"station": getattr(args, "station_id", None),
+                                            "info": {"machine": getattr(args, "name", None) or socket.gethostname(),
+                                                     "input": args.input}})
         self.welcome = None
         self.client = self.world = self.actor = self.camera = None
         self.image = None
@@ -243,8 +251,13 @@ class Station:
                 return self.world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=self.actor,
                                               attachment_type=carla.AttachmentType.Rigid)
         # with secondaries the camera should land on the role's own one (multigpu.py); otherwise spawn + listen
-        self.camera = self.routing.place_camera(spawn, lambda cam: cam.listen(self._on_image), self._destroy,
-                                                self.got_image,
+        # (a -nullrhi server without a rendering secondary streams nothing: the station goes on without images)
+        say = lambda m: print(f"[station {args.role}] {m}", flush=True)  # noqa: E731
+
+        def listen_cam(cam):
+            self.no_render = not listen(cam, self._on_image, say, "camera")
+        self.camera = self.routing.place_camera(spawn, listen_cam,
+                                                self._destroy, self.got_image,
                                                 turn=multigpu.CameraTurn(self.control.send, self.camera_go))
         bot = self.welcome.get("bot") or {}
         if kind == "driver":
@@ -416,7 +429,8 @@ class Station:
                                                              if k not in ("fps", "frames")},
                                "ticks_seen": self.count.frames, "camera_hz": self.camera_hz(),
                                "size": self.args.size, "ux": labcheck.ux_flags(self.welcome, self.ux),
-                               "camera_on": self.routing.placed if self.routing is not None else None})
+                               "camera_on": self.routing.placed if self.routing is not None else None,
+                               "no_render": bool(getattr(self, "no_render", False))})
         return True
 
     def _eye_transform(self):
@@ -588,10 +602,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--list-devices", action="store_true", help="list audio outputs, joysticks and screens; exit")
     ap.add_argument("--host", default="127.0.0.1", help="the CARLA server (usually the host machine)")
-    ap.add_argument("--port", type=int, default=2000)
+    ap.add_argument("--port", type=int, help="the CARLA server's port (default 2000, or the session's)")
     ap.add_argument("--control-host", help="the host process, if not on the CARLA server's machine")
     ap.add_argument("--control-port", type=int, default=2100)
-    ap.add_argument("--role")
+    ap.add_argument("--role", help="driver, pedestrian, av_passenger, drone, ...; without it the station waits "
+                                   "for a role from the session dashboard")
+    ap.add_argument("--name", help="how the session dashboard lists this station (default: the computer's name)")
+    ap.add_argument("--station-id", help=argparse.SUPPRESS)
     ap.add_argument("--input", default="keyboard", choices=["keyboard", "wheel", "bot", "gamepad", "rc"])
     ap.add_argument("--size", default="1280x720")
     ap.add_argument("--fov", type=float, default=90)
@@ -609,15 +626,17 @@ def main():
     if args.list_devices:
         list_devices()
         return
-    if not args.role:
-        ap.error("--role is required")
+    if not args.role:          # the session dashboard gives the role (lobby.py)
+        from . import lobby
+        raise SystemExit(lobby.supervise(args, sys.argv[1:]))
+    if args.port is None:
+        args.port = 2000
     if args.child:
         raise SystemExit(Station(args).run())
     # Supervisor: every trial runs in a fresh child process. CARLA's client library can abort a process whose
     # server goes away (the host restarts the server for every trial); a child that dies that way after its
     # trial costs nothing, and the next child joins the next trial.
     import subprocess
-    import sys
     while True:
         code = subprocess.call([sys.executable, "-m", "coupledcarla.station", *sys.argv[1:], "--child"])
         if code in (EXIT_HOST_CLOSED, EXIT_QUIT):

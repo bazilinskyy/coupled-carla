@@ -732,6 +732,25 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
 
     n_stalls = [0]
 
+    surface = getattr(placer, "surface", None)     # the ground tiles' top (placement.GroundSurface)
+    from .placement import paved
+    road = paved(carla)
+
+    def on_ground(cx, cy, L, W, yaw, z):
+        """The height a car off the lanes stands at: the highest of the ground tiles' top and the road's surface under
+        its corners and centre (the tiles lie 0.15 m or more under the roads: at the road's height, the cars at the
+        kerb floated over them); z where there are no tiles."""
+        if surface is None:
+            return z
+        best = None
+        for px, py in list(_rect(cx, cy, L * 0.9, W * 0.9, yaw).exterior.coords)[:4] + [(cx, cy)]:
+            loc = carla.Location(x=px, y=py, z=z)
+            wp = cmap.get_waypoint(loc, project_to_road=False, lane_type=road)
+            v = wp.transform.location.z if wp is not None else surface.z(px, py)
+            if v is not None:
+                best = v if best is None else max(best, v)
+        return z if best is None else best
+
     def place(mesh, cx, cy, z, yaw, zi, u, src):
         x, y, zz, yaw = cat.place(mesh, cx, cy, z, yaw, 1.0)
         mi = mesh_index.setdefault(mesh, len(mesh_index))
@@ -869,7 +888,7 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                     lat = GAP + {"on_kerb": 1.0, "half_on_kerb": 0.5}.get(position, 0.0) + depth / 2
                     cx = tf.location.x + nx * (w.lane_width / 2 + lat) + ux * along
                     cy = tf.location.y + ny * (w.lane_width / 2 + lat) + uy * along
-                z = tf.location.z
+                z = tf.location.z if on_parking_lane else on_ground(cx, cy, L, W, yaw, tf.location.z)
                 if near_intersection(w, pitch / 2 + BUFFER["intersection"]):
                     counts["skip_intersection"] += 1
                     continue
@@ -927,7 +946,7 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                 L, W, H = cat.size(mesh)
                 nose_in = _u(*key, "nose") < 0.8
                 yaw = yaw0 - 90.0 * facing + (0.0 if nose_in else 180.0) + 3.0 * (_u(*key, "j") - 0.5)
-                z = ground(sx, sy) - 0.05
+                z = on_ground(sx, sy, L, W, yaw, ground(sx, sy) - 0.05)
                 fp = _rect(sx, sy, L + 0.1, W + 0.1, yaw)
                 if any(on_lane(px, py, z) for px, py in list(fp.exterior.coords)[:4] + [(sx, sy)]):
                     counts["skip_lane"] += 1

@@ -192,3 +192,20 @@ def test_replay_from_frames_csv(tmp_path, monkeypatch):
     assert seen[-1] == pytest.approx(50.0, abs=3.0)                 # speed taken from the positions
     assert soundrec.level_dba(x[-20000:], 100.0) > 55.0
     assert config.DEFAULTS["sound"]["record_reference_db"] == 100.0
+
+
+def test_sound_env_follows_the_picture_weather():
+    """A preset weather with simulation.time keeps Open-Meteo's record in weather.json (for the sun): the sound's rain,
+    wind and wet road follow the preset the participant sees, temperature and humidity stay Open-Meteo's."""
+    from types import SimpleNamespace
+    from coupledcarla.soundenv import Env
+    om = {"temperature_2m": 6.2, "relative_humidity_2m": 95, "rain": 1.4, "precipitation": 1.4,
+          "wind_speed_10m": 13.0, "precipitation_3h": 8.5}
+    dry = SimpleNamespace(precipitation=0.0, wind_intensity=10.0, wetness=0.0, precipitation_deposits=0.0,
+                          sun_altitude_angle=16.4)
+    preset = Env.from_weather({"weather": "CloudyNoon", "open_meteo": om, "sun_altitude": 16.4, "night": False},
+                              {}, dry)
+    assert preset.rain == 0.0 and preset.wet == 0.0 and abs(preset.wind - 10 / 2 / 3.6) < 1e-9
+    assert preset.temp == 6.2 and preset.rh == 95.0
+    real = Env.from_weather({"weather": "real", "open_meteo": om, "sun_altitude": 16.4, "night": False}, {}, dry)
+    assert real.rain == 1.4 and real.wet == 1.0 and abs(real.wind - 13 / 3.6) < 1e-9

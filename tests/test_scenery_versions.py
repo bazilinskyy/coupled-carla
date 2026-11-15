@@ -104,12 +104,15 @@ def test_baked_level_scenery_has_no_buildings_or_ground(tmp_path, monkeypatch):
             return lat * 0 + 15.85
 
     monkeypatch.setattr(mapbuild.realworld.Dem, "load", staticmethod(lambda p: FakeDem()))
+    from coupledcarla import crowdpeds        # the crowd's places are fetched at build time, not in a trial
+    monkeypatch.setattr(crowdpeds, "overture_places", lambda bbox, path: seen.update(places=(bbox, path.name)))
     cfg = {"map": {"carla_level": "EhvCentre", "bbox": None, "scenery": {"trees": True}}}
     meta = {"bbox": [51.43, 5.46, 51.45, 5.49], "elevation": {"source": "ahn", "base_m": 0.0, "absolute": True}}
     mapbuild.build_scenery(cfg, tmp_path, meta)
     assert seen["sc"] == {"trees": True, "buildings": False, "ground": False}
     assert seen["bbox"] == meta["bbox"] and seen["base"] == 0.0 and seen["dem"] is not None
     assert meta["scenery"] == {"tree": 3}
+    assert seen["places"] == (meta["bbox"], "overture_places.json")
 
 
 def test_absolute_elevation(tmp_path, monkeypatch):

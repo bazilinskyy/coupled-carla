@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Coupled CARLA session</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+:root {
+  --bg: #111418; --panel: #1a1f26; --panel2: #20262e; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323c;
+  --accent: #4c8dff; --accent-dark: #3a78e6; --accent-soft: #1d2a40;
+  --ok: #4ade80; --ok-soft: #16301f; --warn: #fbbf24; --warn-soft: #33290f; --bad: #f87171; --bad-soft: #3a1b1b;
+  --radius: 10px; --mapbg: #0d1014;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f5f7; --panel: #ffffff; --panel2: #f7f8fa; --text: #1d2330; --muted: #5d6676; --line: #e1e4ea;
+    --accent: #1f6feb; --accent-dark: #1858c4; --accent-soft: #e8f0fe;
+    --ok: #1a7f37; --ok-soft: #e6f4ea; --warn: #9a6700; --warn-soft: #fff8e1; --bad: #c62828; --bad-soft: #fdecea;
+    --mapbg: #dfe3e8;
+  }
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text);
+  font: 13.5px/1.42 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif; }
+header { position: sticky; top: 0; z-index: 1000; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  padding: 9px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header h1 { margin: 0 8px 0 0; font-size: 16px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; }
+header h1 span { color: var(--muted); font-weight: 500; }
+.chip { padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: 12px;
+  white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chip b { color: var(--text); font-weight: 600; }
+.chip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 5px; vertical-align: 0; }
+.chip.running .dot { background: var(--ok); } .chip.ready .dot, .chip.paused .dot, .chip.loading .dot, .chip.ending .dot { background: var(--warn); }
+.chip.failed .dot { background: var(--bad); }
+main { display: grid; grid-template-columns: minmax(330px, 410px) minmax(0, 1fr); gap: 12px; padding: 12px; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 11px 12px; margin-bottom: 12px; min-width: 0; }
+section h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 8px; font-weight: 650; }
+section h2 .n { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.sub { font-size: 12px; color: var(--muted); margin: 10px 0 3px; }
+.row { display: flex; gap: 6px 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.row label { display: inline-flex; gap: 5px; align-items: center; }
+.grow { flex: 1; min-width: 0; }
+button { font: inherit; padding: 5px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel2);
+  color: var(--text); cursor: pointer; white-space: nowrap; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.primary:hover:not(:disabled) { background: var(--accent-dark); }
+button.danger { color: var(--bad); }
+button.on { background: var(--accent-soft); border-color: var(--accent); }
+button:disabled { opacity: .42; cursor: default; }
+button.small { padding: 2px 7px; font-size: 12px; }
+select, input[type=text], input[type=number], input[type=time] { font: inherit; padding: 4px 7px; border-radius: 7px;
+  border: 1px solid var(--line); background: var(--panel2); color: var(--text); min-width: 0; }
+select:disabled, input:disabled { opacity: .55; }
+input[type=radio], input[type=checkbox] { accent-color: var(--accent); }
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td, th { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; font-size: 12.5px; vertical-align: middle; }
+th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+td.num, th.num { text-align: right; }
+tr.cur td { color: var(--accent); font-weight: 600; }
+.ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); } .muted { color: var(--muted); }
+.small { font-size: 12px; }
+.tablewrap { overflow-x: auto; }
+.note { border-radius: 8px; padding: 7px 9px; font-size: 12.5px; margin-top: 8px; }
+.note.warn { background: var(--warn-soft); color: var(--warn); } .note.bad { background: var(--bad-soft); color: var(--bad); }
+.note.ok { background: var(--ok-soft); color: var(--ok); } .note.info { background: var(--accent-soft); }
+.problems { margin: 6px 0 0; padding: 0; list-style: none; max-height: 150px; overflow-y: auto; }
+.problems li { font-size: 12.5px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.problems .lv { font-weight: 600; margin-right: 4px; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 8px 0 4px; }
+.bar > div { height: 100%; background: var(--accent); width: 0; transition: width .25s; }
+.trialline { font-size: 13px; margin-top: 6px; }
+.big { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.mapcard { padding: 0; overflow: hidden; position: relative; }
+#map { height: min(72vh, 820px); min-height: 420px; background: var(--mapbg); }
+#live { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 450; }
+.leaflet-container { font: inherit; }
+.leaflet-tile-pane { filter: saturate(.6) brightness(.68); }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .leaflet-tile-pane { filter: saturate(.8); } }
+.mapnote { position: absolute; left: 56px; top: 12px; z-index: 500; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--muted); }
+.legend { display: flex; gap: 6px 14px; flex-wrap: wrap; padding: 8px 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.legend i.ring { background: transparent !important; border: 2px solid #fff; box-shadow: 0 0 0 2px #3b82f6 inset; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 1300px) { .grid2 { grid-template-columns: 1fr; } }
+.grid2 > section { margin-bottom: 0; }
+pre.log { margin: 0; font: 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted);
+  white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow-y: auto; }
+.msgs div { font-size: 12px; color: var(--muted); padding: 1px 0; } .msgs b { color: var(--text); font-weight: 500; }
+#toast { position: fixed; right: 16px; bottom: 16px; z-index: 2000; max-width: 420px; display: flex; flex-direction: column; gap: 8px; }
+#toast div { background: var(--panel); border: 1px solid var(--bad); color: var(--text); border-radius: 9px; padding: 9px 12px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.35); font-size: 13px; }
+#toast div small { display: block; color: var(--muted); margin-top: 2px; }
+#toast div.info { border-color: var(--accent); }
+ol.steps { list-style: none; margin: 6px 0 0; padding: 0; }
+ol.steps li { font-size: 12.5px; padding: 2px 0; display: flex; gap: 7px; }
+ol.steps li.pending { color: var(--muted); } ol.steps li.failed { color: var(--bad); }
+ol.steps .ic { width: 14px; text-align: center; }
+.tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.tag.bot { border-color: #6b7280; } .tag.fixed { border-color: var(--accent); color: var(--accent); }
+.lamp { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--line); vertical-align: -1px; }
+.lamp.on { background: var(--ok); }
+a { color: var(--accent); }
+.ev-collision td { color: var(--bad); }
+td .st { display: block; font-size: 11.5px; color: var(--muted); }
+.ehmi-car { display: flex; gap: 6px; align-items: center; margin: 4px 0; flex-wrap: wrap; }
+.ehmi-car b { min-width: 46px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+details summary { cursor: pointer; color: var(--muted); font-size: 12px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Coupled CARLA <span>session</span></h1>
+  <span class="chip" id="cState"><span class="dot"></span><b id="cStateT">connecting…</b></span>
+  <span class="chip" id="cExp">no experiment</span>
+  <span class="chip" id="cMap">map –</span>
+  <span class="chip" id="cTrial">trial –</span>
+  <span class="chip" id="cTime">t –</span>
+  <span class="chip" id="cRtf">RTF –</span>
+  <span class="chip" id="cFps">– fps</span>
+</header>
+<main>
+<div>
+  <section id="pSession">
+    <h2>Session</h2>
+    <div class="row"><select id="exp" class="grow" aria-label="Experiment"></select></div>
+    <div class="row">
+      <input type="text" id="place" class="grow" placeholder="or a place: name, address or lat,lon[,radius]" aria-label="Place for a new map">
+      <select id="placeSize" aria-label="Size"><option value="small">1 km</option><option value="medium" selected>1.4 km</option><option value="large">2 km</option></select>
+      <button id="placeGo">Make map</button>
+    </div>
+    <div id="job" hidden><div class="small" id="jobTitle"></div><ol class="steps" id="jobSteps"></ol></div>
+    <div class="row">
+      <label>Participant <input type="number" id="pnum" min="0" max="9999" style="width:70px"></label>
+      <select id="order" aria-label="Order"></select>
+      <button id="pset">Set</button>
+    </div>
+    <div class="sub">CARLA server</div>
+    <div class="row"><label><input type="radio" name="srv" value="launch"> start one here, fresh for every trial</label></div>
+    <div class="row">
+      <label><input type="radio" name="srv" value="attach"> use the one running at</label>
+      <input type="text" id="srvHost" style="width:104px" aria-label="Server host">
+      <span class="muted">:</span><input type="number" id="srvPort" style="width:70px" aria-label="Server port">
+    </div>
+    <div class="small muted" id="carlaRoot"></div>
+    <div class="row">
+      <label>Quality <select id="quality"><option>Epic</option><option>Low</option></select></label>
+      <label><input type="checkbox" id="rt"> real time</label>
+      <label><input type="checkbox" id="win"> host window</label>
+      <label>length <input type="number" id="dur" style="width:64px" placeholder="file" min="5"> s</label>
+    </div>
+    <div class="row"><label><input type="checkbox" id="bots"> roles without a station run as bots on the host</label></div>
+    <div class="row"><label><input type="checkbox" id="auto"> go on to the next trial by itself</label></div>
+    <div id="problems"></div>
+  </section>
+
+  <section id="pStations">
+    <h2>Stations <span class="n muted" id="stCount"></span></h2>
+    <div class="tablewrap"><table id="stations"><thead><tr><th>#</th><th>Station</th><th>Inputs · GPU</th><th class="num">Ping</th><th>Role</th><th>Ready</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="small muted" id="stHint" style="margin-top:6px"></div>
+    <div class="row"><select id="botRole" aria-label="Role of the bot station"></select><button id="botAdd">Add a bot station</button></div>
+  </section>
+
+  <section id="pTrial">
+    <h2>Trial</h2>
+    <div class="row">
+      <button id="bInit">Initialise</button>
+      <button id="bStart" class="primary">Start</button>
+      <button id="bPause">Pause</button>
+      <button id="bNext">Next trial</button>
+    </div>
+    <div class="row">
+      <button id="bEnd" class="danger">End trial</button>
+      <button id="bStop" class="danger">Stop session</button>
+    </div>
+    <div class="trialline" id="trialLine">–</div>
+    <div class="bar"><div id="prog"></div></div>
+    <div class="small muted" id="detail"></div>
+    <div class="tablewrap"><table id="plan"></table></div>
+  </section>
+
+  <section id="pEhmi">
+    <h2>eHMI</h2>
+    <div class="row" id="ehmiAll"></div>
+    <div id="ehmiCars"></div>
+  </section>
+
+  <section id="pTor" hidden>
+    <h2>Take-over</h2>
+    <div class="row" id="tor"></div>
+  </section>
+
+  <section id="pCond">
+    <h2>Conditions</h2>
+    <div class="row">
+      <label>Weather <select id="weather"></select></label>
+      <label>Time <input type="time" id="tod"></label>
+      <button id="bWeather">Apply</button>
+    </div>
+    <div class="small muted" id="condNow"></div>
+    <div class="row"><button id="bSync">Visual sync</button><span class="small muted">a red bar on every station for 1 s</span></div>
+  </section>
+</div>
+
+<div style="min-width:0">
+  <section class="mapcard">
+    <div id="map"></div>
+    <div class="mapnote" id="mapNote" hidden></div>
+    <div class="legend" id="legend"></div>
+  </section>
+  <div class="grid2">
+    <section>
+      <h2>Agents <span class="n muted" id="agCount"></span></h2>
+      <div class="tablewrap"><table id="agents"></table></div>
+      <details id="moreBox"><summary id="moreSum"></summary><div class="tablewrap"><table id="more"></table></div></details>
+    </section>
+    <section>
+      <h2>Events <span class="n muted" id="colCount"></span></h2>
+      <div class="tablewrap"><table id="events"></table></div>
+    </section>
+  </div>
+  <section style="margin-top:12px">
+    <h2>Trials</h2>
+    <div class="tablewrap"><table id="trials"></table></div>
+    <details><summary>earlier trials of this experiment</summary><div class="tablewrap"><table id="past"></table></div></details>
+  </section>
+  <div class="grid2">
+    <section><h2>Host log</h2><pre class="log" id="hostlog"></pre></section>
+    <section><h2>Session log</h2><div class="msgs" id="messages"></div></section>
+  </div>
+</div>
+</main>
+<div id="toast" aria-live="polite"></div>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const token = new URLSearchParams(location.search).get("token") || "";
+const tq = token ? "token=" + encodeURIComponent(token) : "";
+const H = { "X-Coupled-Carla": "1", "Content-Type": "application/json" };
+if (token) H["X-Token"] = token;
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (v, d = 1) => (v === null || v === undefined || v === "" || Number.isNaN(+v)) ? "–" : Number(v).toFixed(d);
+const KIND_COL = { participant: "#3b82f6", av: "#f59e0b", agent: "#cbd5e1", sumo: "#a855f7", bike: "#14b8a6",
+  bus: "#ec4899", walker: "#fb923c", crowd: "#ef4444", drone: "#22d3ee" };
+const KIND_NAME = { participant: "participant", av: "AV (eHMI)", agent: "scripted car", sumo: "SUMO car", bike: "bicycle",
+  bus: "bus", walker: "AI walker", crowd: "crowd pedestrian", drone: "AI drone" };
+const LIGHT_COL = { g: "#22c55e", y: "#eab308", r: "#ef4444", o: "#6b7280" };
+const PART_KIND = { driver: "driver", pedestrian: "pedestrian", av_passenger: "AV passenger", drone: "drone pilot",
+  cyclist: "cyclist" };
+let S = null, layersFor = null, fitted = false, busy = false;
+
+function toast(text, advice, cls) {
+  const d = document.createElement("div");
+  if (cls) d.className = cls;
+  d.innerHTML = esc(text) + (advice ? `<small>${esc(advice)}</small>` : "");
+  $("toast").appendChild(d);
+  setTimeout(() => d.remove(), advice ? 9000 : 5000);
+}
+async function api(cmd, body) {
+  try {
+    const r = await fetch("/api/" + cmd + (tq ? "?" + tq : ""), { method: "POST", headers: H, body: JSON.stringify(body || {}) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { toast(j.error || ("HTTP " + r.status), j.advice); return null; }
+    if (j.note) toast(j.note, "", "info");
+    poll(true);
+    return j;
+  } catch (e) { toast("The dashboard is not reachable.", String(e)); return null; }
+}
+function fillSelect(sel, items, value) {      // items: [value, text, group?]
+  const sig = JSON.stringify(items);
+  if (sel.dataset.sig !== sig) {
+    sel.dataset.sig = sig;
+    sel.innerHTML = "";
+    let group = null, parent = sel;
+    for (const [v, t, g] of items) {
+      if (g !== undefined && g !== group) { group = g; parent = document.createElement("optgroup"); parent.label = g; sel.appendChild(parent); }
+      const o = document.createElement("option"); o.value = v; o.textContent = t; parent.appendChild(o);
+    }
+  }
+  if (value !== undefined && document.activeElement !== sel) sel.value = value ?? "";
+}
+function setVal(el, v) { if (document.activeElement !== el) { if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? ""; } }
+
+// ---------------------------------------------------------------- map
+const map = L.map("map", { zoomControl: true, attributionControl: true, preferCanvas: true }).setView([51.4416, 5.4697], 15);
+const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 20, maxNativeZoom: 19,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' });
+const none = L.layerGroup();
+let aerial = null, control = null;
+const roadsLayer = L.layerGroup(), bldLayer = L.layerGroup();
+const canvasR = L.canvas({ padding: 0.3 });
+const overlay = L.layerGroup([bldLayer, roadsLayer]).addTo(map);
+osm.addTo(map);
+control = L.control.layers({ "OpenStreetMap": osm, "No background": none }, { "Map roads and buildings": overlay }, { collapsed: true }).addTo(map);
+const live = $("live") || (() => { const c = document.createElement("canvas"); c.id = "live"; map.getContainer().appendChild(c); return c; })();
+map.on("move zoom resize", () => drawLive());
+
+async function loadLayers(name) {
+  layersFor = name;
+  try {
+    const r = await fetch("/api/layers?map=" + encodeURIComponent(name) + (tq ? "&" + tq : ""));
+    if (!r.ok) { layersFor = null; return; }
+    const L_ = await r.json();
+    roadsLayer.clearLayers(); bldLayer.clearLayers();
+    for (const b of L_.buildings) L.polygon(b, { renderer: canvasR, stroke: true, weight: 0.8, color: "#e2e8f0", opacity: .75, fillColor: "#cbd5e1", fillOpacity: .42, interactive: false }).addTo(bldLayer);
+    for (const [k, w, pts] of L_.roads) L.polyline(pts, { renderer: canvasR, color: k === "bike" ? "#d9534f" : "#cfd4da", opacity: k === "bike" ? .8 : .62, weight: 3, interactive: false, lineCap: "butt" }).addTo(roadsLayer);
+    const [s, w, n, e] = L_.bbox;
+    if (aerial) { control.removeLayer(aerial); map.removeLayer(aerial); aerial = null; }
+    if (L_.aerial) {
+      aerial = L.tileLayer(L_.aerial.url, { maxZoom: 21, maxNativeZoom: L_.aerial.max, attribution: L_.aerial.attribution });
+      control.addBaseLayer(aerial, L_.aerial.name);
+      map.removeLayer(osm); aerial.addTo(map);
+    }
+    L.rectangle([[s, w], [n, e]], { renderer: canvasR, color: "#4c8dff", weight: 1, opacity: .5, fill: false, dashArray: "4 4", interactive: false }).addTo(roadsLayer);
+    map.fitBounds([[s, w], [n, e]], { padding: [10, 10] });
+    fitted = true;
+    roadWidths();
+  } catch (e) { layersFor = null; }
+}
+function mpp() { const c = map.getCenter(); return 156543.03392 * Math.cos(c.lat * Math.PI / 180) / Math.pow(2, map.getZoom()); }
+function roadWidths() {
+  const m = mpp();
+  roadsLayer.eachLayer((l) => { if (l.setStyle && !l.options.dashArray) l.setStyle({ weight: Math.max(1.2, Math.min(14, 3.1 / m)) }); });
+}
+map.on("zoomend", roadWidths);
+
+const SIZE = { car: [4.6, 1.9, 9, 4], bus: [12, 2.55, 15, 5], bike: [1.8, 0.6, 6, 3] };
+function shapeOf(f) {
+  const k = f[0], pk = (f[7] || {}).k;
+  if (k === "crowd" || k === "walker" || pk === "pedestrian") return "dot";
+  if (k === "drone" || pk === "drone") return "drone";
+  if (k === "bus") return "bus";
+  if (k === "bike") return "bike";
+  return "car";
+}
+function drawLive() {
+  const c = map.getContainer(), dpr = window.devicePixelRatio || 1, W = c.clientWidth, Hh = c.clientHeight;
+  if (live.width !== Math.round(W * dpr) || live.height !== Math.round(Hh * dpr)) {
+    live.width = Math.round(W * dpr); live.height = Math.round(Hh * dpr); live.style.width = W + "px"; live.style.height = Hh + "px";
+  }
+  const g = live.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, Hh);
+  const lv = S && S.live;
+  if (!lv) return;
+  const m = mpp();
+  for (const [lat, lon, st] of lv.lights || []) {
+    const p = map.latLngToContainerPoint([lat, lon]);
+    if (p.x < -5 || p.y < -5 || p.x > W + 5 || p.y > Hh + 5) continue;
+    g.beginPath(); g.arc(p.x, p.y, Math.max(2.4, 0.9 / m), 0, 7); g.fillStyle = LIGHT_COL[st] || LIGHT_COL.o; g.fill();
+    g.lineWidth = 1; g.strokeStyle = "rgba(0,0,0,.6)"; g.stroke();
+  }
+  const order = { crowd: 0, walker: 1, sumo: 2, bike: 2, bus: 2, agent: 3, av: 4, drone: 5, participant: 6 };
+  const feats = (lv.features || []).slice().sort((a, b) => (order[a[0]] ?? 3) - (order[b[0]] ?? 3));
+  const labels = [];
+  for (const f of feats) {
+    const p = map.latLngToContainerPoint([f[3], f[4]]);
+    if (p.x < -40 || p.y < -40 || p.x > W + 40 || p.y > Hh + 40) continue;
+    const ex = f[7] || {}, col = KIND_COL[f[0]] || "#fff", shp = shapeOf(f);
+    g.save(); g.translate(p.x, p.y);
+    if (shp === "dot") {
+      g.beginPath(); g.arc(0, 0, Math.max(f[0] === "participant" ? 4.5 : 2.8, 0.35 / m), 0, 7);
+      g.fillStyle = col; g.fill(); g.lineWidth = 1; g.strokeStyle = "rgba(0,0,0,.7)"; g.stroke();
+    } else if (shp === "drone") {
+      const r = Math.max(5, 0.7 / m);
+      g.rotate(Math.PI / 4); g.fillStyle = col; g.strokeStyle = "rgba(0,0,0,.75)"; g.lineWidth = 1.2;
+      g.fillRect(-r * .35, -r, r * .7, r * 2); g.fillRect(-r, -r * .35, r * 2, r * .7); g.strokeRect(-r * .35, -r, r * .7, r * 2);
+      g.rotate(-Math.PI / 4);
+    } else {
+      const [Lm, Wm, Lmin, Wmin] = SIZE[shp] || SIZE.car;
+      const L_ = Math.max(Lmin, Lm / m), W_ = Math.max(Wmin, Wm / m);
+      g.rotate(f[5] * Math.PI / 180);
+      g.fillStyle = col; g.strokeStyle = "rgba(0,0,0,.75)"; g.lineWidth = 1;
+      g.fillRect(-L_ / 2, -W_ / 2, L_, W_); g.strokeRect(-L_ / 2, -W_ / 2, L_, W_);
+      g.fillStyle = "rgba(255,255,255,.9)"; g.fillRect(L_ / 2 - Math.max(1.5, L_ * .16), -W_ / 2, Math.max(1.5, L_ * .16), W_);
+      g.rotate(-f[5] * Math.PI / 180);
+    }
+    if (f[0] === "participant") {
+      const r = Math.max(12, 5.5 / m);
+      g.beginPath(); g.arc(0, 0, r, 0, 7); g.lineWidth = 2.6; g.strokeStyle = "#fff"; g.stroke();
+      g.beginPath(); g.arc(0, 0, r + 2.2, 0, 7); g.lineWidth = 1.4; g.strokeStyle = col; g.stroke();
+      const what = ex.h !== undefined ? `${fmt(ex.h, 0)} m up` : `${fmt(f[6], 0)} km/h`;
+      labels.push([p.x + r + 5, p.y, `${f[2]} · ${what}`, true]);
+    } else if (f[0] === "av") {
+      if (ex.e && ex.e !== "off") labels.push([p.x + 10, p.y - 8, `${f[2]}: ${ex.e}`, false]);
+    } else if (f[0] === "drone" && m < 2.5) {
+      labels.push([p.x + 8, p.y - 6, `${fmt(ex.h, 0)} m`, false]);
+    }
+    g.restore();
+  }
+  g.font = "600 12px -apple-system, Segoe UI, Roboto, sans-serif"; g.textBaseline = "middle";
+  const boxes = [];
+  labels.sort((a, b) => (b[3] - a[3]) || (a[1] - b[1]));
+  for (const lab of labels) {          // participants first; a label that would cover another moves down
+    let [x, y, t, strong] = lab;
+    const w = g.measureText(t).width + 10;
+    for (let k = 0; k < 8 && boxes.some((b) => x < b[0] + b[2] && b[0] < x + w && Math.abs(y - b[1]) < 19); k++) y += 19;
+    boxes.push([x, y, w]);
+    g.fillStyle = strong ? "rgba(17,20,24,.88)" : "rgba(17,20,24,.7)";
+    g.beginPath(); if (g.roundRect) g.roundRect(x, y - 9, w, 18, 5); else g.rect(x, y - 9, w, 18); g.fill();
+    g.fillStyle = strong ? "#fff" : "#e5e7eb"; g.fillText(t, x + 5, y + 0.5);
+  }
+}
+map.on("click", (e) => {
+  const lv = S && S.live; if (!lv) return;
+  let best = null, bd = 16;
+  for (const f of lv.features || []) {
+    const p = map.latLngToContainerPoint([f[3], f[4]]), d = Math.hypot(p.x - e.containerPoint.x, p.y - e.containerPoint.y);
+    if (d < bd) { bd = d; best = f; }
+  }
+  if (!best) return;
+  const ex = best[7] || {};
+  L.popup().setLatLng([best[3], best[4]]).setContent(
+    `<b>${esc(best[2] || best[1])}</b><br>${esc(best[0] === "participant" ? (PART_KIND[ex.k] || ex.k) : KIND_NAME[best[0]])}` +
+    `<br>${fmt(best[6], 1)} km/h` + (ex.h !== undefined ? `, ${fmt(ex.h, 1)} m above the ground` : "") +
+    (ex.e ? `<br>eHMI ${esc(ex.e)}` : "") + (ex.a ? `<br>automation ${esc(ex.a)}` : "") +
+    `<br><span class="muted">${best[3].toFixed(6)}, ${best[4].toFixed(6)}</span>`).openOn(map);
+});
+$("legend").innerHTML = `<span><i class="ring" style="background:#3b82f6"></i>participant</span>` +
+  Object.entries(KIND_NAME).filter(([k]) => k !== "participant").map(([k, n]) => `<span><i style="background:${KIND_COL[k]}"></i>${n}</span>`).join("") +
+  `<span><i style="background:${LIGHT_COL.g}"></i><i style="background:${LIGHT_COL.y};margin-left:-3px"></i><i style="background:${LIGHT_COL.r};margin-left:-3px"></i>traffic lights</span>`;
+
+// ---------------------------------------------------------------- controls
+$("exp").onchange = (e) => api("experiment", { path: e.target.value });
+$("placeGo").onclick = () => api("place", { text: $("place").value, size: $("placeSize").value });
+$("place").onkeydown = (e) => { if (e.key === "Enter") $("placeGo").click(); };
+$("pset").onclick = () => api("participant", { participant: +$("pnum").value || 0, order: $("order").value || null });
+document.querySelectorAll("input[name=srv]").forEach((r) => r.onchange = () => api("options", { server: r.value }));
+$("srvHost").onchange = () => api("options", { server_host: $("srvHost").value });
+$("srvPort").onchange = () => api("options", { server_port: +$("srvPort").value });
+$("quality").onchange = () => api("options", { quality: $("quality").value });
+$("rt").onchange = () => api("options", { real_time: $("rt").checked });
+$("win").onchange = () => api("options", { host_window: $("win").checked });
+$("bots").onchange = () => api("options", { bots_for_missing: $("bots").checked });
+$("auto").onchange = () => api("options", { auto_next: $("auto").checked });
+$("dur").onchange = () => api("options", { duration: $("dur").value || null });
+$("botAdd").onclick = () => api("bot", { role: $("botRole").value || null });
+$("bInit").onclick = () => api("initialise");
+$("bStart").onclick = () => api("start");
+$("bPause").onclick = () => api(S && S.phase === "paused" ? "resume" : "pause");
+$("bNext").onclick = () => { if (S && ["running", "paused", "ready"].includes(S.phase) && !confirm("End this trial and load the next one?")) return; api("next"); };
+$("bEnd").onclick = () => { if (confirm("End this trial now?")) api("abort"); };
+$("bStop").onclick = () => { if (confirm("End this trial and stop the session (no more trials start by themselves)?")) api("stop"); };
+$("bWeather").onclick = () => api("weather", { preset: $("weather").value || null, time: $("tod").value || null });
+$("bSync").onclick = () => api("sync");
+
+// ---------------------------------------------------------------- render
+function render() {
+  const s = S, tr = s.trial || {}, lv = s.live || {}, exp = s.experiment;
+  const alive = ["loading", "ready", "running", "paused", "ending"].includes(s.phase);
+  $("cState").className = "chip " + s.phase; $("cStateT").textContent = s.phase_text;
+  $("cExp").innerHTML = exp ? `<b>${esc(exp.label)}</b>` : "no experiment";
+  $("cMap").innerHTML = exp ? `map <b>${esc(exp.map)}</b>` : "map –";
+  $("cTrial").innerHTML = s.plan.length ? `trial <b>${Math.min(s.position + 1, s.plan.length)}/${s.plan.length}</b>` + (s.participant ? ` · P${s.participant}` : "") : "trial –";
+  $("cTime").innerHTML = tr.t !== undefined && alive ? `t <b>${fmt(tr.t, 1)}</b> / ${fmt(tr.duration_s, 0)} s` : "t –";
+  $("cRtf").innerHTML = `RTF <b>${tr.rtf && alive ? fmt(tr.rtf, 2) : "–"}</b>`;
+  $("cFps").innerHTML = `<b>${lv.fps && alive ? fmt(lv.fps, 0) : "–"}</b> fps`;
+
+  // session panel
+  fillSelect($("exp"), [["", "Choose an experiment…", undefined], ...s.experiments.map((e) => [e.path,
+    `${e.file}${e.stations ? ` · ${e.stations} station${e.stations > 1 ? "s" : ""}` : ""}${e.built ? "" : " · map not built"}`, e.group])], exp ? exp.path : "");
+  $("exp").disabled = alive;
+  fillSelect($("order"), [["", "file's order"], ...s.orders.map((o) => [o, o])], s.order || "");
+  setVal($("pnum"), s.participant);
+  for (const el of ["pnum", "order", "pset", "placeGo", "place"]) $(el).disabled = alive;
+  const o = s.options;
+  document.querySelectorAll("input[name=srv]").forEach((r) => { if (document.activeElement !== r) r.checked = r.value === o.server; r.disabled = alive; });
+  setVal($("srvHost"), o.server_host); setVal($("srvPort"), o.server_port);
+  $("srvHost").disabled = alive || o.server !== "attach";
+  setVal($("quality"), o.quality); setVal($("rt"), o.real_time); setVal($("win"), o.host_window);
+  setVal($("bots"), o.bots_for_missing); setVal($("auto"), o.auto_next); setVal($("dur"), o.duration);
+  for (const el of ["srvPort", "quality", "rt", "win", "bots", "dur"]) $(el).disabled = alive;
+  $("carlaRoot").textContent = o.server === "attach" ? `uses the server at ${o.server_host}:${o.server_port}; it is not stopped between trials` :
+    (s.carla_root ? `CARLA from ${s.carla_root}, port ${o.server_port}` : "CARLA_ROOT is not set: give --carla-root, or use a running server");
+  const job = s.mapjob;
+  $("job").hidden = !job;
+  if (job) {
+    $("jobTitle").innerHTML = `<b>${esc(job.plan ? job.plan.label : "map")}</b> · ${esc(job.state)} · ${job.elapsed || 0} s` + (job.error ? `<div class="note bad">${esc(job.error)} ${esc(job.advice || "")}</div>` : "");
+    $("jobSteps").innerHTML = (job.steps || []).map((st) => `<li class="${st.state}"><span class="ic">${{ done: "✓", running: "…", failed: "✗", skipped: "–" }[st.state] || "·"}</span><span>${esc(st.title)}${st.text ? ` <span class="muted">${esc(st.text)}</span>` : ""}</span></li>`).join("");
+  }
+  const v = s.validation || { items: [] };
+  const errs = v.items.filter((i) => i[0] === "error").length, warns = v.items.length - errs;
+  $("problems").innerHTML = !exp ? "" : v.state === "running" ? `<div class="note info">Checking the experiment file…</div>` :
+    (v.items.length ? `<div class="note ${errs ? "bad" : "warn"}">${errs ? errs + " error" + (errs > 1 ? "s" : "") : ""}${errs && warns ? ", " : ""}${warns ? warns + " warning" + (warns > 1 ? "s" : "") : ""} in ${esc(exp.path)}</div><ul class="problems">` +
+      v.items.map((i) => `<li><span class="lv ${i[0] === "error" ? "bad" : "warn"}">${i[0] === "error" ? "Error" : "Note"}</span>${esc(i[1])}: ${esc(i[2])}</li>`).join("") + "</ul>" :
+      `<div class="note ok">The experiment file checks out: ${s.plan.length} trial${s.plan.length === 1 ? "" : "s"} for participant ${s.participant}.</div>`);
+
+  // stations
+  const roles = exp ? exp.roles : [];
+  const roleOpts = [["", "(none)"], ...roles.map((r) => [r.role, `${r.role}${r.kind !== r.role ? " (" + (PART_KIND[r.kind] || r.kind) + ")" : ""}`])];
+  const tb = $("stations").tBodies[0], seen = new Set();
+  s.stations.forEach((st, i) => {
+    seen.add(st.id);
+    let tr_ = tb.querySelector(`tr[data-id="${CSS.escape(st.id)}"]`);
+    if (!tr_) {
+      tr_ = document.createElement("tr"); tr_.dataset.id = st.id;
+      tr_.innerHTML = "<td></td><td></td><td></td><td class='num'></td><td></td><td></td><td></td>";
+      const sel = document.createElement("select"); sel.onchange = () => api("assign", { station: st.id, role: sel.value || null });
+      tr_.cells[4].appendChild(sel);
+      tb.appendChild(tr_);
+    }
+    if (tb.rows[i] !== tr_) tb.insertBefore(tr_, tb.rows[i] || null);
+    const info = st.info || {};
+    tr_.cells[0].textContent = i + 1;
+    tr_.cells[1].innerHTML = `${esc(st.name)} ${st.bot ? '<span class="tag bot">bot</span>' : ""}${st.fixed ? '<span class="tag fixed">--role</span>' : ""}<span class="st">${esc(st.ip)}${info.platform ? " · " + esc(info.platform) : ""}</span>`;
+    const ins = info.bot ? ["bot"] : (info.inputs && info.inputs.length ? info.inputs : [info.input || ""]);
+    tr_.cells[2].innerHTML = `${esc(ins.join(", "))}<span class="st">${esc((info.gpu || "").replace(/^NVIDIA (GeForce )?/, ""))}</span>`;
+    tr_.cells[3].textContent = st.rtt_ms !== null && st.rtt_ms !== undefined ? fmt(st.rtt_ms, 1) + " ms" : "–";
+    const sel = tr_.cells[4].querySelector("select");
+    fillSelect(sel, st.fixed ? [[st.role, st.role]] : roleOpts, st.role || "");
+    sel.disabled = alive || st.fixed || st.starting;
+    tr_.cells[5].innerHTML = st.starting ? '<span class="muted">starting…</span>' : (st.ready ? '<span class="ok">yes</span>' : (st.role ? '<span class="warn">joining</span>' : '<span class="muted">–</span>'));
+    tr_.cells[6].innerHTML = st.bot ? `<button class="small" title="Stop this bot station" ${alive ? "disabled" : ""}>×</button>` : "";
+    const b = tr_.cells[6].querySelector("button"); if (b) b.onclick = () => api("remove_bot", { station: st.id });
+  });
+  [...tb.rows].forEach((r) => { if (!seen.has(r.dataset.id)) r.remove(); });
+  $("stCount").textContent = `${s.stations.length} of 8 · ${s.stations.filter((x) => x.ready).length} ready`;
+  const missing = roles.filter((r) => r.station && !s.stations.some((x) => x.role === r.role)).map((r) => r.role);
+  $("stHint").innerHTML = `On each station PC: <code>python -m coupledcarla.station --host ${esc(s.lan_ip)}${s.stations_port !== 2100 ? " --control-port " + s.stations_port : ""}</code>` +
+    (missing.length ? `<br>No station for ${esc(missing.join(", "))}: ${o.bots_for_missing ? "they run as bots on the host" : "the host waits for them"}.` : "");
+  fillSelect($("botRole"), [["", "bot without a role"], ...roles.map((r) => [r.role, "bot as " + r.role])]);
+  $("botAdd").disabled = s.stations.length >= 8;
+
+  // trial
+  const ph = s.phase;
+  $("bInit").disabled = !exp || alive || s.position >= s.plan.length;
+  $("bStart").disabled = ph !== "ready";
+  $("bPause").disabled = !["running", "paused"].includes(ph); $("bPause").textContent = ph === "paused" ? "Resume" : "Pause";
+  $("bNext").disabled = !exp || ph === "ending" || ph === "loading" || (!alive && s.position >= s.plan.length && !(s.finished.length && !s.finished[s.finished.length - 1].ok));
+  $("bEnd").disabled = !alive || ph === "ending"; $("bStop").disabled = !alive || ph === "ending";
+  const cur = s.plan[s.position];
+  let line = "";
+  if (!exp) line = "Choose an experiment, give the stations their roles, then Initialise.";
+  else if (alive) line = `<b>Trial ${s.position + 1} of ${s.plan.length}</b>` + (s.participant ? ` · participant ${s.participant}` : "") + (cur && cur.condition ? ` · ${esc(cur.condition)}` : "") + ` · <span class="${ph === "running" ? "ok" : "warn"}">${esc(s.phase_text)}</span>` + (tr.t !== undefined && ["running", "paused"].includes(ph) ? ` · ${fmt(tr.t, 1)} / ${fmt(tr.duration_s, 0)} s` : "");
+  else if (ph === "done") line = `<span class="ok">All ${s.plan.length} trials of participant ${s.participant} are done.</span> Enter the next participant's number.`;
+  else if (ph === "failed") line = `<span class="bad">The last trial failed.</span> Initialise tries it again; Next trial skips it.`;
+  else line = `Next: trial ${s.position + 1} of ${s.plan.length}` + (cur && cur.condition ? ` (${esc(cur.condition)})` : "") + ". Initialise loads it.";
+  const autos = (tr.participants || []).filter((p) => p.automation);
+  if (autos.length && alive) line += " · " + autos.map((p) => `${esc(p.role)}: ${esc(p.automation)}`).join(", ");
+  $("trialLine").innerHTML = line;
+  $("prog").style.width = (["running", "paused"].includes(ph) ? Math.min(100, 100 * (tr.t || 0) / (tr.duration_s || 1)) : 0) + "%";
+  $("detail").textContent = ph === "loading" ? s.detail : "";
+  const done = new Map(s.finished.filter((f) => f.participant === s.participant).map((f) => [f.position, f]));
+  $("plan").innerHTML = s.plan.length ? "<tr><th>#</th><th>trial</th><th>condition</th><th class='num'>s</th><th></th></tr>" + s.plan.map((p) => {
+    const f = done.get(p.position), isCur = p.position === s.position && (alive || ph !== "done");
+    return `<tr class="${isCur ? "cur" : ""}"><td>${p.position + 1}</td><td>${p.index}</td><td>${esc(p.condition)}${p.block !== null && p.block !== undefined && p.block !== p.condition ? ` <span class="muted">${esc(p.block)}</span>` : ""}</td><td class="num">${fmt(o.duration || p.duration_s, 0)}</td>` +
+      `<td>${f ? (f.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>') : (isCur && alive ? "▶" : "")}</td></tr>`;
+  }).join("") : "";
+
+  // eHMI
+  const states = (lv.ehmi && lv.ehmi.states) || (exp ? exp.ehmi_states : []);
+  const cars = (lv.ehmi && lv.ehmi.agents) || (exp ? exp.ehmi_agents.map((id) => ({ id, state: "–" })) : []);
+  const running = ["running", "paused"].includes(ph);
+  const allSig = JSON.stringify([states, running]);
+  if ($("ehmiAll").dataset.sig !== allSig) {
+    $("ehmiAll").dataset.sig = allSig;
+    $("ehmiAll").innerHTML = states.length ? `<span class="small muted">All AVs:</span>` + states.map((st) => `<button data-s="${esc(st)}" ${running ? "" : "disabled"}>${st === "off" ? "all off" : esc(st)}</button>`).join("") : '<span class="muted small">none in this experiment</span>';
+    $("ehmiAll").querySelectorAll("button").forEach((b) => b.onclick = () => api("ehmi", { state: b.dataset.s }));
+  }
+  const carSig = JSON.stringify([cars, states, running]);
+  if ($("ehmiCars").dataset.sig !== carSig) {
+    $("ehmiCars").dataset.sig = carSig;
+    $("ehmiCars").innerHTML = cars.map((c) => `<div class="ehmi-car"><b>${esc(c.id)}</b><span class="small muted">${c.rider ? "passenger " + esc(c.rider) + " · " : ""}now</span> <span>${esc(c.state)}</span><select data-a="${esc(c.id)}" ${running ? "" : "disabled"}><option value="">set…</option>${states.map((st) => `<option>${esc(st)}</option>`).join("")}</select></div>`).join("");
+    $("ehmiCars").querySelectorAll("select").forEach((sl) => sl.onchange = () => { if (sl.value) api("ehmi", { state: sl.value, agent: sl.dataset.a }); sl.value = ""; });
+  }
+  // take-over
+  const auto = tr.automated || (exp ? exp.roles.filter((r) => r.automated).map((r) => r.role) : []);
+  $("pTor").hidden = !auto.length;
+  const torSig = JSON.stringify([auto, running]);
+  if ($("tor").dataset.sig !== torSig) {
+    $("tor").dataset.sig = torSig;
+    $("tor").innerHTML = auto.map((r) => `<button data-r="${esc(r)}" ${running ? "" : "disabled"}>Take-over request: ${esc(r)}</button>`).join("");
+    $("tor").querySelectorAll("button").forEach((b) => b.onclick = () => api("takeover", { role: b.dataset.r }));
+  }
+  // conditions
+  fillSelect($("weather"), [["", "weather as is"], ...s.weather_presets.map((w) => [w, w])]);
+  $("bWeather").disabled = !["running", "paused", "ready"].includes(ph); $("bSync").disabled = !running;
+  const w = lv.weather || (exp ? { preset: exp.weather, time: exp.time } : null);
+  $("condNow").textContent = w ? `now: ${w.preset || "?"}${w.time ? " at " + w.time : ""}${w.sun_altitude !== undefined ? ", sun " + fmt(w.sun_altitude, 0) + "°" : ""}` : "";
+
+  // map
+  if (exp && exp.layers === "done" && layersFor !== exp.map) loadLayers(exp.map);
+  const note = !exp ? "Choose an experiment to see its map." : exp.layers === "running" ? "Drawing the map's roads and buildings…" :
+    exp.layers === "none" && !exp.built ? "The map is not built yet." : (!s.live && !alive ? "The live view starts with a trial." : (!s.live ? "Waiting for the first positions…" : ""));
+  $("mapNote").hidden = !note; $("mapNote").textContent = note;
+  if (!fitted && lv.features && lv.features.length) { const p = lv.features.find((f) => f[0] === "participant") || lv.features[0]; map.setView([p[3], p[4]], 17); fitted = true; }
+  drawLive();
+
+  // agents
+  const feats = lv.features || [];
+  const byRole = new Map(feats.filter((f) => f[0] === "participant").map((f) => [f[2], f]));
+  const rows = [];
+  for (const p of tr.participants || []) {
+    const f = byRole.get(p.role), ex = (f && f[7]) || {}, r = p.response || {};
+    rows.push(`<tr><td><span class="swatch" style="background:${KIND_COL.participant}"></span>${esc(PART_KIND[p.kind] || p.kind)}</td><td><b>${esc(p.role)}</b></td>` +
+      `<td class="num">${fmt(f ? f[6] : p.speed_kmh, 1)}</td><td class="small">${f ? f[3].toFixed(5) + ", " + f[4].toFixed(5) : "–"}${ex.h !== undefined ? ` · ${fmt(ex.h, 0)} m up` : ""}</td>` +
+      `<td>${p.station ? (p.connected ? '<span class="ok">connected</span>' : '<span class="bad">missing</span>') : '<span class="muted">host bot</span>'}</td>` +
+      `<td class="num">${fmt(p.rtt_ms, 1)}</td><td class="num">${fmt(p.fps, 0)}</td><td class="num">${fmt(p.image_lag_ms, 0)}</td>` +
+      `<td>${p.response ? `<span class="lamp ${r.button ? "on" : ""}"></span> ${esc(r.presses ?? "")} ${r.slider !== undefined ? "· " + esc(r.slider) : ""}` : ""}</td>` +
+      `<td>${esc(p.automation || ex.a || "")}${(p.takeovers || []).length ? ` · ${(p.takeovers || []).map((x) => x.how ? esc(x.how) + " " + fmt(x.reaction_s, 2) + " s" : (x.no_reaction ? "no reaction" : "waiting")).join(", ")}` : ""}</td></tr>`);
+  }
+  const named = feats.filter((f) => ["av", "agent", "walker", "drone"].includes(f[0]));
+  for (const f of named) {
+    const ex = f[7] || {};
+    rows.push(`<tr><td><span class="swatch" style="background:${KIND_COL[f[0]]}"></span>${esc(KIND_NAME[f[0]])}</td><td>${esc(f[2])}</td><td class="num">${fmt(f[6], 1)}</td>` +
+      `<td class="small">${f[3].toFixed(5)}, ${f[4].toFixed(5)}${ex.h !== undefined ? ` · ${fmt(ex.h, 0)} m up` : ""}</td><td colspan="5" class="small muted">${ex.e ? "eHMI " + esc(ex.e) : ex.m ? esc(ex.m) : ""}</td><td></td></tr>`);
+  }
+  $("agents").innerHTML = rows.length ? "<tr><th>kind</th><th>name</th><th class='num'>km/h</th><th>position</th><th>station</th><th class='num'>rtt ms</th><th class='num'>fps</th><th class='num'>img lag ms</th><th>responses</th><th>automation</th></tr>" + rows.join("") : '<tr><td class="muted">Nothing on the map yet.</td></tr>';
+  const rest = feats.filter((f) => ["sumo", "bike", "bus", "crowd"].includes(f[0]));
+  const counts = {}; for (const f of rest) counts[f[0]] = (counts[f[0]] || 0) + 1;
+  $("agCount").textContent = feats.length ? `${feats.length} on the map` : "";
+  $("moreSum").textContent = rest.length ? Object.entries(counts).map(([k, n]) => `${n} ${KIND_NAME[k]}${n > 1 && !KIND_NAME[k].endsWith("s") ? "s" : ""}`).join(", ") : "no SUMO traffic or crowd yet";
+  if ($("moreBox").open) $("more").innerHTML = "<tr><th>kind</th><th>SUMO id</th><th class='num'>km/h</th><th>position</th></tr>" + rest.slice(0, 200).map((f) => `<tr><td><span class="swatch" style="background:${KIND_COL[f[0]]}"></span>${esc(KIND_NAME[f[0]])}</td><td>${esc(f[2] || f[1])}</td><td class="num">${fmt(f[6], 1)}</td><td class="small">${f[3].toFixed(5)}, ${f[4].toFixed(5)}</td></tr>`).join("");
+
+  // events
+  const evs = (tr.events || []).slice().reverse();
+  $("events").innerHTML = evs.length ? evs.map((e) => `<tr class="${e[1] === "collision" ? "ev-collision" : ""}"><td class="num muted">${fmt(e[0], 1)}</td><td>${esc(e[1])}</td><td class="small">${esc(e[2])}</td></tr>`).join("") : '<tr><td class="muted">No events yet.</td></tr>';
+  $("colCount").textContent = tr.collisions !== undefined ? `${tr.collisions} collision${tr.collisions === 1 ? "" : "s"}` : "";
+
+  // trials
+  const zip = (d) => `/api/zip?dir=${encodeURIComponent(d)}${tq ? "&" + tq : ""}`;
+  const actions = (d, viewer) => !d ? "" : (viewer ? `<a href="${viewer}${tq ? "&" + tq : ""}" target="_blank" rel="noopener">viewer</a>` :
+    (s.exports[d] === "running" ? '<span class="muted">exporting…</span>' : `<button class="small" data-x="${esc(d)}">viewer</button>`)) + ` · <a href="${zip(d)}">zip</a>`;
+  $("trials").innerHTML = s.finished.length ? "<tr><th>#</th><th>P</th><th>trial</th><th>result</th><th class='num'>sim s</th><th class='num'>RTF</th><th class='num'>collisions</th><th class='num'>SUMO</th><th>stations</th><th></th></tr>" +
+    s.finished.slice().reverse().map((f) => { const m = f.summary || {};
+      return `<tr><td>${f.position + 1}</td><td>${f.participant || "–"}</td><td>${f.index}${f.condition ? " · " + esc(f.condition) : ""}</td>` +
+      `<td>${f.ok ? (m.aborted ? `<span class="warn">${esc(m.aborted)}</span>` : '<span class="ok">done</span>') : `<span class="bad" title="${esc(f.error || "")}">failed (code ${f.code})</span>`}</td>` +
+      `<td class="num">${fmt(m.sim_s, 1)}</td><td class="num">${fmt(m.rtf, 2)}</td><td class="num">${m.collisions ?? "–"}</td><td class="num">${m.sumo ?? "–"}</td>` +
+      `<td class="small">${esc((m.stations || []).join(", "))}</td><td class="small">${actions(f.dir, f.viewer)}</td></tr>`; }).join("") :
+    '<tr><td class="muted">Finished trials appear here, with links to the trial viewer and their logs.</td></tr>';
+  $("past").innerHTML = (s.past || []).map((p) => { const m = p.summary || {};
+    return `<tr><td class="small">${esc(p.dir)}</td><td class="num">${fmt(m.sim_s, 1)} s</td><td class="num">RTF ${fmt(m.rtf, 2)}</td><td class="small">${actions(p.dir, p.viewer)}</td></tr>`; }).join("");
+  document.querySelectorAll("button[data-x]").forEach((b) => b.onclick = () => api("export", { dir: b.dataset.x }));
+
+  $("hostlog").textContent = (s.log || []).join("\n");
+  $("messages").innerHTML = (s.messages || []).slice().reverse().map((m) => `<div><span>${esc(m[0])}</span> <b>${esc(m[1])}</b></div>`).join("");
+}
+
+let timer = null;
+async function poll(once) {
+  if (busy && once) return;
+  busy = true;
+  try {
+    const r = await fetch("/api/state" + (tq ? "?" + tq : ""), { cache: "no-store" });
+    if (r.ok) { S = await r.json(); render(); }
+    else { $("cStateT").textContent = "HTTP " + r.status; }
+  } catch (e) { $("cStateT").textContent = "dashboard not reachable"; $("cState").className = "chip failed"; }
+  busy = false;
+  if (!once) { clearTimeout(timer); timer = setTimeout(poll, 250); }
+}
+poll();
+</script>
+</body>
+</html>
