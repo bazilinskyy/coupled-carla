@@ -17,6 +17,7 @@ Checks (errors stop a run going wrong; warnings are worth a look):
   durations  positive trial durations; visual syncs, take-over requests and bot schedules within their trial
   design     conditions used are defined, factors and block_by, the counterbalancing order
   multi-GPU  server.multigpu: secondary names, roles, port clashes, launch only on this machine (multigpu.py)
+  photoreal  map.photoreal: its options and caps, a baked level and its OpenDRIVE (photoreal.py)
 
 Exit code 1 when there are errors.
 """
@@ -30,7 +31,7 @@ from pathlib import Path
 
 import yaml
 
-from . import config, drones, multigpu, responses, study, takeover
+from . import config, drones, multigpu, photoreal, responses, study, takeover
 
 OVERRIDES = ("simulation", "traffic", "participants", "agents", "logging", "coupling", "ehmi", "eye_contact",
              "sound", "displays", "haptics", "drones")
@@ -368,6 +369,8 @@ def check(raw, cfg, roads=True, participants=None, order=None):
     _keys(rep, raw, config.DEFAULTS)
     for level, msg in multigpu.problems(cfg):        # server.multigpu: names, roles, ports
         (rep.error if level == "error" else rep.warn)("server.multigpu", msg)
+    for level, msg in photoreal.problems(cfg):       # map.photoreal: keys, caps, needs a baked level
+        (rep.error if level == "error" else rep.warn)("map.photoreal", msg)
     ehmi = raw.get("ehmi")
     if isinstance(ehmi, dict):
         _unknown(rep, "ehmi", ehmi, EHMI_KEYS)
