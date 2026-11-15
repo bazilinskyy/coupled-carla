@@ -225,6 +225,10 @@ the street grid with SUMO traffic.
 AV yields and its passenger switches the eHMI from "I'M STOPPING" (cyan) to "GO AHEAD" (green); a manual
 driver follows. Each view below was rendered by a separate station process (here four bot stations on one machine).
 
+| Pedestrian station: the AV stops, "I'M STOPPING" | Pedestrian station: "GO AHEAD" on its front, roof and the road |
+|---|---|
+| ![pedestrian sees I'M STOPPING](docs/img/ehmi_pedestrian_stopping.jpg) | ![pedestrian sees GO AHEAD on the AV's front, roof and the road](docs/img/ehmi_pedestrian_go.jpg) |
+
 ![Four stations in one trial at the same moment, east of Eindhoven station: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot](docs/img/stations_four_views.jpg)
 
 The same moment in the trial viewer: the pedestrian (red) crossing, the AV (dark blue) stopped with its cyan
@@ -501,6 +505,19 @@ gives 27,000 lm with a 70 m reach (CARLA's light defaults). On the packaged serv
 at night, and a lamp lit in front of the camera makes the lower half of the picture 8.8 times brighter.
 `tools/lamp_check.py` checks this on a running server: it spawns lamps at night, prints the light manager's view of
 each and saves camera frames with the street lights off and on.
+
+**Camera image quality.** Cameras that save frames (`--frames-every`, stations' frames, film cameras,
+`tools/scenery_shots.py`) follow `simulation.capture` (`coupledcarla/look.py`): rendered at 2x and downscaled, no
+motion blur or lens flare, bloom 0.3, and on CARLA 0.9.x a manual exposure from the sun's altitude and the cloudiness
+(EV 11 at a clear noon, 6.2 at night), rendered at 10 Hz so anti-aliasing has history. Measured in Eindhoven: about
+twice the sharpness, a grey road instead of a white one, readable dusk. Three headless stations: real-time factor
+0.94 → 0.82; set `capture: false` or `supersample: 1` for timing-critical runs. `python tools/look_check.py` measures
+camera variants; `python -m coupledcarla.look FRAMES` and the shot tools reject empty worlds (with a
+semantic-segmentation camera: too little building, tree, pole or vehicle in view) and dark, blown-out or glaring
+frames. On CARLA 0.9.16 the roads generated from OpenDRIVE stay plain grey: their meshes cannot be reached by the
+texture API. SUMO's traffic lights show as signal heads on kerb poles (CARLA's own pole and backboard meshes), one
+per approach, with the lit lamp in SUMO's colour (`simulation.traffic_lights.style: head`; `marker` for the old
+glowing points). On CARLA 1.0 use the `CoupledClean` post-process profile (`coupledcarla/data/postprocess`).
 
 ### Parked cars
 
