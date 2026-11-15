@@ -61,7 +61,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
 - [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
 - [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
-- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [session dashboard](#session-dashboard), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
+- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
 - [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
 - [Traffic](#traffic) · [Traffic lights](#traffic-lights)
 - [Data](#logging-and-data): [logging](#logging-and-data), [analysis](#analysis), [trial viewer](#trial-viewer)
@@ -1393,6 +1393,37 @@ Not yet: the page cannot edit an experiment file or a station's options (screen,
 can change only between trials, live weather leaves the cars' headlights as they were at the start, and without
 internet the page has no map tiles or Leaflet.
 
+## Simulated humans (optional)
+
+Two optional models from Mark Colley's open-source projects put simulated humans into a trial. Both need extra
+packages on the host only (best in a separate venv); without them a trial runs as before, with one log line.
+[`experiments/eindhoven_myosuite.yaml`](experiments/eindhoven_myosuite.yaml) uses both.
+
+- **A musculoskeletal driver** (`input: myosuite`, `coupledcarla/myodriver.py`), built on
+  [myosuite-carla](https://github.com/M-Colley/myosuite-carla): MyoSuite's seated full body (`preset: fast` keeps
+  the 114 muscles that drive; `full`: all 416) presses spring-loaded pedals and turns a steering wheel; what they
+  measure becomes the car's controls, and the car's acceleration loads the body. Its reflex driver (two-point
+  steering, Salvucci & Gray 2004; the Intelligent Driver Model, Treiber et al. 2000) gets the lane ahead, the SUMO
+  car ahead and red lights, and slows for bends. `myodriver.csv` has intent, measured controls, mechanism travel and
+  contact forces per tick, `myodriver_muscles.csv` every driving muscle's activation and force,
+  `myodriver_summary.json` lane and speed keeping. Measured (15 Nov 2026, Eindhoven, 150 s, SUMO traffic): lane RMS
+  0.05 m on a straight street, 30.0 km/h for 30, 0 collisions on CARLA 1.0 and 0.9.16; the muscles cost 4-5 ms per
+  tick (real-time factor 0.99). It sees only SUMO traffic, keeps its lane, goes straight on at junctions and needs
+  bends of 15 m radius or more. Install: MyoSuite's dev branch, `myosuite-carla` and `mujoco>=3.7,<4`.
+- **Crowd walkers that cross on what they see** (`traffic.walkers.perception: {model: embodied}`,
+  `coupledcarla/embodiedped.py`), with [embodied-human](https://github.com/M-Colley/embodied-human)'s eyes
+  (saccade latency and duration), peripheral vision (noisier away from the gaze) and reaction times: each walker
+  looks both ways and judges a car's time to arrival from its looming (above 0.003 rad/s, Hoffmann & Mortimer
+  1994), a far car's from its distance and an assumed speed, then applies the crowd's own critical gap. Replayed
+  through the same SUMO traffic (`python tools/embodiedped_check.py`, 4 maps), these walkers accept shorter gaps
+  from faster cars, as people do (Lobjois & Cavallo 2007), where the crowd's rule on true positions shows no such
+  effect; their overall risk level is not calibrated (in 45 of 130 replayed crossings a car would have had to brake),
+  so treat it as a research option. `crowd_gaze.csv` has where each walker at the kerb looks, its believed and the
+  true gap. Install: `embodied-human` (numpy and scipy only).
+
+[embodied-ui](https://github.com/M-Colley/embodied-ui) (simulated controls for MuJoCo bodies) is not used: the
+stations have real controls.
+
 ## Sound, in-car displays and designed eHMIs
 
 Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off unless an experiment turns them on
@@ -2062,6 +2093,9 @@ just as much; how to report bugs, propose features and run the tests: [CONTRIBUT
 
 ## Credits, data and licences
 
+- Simulated humans: Mark Colley's [myosuite-carla](https://github.com/M-Colley/myosuite-carla) (Apache-2.0) with
+  [MyoSuite](https://github.com/MyoHub/myosuite) (Apache-2.0) on [MuJoCo](https://mujoco.org) (Apache-2.0), and
+  [embodied-human](https://github.com/M-Colley/embodied-human) (Apache-2.0 AND MIT), used as separately installed packages.
 - Coupled CARLA's own code is released under the [MIT License](LICENSE).
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL. Built maps and
