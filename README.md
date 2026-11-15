@@ -39,6 +39,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Participants, inputs and views](#participants-inputs-and-views)
 - [Coupled experiments (phase 2)](#coupled-experiments-phase-2)
 - [Phase 3: CARLA 1.0 and the Eindhoven digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin)
+- [Drones](#drones)
 - [Traffic](#traffic)
 - [Traffic lights](#traffic-lights)
 - [Logging and data](#logging-and-data)
@@ -987,6 +988,67 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   light bars, shapes, arrows, text, pulse/blink/sweep animations) on the front, rear, roof, windshield, bumper or
   projected on the road, drawn in the world or over each station's camera image; examples in `data/ehmi/`.
 
+## Drones
+
+A participant can fly a quadrotor (`kind: drone`) and AI drones fly missions (`drones:`), all with coupled-sim's
+drone model ported to numpy ([`dronemodel.py`](coupledcarla/dronemodel.py)): a rigid body with rotor thrust and
+torque ∝ ω², motor lag, drag and gyroscopic terms; a PX4-style cascade (position → velocity PI with anti-windup →
+geometric attitude after Lee, Leok & McClamroch 2010 → rates → mixer) at 500 Hz, vectorised over the fleet (1.2 ms
+per 50 Hz tick on lin5080 for 1, 8 or 30 drones); Consumer (0.9 kg) and Industrial (6.3 kg) airframes; Dryden
+turbulence (MIL-F-8785C) from the wind (Open-Meteo's with `weather: real`); a battery from momentum theory with a
+figure of merit (Leishman 2006; about 33 and 51 min hover). The host integrates every drone and moves a pilot
+station's camera in the same tick's batch, so picture and drone always agree.
+
+```yaml
+participants:
+  - role: pilot
+    kind: drone
+    input: gamepad            # keyboard | gamepad | rc (a transmitter as a joystick) | bot
+    airframe: consumer        # consumer | industrial
+    mode: position            # position (sticks set the velocity, release holds) | attitude (sticks tilt it)
+    view: fpv                 # fpv (level gimbal camera) | los (from the pilot's eyes) | chase
+    spawn: {lat: 51.43898, lon: 5.47870, heading: 0}
+    geofence: {radius_m: 600, max_altitude_m: 120}
+    bot: {path: [[lat, lon, height_m], ...], speed: 7, land: true}   # headless runs fly this
+drones:
+  missions:
+    - {kind: delivery, count: 3, airframe: industrial, drop: winch}   # depot → homes (3DBAG/OSM buildings) → depot
+    - {kind: swarm, count: 8, flocking: vasarhelyi2018}               # or coupled_sim, or your own parameters
+    - {kind: patrol}                                                  # a loop above the roofs (route: [[lat, lon]])
+    - {kind: hover, point: {lat, lon, height_m: 50}, look: {lat, lon}, orbit_speed: 2.5}
+  cameras: [{name: square, lat, lon, height_m: 1.7, look: nearest}]   # observers saving frames
+```
+
+| Keys (mode 2) | |
+|---|---|
+| W/S, A/D | forward/back, sideways (right stick) |
+| ↑/↓ (Space/Shift), ←/→ (Q/E) | climb/descend, turn (left stick) |
+| I/K, C, M, H | gimbal up/down, view, position/attitude mode, return to home |
+
+Delivery drones cruise 20 m (`clearance_m`) above the highest roof or tree within 10 m of their route, 4 m apart in
+height per drone, and descend to land or lower the parcel on a winch. Swarms flock by Vásárhelyi et al. (2018,
+Science Robotics 3(20)): `coupled_sim` (6 m/s, 15 m apart) or `vasarhelyi2018` (the authors'
+[robotsim](https://github.com/csviragh/robotsim) parameter set, 4 m/s, 26 m apart); buildings that reach up to them
+act through shill agents. AI drones keep 10 m from each other and from the pilots' drones. A pilot crashes into what
+CARLA's `cast_ray` hits (building, tree, pole) or a vehicle's or walker's box, and hard landings (over 3 m/s) count
+too: rotors off, it falls, and it can fly again from the ground. Position mode slows the descent below 5 m, as
+consumer drones' downward sensors do. Logs: `drones.csv` (pilots every frame, AI every 0.1 s: pose, height above
+ground, rotors, blade-passing frequency, thrust, power, battery, sticks, view), `frames.csv` rows (`kind` drone /
+drone_ai) and `drone_*` events (spawn, phase, delivery, crash, landed, geofence, battery, rth, view, mode). Stations
+with sound hear the rotors: the blade-passing tone with harmonics and broadband noise at the sound power limits of
+EU Delegated Regulation 2019/945 (81 dB(A) for a C1 drone, about 59 dB(A) at 5 m in hover), rising with the thrust;
+the industrial drone's 96.6 dB(A) extends the C2 mass law to 6.3 kg (an extrapolation, not a measurement).
+
+Looks: on CARLA 1.0 with the content pack, `blueprint.cc_drone_consumer` / `_industrial`
+(`/Game/CoupledCarla/Drones`, made headless by `tools/drone_mesh.py` and `tools/ue_drone_assets.py`): navigation
+lights, a strobe, spinning blades and blur discs, still props when landed. CARLA has no drone, and 0.9.16 cannot move
+a mesh prop, so 0.9.16 gets basic shapes (a static.prop.mesh spawned with a mass, physics then off) and debug-line
+arms and rotor discs. [`experiments/eindhoven_drones.yaml`](experiments/eindhoven_drones.yaml) flies them all over the
+Eindhoven twin: on lin5080 (CARLA 1.0, `-nullrhi`, 120 s) 14 drones cost 3.1 ms per tick, 3 parcels were delivered,
+every AI drone stayed 19-43 m above the roofs, and the pilot bot flew 587 m and landed at 0.5 m/s. Not yet checked:
+the rendered looks and views, the rotor sound by ear, a station pilot with a real camera, and the 0.9.16 fallback on
+a 0.9.16 server. Delivery routes climb over tall buildings rather than around them.
+
 ## Traffic
 
 - **Models.** SUMO's Extended IDM (EIDM) for car following (human-like reaction and drive-off) with
@@ -1376,6 +1438,10 @@ What cost time while building phases 1 and 2, so it does not again:
 - Light blueprints spawned with CARLA cannot be moved afterwards (their root mesh is Static): spawn them in place.
 - A CARLA 1.0 editor server (`-game`) grows with every world it loads: one reached 40.9 GB and was OOM-killed.
   Restart it between maps, or watch it.
+- A drone's ground is the highest *landable* surface below it (ground, road, roof) from `cast_ray`, not
+  `ground_projection`, which stops on tree canopies; on a World Partition level both find nothing in unloaded cells.
+- Unreal's glTF import turns glTF (x, y, z) into Unreal (x, z, y): write the model's (x forward, y left, z up) as
+  glTF (x, z, -y). Interchange also makes placeholder material assets for glTF slots even with materials off.
 
 ## Project layout
 
@@ -1415,6 +1481,10 @@ coupledcarla/
   cities.py          experiment files and maps for experiments/cities.yaml
   traffic.py         SUMO vehicle types and demand per trial
   run.py             the host: trial loop, participants, agents, stations
+  dronemodel.py      drone flight model (coupled-sim port): rigid body, PX4 cascade, flocking, Dryden, battery
+  droneinput.py      drone sticks (keyboard, gamepad, RC), bot pilot, pilot commands
+  droneplan.py       drone obstacles (roofs, trees) and missions (delivery, patrol, swarm, hover)
+  drones.py          the drones on the host: flight, crashes, views, HUD, logs
   station.py         a participant's station (driver, pedestrian, AV passenger; keyboard, wheel or bot)
   coupling.py        host <-> station control channel (TCP, JSON lines)
   ai.py              scripted AI cars and walkers, eHMI slots, eye contact, the crowd, SUMO yielding
