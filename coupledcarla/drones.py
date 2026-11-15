@@ -380,6 +380,7 @@ class DroneWorld:
         self.view = None
         self.cameras = []       # observer cameras (drones.cameras)
         self.ground_cache = {}
+        self.routers = {}       # routing options (json) -> plan.Router
         log(f"drones: look {self.mode}")
 
     # -- set-up ---------------------------------------------------------------------------------------------------
@@ -569,6 +570,25 @@ class DroneWorld:
         x, y = float(q[0]), float(q[1])
         return np.array([x, y, self.ground_z(x, -y)])
 
+    def _router(self, m):
+        """The plan.Router for a mission: the drones' routing options with the mission's own over them, no-fly areas
+        from them (given polygons, OSM's with no_fly_osm)."""
+        rc = plan.routing(self.cfg.get("routing"), m.get("routing"))
+        key = json.dumps(rc, sort_keys=True, default=str)
+        if key not in self.routers:
+            rings = [list(r) for r in rc.get("no_fly") or []]
+            bb = self.tc["map"].get("bbox")
+            if rc.get("no_fly_osm") and bb:
+                rings += plan.osm_no_fly(bb, self.mdir / "real" / "osm_nofly.json")
+            polys = []
+            for r in rings:
+                xy = [self.geo.to_carla(float(p[0]), float(p[1])) for p in r]
+                polys.append([(x, -y) for x, y in xy])
+            self.routers[key] = plan.Router(self.obs, rc, polys, self.log)
+            if polys:
+                self.log(f"drones: {len(polys)} no-fly areas")
+        return self.routers[key]
+
     def _mission(self, m, centre, rng):
         kind = m.get("kind", "delivery")
         mid = m.get("id") or f"{kind}{len(self.missions) + 1}"
@@ -594,20 +614,23 @@ class DroneWorld:
                                                 c[1] + rng.uniform(-radius, radius) * 0.7), rng)]
                 pad = depot + np.array([3.0 * math.cos(2.4 * k), 3.0 * math.sin(2.4 * k), 0.0]) * (k > 0)
                 pad[2] = self.ground_z(pad[0], -pad[1])
-                cruise = []
+                router, speed = self._router(m), float(m.get("speed", 12.0))
+                winch = float(m.get("winch_m", 7.0)) if m.get("drop", "land") == "winch" else 0.3
+                legs = []
                 for d in drops:
-                    top = self.obs.corridor_top(pad, d, corridor)
-                    base = max(pad[2], d[2])
-                    cruise.append(max(top, base) + clear + float(m.get("layer_m", 4.0)) * (k + len(self.missions)))
+                    kw = dict(k=k + len(self.missions), clearance=clear, corridor=corridor, layer_m=m.get("layer_m"))
+                    legs.append((router.leg(pad, d, af, speed, d[2] + winch, **kw),
+                                 router.leg(d, pad, af, speed, pad[2] + 0.3, **kw)))
                 name = f"{mid}_{k}" if n > 1 else mid
                 i = self._add(af, pad, rng.uniform(-math.pi, math.pi), name, "delivery", name)
-                ms = plan.Delivery(name, self.fleet, i, tuple(pad), [tuple(d) for d in drops], cruise, None,
+                ms = plan.Delivery(name, self.fleet, i, tuple(pad), [tuple(d) for d in drops], None, None,
                                    start + float(m.get("stagger_s", 6.0)) * k, float(m.get("dwell_s", 10.0)),
-                                   float(m.get("speed", 12.0)), m.get("drop", "land"), float(m.get("winch_m", 7.0)),
-                                   bool(m.get("loop", True)))
+                                   speed, m.get("drop", "land"), float(m.get("winch_m", 7.0)),
+                                   bool(m.get("loop", True)), legs=legs)
                 self._register(ms)
-                self.log(f"drones: {name} from {pad[0]:.0f},{-pad[1]:.0f} to {len(drops)} addresses, cruise "
-                         f"{', '.join(f'{z - pad[2]:.0f}' for z in cruise)} m above the depot")
+                self.log(f"drones: {name} from {pad[0]:.0f},{-pad[1]:.0f} to {len(drops)} addresses: " + "; ".join(
+                    f"{lg.z - pad[2]:.0f} m {lg.how}, {lg.length:.0f} m ({lg.detour:.2f}x)"
+                    for out, back in legs for lg in (out, back)))
         elif kind in ("patrol", "hover"):
             n = int(m.get("count", 1))
             for k in range(n):
@@ -622,11 +645,19 @@ class DroneWorld:
                     else:
                         xy = plan.loop_points(c, radius * 0.45, 24, rng.uniform(0, 2 * math.pi))
                     alt = m.get("altitude_m")
-                    tops = [self.obs.corridor_top(a, b, corridor) for a, b in zip(xy, xy[1:] + xy[:1])]
-                    z = (start_pt[2] + float(alt)) if alt is not None else \
-                        max(max(tops), start_pt[2]) + max(clear, 35.0) + 3.0 * k
-                    ms = plan.Patrol(name, self.fleet, i, [(p[0], p[1], z) for p in xy], float(m.get("speed", 8.0)),
-                                     start + 2.0 * k)
+                    router, speed = self._router(m), float(m.get("speed", 8.0))
+                    if router.rc.get("mode", "band") == "over":
+                        tops = [self.obs.corridor_top(a, b, corridor) for a, b in zip(xy, xy[1:] + xy[:1])]
+                        z = (start_pt[2] + float(alt)) if alt is not None else \
+                            max(max(tops), start_pt[2]) + max(clear, 35.0) + 3.0 * k
+                        ms = plan.Patrol(name, self.fleet, i, [(p[0], p[1], z) for p in xy], speed, start + 2.0 * k)
+                    else:
+                        lp = router.loop([tuple(p[:2]) for p in xy], start_pt, af, speed,
+                                         (start_pt[2] + float(alt)) if alt is not None else None, k)
+                        ms = plan.Patrol(name, self.fleet, i, lp.points, speed, start + 2.0 * k, lp.limits,
+                                         lp.transit, lp.transit_limits)
+                        self.log(f"drones: {name} patrols {lp.length:.0f} m at {lp.z - start_pt[2]:.0f} m ({lp.how}, "
+                                 f"{lp.ms:.0f} ms)")
                 else:
                     pt = m.get("point") or {}
                     p = self._point(pt, c)
@@ -1299,12 +1330,42 @@ class DroneView:
 
 MISSION_KEYS = {"kind", "id", "count", "airframe", "start_s", "stagger_s", "speed", "clearance_m", "corridor_m",
                 "layer_m", "centre", "radius_m", "depot", "addresses", "addresses_per_drone", "dwell_s", "drop",
-                "winch_m", "loop", "route", "altitude_m", "start", "point", "look", "orbit_speed", "flocking"}
+                "winch_m", "loop", "route", "altitude_m", "start", "point", "look", "orbit_speed", "flocking",
+                "routing"}
 MISSION_KINDS = ("delivery", "patrol", "swarm", "hover")
 PILOT_KEYS = {"airframe", "mode", "geofence", "gimbal_pitch_deg", "pilot_position", "pilot_offset_m",
               "rth_altitude_m", "axes", "joystick", "deadband", "expo", "buttons"}
 PILOT_INPUTS = {"keyboard", "gamepad", "rc", "bot", "autopilot"}
 CAMERA_KEYS = {"name", "lat", "lon", "height_m", "look", "every_s", "fov", "size"}
+
+
+def _check_routing(rc, where, error, warn, points):
+    if rc is None:
+        return
+    if not isinstance(rc, dict):
+        error(where, f"{rc!r} is not a mapping")
+        return
+    for k in rc:
+        if k not in plan.ROUTING:
+            error(where, f"unknown key {k!r}")
+    if rc.get("mode", "band") not in ("band", "over"):
+        error(where, f"mode {rc.get('mode')!r} is not band or over")
+    if rc.get("layers", "heading") not in ("heading", "drone"):
+        error(where, f"layers {rc.get('layers')!r} is not heading or drone")
+    band = rc.get("band_m")
+    if band is not None:
+        if not (isinstance(band, (list, tuple)) and len(band) == 2 and all(isinstance(b, (int, float)) for b in band)
+                and 0 < band[0] <= band[1]):
+            error(where, f"band_m {band!r} needs [low, high] metres above the ground")
+        elif band[1] > float(rc.get("max_altitude_m", 120.0)):
+            error(where, f"band_m {band!r} reaches above max_altitude_m")
+    if float(rc.get("max_altitude_m", 120.0) or 0) > 120:
+        warn(where, f"max_altitude_m {rc['max_altitude_m']} is above the EU's 120 m")
+    for r in rc.get("no_fly") or []:
+        if not (isinstance(r, list) and len(r) >= 3 and all(isinstance(p, (list, tuple)) and len(p) >= 2 for p in r)):
+            error(f"{where} no_fly", "needs polygons of [lat, lon] (at least 3 points each)")
+            break
+        points(f"{where} no_fly", [list(p[:2]) for p in r], "any")
 
 
 def check_config(tc, where, duration, error, warn, points):
@@ -1313,6 +1374,7 @@ def check_config(tc, where, duration, error, warn, points):
     dc = tc.get("drones") or {}
     if dc.get("visual", "auto") not in ("auto", "blueprint", "mesh", "shapes", "none"):
         error(f"{where} drones.visual", f"{dc.get('visual')!r} is not auto, blueprint, mesh, shapes or none")
+    _check_routing(dc.get("routing"), f"{where} drones.routing", error, warn, points)
     ids = []
     for m in dc.get("missions") or []:
         if not isinstance(m, dict):
@@ -1322,6 +1384,8 @@ def check_config(tc, where, duration, error, warn, points):
         for k in m:
             if k not in MISSION_KEYS:
                 error(mw, f"unknown key {k!r}")
+        if m.get("routing") is not None:
+            _check_routing(m["routing"], f"{mw} routing", error, warn, points)
         kind = m.get("kind", "delivery")
         if kind not in MISSION_KINDS:
             error(mw, f"kind {kind!r} is not one of {', '.join(MISSION_KINDS)}")
