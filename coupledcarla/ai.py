@@ -491,6 +491,8 @@ class SumoYield:
                     self._release(sid)
             return
         wl = [w.get_location() for w in walkers]
+        for sid in [s for s in self.held if s not in sync.sumo2carla_ids]:
+            self._release(sid)       # left CARLA (beyond the level of detail) or arrived: held at 0 km/h for good
         for sid, cid in list(sync.sumo2carla_ids.items()):
             actor = world.get_actor(cid)
             if actor is None:
