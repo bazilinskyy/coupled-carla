@@ -679,7 +679,24 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 scenery.update([a.get_location() for a in focus_actors])
             if parked is not None and summary["ticks"] % 50 == 35:
                 parked.update([a.get_location() for a in focus_actors])
-            if level_stream and focus_actors and summary["ticks"] % 50 == 0:
+            if photo is not None and summary["ticks"] % 5 == 0:
+                # Cesium streams the photo tiles for the spectator's view: keep it where the saved or shown view is
+                # (a film camera, the drone pilot's camera, the participant's view), else just behind the participant
+                cams = ([r.camera for r in film.rigs if r.camera is not None] if film is not None else []) + \
+                    ([drone_world.view.camera] if drone_world is not None and getattr(drone_world, "view", None)
+                     is not None and getattr(drone_world.view, "camera", None) is not None else []) + \
+                    ([view.camera] if view is not None and getattr(view, "camera", None) is not None else [])
+                try:
+                    tf = cams[0].get_transform() if cams else None
+                    if tf is None and focus_actors:
+                        a = focus_actors[0].get_transform()
+                        fwd = a.get_forward_vector()
+                        tf = carla.Transform(a.location - fwd * 8.0 + carla.Location(z=3.0), a.rotation)
+                    if tf is not None:
+                        side.spectator.set_transform(tf)
+                except RuntimeError:
+                    pass
+            elif level_stream and focus_actors and summary["ticks"] % 50 == 0:
                 # a baked World Partition level streams its cells (ground, roads, buildings, with their collision)
                 # around the spectator: keep it over the first participant, high up and looking at the sky
                 loc = focus_actors[0].get_location()
