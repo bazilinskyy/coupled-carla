@@ -165,6 +165,7 @@ CONCRETE, DIRT = "SM_Square_61", "SM_Square_131"     # M_Concrete_04; M_Ground01
 # ground kind (OSM fallback or bgt.surface_kind) -> mesh; bricks and tiles get CARLA's sidewalk paving (no
 # brick ground mesh in the 0.9.16 catalogue)
 GROUND_MESH = {"green": GRASS, "open": PAVING, "closed": CONCRETE, "unpaved": DIRT, "water": WATER}
+LAMP_MIN_M = 1.5        # lamps closer than this are one lamp mapped twice
 LOWER_MAX, TILE_MIN = 0.3, 10.0    # a ground square sinks at most this under the terrain for a road, else it splits
 SPLIT_SHARE = 0.6     # a BGT tile whose main kind covers less than this of its ground is split in four
 GREEN_LANDUSE = {"grass", "forest", "meadow", "village_green", "recreation_ground", "cemetery", "allotments",
@@ -478,7 +479,7 @@ class Placer:
         if centre:      # where the mesh is (Town03 ground meshes have their pivot 100-400 m away): its cell
             item.append([round(cx, 1), round(cy, 1)])
         self.items.append(item)
-        self.bases.append(base or (cx, cy, g))
+        self.bases.append(base or (x, y, g))     # (the pivot: a lamp's pole, not the middle of its arm)
         self.counts[kind] += 1
         return item
 
@@ -904,6 +905,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             return wp.transform.rotation.yaw, math.degrees(math.atan2(loc.y - y, loc.x - x))
 
         lamps = 0
+        lamp_at = {}        # 2 m cells -> lamps placed: a lamp mapped twice (two lights of one mast) stands once
+
+        def lamp_twin(x, y):
+            return any(math.hypot(x - a, y - b) < LAMP_MIN_M for i in (-1, 0, 1) for j in (-1, 0, 1)
+                       for a, b in lamp_at.get((int(x // 2) + i, int(y // 2) + j), ()))
         for el in els:
             if el["type"] != "node":
                 continue
@@ -912,6 +918,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             if t.get("highway") == "street_lamp":
                 if not free(x, y, 0.3):
                     continue
+                if lamp_twin(x, y):
+                    pl.counts["lamp_twin"] += 1
+                    continue
+                lamp_at.setdefault((int(x // 2), int(y // 2)), []).append((x, y))
                 _, towards = road_yaw(x, y)
                 wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
                 far = wp is None or wp.transform.location.distance(carla.Location(x=x, y=y)) > 9
@@ -959,6 +969,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             log(f"scenery: OSM maps {lamps} street lamps; {done} more along the roads")
         elif m_lamps:
             log(f"scenery: {lamps} street lamps from the city's register")
+        if pl.counts["lamp_twin"]:
+            log(f"scenery: {pl.counts['lamp_twin']} lamps left out within {LAMP_MIN_M} m of another (mapped twice)")
         log(f"scenery: {pl.counts['furniture']} pieces of street furniture, {pl.counts['lamp']} lamps")
 
     # shared bikes and scooters where GBFS feeds put them (gbfs.py)
