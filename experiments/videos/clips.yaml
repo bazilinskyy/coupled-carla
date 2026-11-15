@@ -1,0 +1,247 @@
+# Demo video clips (tools/make_videos.py). Each clip runs one trial of an experiment headless with film cameras
+# (coupledcarla/film.py) or bot stations (kind: stations, views composed into a grid), keeps frames on a grid of
+# simulation time from start_s (trial time) for duration_s, and encodes a short mp4 with a poster and a preview.
+#   python tools/make_videos.py render <name>      (one clip)      python tools/make_videos.py render --all
+defaults:
+  fps: 25
+  size: [1280, 720]
+  crf: 28
+  # capture cameras: no motion blur, less bloom (eHMI light lines), a darker auto exposure (0.9.16's pale OSM roads)
+  attributes: {motion_blur_intensity: 0, motion_blur_max_distortion: 0, bloom_intensity: 0.3,
+               exposure_compensation: -0.7, exposure_max_bright: 15}
+  # soft daylight (the sun stands where it did at the clip's time); a clip's own weather replaces it
+  weather: {cloudiness: 20, precipitation: 0, precipitation_deposits: 0, wetness: 0, wind_intensity: 10, fog_density: 0}
+
+clips:
+  - name: eindhoven_rush_hour
+    title: Rush hour in Eindhoven
+    scale: [960, 540]            # a moving camera full of detail: 960x540 keeps it under 4 MB
+    crf: 29
+    place: Eindhoven centre, Netherlands
+    role: driver (autopilot), chase camera
+    when: weekday 17:15
+    agents: SUMO cars from the Dutch register, cyclists, real bus lines at their timetable
+    notice: dense mixed traffic around the station, buses of the real lines, cyclists sharing the road
+    experiment: experiments/eindhoven_centre.yaml
+    time: "2026-06-17 17:15"
+    set: {traffic: {cars_per_hour: 3600, bikes_per_hour: 2400}}
+    hold: {driver: 96}
+    start_s: 100
+    duration_s: 20
+    camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}
+
+  - name: eindhoven_pedestrian_ehmi
+    title: Crossing in front of an automated car
+    place: Eindhoven, east of the station
+    role: pedestrian
+    when: midday
+    agents: the AV with its eHMI (front, roof, road, eyes), an oncoming AI car, a pedestrian crowd, SUMO traffic
+    notice: the AV slows, shows I'M STOPPING, then GO AHEAD; its eyes follow the pedestrian
+    experiment: experiments/eindhoven_crowd.yaml
+    local: true
+    time: "2026-09-20 12:30"
+    start_s: 11
+    duration_s: 18
+    attributes: {bloom_intensity: 0.08}      # the eHMI's light lines bloom otherwise
+    camera: {kind: follow, target: pedestrian, offset: [0.22, 0, 0.72], look_ahead_m: 6, look_up_m: 0.7,
+             smooth_s: 0.4, look_at: av1, look_weight: 0.8, look_smooth_s: 0.4, look_max_m: 160, fov: 80}
+
+  - name: crossing_four_views
+    title: Four people, one street
+    crf: 29
+    place: Eindhoven, east of the station
+    role: pedestrian, AV passenger, driver, drone pilot (four bot stations)
+    when: midday
+    agents: the AV with its eHMI and in-car displays, a driver behind it, a drone above, a crowd, SUMO traffic
+    notice: the same moment from four stations, frame-locked in simulation time
+    experiment: experiments/eindhoven_station_ux.yaml
+    kind: stations
+    attributes: {exposure_compensation: 0.3, exposure_max_bright: 13, bloom_intensity: 0.08}   # interiors; eHMI bloom
+    time: "2026-09-20 12:30"
+    start_s: 6
+    duration_s: 20
+    caption: {title: "Four people, one street", line: "Eindhoven  ·  four bot stations in one world"}
+    stations:
+      layout: [2, 2]
+      views:
+        - {role: pedestrian, label: Pedestrian}
+        - {role: av_passenger, label: AV passenger, own: av1}
+        - {role: driver, label: Driver}
+        - {role: pilot, label: Drone pilot}
+    set:
+      traffic: {walkers: {count: 30, radius_m: 120}}
+      sound: {record: false}
+      participants:
+        - role: pedestrian
+          kind: pedestrian
+          station: true
+          spawn: {lat: 51.4428727, lon: 5.4889750, heading: 165}
+          bot: {path: [[51.4427501, 5.4890203]], start_s: 12, speed: 1.4, look: av1}
+        - role: av_passenger
+          kind: av_passenger
+          station: true
+          agent: av1
+          bot: {ehmi: [[13, yielding], [16, go], [21, driving]]}
+          displays:
+            centre: centre_screen
+            hud: hud_speed
+            messages:
+              - {at: 10, seconds: 4, display: centre, text: "Pedestrian crossing ahead", color: "#FFD60A"}
+        - role: driver
+          kind: driver
+          station: true
+          vehicle: vehicle.lincoln.mkz_2020
+          spawn: {lat: 51.4431683, lon: 5.4913458, heading: 255}
+          displays: {cluster: true, hud: hud_speed}
+        - role: pilot
+          kind: drone
+          station: true
+          airframe: consumer
+          mode: position
+          view: fpv
+          gimbal_pitch_deg: -36
+          spawn: {lat: 51.44305, lon: 5.49020, heading: 255}     # over the street east of the crossing, facing it
+          bot: {path: [[51.44305, 5.49020, 22], [51.44293, 5.48945, 22]], speed: 4, start_s: 0, land: false}
+
+  - name: eindhoven_cyclist
+    title: Riding with Dutch cyclists
+    scale: [960, 540]
+    place: Eindhoven, Vestdijk cycle path
+    role: chase camera on a SUMO cyclist
+    when: weekday 17:20, June
+    agents: cyclists on the real cycle network (Gazelle omafiets), buses, cars
+    notice: cyclists on the cycle track and the street beside it, overtaking each other
+    experiment: experiments/eindhoven_centre.yaml
+    time: "2026-06-17 17:20"
+    set:
+      traffic: {bikes_per_hour: 3000, cars_per_hour: 2400}
+      participants:
+        - {role: watcher, kind: pedestrian, spawn: {lat: 51.440309, lon: 5.479315, heading: 0}}
+    start_s: 60
+    duration_s: 20
+    camera: {kind: follow, target: bike, near: {lat: 51.4403, lon: 5.4793}, offset: [-4.0, 0.0, 2.0],
+             look_ahead_m: 6, look_up_m: 0.9, smooth_s: 0.6}
+
+  - name: tokyo_shibuya
+    title: Shibuya crossing, left-hand traffic
+    place: Tokyo (Shibuya), Japan
+    role: orbiting camera above the crossing
+    when: weekday 15:00
+    agents: SUMO cars on the left, Toei buses, a crowd calibrated with CROWD for Japan
+    notice: traffic keeps left, Toei buses, pedestrians crossing at the junction (80 walkers calibrated for Tokyo)
+    experiment: experiments/cities/tokyo_shibuya.yaml
+    time: "2026-11-11 15:00"
+    set:
+      traffic: {walkers: {count: 80, radius_m: 90}}
+      participants:
+        - {role: watcher, kind: pedestrian, spawn: {lat: 35.659804, lon: 139.700357, heading: 45}}
+    start_s: 90
+    duration_s: 20
+    camera: {kind: orbit, centre: {lat: 35.65950, lon: 139.70055}, radius_m: 42, height_m: 20, start_deg: 200, deg_per_s: 2}
+
+  - name: new_york_avenue
+    title: Up Sixth Avenue
+    place: New York (Midtown), USA
+    role: automated driver, chase camera
+    when: weekday 16:30
+    agents: SUMO cars from the NY DMV register with yellow cabs, MTA buses
+    notice: Midtown's towers at their real heights (NYC Open Data), the avenue's five lanes
+    experiment: experiments/cities/new_york_midtown.yaml
+    time: "2026-10-14 16:30"
+    set:
+      participants:
+        - role: driver
+          vehicle: vehicle.lincoln.mkz_2020
+          input: autopilot
+          automation: {route: [[40.74883, -73.98843], [40.75360, -73.98501], [40.75915, -73.98102]], speed_kmh: 32}
+    start_s: 55
+    duration_s: 20
+    camera: {kind: follow, target: driver, offset: [-9.0, 0, 3.2], look_ahead_m: 10, look_up_m: 3.0, smooth_s: 0.8,
+             attributes: {exposure_compensation: -0.2, exposure_max_bright: 15}}
+
+  - name: kigali_hills
+    title: Kigali's hills
+    place: Kigali, Rwanda
+    role: crane camera over the road
+    when: 09:30
+    agents: SUMO traffic on 188 m of real terrain relief, RFTC bus lines
+    notice: the roads climb and fall with the real terrain (AWS Terrain Tiles); Overture buildings on the slopes
+    experiment: experiments/cities/kigali.yaml
+    time: "2026-08-05 09:30"
+    set:
+      participants:
+        - {role: driver, vehicle: vehicle.lincoln.mkz_2020, input: autopilot, spawn: {lat: -1.94525, lon: 30.06448}}
+    hold: {driver: 38}
+    start_s: 40
+    duration_s: 20
+    camera: {kind: path, keys: [
+      {t: 0, lat: -1.94470, lon: 30.06330, height_m: 45, look: {lat: -1.94560, lon: 30.06560, height_m: 0}},
+      {t: 20, lat: -1.94540, lon: 30.06500, height_m: 18, look: {lat: -1.94621, lon: 30.06717, height_m: 0}}]}
+
+  - name: lyon_night_rain
+    title: Rainy night in Lyon
+    place: Lyon (Bellecour), France
+    role: driver, chase camera
+    when: evening, rain
+    agents: SUMO traffic with headlights, TCL buses
+    notice: night after sunset with rain, headlights and lit shop windows (0.9.16's street lamps give no light)
+    experiment: experiments/cities/lyon.yaml
+    time: "2026-11-10 18:30"
+    weather: {cloudiness: 60, precipitation: 70, precipitation_deposits: 60, wetness: 100, wind_intensity: 30, fog_density: 0}
+    set:
+      simulation: {sun_altitude: -12}
+      participants:
+        - {role: driver, vehicle: vehicle.lincoln.mkz_2020, input: autopilot, spawn: {lat: 45.75780, lon: 4.83350}}
+    hold: {driver: 37}
+    start_s: 40
+    duration_s: 20
+    camera: {kind: follow, target: driver, offset: [-7.0, 0, 2.2], look_ahead_m: 8, look_up_m: 1.2, smooth_s: 0.6,
+             attributes: {exposure_compensation: 0.8, exposure_min_bright: 8, exposure_max_bright: 12}}
+
+  - name: robotaxi_passenger
+    title: Riding in a robotaxi
+    crf: 31
+    place: Eindhoven, east of the station
+    role: AV passenger (bot station)
+    when: midday
+    agents: the AV yielding to a pedestrian, in-car centre screen and HUD, an oncoming car
+    notice: the centre screen's message and the eHMI as the AV stops and lets the pedestrian cross
+    experiment: experiments/eindhoven_station_ux.yaml
+    kind: stations
+    attributes: {exposure_compensation: 0.3, exposure_max_bright: 13, bloom_intensity: 0.08}   # interiors; eHMI bloom
+    time: "2026-09-20 12:30"
+    start_s: 5
+    duration_s: 18
+    stations: {layout: [1, 1], views: [{role: av_passenger, label: AV passenger, own: av1}]}
+    caption: true
+    patch:
+      participants:
+        pedestrian: {station: false, input: bot}
+        driver: {station: false, input: autopilot}
+
+  - name: eindhoven_drones
+    title: Drones over Eindhoven
+    place: Eindhoven centre
+    role: drone pilot (FPV)
+    when: midday
+    agents: a pilot's camera drone (bot), delivery drones, a swarm and a patrol in the same world, out of view (0.9.16 draws them as plain boxes)
+    notice: the pilot's gimbal camera climbing out of a square over the roofs to the skyline (coupled-sim's flight model)
+    experiment: experiments/eindhoven_drones.yaml
+    set:
+      map: {name: eindhoven_centre, bbox: [51.4360, 5.4700, 51.4500, 5.4930], opendrive: null, carla_level: null}
+      participants:
+        - role: pilot
+          kind: drone
+          input: bot
+          airframe: consumer
+          mode: position
+          view: fpv
+          gimbal_pitch_deg: -25
+          spawn: {lat: 51.43898, lon: 5.47870, heading: 0}
+          geofence: {radius_m: 600, max_altitude_m: 120}
+          bot: {path: [[51.43898, 5.47870, 40], [51.44000, 5.47950, 60], [51.44110, 5.47820, 60]], speed: 7, start_s: 2, land: false}
+      logging: {frames_every_s: 0}
+    time: "2026-09-20 13:00"
+    start_s: 8
+    duration_s: 20
+    camera: {kind: drone, target: pilot, view: fpv}

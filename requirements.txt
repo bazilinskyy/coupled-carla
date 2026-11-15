@@ -1,4 +1,4 @@
-carla==0.9.16
+carla==0.9.16; sys_platform != "darwin"    # no macOS build of CARLA: maps can be built there, not driven
 eclipse-sumo>=1.20
 sumolib
 traci
@@ -11,6 +11,7 @@ pyyaml
 requests
 pyproj
 pillow
+matplotlib     # the map maker's preview pictures (coupledcarla/preview.py)
 # real-world data (optional: without them the maps fall back to OSM buildings and the AWS Terrain Tiles)
 duckdb          # Overture Maps buildings
 tifffile        # AHN elevation (Netherlands)

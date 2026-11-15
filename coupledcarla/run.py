@@ -249,7 +249,8 @@ def welcome_for(part, geo, tc):
            "ehmi_states": list((tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)),
            "step": tc["simulation"]["step"], "experiment": tc["name"],
            "camera_profile": tc["simulation"].get("camera_profile", "Dashcam"),
-           "capture": tc["simulation"].get("capture")}
+           "capture": tc["simulation"].get("capture"),
+           "camera_attributes": dict((tc.get("film") or {}).get("attributes") or {})}   # demo videos (film.py)
     # sound, in-car displays, haptics and designed eHMIs (stationux.py), when the experiment sets them
     out.update(stationux.welcome_extras(tc, part.cfg, part.kind, Path(tc["_path"]).parent,
                                         default_states=list(DEFAULT_EHMI)))
@@ -315,7 +316,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     client = server.start()
     from . import look
     look.DEBUG_COMPRESS = compat.server_major(client) == 0     # debug colours (traffic lights, eHMIs): look.py
-    sync = view = recorder = world = logger = drone_world = None
+    sync = view = recorder = world = logger = drone_world = film = None
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
     try:
@@ -487,6 +488,14 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         if tc["logging"]["carla_recorder"]:
             recorder = client.start_recorder(f"coupledcarla_{tc['name']}_{stamp}_trial{trial_idx}.log", True)
         logger = TrialLogger(out, geo, tc["logging"], step)
+        fc = tc.get("film") or {}
+        if fc.get("camera") or fc.get("cameras"):       # demo-video cameras on a sim-time grid (tools/make_videos.py)
+            from .film import Film
+            names = {**{p.role: p.actor for p in parts},
+                     **{a.id: getattr(a, "vehicle", None) or getattr(a, "walker", None) for a in agents}}
+            film = Film(fc, world, geo, out, log, names.get, step, queue, drone_world,
+                        focus=focus_actors)
+            film.hold(parts)
 
         # stations: wait for them, then tell each its actor and start
         station_roles = [p.role for p in parts if p.station]
@@ -615,6 +624,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 logger.sim0 = sim0
             t = sim_t - sim0
             summary["ticks"] += 1
+            if film is not None:
+                film.tick(t, snap)
 
             # stations
             if control is not None:
@@ -782,6 +793,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         log(f"trial done: {summary}")
     finally:
         tools.close(summary)
+        if film is not None:
+            film.close()
         state.update(state="ended")
         if control is not None:
             control.broadcast({"type": "state", **state})

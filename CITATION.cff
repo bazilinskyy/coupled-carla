@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use coupled-carla in your research, please cite it as below."
+title: "coupled-carla: a human-factors driving simulator for real places"
+abstract: >-
+  Builds drivable CARLA worlds of real places from open data (OpenStreetMap, building registers, terrain, weather),
+  fills them with SUMO traffic and puts several human participants (drivers, pedestrians, cyclists, AV passengers,
+  drone pilots) and AI agents in the same world, logging every trial. Successor of coupled-sim.
+type: software
+authors:
+  - family-names: Bazilinskyy
+    given-names: Pavlo
+    affiliation: Eindhoven University of Technology
+repository-code: "https://github.com/bazilinskyy/coupled-carla"
+license: MIT
+keywords:
+  - driving simulator
+  - human factors
+  - CARLA
+  - SUMO
+  - OpenStreetMap
+  - digital twin
+  - external human-machine interface

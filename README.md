@@ -1,8 +1,36 @@
-# coupled-carla
+<h1 align="center"><img src="docs/logo.svg" width="48" alt="" align="top">&nbsp;coupled-carla</h1>
 
-[![tests](https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml/badge.svg)](https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml)
+<p align="center">
+  <b>A human-factors driving simulator for real places.</b><br>
+  Type a place, get a drivable world built from open data, and put drivers, pedestrians, cyclists, AV passengers
+  and drone pilots in it together.
+</p>
 
-**A human-factors driving simulator for real places.** coupled-carla builds a drivable [CARLA](https://carla.org)
+<p align="center">
+  <a href="https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-22c55e"></a>
+  <img alt="Python 3.12" src="https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white">
+  <img alt="CARLA 0.9.16 and 1.0" src="https://img.shields.io/badge/CARLA-0.9.16%20%7C%201.0-0f172a">
+  <img alt="SUMO traffic" src="https://img.shields.io/badge/traffic-SUMO-38bdf8">
+  <img alt="Built from open data" src="https://img.shields.io/badge/maps-open%20data-7EBC6F?logo=openstreetmap&logoColor=white">
+  <img alt="Linux and Windows" src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows-94a3b8">
+  <a href="https://github.com/bazilinskyy/coupled-carla/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/bazilinskyy/coupled-carla?color=64748b"></a>
+  <a href="https://github.com/sponsors/bazilinskyy"><img alt="Sponsor on GitHub" src="https://img.shields.io/badge/sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white"></a>
+  <a href="https://ko-fi.com/bazilinskyy"><img alt="Support on Ko-fi" src="https://img.shields.io/badge/support-Ko--fi-ff5e5b?logo=kofi&logoColor=white"></a>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#make-a-map-of-any-place">Make a map</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#coupled-experiments-phase-2">Coupled experiments</a> ·
+  <a href="#phase-3-carla-10-and-the-eindhoven-digital-twin">Digital twin</a> ·
+  <a href="#drones">Drones</a> ·
+  <a href="docs/lab_guide.md">Lab guide</a> ·
+  <a href="#support-coupled-carla">Support</a>
+</p>
+
+coupled-carla builds a drivable [CARLA](https://carla.org)
 world for any bounding box on Earth from OpenStreetMap, fills it with traffic from [SUMO](https://eclipse.dev/sumo/)
 (cars, cyclists, buses with proper car-following and lane-change models), puts a participant at the wheel
 (keyboard, Logitech G25 with force feedback, or an autopilot for tests) and logs every trial at 50 Hz in the
@@ -29,6 +57,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 
 - [License](#license)
 - [What you get](#what-you-get)
+- [Make a map of any place](#make-a-map-of-any-place)
 - [Screenshots](#screenshots)
 - [How it works](#how-it-works)
 - [Quick start](#quick-start)
@@ -51,6 +80,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Roadmap](#roadmap)
 - [Lessons learned (gotchas)](#lessons-learned-gotchas)
 - [Project layout](#project-layout)
+- [Support coupled-carla](#support-coupled-carla)
 - [Credits, data and licences](#credits-data-and-licences)
 
 ---
@@ -84,6 +114,97 @@ under CC0, CC BY 4.0, Licence Ouverte, ODbL or their open data terms). See
 | **Study tools** | Counterbalanced trial plans per participant, an experiment validator, continuous responses (hold button, slider), take-over requests in automated driving, an experimenter dashboard, station sound (vehicles, AVAS, spoken eHMIs), in-car displays, haptic cues and eHMIs from design files: coupled-sim's study tools on CARLA ([Study tools](#study-tools)). |
 | **Eindhoven digital twin** | Central Eindhoven baked into a CARLA 1.0 level from Dutch open data (AHN terrain, 3DBAG buildings, OSM roads with lane markings, kerbs and sidewalks), driven with SUMO traffic on its own OpenDRIVE ([The Eindhoven digital twin](#the-eindhoven-digital-twin)). |
 
+## Make a map of any place
+
+It is easier than ever to drive through a real place in a simulator. Modelling a city's streets, buildings and
+traffic by hand used to keep a team of 3D artists busy for months. Today most of it is open data that anyone may
+download: OpenStreetMap's streets, lanes, signs and trees, mapped by volunteers; building footprints and heights
+from national registers (3DBAG, BD TOPO, PLATEAU, NYC) and Overture Maps; terrain from lidar and global elevation
+models; the weather and the sun of a real day; bus timetables; open traffic counts. Free, open simulators, CARLA
+for the 3D world and SUMO for the traffic, turn it into a world you can drive. coupled-carla puts these together,
+and the map maker reduces it to typing a place and pressing a button. It is meant for people who do not program:
+researchers in psychology and human factors, designers, students, city planners.
+
+![The map maker in the browser: Kinsale, Ireland, built from the page, with its square, preview and summary](docs/img/mapmaker_page.jpg)
+
+**Set up once** (a computer with an internet connection; to drive, a Windows or Linux PC with a gaming graphics
+card):
+
+1. Download coupled-carla (the green Code button, Download ZIP) and unpack it.
+2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then, in the coupled-carla folder:
+   `uv venv --python 3.12 .venv` and `uv pip install -r requirements.txt`.
+3. To drive: unpack [CARLA 0.9.16](https://github.com/carla-simulator/carla/releases/tag/0.9.16) as a folder
+   `CARLA_0.9.16` next to the coupled-carla folder.
+
+**Every day:** double-click `make_map.bat` (Windows), `Make a map.command` (macOS) or `make_map.sh` (Linux). The
+browser opens a world map. Type a place (a town, a square, an address, coordinates; any language) or click on the
+map, choose small (about 1 km), medium (1.4 km) or large (2 km), press **Build this map**, then **Drive it**.
+
+The map maker fills in what you would otherwise have to know: the driving side from the country, how busy the
+traffic is from the size of the town (OSM's population figures; a big city nearby counts), a readable name, and a
+commented experiment file (`experiments/places/<name>.yaml`) with the same city block as the 19 cities. While it
+builds, it says what it is doing in plain words; the technical log goes to `maps/<name>/build.log`. At the end it
+draws the map from above (`preview.png`) and lists what is in it and which open data it came from, with their
+licences (`summary.txt`). Step by step, with troubleshooting: [docs/make_a_map.md](docs/make_a_map.md).
+
+**Tested** on five places that are not among the 19 cities (2026-11-15, lin4080): typed as shown (or clicked on the
+page), built with the map maker, then a 40 s headless autopilot drive on CARLA 0.9.16 (Epic, RTX 4080 SUPER). Build
+times are from pressing Enter to the summary, most of it spent waiting for the open data services (Overpass mirrors
+answered 502 and 504 several times and the map maker moved on to the next).
+
+| Typed | Found | What it tests | Size | Build | Roads | Buildings | Trees | Bus lines (timetable) | Hills | Drive: real-time factor, collisions |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `명동, 서울` | Myeong-dong, Seoul, South Korea | Korean script; big city (9.5 M), right-hand | medium | 4.5 min | 40.5 km | 2,527 | 58,728 (Namsan's forest) | 45 (0) | 131 m | 0.980, 0 |
+| `Connaught Place, New Delhi` | New Delhi, India | a left-hand country not yet covered; big city | medium | 3.1 min | 31.4 km | 1,227 | 236 | 40 (0) | 46 m | 0.993, 0 |
+| `Hallstatt` | Hallstatt, Austria | a village of 388 people between a lake and a mountain | small | 2.8 min | 0.8 km | 235 | 39 | none | 516 m | 0.990, 0 (stuck 5 times, put back) |
+| `Plaza Mayor, Salamanca` | Salamanca, Spain | a town | medium | 4.5 min | 26.1 km | 2,328 | 4,204 | 28 (15) | 56 m | 0.981, 0 |
+| (a click on the page) | Kinsale, Ireland | a left-hand small town, built through the web page | small | 3.4 min | 20.2 km | 1,274 | 1,781 | 3 (3) | 64 m | 0.995, 0 |
+
+| Myeong-dong, Seoul | Connaught Place, New Delhi |
+|---|---|
+| ![Preview of Myeong-dong, Seoul](docs/img/mapmaker_seoul.png) | ![Preview of Connaught Place, New Delhi](docs/img/mapmaker_delhi.png) |
+| **Plaza Mayor, Salamanca** | **Hallstatt** |
+| ![Preview of Plaza Mayor, Salamanca](docs/img/mapmaker_salamanca.png) | ![Preview of Hallstatt](docs/img/mapmaker_hallstatt.png) |
+
+![Chase-camera frames of the test drives: Seoul, New Delhi (left-hand), Hallstatt, Salamanca](docs/img/mapmaker_drives.jpg)
+
+*The test drives in CARLA (chase camera): Seoul and New Delhi (left-hand traffic, buses) above, Hallstatt and
+Salamanca below.*
+
+The first run found three problems, now handled: OSM's "New Delhi" is only the NDMC district (0.25 M people), so the
+place was taken for a town (now the largest city whose reach covers a place counts: Delhi, or Tokyo for Shibuya); for
+"Hallstatt" Nominatim gave the centre of the municipality's boundary, 4 km away in the mountains, and the build
+stopped with "No roads found here" (now a town found as its boundary is centred on its own place node); and a square
+in the sea showed no error on the page. Hallstatt's 1 km square cuts its one lakeside road at both ends, so only a
+0.8 km loop in the centre stays drivable (dead ends are removed so that a car can always drive on); the summary now
+says so when less than 2 km of road is left.
+
+**Limits.** The buildings are CARLA's stand-in models at the real footprints and heights, not the real facades
+(only the baked Eindhoven twin has those); there are no road markings on these maps. The map is as good as
+OpenStreetMap is in that place: detailed in most cities, thin in some towns. Traffic volumes are a guess from the
+town's size unless the city publishes counts. Building needs an internet connection and a few minutes (most of it
+waiting for the open data services); driving needs a PC with a good graphics card and CARLA 0.9.16 (it does not run
+on a Mac: maps made on a Mac can be driven on a PC). The place search sends the typed place to OpenStreetMap's
+Nominatim (or Photon); nothing about the user is sent, and the page runs on 127.0.0.1 only.
+
+From a terminal or from Python:
+
+```bash
+.venv/bin/python -m coupledcarla.mapmaker "Markt, Eindhoven"                # find, build, summarise
+.venv/bin/python -m coupledcarla.mapmaker "51.4416, 5.4697" --size large --open
+.venv/bin/python -m coupledcarla.mapmaker "Plaza Mayor, Salamanca" --drive   # then drive it
+.venv/bin/python -m coupledcarla.mapmaker --web                             # the page (port 8777)
+```
+
+```python
+from coupledcarla.mapmaker import make_map
+exp = make_map("Shibuya crossing", size="small")   # -> experiments/places/<name>.yaml; map in maps/<name>/
+```
+
+Options: `--size small|medium|large|<km>` (above 2.5 km it warns that it gets slow; 4 km at most), `--name`,
+`--pedestrians` (a crowd on the pavements, `traffic.walkers.count: auto`), `--open`, `--drive`, `--force`,
+`--no-build`, `--build <experiment>`. Without arguments in a terminal it asks for the place.
+
 ## Screenshots
 
 **The trial viewer** (browser, three.js), same trial as above: oblique view around the participant and the
@@ -92,14 +213,6 @@ follow camera with the HUD (speed, next traffic light, time).
 | Oblique | Follow camera |
 |---|---|
 | ![viewer oblique](docs/img/eindhoven_oblique_127.png) | ![viewer follow](docs/img/eindhoven_follow_127.png) |
-
-**In CARLA** (chase camera, Epic quality): the roads are CARLA's meshes generated from the OpenDRIVE; traffic
-lights are drawn from SUMO's signal states (pole with lamp at each stop line); SUMO vehicles appear near the
-participant. There are no buildings or road markings in CARLA yet ([Known limits](#known-limits)).
-
-| Cairo (Tahrir) | Tokyo (Shibuya) |
-|---|---|
-| ![CARLA Cairo](docs/img/carla_cairo.jpg) | ![CARLA Tokyo](docs/img/carla_tokyo.jpg) |
 
 **New York (Midtown)** in the viewer: OSM building heights give Midtown's towers; the participant drives
 the street grid with SUMO traffic.
@@ -110,15 +223,9 @@ the street grid with SUMO traffic.
 
 **Coupled experiment (phase 2)**, Eindhoven: a pedestrian crosses while an automated vehicle approaches; the
 AV yields and its passenger switches the eHMI from "I'M STOPPING" (cyan) to "GO AHEAD" (green); a manual
-driver follows. Each view below was rendered by a separate station process, the pedestrian's on another PC.
+driver follows. Each view below was rendered by a separate station process (here four bot stations on one machine).
 
-| Pedestrian station: the AV stops, "I'M STOPPING" | Pedestrian station: "GO AHEAD" (dusk trial) |
-|---|---|
-| ![pedestrian sees the AV yield](docs/img/station_pedestrian_stopping.jpg) | ![pedestrian sees GO AHEAD](docs/img/station_pedestrian_go.jpg) |
-
-| AV passenger station: their eHMI, seen from inside | Driver station: following the yielding AV at dusk |
-|---|---|
-| ![passenger view with GO AHEAD](docs/img/station_passenger_go.jpg) | ![driver behind the AV](docs/img/station_driver_dusk.jpg) |
+![Four stations in one trial at the same moment, east of Eindhoven station: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot](docs/img/stations_four_views.jpg)
 
 The same moment in the trial viewer: the pedestrian (red) crossing, the AV (dark blue) stopped with its cyan
 eHMI bar, an AI walker further down the street; the event list shows the AV stopping, the passenger's eHMI
@@ -286,8 +393,8 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | Eindhoven centre, 13 November 14:30 with that hour's weather: 3DBAG heights, 1,827 OSM street trees, lamps, bus shelters | Lyon: Place Bellecour, the Saône and the Fourvière hill (135 m of relief), IGN BD TOPO heights |
 | ![Eindhoven at street level](docs/img/scenery_eindhoven_centre_street.jpg) | ![Kigali on its hills](docs/img/scenery_kigali_centre.jpg) |
 | Eindhoven at street level, sun where it stood at 14:30 | Kigali: 188 m of relief, Overture (ML) footprints, OSM tree rows |
-| ![Eindhoven at dusk](docs/img/scenery_eindhoven_centre_dusk.jpg) | ![New York Midtown](docs/img/scenery_new_york_midtown_midtown.jpg) |
-| The same street at 16:55, after sunset that day | New York Midtown with NYC Open Data roof heights |
+| ![Tokyo Shibuya](docs/img/scenery_tokyo_shibuya.jpg) | ![New York Midtown](docs/img/scenery_new_york_midtown_midtown.jpg) |
+| Tokyo Shibuya: left-hand traffic and Toei buses at the crossing, PLATEAU heights | New York Midtown with NYC Open Data roof heights |
 
 | What | Source (free, no key) | Used for |
 |---|---|---|
@@ -394,8 +501,6 @@ gives 27,000 lm with a 70 m reach (CARLA's light defaults). On the packaged serv
 at night, and a lamp lit in front of the camera makes the lower half of the picture 8.8 times brighter.
 `tools/lamp_check.py` checks this on a running server: it spawns lamps at night, prints the light manager's view of
 each and saves camera frames with the street lights off and on.
-
-![A street lamp of the scenery lighting the Eindhoven twin at night (CARLA 1.0, packaged server)](docs/img/twin_night_lamp.jpg)
 
 ### Parked cars
 
@@ -645,7 +750,6 @@ flowchart LR
   | Tokyo (Shibuya) | 80 | 1.30 | 6.1 | 0.45% (measured) |
   | Sydney (CBD) | 28 | 1.40 | 1.6 | 0.5% (modelled) |
 
-  ![The pedestrian station's view in eindhoven_crowd: the AV shows GO AHEAD on its front, roof and the road, the crowd walks beside the street](docs/img/crowd_pedestrian_view.jpg)
 - **SUMO traffic yields to pedestrians**: SUMO vehicles near a pedestrian brake for one in their path and drive
   on when it is clear (`sumo_yields` events). SUMO itself only yields to persons on crossings, and CARLA
   pedestrians are not in SUMO.
@@ -1479,6 +1583,8 @@ coupledcarla/
   labcheck.py        station readiness numbers and thresholds; multigpu.py: CARLA 1.0 secondaries
   data/              meshes_0.9.16.json, meshes_1.0.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
+  mapmaker.py        make a map of any place: place search, guesses, experiment file, build with plain progress
+  mapmaker_web.py    the map maker's local web page (data/mapmaker.html); preview.py: pictures of built maps
   traffic.py         SUMO vehicle types and demand per trial
   run.py             the host: trial loop, participants, agents, stations
   dronemodel.py      drone flight model (coupled-sim port): rigid body, PX4 cascade, flocking, Dryden, battery
@@ -1501,15 +1607,24 @@ coupledcarla/
   geo.py             WGS84 <-> CARLA coordinates
   export_trial.py    trial -> trial.json for the viewer
 experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhoven_crowd.yaml (coupled), eindhoven_twin.yaml,
-                     cities.yaml, cities/<slug>.yaml
+                     cities.yaml, cities/<slug>.yaml, places/<name>.yaml (made by the map maker)
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
                      render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py,
                      crowdpeds_check.py, crowd_table.py, speeds_check.py
-docs/                city_tests.md, img/
+docs/                city_tests.md, make_a_map.md (the map maker, step by step), img/
+make_map.bat, make_map.sh, "Make a map.command"   double-click launchers of the map maker (Windows, Linux, macOS)
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
 ```
+
+## Support coupled-carla
+
+coupled-carla is free and stays free. If it is useful to you and you would like to give something back, you can
+[sponsor it on GitHub](https://github.com/sponsors/bazilinskyy) (monthly or once) or
+[buy me a coffee on Ko-fi](https://ko-fi.com/bazilinskyy). Bug reports, ideas, new cities and pull requests help
+just as much. If you use it in research, please cite it (the "Cite this repository" button on GitHub, from
+[`CITATION.cff`](CITATION.cff)).
 
 ## Credits, data and licences
 
@@ -1559,6 +1674,10 @@ maps/, logs/         built maps and trial logs (not in git)
 - Digital twin and scenery data for the Netherlands: [AHN](https://www.ahn.nl) (CC0), [PDOK Luchtfoto](https://www.pdok.nl) (Beeldmateriaal
   Nederland, CC BY 4.0), [3DBAG](https://3dbag.nl) (3D geoinformation group, TU Delft, CC BY 4.0).
 - [three.js](https://threejs.org) (MIT), loaded from a CDN by the viewer.
+- The map maker: place search by [Nominatim](https://nominatim.org) (OpenStreetMap data, ODbL; used within the
+  [usage policy](https://operations.osmfoundation.org/policies/nominatim/): at most one request a second, cached)
+  and [Photon](https://photon.komoot.io) by Komoot as a fallback; its page uses [Leaflet](https://leafletjs.com)
+  (BSD-2-Clause, from unpkg) and OpenStreetMap's standard tiles.
 - Successor of [coupled-sim](https://github.com/bazilinskyy/coupled-sim): Bazilinskyy, P., Kooijman, L.,
   Dodou, D., & De Winter, J. C. F. (2020). Coupled simulator for research on the interaction between pedestrians
   and (automated) vehicles. 19th Driving Simulation Conference (DSC), Antibes, France.

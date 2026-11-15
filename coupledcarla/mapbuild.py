@@ -250,7 +250,11 @@ def name_signals(xodr):
 
 
 def check_xodr(xodr):
-    import carla
+    try:
+        import carla
+    except ImportError:          # macOS has no carla package: the map is built, CARLA checks it when it loads it
+        log("OpenDRIVE: not checked (carla module not installed)")
+        return {"lane_links": None, "waypoints": None, "lane_ends": None, "tl_signals": None}
     m = carla.Map("check", xodr.read_text(encoding="utf-8"))
     wps = m.generate_waypoints(5.0)
     ends = sum(1 for w in wps if w.lane_type == carla.LaneType.Driving and not w.next(5.0))

@@ -50,7 +50,8 @@ RESPONSE_KEYS = {"button", "slider", "slider_start", "slider_speed", "hidden", "
 EHMI_KEYS = {"states", "slots", "design", "placement", "render", "offset"}
 POI_KEYS = {"name", "lat", "lon", "heading", "radius_m", "radius"}
 FREE = {("traffic", "car_types"), ("traffic", "bike_types"), ("conditions",), ("design", "factors"), ("drones", "centre"),
-        ("design", "trial"), ("design", "practice"), ("design", "after"), ("ehmi",), ("eye_contact",)}
+        ("design", "trial"), ("design", "practice"), ("design", "after"), ("ehmi",), ("eye_contact",),
+        ("film", "camera"), ("film", "cameras"), ("film", "hold"), ("film", "attributes")}
 VEHICLE_GAP_M = 4.0
 TRIAL_PREFIX = re.compile(r"^trial \d+( \([^)]*\))? ?")
 
