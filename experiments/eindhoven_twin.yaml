@@ -1,5 +1,6 @@
 # Eindhoven city centre as a baked CARLA 1.0 level: the carla-digitaltwins twin EhvCentre (roads with lane markings,
-# kerbs and sidewalks, 3DBAG buildings, AHN ground), with SUMO driving on the twin's own OpenDRIVE.
+# kerbs and sidewalks, AHN ground textured with the 8 cm PDOK aerial photo, 3DBAG buildings with a facade style from
+# their BAG construction year and use and roofs from the aerial photo), with SUMO driving on the twin's own OpenDRIVE.
 # Needs a CARLA 1.0 server that has the level (baked with carla-digitaltwins bake_level.py; see README).
 name: eindhoven_twin
 
