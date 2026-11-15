@@ -23,7 +23,7 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, soundrec, study, traffic
+from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, photoreal, realworld, season, soundrec, study, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from . import ehmi_design, livemap, multigpu, placement, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
@@ -323,7 +323,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     client = server.start()
     from . import look
     look.DEBUG_COMPRESS = compat.server_major(client) == 0     # debug colours (traffic lights, eHMIs): look.py
-    sync = view = recorder = world = logger = drone_world = film = host_audio = None
+    sync = view = recorder = world = logger = drone_world = film = host_audio = photo = None
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
     try:
@@ -338,6 +338,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         tc["_sound_env"] = soundrec.sound_env(wx, mdir, world.get_weather(),
                                               (tc.get("sound") or {}).get("weather")).as_dict()   # stations' sound
         BridgeHelper.night = wx["night"]
+        photo = photoreal.attach(world, tc, wx["night"], log)    # map.photoreal: Google's 3D tiles (photoreal.py)
+        look.ATTRIBUTION = photoreal.attribution_text(photo.s) if photo else None
         if tc["server"].get("offscreen", True):
             # nobody sees the spectator of an off-screen server, but the server still renders its view: park it
             # high up, looking at the sky, so it costs nothing (it rendered the whole city's scenery otherwise)
@@ -566,6 +568,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             t_tick = time.time()
             if guard is not None:
                 guard(world)              # every 5 s
+            if photo is not None and photo.state == "spawned" and t >= 2.0:
+                photo.check()             # gone: the server had no key, a cap or no level data (its log says)
+                (out / "photoreal.json").write_text(json.dumps(photo.info(), indent=2))
             laps.start()
             events = view.events() if view else []
             for part in parts:            # host-local participants
@@ -823,6 +828,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         log(f"trial done: {summary}")
     finally:
         tools.close(summary)
+        look.ATTRIBUTION = None
+        if photo is not None:
+            photo.destroy()
         if film is not None:
             film.close()
         state.update(state="ended")

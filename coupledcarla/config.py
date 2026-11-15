@@ -45,6 +45,9 @@ DEFAULTS = {
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
         "carla_level": None,         # load this CARLA level (by name) instead of generating an OpenDRIVE-only world
+        "photoreal": False,          # "google": Google's Photorealistic 3D Tiles over a baked level, under its own roads
+                                     # (photoreal.py; needs the server's own key and billing, the Cesium plugins and
+                                     # `photoreal prepare`); or a mapping of photoreal.DEFAULTS; false: off
         "urban_speeds": "auto",      # "auto": roads without an OSM maxspeed get the country's urban default limit
                                      # (speeds.URBAN_KMH) in the net and OpenDRIVE instead of netconvert's rural
                                      # defaults (100 km/h on primary roads): urban.typ.xml (urbanspeeds.py); false: off

@@ -145,6 +145,8 @@ code { font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospac
       <div class="row"><label for="name">Name</label><input type="text" id="name" placeholder=""></div>
       <div class="row"><input type="checkbox" id="peds"><label for="peds" style="color:inherit">Pedestrians on the
         pavements</label></div>
+      <div class="row hidden" id="twinRow"><input type="checkbox" id="twin"><label for="twin" style="color:inherit"
+        id="twinLabel">A CARLA 1.0 digital twin (real buildings and aerial photo; about half an hour or more)</label></div>
       <div id="warnings"></div>
       <button class="primary big" id="buildBtn">Build this map</button>
       <p class="hint" id="savedAs"></p>
@@ -268,7 +270,7 @@ async function choose(found, query) {
 }
 
 async function replan(found, point) {
-  const body = { size: S.size, name: $("name").value, pedestrians: $("peds").checked };
+  const body = { size: S.size, name: $("name").value, pedestrians: $("peds").checked, twin: $("twin").checked };
   if (found) body.found = found; else { body.lat = point.lat; body.lon = point.lon; }
   try {
     const p = await api("/api/plan", body);
@@ -308,6 +310,10 @@ for (const b of $("sizes").children) {
 let nameTimer = null;
 $("name").addEventListener("input", () => { clearTimeout(nameTimer); nameTimer = setTimeout(() => S.plan && replan(S.plan.place), 500); });
 $("peds").addEventListener("change", () => S.plan && replan(S.plan.place));
+$("twin").addEventListener("change", () => {
+  $("buildBtn").textContent = $("twin").checked ? "Make the digital twin" : "Build this map";
+  if (S.plan) replan(S.plan.place);
+});
 
 // 2. build
 $("buildBtn").addEventListener("click", startBuild);
@@ -319,7 +325,7 @@ async function startBuild() {
   if (!S.plan) return;
   $("buildBtn").disabled = true;
   try {
-    await api("/api/build", { found: S.plan.place, size: S.size, name: $("name").value, pedestrians: $("peds").checked, query: S.query });
+    await api("/api/build", { found: S.plan.place, size: S.size, name: $("name").value, pedestrians: $("peds").checked, twin: $("twin").checked, query: S.query });
     watch();
   } catch (err) {
     showError(err.error, err.advice);
@@ -433,6 +439,15 @@ async function loadMaps() {
   if (u.get("size") && SIZES[u.get("size")]) S.size = u.get("size");
   for (const b of $("sizes").children) b.classList.toggle("on", b.dataset.size === S.size);
   await loadMaps();
+  try {   // the twin checkbox only where a digital-twin toolchain is set up (coupledcarla.twinmaker)
+    const t = await api("/api/twin");
+    if (t.configured) {
+      $("twinRow").classList.remove("hidden");
+      $("twin").disabled = !t.ok;
+      if (!t.ok) $("twinLabel").textContent += ` (not available: ${t.why})`;
+      else if (!t.bake) $("twinLabel").textContent += " (without the bake: no CARLA 1.0 editor here)";
+    }
+  } catch (err) { /* no twin toolchain */ }
   await watch();
   if (u.get("map")) {
     const m = S.maps.find((x) => x.name === u.get("map"));
