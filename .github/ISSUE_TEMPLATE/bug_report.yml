@@ -1,0 +1,54 @@
+name: Bug report
+description: Something does not work as the README says
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please do not paste API keys or tokens, or logs with participants' personal data.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did (the command, the map maker's steps or the place you typed), what happened, and what you expected.
+      placeholder: |
+        python -m coupledcarla.run experiments/eindhoven_centre.yaml --input autopilot --headless
+        The trial stops after 12 s with ...
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output and logs
+      description: The last lines of the output; for a map build maps/<name>/build.log; for a trial events.csv and summary.json.
+      render: text
+  - type: input
+    id: experiment
+    attributes:
+      label: Experiment file or place
+      description: e.g. experiments/cities/lyon.yaml, or "Plaza Mayor, Salamanca" in the map maker
+  - type: dropdown
+    id: carla
+    attributes:
+      label: CARLA
+      options:
+        - CARLA 0.9.16 (release package)
+        - CARLA 1.0 (package)
+        - CARLA 1.0 (source build, ue58-dev)
+        - no CARLA (map maker or SUMO only)
+        - other
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System
+      description: Operating system, Python version, SUMO version (sumo --version), GPU and driver for driving problems
+      placeholder: Ubuntu 22.04, Python 3.12, SUMO 1.28, RTX 4080 SUPER (driver 560)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Coupled CARLA version
+      description: The release, or the commit (git rev-parse --short HEAD)

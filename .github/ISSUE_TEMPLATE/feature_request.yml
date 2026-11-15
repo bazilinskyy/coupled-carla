@@ -1,0 +1,29 @@
+name: Feature request
+description: An idea, a new city, a data source or a study feature
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use
+    attributes:
+      label: What you want to do
+      description: The study or use case it is for.
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What it should do
+      description: How it would look in an experiment file, at a station or on the dashboard; what would be logged.
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Data, papers or tools it builds on
+      description: For data, the source, its licence and whether it needs an account or key (Coupled CARLA uses keyless open data by default).
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contributing
+      options:
+        - label: I would like to work on this myself (see CONTRIBUTING.md)

@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation (README)
+    url: https://github.com/bazilinskyy/coupled-carla#contents
+    about: Setup, every feature, known limits and lessons learned.
+  - name: Make a map, step by step
+    url: https://github.com/bazilinskyy/coupled-carla/blob/main/docs/make_a_map.md
+    about: The map maker for first-time users, with troubleshooting.
+  - name: Lab guide
+    url: https://github.com/bazilinskyy/coupled-carla/blob/main/docs/lab_guide.md
+    about: Running sessions with people at stations.
