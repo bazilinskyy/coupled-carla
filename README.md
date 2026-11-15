@@ -726,7 +726,26 @@ Town06 and Town07 come with CARLA's AdditionalMaps package, which the test machi
 and their SUMO traffic runs (167 and 35 vehicles in 300 s SUMO-only runs), and the run says which levels a server
 has. CARLA 1.0 is not tested yet: its towns' OpenDRIVE comes from the server, as the package keeps it in the pak.
 
-TOWN_CLIPS_TABLE
+**Videos of the towns** (made like the [Videos](#videos) above by `tools/make_videos.py` from the `town*` clips of
+[`experiments/videos/clips.yaml`](experiments/videos/clips.yaml), on CARLA 0.9.16 at Epic; click a picture to play or
+download):
+
+<table>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town10_rush_hour.mp4"><img src="docs/img/videos/town10_rush_hour.jpg" alt="Downtown traffic in Town10"></a><br><b>Downtown traffic in Town10</b><br><sub>Town10HD (CARLA's downtown) · driver (autopilot), chase camera · 20 s, 3.8 MB<br>SUMO traffic in a CARLA town, stopping at the town's own traffic lights; parked cars at the kerbs</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town03_pedestrian_ehmi.mp4"><img src="docs/img/videos/town03_pedestrian_ehmi.jpg" alt="Crossing in front of an automated car in Town03"></a><br><b>Crossing in front of an automated car in Town03</b><br><sub>Town03, a crosswalk among houses · pedestrian · 15 s, 2.0 MB<br>the AV comes down the hill, shows I'M STOPPING and stops at the crosswalk, then GO AHEAD</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town10_four_views.mp4"><img src="docs/img/videos/town10_four_views.jpg" alt="Four people in Town10"></a><br><b>Four people in Town10</b><br><sub>Town10HD, the avenue · pedestrian, AV passenger, driver, drone pilot (four bot stations) · 20 s, 2.9 MB<br>the same moment from four stations in a CARLA town, frame-locked in simulation time</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town05_drones.mp4"><img src="docs/img/videos/town05_drones.jpg" alt="Drones over Town05"></a><br><b>Drones over Town05</b><br><sub>Town05 (CARLA's grid town) · drone pilot (FPV) · 20 s, 3.9 MB<br>the pilot's gimbal camera climbing from a junction over the grid's roofs (coupled-sim's flight model)</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town01_night_rain.mp4"><img src="docs/img/videos/town01_night_rain.jpg" alt="Rainy night in Town01"></a><br><b>Rainy night in Town01</b><br><sub>Town01 (CARLA's river town) · driver, chase camera · 20 s, 5.6 MB<br>night with the town's own street lights on (LightManager), wet roads, headlights</sub></td>
+</tr>
+</table>
+
+In the four-view clip the driver's view inside the car is dark (the avenue lies in the towers' shade), and the AV
+passenger sees the eHMI mirrored through the windshield, as on every map ([Known limits](#known-limits)).
 
 ## Experiment files
 

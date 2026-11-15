@@ -270,7 +270,7 @@ clips:
 
   - name: town03_pedestrian_ehmi
     title: Crossing in front of an automated car in Town03
-    place: Town03, the crosswalk below the hill
+    place: Town03, a crosswalk among houses
     role: pedestrian
     when: midday
     agents: the AV with its eHMI (front, roof, road, eyes), SUMO traffic, CARLA AI walkers
