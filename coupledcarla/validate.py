@@ -38,10 +38,10 @@ OVERRIDES = ("simulation", "traffic", "participants", "agents", "logging", "coup
 TRIAL_KEYS = set(OVERRIDES) | {"duration_s", "name", "block", "condition", "conditions", "patch"}
 TOP_EXTRA = {"city", "pois", "eye_contact"}
 PART_KEYS = {"role", "kind", "station", "vehicle", "spawn", "input", "view", "window", "bot", "agent", "blueprint",
-             "seed", "color", "response", "automation", "sound", "displays", "haptics",
+             "seed", "color", "response", "automation", "sound", "displays", "haptics", "myosuite",
              "route", "destination", "autopilot", "fov", "screens"} | drones.PILOT_KEYS   # SUMO driver; cockpit view
 KINDS = {"driver", "pedestrian", "av_passenger", "drone"}
-INPUTS = {"keyboard", "wheel", "autopilot", "bot", "gamepad", "rc"}
+INPUTS = {"keyboard", "wheel", "autopilot", "bot", "gamepad", "rc", "myosuite"}
 SPAWN_KEYS = {"lat", "lon", "heading", "x", "y"}      # x, y: CARLA coordinates (towns.resolve_xy)
 BOT_KEYS = {"path", "start_s", "speed", "look", "ehmi", "response", "sticks", "land", "absolute", "after_crash"}
 AGENT_KEYS = {"id", "kind", "vehicle", "color", "route", "speed_kmh", "accel", "yield_to_pedestrians", "ehmi",
@@ -283,6 +283,16 @@ def check_trial_config(rep, tc, where, duration, geo_checks):
                 rep.warn(f"{pw} response", "asks for neither a button nor a slider")
         if p.get("automation"):
             check_automation(rep, pw, p, duration, geo_checks)
+        if p.get("myosuite") is not None or p.get("input") == "myosuite":
+            from . import myodriver      # imports no MuJoCo: options only
+            if kind != "driver":
+                rep.error(pw, "input myosuite drives a car: kind driver")
+            if not isinstance(p.get("myosuite") or {}, dict):
+                rep.error(f"{pw} myosuite", "needs a mapping")
+            else:
+                _unknown(rep, f"{pw} myosuite", p.get("myosuite") or {}, myodriver.DEFAULTS)
+                if (p.get("myosuite") or {}).get("preset", "fast") not in ("fast", "full"):
+                    rep.error(f"{pw} myosuite", "preset is fast or full")
     # drones: missions, observer cameras, drone participants (drones.check_config)
     drones.check_config(tc, where, duration, rep.error, rep.warn,
                         lambda w, pts, kind: geo_checks.append((w, _points(rep, w, pts), kind, None)))
