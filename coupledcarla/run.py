@@ -23,7 +23,8 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, photoreal, realworld, season, soundrec, study, traffic
+from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, photoreal, realworld, season, soundrec, study, \
+    towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from . import ehmi_design, livemap, multigpu, placement, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
@@ -83,7 +84,10 @@ def load_world(client, xodr, mc, slab=False, keep_lights=False):
     unless keep_lights: placement.carla_xodr; SUMO's lights are drawn by signals.py)."""
     if mc.get("carla_level"):   # a baked level (its own roads, buildings and ground): load it by name
         client.set_timeout(600.0)
-        world = client.load_world(mc["carla_level"])
+        try:
+            world = client.load_world(mc["carla_level"])
+        except RuntimeError as err:     # say which levels this server has (a CARLA town may need AdditionalMaps)
+            raise RuntimeError(towns.missing_level(client, mc["carla_level"], err)) from err
         client.set_timeout(60.0)
         return world
     p = mc["carla"]
@@ -289,6 +293,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     geo = Geo(mdir / "geo.net.xml")
     if not tc["map"].get("bbox"):   # a map built from an OpenDRIVE file: its box is in meta.json
         tc["map"]["bbox"] = json.loads((mdir / "meta.json").read_text())["bbox"]
+    town = tc["map"].get("carla_town")       # a CARLA standard map (towns.py)
+    if towns.resolve_xy(tc, geo):            # points given as CARLA {x, y}
+        log("points given as CARLA x, y converted to lat, lon")
     step = tc["simulation"]["step"]
     duration = float(trial.get("duration_s", 300))
     ehmi_states = (tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)
@@ -323,7 +330,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     client = server.start()
     from . import look
     look.DEBUG_COMPRESS = compat.server_major(client) == 0     # debug colours (traffic lights, eHMIs): look.py
-    sync = view = recorder = world = logger = drone_world = film = host_audio = photo = None
+    sync = view = recorder = world = logger = drone_world = film = host_audio = photo = navw = None
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
     try:
@@ -332,8 +339,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             mapbuild.scenery_for_server(tc, mdir, compat.server_major(client), log)
         world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery,
                            keep_lights=tc["simulation"]["tls_manager"] == "carla")
-        bb = tc["map"]["bbox"]
-        wx = set_weather(world, tc["simulation"], ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real", log)
+        if town:      # the town's buildings and trees from its environment objects (sound, drones)
+            towns.environment(world, mdir, client.get_server_version(), log)
+        wx = set_weather(world, tc["simulation"], config.place(tc), mdir / "real", log)
+        if town:      # the town's own street and building lights at night
+            towns.lights(world, wx["night"], tc["simulation"].get("town_lights", "auto"), log)
         (out / "weather.json").write_text(json.dumps(wx, indent=2))
         tc["_sound_env"] = soundrec.sound_env(wx, mdir, world.get_weather(),
                                               (tc.get("sound") or {}).get("weather")).as_dict()   # stations' sound
@@ -360,6 +370,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             radius=tc["simulation"]["lod_radius_m"],
             animate_radius=tc["simulation"].get("animate_radius_m", 0.0),   # wheels roll, cyclists pedal (animate.py)
             focus=lambda: [a.get_location() for a in focus_actors] or None)
+        if town:      # the town's traffic-light actors, run by SUMO through the bridge
+            both = sync.sumo.traffic_light_ids & sync.carla.traffic_light_ids
+            summary["town_lights"] = {"carla": len(sync.carla.traffic_light_ids), "sumo": len(sync.sumo.traffic_light_ids),
+                                      "synced": len(both)}
+            log(f"traffic lights: {len(both)} of the town's {len(sync.carla.traffic_light_ids)} signals run by SUMO")
         # The bridge assumes CARLA = SUMO - netOffset, true for CARLA's own towns. Our OpenDRIVE carries a UTM
         # georeference, so map.net.xml's netOffset is the whole UTM shift (~-671 km, -5701 km) and every SUMO
         # car would land thousands of km away (and moving the participant there crashes SUMO). The real shift
@@ -370,8 +385,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                           style=(tc["simulation"].get("traffic_lights") or {}).get("style", "head"),
                           lefthand=bool(tc["map"].get("lefthand")), log=log,
                           surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None)
-        log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
-            f"{', meshes' if signals.meshes else ''}) drawn near participants")
+        if signals.style != "none":
+            log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
+                f"{', meshes' if signals.meshes else ''}) drawn near participants")
         carla_sim._kinds.update({a.id: False for a in signals.actors})     # static: never looked up per tick
         world.tick()
 
@@ -467,8 +483,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
                                                   f"{scenery.lights_radius:.0f} m" if scenery.light_bp else ""))
-            parked = parking.scenery(client, world, mdir, tc, log,
-                                     on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
+            if not town or towns.own_parked(world, tc, mdir, log):     # a town may keep its own parked cars
+                parked = parking.scenery(client, world, mdir, tc, log,
+                                         on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
             if parked is not None:
                 parked.update([a.get_location() for a in focus_actors])
                 log(f"parked: {parked.n} cars within {parked.radius:.0f} m of the participants")
@@ -487,6 +504,14 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # ai.Crowd beside the roads; its walkers join walkers_now (cars yield to them) only while on the road
         crowd = crowdpeds.make_crowd(world, geo, tc, mdir, [p.actor.get_location() for p in parts], wx["night"],
                                      duration, log)
+        wai = (tc["traffic"].get("walkers") or {}).get("ai") or {}
+        if int(wai.get("count") or 0) > 0 and tc["map"].get("carla_level"):   # CARLA's AI walkers (navigation mesh)
+            navw = towns.NavWalkers(client, world, wai, [p.actor.get_location() for p in parts], log)
+            world.tick()
+            navw.start()
+            world.tick()
+            navw.go()
+        cmap = world.get_map()
         sumo_yield = SumoYield()
         if crowd is not None:     # SUMO's speeds: CARLA reads 0 m/s for a SUMO vehicle placed with physics off
             crowd.velocities = sync.velocity
@@ -606,7 +631,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 while part.ehmi_schedule and part.ehmi_schedule[0][0] <= t:
                     part.agent.set_ehmi(part.ehmi_schedule.pop(0)[1], part.role)
             laps("inputs")
-            walkers_now = walkers_all + crowd.on_road() if crowd is not None else walkers_all
+            if navw is not None:
+                navw.step(t, cmap)
+            walkers_now = walkers_all + (crowd.on_road() if crowd is not None else []) + \
+                (navw.on_road() if navw is not None else [])
             for ag in agents:
                 ag.step(t, step, walkers_now)
             tools.step(t, step, walkers_now, snap.frame)      # automated drivers' cars, dashboard commands
@@ -723,9 +751,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     logger.event(t, snap.frame, "spawn", cid, f"{kind} {tid} sumo:{sid}")
                 ai[cid] = types[cid]
                 sumo_signals[cid] = sa.signals if sa else 0
-            if crowd is not None:
-                for w in crowd.walkers:
-                    ai[w.id] = ("walker", w.type_id)
+            for w in (crowd.walkers if crowd is not None else []) + (navw.walkers if navw is not None else []):
+                ai[w.id] = ("walker", w.type_id)
             for part in parts:   # an event whenever the light a participant faces changes
                 key = (part.light[0], part.light[2]) if part.light else None
                 if key != part.light_key:
@@ -808,7 +835,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 veh = part.actor
                 if getattr(ctl_in, "inserted", True) is False:  # the SUMO driver waiting below the road (hold)
                     continue
-                off_road = veh.get_location().z < -0.25          # down on the ground plane
+                # down on the ground plane; a town has kerbs and real heights: off every driving lane
+                off_road = towns.off_road(cmap, veh.get_location()) if town else veh.get_location().z < -0.25
                 if off_road and not was_off.get(veh.id):
                     logger.event(t, snap.frame, "left_road", veh.id, part.role)
                 was_off[veh.id] = off_road
@@ -876,6 +904,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             time.sleep(0.5)
         if drone_world is not None:
             drone_world.close()
+        if navw is not None:
+            navw.destroy()
         if logger is not None:
             logger.close()
         if recorder is not None:

@@ -59,7 +59,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Citation](#citation) · [License](#license) · [Support](#support-coupled-carla)
 - [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
 - [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
-- [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport)
+- [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
 - [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [session dashboard](#session-dashboard), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
 - [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
 - [Traffic](#traffic) · [Traffic lights](#traffic-lights)
@@ -96,6 +96,7 @@ under CC0, CC BY 4.0, Licence Ouverte, ODbL or their open data terms). See
 | **Any place** | `map.bbox: [south, west, north, east]` -> OSM download -> pruned road graph -> OpenDRIVE for CARLA + matching SUMO network, in seconds (2.6 s for 1.6 km of central Eindhoven, plus the download). Left- and right-hand traffic. |
 | **Real-world scenery** | Every map is filled from free open data: real terrain on the roads (AHN lidar in the Netherlands, AWS Terrain Tiles elsewhere), buildings at their real footprints and heights (3DBAG, IGN BD TOPO, NYC Open Data, PLATEAU, Overture Maps), OSM street trees by species and height (sized from Meta/WRI canopy heights where OSM has none), the Dutch BGT's ground surfaces and street furniture, parks, water, lamps, benches, bus shelters, bollards and road signs, and the weather and sun of a real place and time (Open-Meteo) ([Real-world scenery](#real-world-scenery-terrain-and-weather)). |
 | **19 cities** | Eindhoven plus 18 cities on six continents, from Tokyo and Cairo to Luang Prabang and Ushuaia ([Cities](#cities)). |
+| **CARLA's towns** | Town01-Town07 and Town10HD (CARLA 0.9.16; the 1.0 towns are not tested yet) with every feature: SUMO traffic that runs the towns' own traffic lights, parked cars, crowds and CARLA's AI walkers, stations, eHMIs, drones, sound, night lights (`map: {carla_town: Town10HD_Opt}`; [Standard CARLA maps](#standard-carla-maps)). |
 | **Traffic models** | SUMO drives everything that is not a participant: EIDM car following, the sublane lane-change model (cyclists and cars share and overtake), a Dutch-flavoured fleet with Gazelle bikes and buses, car demand fitted to open traffic counts where cities publish them (7 maps, SUMO's routeSampler), cyclists on the real cycle network at counted volumes. The participant's car is mirrored into SUMO, so traffic reacts to them. |
 | **Real public transport** | The bus lines of OpenStreetMap run on their real streets and stop at their real stops (16 of the 19 maps have OSM bus lines); where the city publishes a GTFS timetable (10 maps) they come as often as that timetable says for the trial's hour and day; at `time: now` the real buses start where they are at that moment (GTFS-Realtime, e.g. all of the Netherlands) ([Public transport](#public-transport)). |
 | **Real car fleet** | Car body types and colours from open vehicle registers (RDW for the Netherlands, NY DMV for Manhattan with its yellow cabs, Waka Kotahi for New Zealand, Senatran for Brazil), mapped onto CARLA's models; each SUMO car's colour is the CARLA car's ([Traffic](#traffic)). |
@@ -678,6 +679,93 @@ Sydney publish real-time feeds only with a key.
 Trams and trains are left out (CARLA has no tram and the maps have no rails); a line that leaves and
 re-enters the box runs as separate sections; GTFS frequencies are per line and hour, averaged over its
 directions.
+
+## Standard CARLA maps
+
+Coupled CARLA also drives CARLA's own towns, which many CARLA users know: Town01-Town07 and Town10HD with their
+`_Opt` (layered) variants on CARLA 0.9.16, and the `_Opt` towns on CARLA 1.0 (which also ships Mine_01). One line
+picks a town:
+
+```yaml
+map:
+  carla_town: Town10HD_Opt
+```
+
+The run loads the town's level and builds SUMO's net from the town's own OpenDRIVE, cached in `maps/<town>/` (from
+`CARLA_ROOT`, or, as a CARLA 1.0 package keeps its OpenDRIVE inside the pak, from the server's
+`get_map().to_opendrive()`; a server is started once for it when none runs). Everything else works as on a real place;
+what each feature means in a town ([`coupledcarla/towns.py`](coupledcarla/towns.py) sets the defaults, and anything
+the experiment sets itself wins):
+
+| Feature | In a town | |
+|---|---|---|
+| SUMO traffic | cars, cyclists and buses on the town's lanes; cars per hour by town (Town01 500 ... Town04 2,400), few cyclists (the towns are North American); random buses (the towns have no bus lines or stops) | works |
+| Traffic lights | the town's own CARLA traffic-light actors show SUMO's signal states, synced by OpenDRIVE id as in CARLA's SUMO co-simulation; no lights guessed, none drawn | works |
+| Parked cars | Coupled CARLA's parked cars in the OpenDRIVE's parking lanes (Town03, Town05) and on 2-3 m kerb shoulders of town streets (Town03, Town04's lakeside road, Town05, Town10HD), clear of crosswalks, signals and junctions; the `_Opt` towns' own parked cars (ParkedVehicles layer) where Coupled CARLA places none (`simulation.parked.town_layer`) | adapted |
+| Crowd and AI walkers | the calibrated crowd on the kerbs (`city.country: USA` by default), plus `traffic.walkers.ai`: CARLA's AI walkers (WalkerAIController) on the town's navigation mesh, crossing at the crosswalks; SUMO and scripted cars yield to both | works |
+| Participants and stations | driver, pedestrian, AV passenger and drone pilot, host-local or at stations; points as `{lat, lon}` or the town's CARLA coordinates, `{x, y}` dicts and `route_xy` / `path_xy` / `at_xy` lists | works |
+| eHMIs and scripted AVs | as anywhere; [`town03_crossing.yaml`](experiments/towns/town03_crossing.yaml) puts the crossing at a town crosswalk | works |
+| Weather and sun | presets; real weather (`weather: real`) and the sun of `map.place` at `simulation.time` (default: the towns' geoReference, 0° N 0° E in the Gulf of Guinea, where the sun sets at about 18:00 all year) | adapted |
+| Night | the town's own street and building lights (CARLA's LightManager), on after dark (`simulation.town_lights`) | works |
+| Sound | building occlusion and facade reflections from the town's buildings (the level's environment objects' boxes, `buildings.json`, written on the first trial) | adapted |
+| Drones | roofs from the same `buildings.json`, tree tops from the vegetation boxes (`trees.json`) | adapted |
+| Film cameras, videos, logging, analysis, viewer | as anywhere | works |
+| Real-world scenery and data | off: the town has its own buildings, trees, furniture, signs and ground, and no real place for OSM, terrain, bus lines, counts, register fleets, cycle routes or urban speed limits | off |
+
+```bash
+python -m coupledcarla.run experiments/towns/town10_driver.yaml               # Town10HD at rush hour, keyboard
+python -m coupledcarla.run experiments/towns/town03_crossing.yaml --local --headless
+python -m coupledcarla.towns list                                             # the towns
+python -m coupledcarla.towns latlon Town03_Opt 150.5 -13.3                    # CARLA x, y -> lat, lon
+python -m coupledcarla.towns crosswalks Town10HD_Opt                          # crosswalks, for scenarios
+python tools/test_towns.py --duration 40 > docs/town_tests.md                 # the smoke test
+```
+
+Examples in [`experiments/towns/`](experiments/towns): `town10_driver.yaml` (a driver in Town10HD's rush hour with
+traffic, parked cars, a crowd and AI walkers), `town03_crossing.yaml` (a pedestrian and an AV with an eHMI at a
+Town03 crosswalk, two stations), `town10_coupled.yaml` (four stations: pedestrian, AV passenger, driver, drone
+pilot), `town05_drones.yaml` (a pilot, deliveries, a swarm and a patrol over Town05's roofs), `town01_night_rain.yaml`
+(Town01 at night in heavy rain with its street lights).
+
+**Smoke test** (2026-11-15, lin4080, CARLA 0.9.16 at Epic, 50 Hz; 40 s headless autopilot trial per town with SUMO
+traffic, the town's lights run by SUMO, parked cars, a crowd of 20 and 20 CARLA AI walkers; full notes in
+[`docs/town_tests.md`](docs/town_tests.md)):
+
+| Town | Lane links | Traffic lights run by SUMO | Parking stalls | Parked cars shown | Buildings (sound, drones) | SUMO vehicles shown | Real-time factor | Collisions | Result |
+|---|---|---|---|---|---|---|---|---|---|
+| Town01_Opt | 160 | 36 of 36 | 0 (the level's own) | 0 | 373 | 7 | 0.908 | 0 | ok |
+| Town02_Opt | 112 | 24 of 24 | 0 (the level's own) | 0 | 445 | 7 | 0.905 | 0 | ok |
+| Town03_Opt | 503 | 38 of 38 | 335 | 163 | 726 | 19 | 0.985 | 0 | ok |
+| Town04_Opt | 559 | 43 of 43 | 77 | 0 | 118 | 19 | 0.982 | 0 | ok |
+| Town05_Opt | 604 | 54 of 54 | 107 | 48 | 719 | 17 | 0.975 | 0 | ok |
+| Town10HD_Opt | 200 | 15 of 15 | 120 | 61 | 324 | 14 | 0.993 | 0 | ok |
+
+Every town drove its 40 s (the SUMO-driven autopilot) with no collision, no car leaving the road and no recovery, all
+20 AI walkers walking; earlier runs with CARLA's BasicAgent gave the same counts.
+Town06 and Town07 come with CARLA's AdditionalMaps package, which the test machine does not have: their maps build
+and their SUMO traffic runs (167 and 35 vehicles in 300 s SUMO-only runs), and the run says which levels a server
+has. CARLA 1.0 is not tested yet: its towns' OpenDRIVE comes from the server, as the package keeps it in the pak.
+
+**Videos of the towns** (made like the [Videos](#videos) above by `tools/make_videos.py` from the `town*` clips of
+[`experiments/videos/clips.yaml`](experiments/videos/clips.yaml), on CARLA 0.9.16 at Epic; click a picture to play or
+download):
+
+<table>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town10_rush_hour.mp4"><img src="docs/img/videos/town10_rush_hour.jpg" alt="Downtown traffic in Town10"></a><br><b>Downtown traffic in Town10</b><br><sub>Town10HD (CARLA's downtown) · driver (autopilot), chase camera · 20 s, 3.8 MB<br>SUMO traffic in a CARLA town, stopping at the town's own traffic lights; parked cars at the kerbs</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town03_pedestrian_ehmi.mp4"><img src="docs/img/videos/town03_pedestrian_ehmi.jpg" alt="Crossing in front of an automated car in Town03"></a><br><b>Crossing in front of an automated car in Town03</b><br><sub>Town03, a crosswalk among houses · pedestrian · 15 s, 2.0 MB<br>the AV comes down the hill, shows I'M STOPPING and stops at the crosswalk, then GO AHEAD</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town10_four_views.mp4"><img src="docs/img/videos/town10_four_views.jpg" alt="Four people in Town10"></a><br><b>Four people in Town10</b><br><sub>Town10HD, the avenue · pedestrian, AV passenger, driver, drone pilot (four bot stations) · 20 s, 2.9 MB<br>the same moment from four stations in a CARLA town, frame-locked in simulation time</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town05_drones.mp4"><img src="docs/img/videos/town05_drones.jpg" alt="Drones over Town05"></a><br><b>Drones over Town05</b><br><sub>Town05 (CARLA's grid town) · drone pilot (FPV) · 20 s, 3.9 MB<br>the pilot's gimbal camera climbing from a junction over the grid's roofs (coupled-sim's flight model)</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/town01_night_rain.mp4"><img src="docs/img/videos/town01_night_rain.jpg" alt="Rainy night in Town01"></a><br><b>Rainy night in Town01</b><br><sub>Town01 (CARLA's river town) · driver, chase camera · 20 s, 5.6 MB<br>night with the town's own street lights on (LightManager), wet roads, headlights</sub></td>
+</tr>
+</table>
+
+In the four-view clip the driver's view inside the car is dark (the avenue lies in the towers' shade), and the AV
+passenger sees the eHMI mirrored through the windshield, as on every map ([Known limits](#known-limits)).
 
 ## Experiment files
 
@@ -1727,6 +1815,9 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 - **Traffic:** SUMO still logs junction collisions at a few junctions with faulty internal lanes from netconvert's
   OpenDRIVE import; vehicles that SUMO inserts at speed inside the level-of-detail radius can come too close to a
   walker to stop.
+- **CARLA towns:** Town06 and Town07 need CARLA 0.9.16's AdditionalMaps package; the towns on CARLA 1.0 are not
+  tested yet. The towns have no bus lines or stops (random buses), and real weather comes from a place you choose
+  (`map.place`), since their geoReference lies in the sea.
 - **CARLA 0.9.16 only:** the UE 5 line (0.10 / ue58-dev) has no SUMO co-simulation; porting the vendored
   bridge is part of phase 3.
 
@@ -1891,6 +1982,7 @@ coupledcarla/
   gbfs.py            shared bikes and scooters (GBFS)
   side.py            a second CARLA connection for drawings (CARLA 1.0's rpclib stalls)
   lanesnap.py        SUMO lane snapping without convertRoad
+  towns.py           CARLA's standard maps (map.carla_town): OpenDRIVE, defaults per feature, AI walkers, lights
   urbanspeeds.py     urban default speeds per country for netconvert (urban.typ.xml)
   study.py           trial plans: conditions, factorial designs, Latin-square/full/random orders per participant
   validate.py        experiment validator (python -m coupledcarla.validate)
@@ -1930,12 +2022,12 @@ coupledcarla/
   geo.py             WGS84 <-> CARLA coordinates
   export_trial.py    trial -> trial.json for the viewer
 experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhoven_crowd.yaml (coupled), eindhoven_twin.yaml,
-                     cities.yaml, cities/<slug>.yaml, places/<name>.yaml (made by the map maker)
+                     cities.yaml, cities/<slug>.yaml, places/<name>.yaml (made by the map maker), towns/ (CARLA towns)
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
-tools/               test_cities.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
+tools/               test_cities.py, test_towns.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
                      render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py,
                      crowdpeds_check.py, crowd_table.py, speeds_check.py
-docs/                city_tests.md, make_a_map.md (the map maker, step by step), img/
+docs/                city_tests.md, town_tests.md, make_a_map.md (the map maker, step by step), img/
 make_map.bat, make_map.sh, "Make a map.command"   double-click launchers of the map maker (Windows, Linux, macOS)
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)

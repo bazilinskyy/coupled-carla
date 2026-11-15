@@ -267,9 +267,13 @@ def check_xodr(xodr):
 def build_scenery(cfg, out, meta, cmap=None, server_major=None, log=log):
     """Scenery and buildings for a built map (scenery.py), recorded in meta. On a baked CARLA level (map.carla_level)
     only trees, bushes, lamps, street furniture and signs: the level has its own buildings and ground."""
+    mc = cfg["map"]
+    if mc.get("carla_town"):     # a CARLA town has its own scenery: parked cars only (towns.py)
+        from . import towns
+        return towns.build_scenery(dict(cfg, map=dict(mc, bbox=mc.get("bbox") or meta.get("bbox"))), out, meta, cmap,
+                                   server_major, log)
     from . import scenery
     from .geo import Geo
-    mc = cfg["map"]
     if meta.get("bbox") and list(mc.get("bbox") or []) != list(meta["bbox"]):
         if mc.get("bbox"):
             log(f"map.bbox {mc['bbox']} is not the built map's {meta['bbox']}: the scenery follows the built roads "
@@ -334,7 +338,7 @@ def scenery_for_server(cfg, out, server_major, log=log):
         return False
 
 
-def sumo_net(out):
+def sumo_net(out, guess_tls=True):
     """OpenDRIVE -> map.net.xml with CARLA's road ids, by the vendored netconvert_carla.py (CARLA 1.0 does not ship
     it). The SUMO net never gets the sidewalks (see config.py); bus-only lanes (OpenDRIVE "restricted") are open to
     buses, taxis and emergency vehicles (bridge/util/data/*.typ.xml).
@@ -349,8 +353,8 @@ def sumo_net(out):
         log("left-hand map: SUMO runs geo.net.xml (the OpenDRIVE's source net)")
         return
     subprocess.check_call([sys.executable, str(Path(__file__).parent / "bridge" / "util" / "netconvert_carla.py"),
-                           str(out / "map.xodr"), "--output", str(out / "map.net.xml"), "--guess-tls",
-                           "--no-sidewalks"])
+                           str(out / "map.xodr"), "--output", str(out / "map.net.xml"),
+                           *(["--guess-tls"] if guess_tls else []), "--no-sidewalks"])
     log("OpenDRIVE -> CARLA-consistent SUMO net")
 
 
@@ -402,10 +406,11 @@ def build_from_opendrive(cfg, out):
     stats = check_xodr(xodr)
     netconvert("--opendrive-files", str(xodr), "--offset.disable-normalization", "--no-internal-links",
                "-o", str(out / "geo.net.xml"))
-    sumo_net(out)
+    sumo_net(out, guess_tls=not mc.get("carla_town"))   # a CARLA town's lights are its own signals: none guessed
     bbox = mc.get("bbox") or _bbox_of(out / "geo.net.xml")
     meta = {"name": mc["name"], "lefthand": bool(mc.get("lefthand")), "buildings": 0, "bbox": bbox,
             "built": time.strftime("%Y-%m-%d %H:%M:%S"), "opendrive": str(src), "carla_level": mc.get("carla_level"),
+            **({"town": mc["carla_town"]} if mc.get("carla_town") else {}),
             "files": {"geo_net": "geo.net.xml", "xodr": "map.xodr", "sumo_net": "map.net.xml"},
             "xodr": stats, "elevation": None}
     if mc.get("elevation"):
@@ -466,7 +471,8 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
     out.mkdir(parents=True, exist_ok=True)
     if transit_only and (out / "meta.json").exists():
         meta = json.loads((out / "meta.json").read_text())
-        sumo_net(out)            # nets built before bus lanes were open to buses
+        # nets built before bus lanes were open to buses (a CARLA town's without guessed lights)
+        sumo_net(out, guess_tls=False) if mc.get("carla_town") else sumo_net(out)
         build_transit(dict(cfg, map=dict(mc, bbox=meta.get("bbox") or mc["bbox"])), out, meta)   # a twin's box
         (out / "meta.json").write_text(json.dumps(meta, indent=2))
         log(f"public transport rebuilt: {out}")
@@ -482,6 +488,10 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
     if (out / "meta.json").exists() and not force:
         log(f"{out} already built (use --force to rebuild)")
         return out
+    if mc.get("carla_town") and not mc.get("opendrive"):   # a CARLA town: its own OpenDRIVE (towns.py)
+        from . import towns
+        cfg = dict(cfg, map=dict(mc, opendrive=str(towns.opendrive_file(cfg, out, log))))
+        mc = cfg["map"]
     if mc.get("opendrive"):
         return build_from_opendrive(cfg, out)
     if not mc["bbox"]:

@@ -1,0 +1,36 @@
+# Town10HD, CARLA's downtown (avenues, skyscrapers, the waterfront), at the evening rush hour: a driver in SUMO traffic
+# (cars, cyclists, buses), the town's own traffic lights run by SUMO, parked cars at the kerbs, a crowd on the
+# pavements and CARLA's AI walkers crossing at the crosswalks. CARLA x, y work wherever lat, lon do (towns.py).
+#   python -m coupledcarla.run experiments/towns/town10_driver.yaml                    # keyboard, driver view
+#   python -m coupledcarla.run experiments/towns/town10_driver.yaml --input wheel
+#   python -m coupledcarla.run experiments/towns/town10_driver.yaml --headless --view chase --duration 60
+name: town10_driver
+
+map:
+  carla_town: Town10HD_Opt         # Town10HD (the full level) works the same; on CARLA 1.0 only the _Opt towns
+
+simulation:
+  weather: ClearSunset
+  time: "17:30"                    # rush hour: traffic, parked-car occupancy (the sun stands at the town's
+                                   # geoReference, 0 N 0 E, so the sun of 17:30 there)
+
+traffic:
+  cars_per_hour: 1500              # Town10's default is 900
+  bikes_per_hour: 120
+  buses_per_hour: 8
+  walkers:
+    count: 25                      # coupled-carla's crowd on the kerbs (crowdpeds.py, calibrated for the USA)
+    ai: {count: 40}                # CARLA's AI walkers on the town's navigation mesh
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {x: -5.5, y: 130.2, heading: 270}    # the waterfront avenue, heading west (CARLA x, y)
+
+pois:
+  - {name: avenue_midblock, x: -45.0, y: 78.0}
+
+trials:
+  - {duration_s: 300}

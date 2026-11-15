@@ -96,7 +96,8 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     for name, per_hour, vclass, vtype, extra in (
             ("car", cars_per_hour, "passenger", "cars", ["--fringe-factor", "5"]),
             ("bike", 0 if bikes is not None else tc["bikes_per_hour"], "bicycle", "bikes", ["--fringe-factor", "3"]),
-            ("bus", 0 if pt else tc["buses_per_hour"], "bus", tc["bus_type"], ["--min-distance", "1000"])):
+            ("bus", 0 if pt else tc["buses_per_hour"], "bus", tc["bus_type"],
+             ["--min-distance", str(tc.get("bus_min_distance_m", 1000))])):
         if not per_hour:
             continue
         rou = work / f"{name}.rou.xml"

@@ -1,0 +1,47 @@
+# Drones over Town05 (a grid town with multi-lane roads): a participant flies a consumer camera drone up from a
+# pavement over the roofs (here its bot), delivery drones take parcels from a depot to the town's buildings, a swarm
+# flocks over the grid and a patrol circles. Roofs and tree tops come from the level's own buildings and trees
+# (their environment objects' boxes, maps/Town05_Opt/buildings.json and trees.json, written on the first trial).
+#   python -m coupledcarla.run experiments/towns/town05_drones.yaml --headless --frames-every 0.5
+name: town05_drones
+
+map:
+  carla_town: Town05_Opt
+
+simulation:
+  weather: ClearNoon
+
+traffic:
+  cars_per_hour: 1200
+
+participants:
+  - role: pilot
+    kind: drone
+    input: gamepad            # keyboard | gamepad | rc | bot (headless runs fly the bot)
+    airframe: consumer
+    mode: position
+    view: fpv
+    gimbal_pitch_deg: -15
+    spawn: {x: -113.8, y: -75.0, heading: 0}                # the pavement at a junction of the grid
+    geofence: {radius_m: 500, max_altitude_m: 120}
+    bot:
+      path_xy: [[-113.8, -75.0, 40], [-30, -80, 50], [40, -80, 55], [40, -140, 50], [-113.8, -130, 45],
+                [-113.8, -75.0, 3]]      # along the streets, clear of the 77 m towers north of y = 25
+      speed: 7
+      start_s: 4
+      land: true
+
+drones:
+  missions:
+    - {kind: delivery, id: parcels, count: 3, airframe: industrial, addresses_per_drone: 2, radius_m: 250,
+       depot: {x: -60.0, y: 0.0}, drop: winch, start_s: 2}
+    - {kind: swarm, id: flock, count: 8, centre: {x: -60.0, y: -40.0}, radius_m: 150, start_s: 6}
+    - {kind: patrol, id: patrol, centre: {x: -60.0, y: -40.0}, radius_m: 220}
+  cameras:
+    - {name: junction, x: -110.0, y: -80.0, height_m: 1.7, look: nearest, every_s: 0.5}
+
+logging:
+  frames_every_s: 0.5
+
+trials:
+  - {duration_s: 120}

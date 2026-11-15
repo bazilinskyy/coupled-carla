@@ -41,10 +41,17 @@ DEFAULTS = {
             "shared": True,          # shared bikes and scooters at their GBFS positions (gbfs.py); a trial at
                                      # simulation.time "now" puts them where they are at its start
             "shared_per_station": 10,    # at most this many bikes shown per dock
+            "park_shoulders_m": None,    # [min, max]: OpenDRIVE shoulders this wide count as parking strips (the
+                                         # CARLA towns: [2.0, 3.0], their kerb shoulders; highways' are 3.5 m)
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
         "carla_level": None,         # load this CARLA level (by name) instead of generating an OpenDRIVE-only world
+        "carla_town": None,          # a CARLA standard map (Town01..Town07, Town10HD, their _Opt variants; on 1.0 the
+                                     # _Opt towns, Mine_01): its level, its OpenDRIVE for SUMO (maps/<town>/) and
+                                     # per-feature defaults for a town (coupledcarla/towns.py)
+        "place": None,               # [lat, lon] whose real weather and sun a map without a real place takes (a
+                                     # CARLA town; default: the map's centre, for the towns their geoReference 0, 0)
         "photoreal": False,          # "google": Google's Photorealistic 3D Tiles over a baked level, under its own roads
                                      # (photoreal.py; needs the server's own key and billing, the Cesium plugins and
                                      # `photoreal prepare`); or a mapping of photoreal.DEFAULTS; false: off
@@ -122,7 +129,12 @@ DEFAULTS = {
                     "lights_radius_m": 200.0},   # ... only within this distance of a participant (0: all)
         "parked": {"enabled": True,  # parked cars (map.scenery.parked) in the stalls taken at the trial's hour
                    "radius_m": 250.0,     # streamed within this distance of the participants
-                   "occupancy": "auto"},  # "auto": by zone and local hour (parking.PRESENCE), or a share 0-1
+                   "occupancy": "auto",   # "auto": by zone and local hour (parking.PRESENCE), or a share 0-1
+                   "town_layer": "auto"},  # CARLA towns' own parked cars: "auto" places Coupled CARLA's where the
+                                          # map has stalls (unloading an _Opt town's ParkedVehicles layer; a full
+                                          # level with cars of its own keeps them); true: the level's only; false: ours
+        "town_lights": "auto",       # CARLA towns: street and building lights on at night (LightManager); "on",
+                                     # "off", or false (left to the server)
     },
     "traffic": {
         "seed": 42,
@@ -133,6 +145,7 @@ DEFAULTS = {
                                      # routeSampler, topped up to cars_per_hour; false: random trips only
         "bikes_per_hour": 1200,
         "buses_per_hour": 12,        # random bus trips, only on maps without OSM bus lines
+        "bus_min_distance_m": 1000,  # ... each at least this long (CARLA towns: 300, they are small)
         "public_transport": {        # the map's real bus lines (map.transit): at their GTFS frequency for the
             "enabled": True,         # trial's local hour (simulation.time, else 08:00 on a weekday), else the OSM
             "dwell_s": 20,           # interval tag, else default_headway_min
@@ -184,6 +197,10 @@ DEFAULTS = {
             "crossings_per_km": 2.0, # crossings per km walked where CROWD's crossing share is the median city's
             "speed_mps": "auto",     # median walking speed, or "auto": the place's CROWD crossing speed
             "jaywalk_share": "auto", # share of crossings mid-block, or "auto": the country's in CROWD
+            "ai": {"count": 0,       # CARLA's AI walkers (WalkerAIController) on the level's navigation mesh: CARLA
+                   "radius_m": 150,  # towns and baked levels only (towns.NavWalkers); spawned within radius_m of the
+                   "speed_mps": 1.35, "run_share": 0.05,   # participants, walking to random destinations,
+                   "cross_share": 0.05, "seed": 3},        # crossing at crosswalks (and cross_share elsewhere)
         },
     },
     "participants": [],
@@ -371,8 +388,11 @@ def _scenery_switches(cfg):
 
 
 def load(path):
+    from . import towns
     path = Path(path)
-    cfg = _scenery_switches(_merge(DEFAULTS, yaml.safe_load(path.read_text()) or {}))
+    raw = yaml.safe_load(path.read_text()) or {}
+    # a CARLA town (map.carla_town): the town's defaults under the file's own settings (towns.overrides)
+    cfg = _scenery_switches(_merge(_merge(DEFAULTS, towns.overrides(raw)), raw))
     cfg["map"]["name"] = cfg["map"]["name"] or cfg["name"]
     cfg["_path"] = str(path.resolve())
     cfg["_root"] = str(Path(__file__).resolve().parent.parent)   # the project folder (maps/, logs/)
@@ -395,3 +415,12 @@ def trial_config(cfg, trial):
 
 def map_dir(cfg):
     return Path(cfg["_root"]) / "maps" / cfg["map"]["name"]
+
+
+def place(cfg, bbox=None):
+    """(lat, lon) of the map's place for weather and sun: map.place, else the centre of the box."""
+    p = (cfg.get("map") or {}).get("place")
+    if p:
+        return float(p[0]), float(p[1])
+    bb = bbox or cfg["map"]["bbox"]
+    return (bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2

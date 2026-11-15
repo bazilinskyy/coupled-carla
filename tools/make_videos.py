@@ -123,7 +123,8 @@ def derive_experiment(clip, server, root=ROOT):
         raw.pop(k, None)
     exp = raw
     exp["map"] = dict(exp.get("map") or {})
-    exp["map"].setdefault("name", raw.get("name"))
+    if not exp["map"].get("carla_town"):      # a CARLA town's map folder is named after the town (towns.py)
+        exp["map"].setdefault("name", raw.get("name"))
     for k in OVERRIDE_KEYS:
         if k in trial:
             exp[k] = ccconfig._merge(exp.get(k) or {}, trial[k]) if isinstance(trial[k], dict) else \

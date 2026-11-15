@@ -201,6 +201,11 @@ def realism(rig, n):
     # a semantic sample that is almost all "unlabeled" (tag 0) saw no world at all (its camera was elsewhere, as with
     # a drone camera moved by DroneWorld on 0.9.16): it says nothing about the frames and is not counted
     tags = [t for t in rig.sem_tags if float((np.asarray(t) == 0).mean()) < 0.95]
+    # a drone camera's semantic samples that are all the same stayed where the drone took off (DroneWorld moves only
+    # the RGB camera on 0.9.16): in a level with ground under the take-off spot (a CARLA town) they see that spot
+    if getattr(rig, "kind", None) == "drone" and len(tags) > 1 and \
+            all(np.array_equal(np.asarray(t), np.asarray(tags[0])) for t in tags[1:]):
+        tags = []
     if tags:
         empty = [p for p in (look.semantic_problems(t) for t in tags) if p]
         if len(empty) > len(tags) / 2:

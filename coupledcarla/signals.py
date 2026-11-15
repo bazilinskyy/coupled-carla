@@ -142,8 +142,8 @@ class Signals:
                  lefthand=False, log=print, surface=None):
         """net: the sumolib net SUMO runs (map.net.xml); offset: the bridge's SUMO->CARLA shift; debug: where to
         draw (the runner passes the side connection's, see side.py), else world.debug; style: "head" or
-        "marker"; lefthand: the kerb is on the left of the lanes; surface: placement.GroundSurface of the scenery's
-        ground tiles (the poles stand on them)."""
+        "marker" (or "none": no drawing, next_light only); lefthand: the kerb is on the left of the lanes; surface:
+        placement.GroundSurface of the scenery's ground tiles (the poles stand on them)."""
         self.debug = world.debug if debug is None else debug
         cmap = world.get_map()
         self.surface = surface
@@ -153,7 +153,9 @@ class Signals:
                                                           lane_type=surfaced) is not None
         self.radius, self.every = radius, every
         self.life = every * step * 1.6
-        self.style = style if style in ("head", "marker") else "head"
+        # "none": nothing drawn or spawned, the level's own traffic-light actors show SUMO's states (a CARLA town,
+        # towns.py); the heads are still placed (the dashboard's live map shows them)
+        self.style = style if style in ("head", "marker", "none") else "head"
         self.heads = []   # (tls_id, [link indices], carla Location at the stop line, travel yaw): the first light
         self.head_links = []    # per head every (tls_id, [link indices]) it shows (several lights per approach)
         self.lanes = {}   # SUMO lane id -> [(tls_id, [link indices], lane length, {edges the links lead to})]
@@ -276,6 +278,8 @@ class Signals:
         return out
 
     def draw(self, centres):
+        if self.style == "none":        # the level's own light actors show SUMO's states (heads kept: livemap)
+            return
         self._tick += 1
         if self._tick % self.every or not centres:
             return

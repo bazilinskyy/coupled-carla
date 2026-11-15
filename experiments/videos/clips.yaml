@@ -248,3 +248,116 @@ clips:
     start_s: 8
     duration_s: 20
     camera: {kind: drone, target: pilot, view: fpv}
+
+  # CARLA's standard maps (experiments/towns; map.carla_town, coupledcarla/towns.py)
+  - name: town10_rush_hour
+    title: Downtown traffic in Town10
+    scale: [960, 540]
+    crf: 29
+    place: Town10HD (CARLA's downtown)
+    role: driver (autopilot), chase camera
+    when: midday
+    agents: SUMO cars, cyclists and buses, the town's traffic lights run by SUMO, parked cars, a crowd, CARLA AI walkers
+    notice: SUMO traffic in a CARLA town, stopping at the town's own traffic lights; parked cars at the kerbs
+    experiment: experiments/towns/town10_driver.yaml
+    time: "2026-06-17 12:15"
+    attributes: {exposure_compensation: 0.0}     # the avenue's shade under the towers
+    set:
+      traffic: {cars_per_hour: 1800, walkers: {count: 25, ai: {count: 50, radius_m: 200}}}
+      participants:
+        - {role: driver, vehicle: vehicle.lincoln.mkz_2020, input: autopilot, spawn: {x: -5.5, y: 130.2, heading: 270}}
+    hold: {driver: 38}
+    start_s: 38
+    duration_s: 20
+    camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}
+
+  - name: town03_pedestrian_ehmi
+    title: Crossing in front of an automated car in Town03
+    place: Town03, a crosswalk among houses
+    role: pedestrian
+    when: midday
+    agents: the AV with its eHMI (front, roof, road, eyes), SUMO traffic, CARLA AI walkers
+    notice: the AV comes down the hill, shows I'M STOPPING and stops at the crosswalk, then GO AHEAD
+    experiment: experiments/towns/town03_crossing.yaml
+    local: true
+    time: "2026-09-20 12:30"
+    set:
+      traffic: {cars_per_hour: 1800, walkers: {count: 15, radius_m: 100, ai: {count: 40, radius_m: 90}}}
+    start_s: 3
+    duration_s: 15
+    attributes: {bloom_intensity: 0.08}
+    camera: {kind: follow, target: pedestrian, offset: [0.22, 0, 0.72], look_ahead_m: 6, look_up_m: 0.7,
+             smooth_s: 0.4, look_at: av1, look_weight: 0.6, look_smooth_s: 0.4, look_max_m: 160, fov: 80}
+
+  - name: town10_four_views
+    title: Four people in Town10
+    crf: 29
+    place: Town10HD, the avenue
+    role: pedestrian, AV passenger, driver, drone pilot (four bot stations)
+    when: midday
+    agents: the AV with its eHMI, a driver behind it, a drone above, a crowd, AI walkers, SUMO traffic
+    notice: the same moment from four stations in a CARLA town, frame-locked in simulation time
+    experiment: experiments/towns/town10_coupled.yaml
+    kind: stations
+    attributes: {exposure_compensation: 0.9, exposure_max_bright: 13, bloom_intensity: 0.08}   # the towers' shade
+    time: "2026-09-20 12:30"
+    start_s: 4
+    duration_s: 20
+    caption: {title: "Four people in Town10", line: "CARLA Town10HD  ·  four bot stations in one world"}
+    set:      # four cameras on a town level: no supersampling, keeps the server under 10 GB
+      simulation: {capture: {supersample: 1}}
+      traffic: {walkers: {count: 10, ai: {count: 20}}}
+    stations:
+      layout: [2, 2]
+      control_port: 2810
+      views:
+        - {role: pedestrian, label: Pedestrian}
+        - {role: av_passenger, label: AV passenger, own: av1}
+        - {role: driver, label: Driver}
+        - {role: pilot, label: Drone pilot}
+
+  - name: town05_drones
+    title: Drones over Town05
+    place: Town05 (CARLA's grid town)
+    role: drone pilot (FPV)
+    when: midday
+    agents: the pilot's camera drone (bot), delivery drones, a swarm and a patrol over the town's own roofs
+    notice: the pilot's gimbal camera climbing from a junction over the grid's roofs (coupled-sim's flight model)
+    experiment: experiments/towns/town05_drones.yaml
+    set:
+      participants:
+        - role: pilot
+          kind: drone
+          input: bot
+          airframe: consumer
+          mode: position
+          view: fpv
+          gimbal_pitch_deg: -25
+          spawn: {x: -113.8, y: -75.0, heading: 90}
+          geofence: {radius_m: 500, max_altitude_m: 120}
+          bot: {path_xy: [[-113.8, -75.0, 40], [-30, -80, 50], [40, -80, 55]], speed: 7, start_s: 2, land: false}
+      logging: {frames_every_s: 0}
+    time: "2026-09-20 13:00"
+    start_s: 8
+    duration_s: 20
+    camera: {kind: drone, target: pilot, view: fpv}
+
+  - name: town01_night_rain
+    title: Rainy night in Town01
+    place: Town01 (CARLA's river town)
+    role: driver, chase camera
+    when: night, heavy rain
+    agents: SUMO traffic with headlights, the town's street and building lights
+    notice: night with the town's own street lights on (LightManager), wet roads, headlights
+    experiment: experiments/towns/town01_night_rain.yaml
+    time: "2026-11-15 21:30"
+    weather: {cloudiness: 80, precipitation: 80, precipitation_deposits: 70, wetness: 100, wind_intensity: 40, fog_density: 5}
+    set:
+      traffic: {cars_per_hour: 1200, walkers: {count: 10, ai: {count: 30}}}
+      participants:
+        - {role: driver, vehicle: vehicle.lincoln.mkz_2020, input: autopilot, spawn: {x: 200.0, y: 59.5, heading: 90}}
+    hold: {driver: 30}
+    start_s: 30
+    duration_s: 20
+    camera: {kind: follow, target: driver, offset: [-7.0, 0, 2.2], look_ahead_m: 8, look_up_m: 1.2, smooth_s: 0.6,
+             attributes: {exposure_compensation: -1.2, exposure_min_bright: 8, exposure_max_bright: 12}}

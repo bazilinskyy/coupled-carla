@@ -1046,6 +1046,9 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):
     except Exception as err:  # noqa: BLE001 - a map the planner cannot read: the crowd of before
         log(f"crowd: CROWD behaviour failed ({err!r}); walkers beside the roads instead")
         return legacy()
+    if (tc.get("map") or {}).get("carla_town"):     # a CARLA town: kerbs onto its pavements (walls, sunken roads)
+        from . import towns
+        towns.snap_kerbs(world.get_map(), segs, log)
     sim = CrowdSim(world, geo, segs, walkers, params, int(wc.get("seed", 1)), log)
     sim.stats = stats
     return sim

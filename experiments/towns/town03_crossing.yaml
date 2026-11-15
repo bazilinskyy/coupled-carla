@@ -1,0 +1,69 @@
+# Town03: a pedestrian crosses at the crosswalk of a T-junction among houses (CARLA x 150, y -13) while an
+# automated vehicle (AV) comes down the hill; it yields, and its passenger sets the eHMI (front bar, roof ring,
+# text on the road, eyes that follow the pedestrian). SUMO traffic, CARLA's AI walkers and the town's own traffic
+# lights around. Two humans at two stations, or bots:
+#   host:      python -m coupledcarla.run experiments/towns/town03_crossing.yaml
+#   stations:  python -m coupledcarla.station --host <host> --role pedestrian
+#              python -m coupledcarla.station --host <host> --role av_passenger
+#   quick test without stations: python -m coupledcarla.run experiments/towns/town03_crossing.yaml --local --headless
+name: town03_crossing
+
+map:
+  carla_town: Town03_Opt
+
+simulation:
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 900
+  walkers: {ai: {count: 30, radius_m: 120}}
+
+coupling:
+  port: 2100
+  wait_for_stations_s: 600
+  visual_sync_at_s: [2]
+
+ehmi:
+  states:
+    yielding: {text: "I'M STOPPING", color: [0, 190, 255]}
+    go: {text: "GO AHEAD", color: [0, 230, 120]}
+    driving: {text: "DRIVING", color: [255, 170, 0]}
+    wait: {text: "WAIT", color: [255, 40, 40]}
+
+eye_contact: {angle_deg: 20, distance_m: 30}
+
+participants:
+  - role: pedestrian
+    kind: pedestrian
+    station: true
+    spawn: {x: 159.6, y: -15.0, heading: 270}             # east kerb of the crosswalk, facing across (west)
+    bot: {path_xy: [[136.5, -13.3]], start_s: 5, speed: 1.4, look: av1}
+  - role: av_passenger
+    kind: av_passenger
+    station: true
+    agent: av1
+    bot: {ehmi: [[10, yielding], [13, go], [18, driving]]}
+
+agents:
+  - id: av1
+    kind: car
+    vehicle: vehicle.tesla.model3
+    color: "20,60,140"
+    route_xy: [[147, -110], [147, -40], [110, -7]]        # down the hill, over the crosswalk, right at the junction
+    speed_kmh: 30
+    accel: 2.0
+    yield_to_pedestrians: true
+    ehmi: manual
+    ehmi_slots: [front, roof, road, eyes]
+    triggers:
+      - {at_m: 80, speed_kmh: 20, blinker: right}
+
+pois:
+  - {name: crosswalk, x: 150.5, y: -13.3, radius_m: 12}
+
+logging:
+  radius_m: 150
+
+trials:
+  - {duration_s: 45}
+  - {duration_s: 45, simulation: {weather: WetCloudySunset, sun_altitude: 4}}
