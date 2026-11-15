@@ -1,8 +1,36 @@
-# coupled-carla
+<h1 align="center"><img src="docs/logo.svg" width="48" alt="" align="top">&nbsp;coupled-carla</h1>
 
-[![tests](https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml/badge.svg)](https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml)
+<p align="center">
+  <b>A human-factors driving simulator for real places.</b><br>
+  Type a place, get a drivable world built from open data, and put drivers, pedestrians, cyclists, AV passengers
+  and drone pilots in it together.
+</p>
 
-**A human-factors driving simulator for real places.** coupled-carla builds a drivable [CARLA](https://carla.org)
+<p align="center">
+  <a href="https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/bazilinskyy/coupled-carla/actions/workflows/tests.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-22c55e"></a>
+  <img alt="Python 3.12" src="https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white">
+  <img alt="CARLA 0.9.16 and 1.0" src="https://img.shields.io/badge/CARLA-0.9.16%20%7C%201.0-0f172a">
+  <img alt="SUMO traffic" src="https://img.shields.io/badge/traffic-SUMO-38bdf8">
+  <img alt="Built from open data" src="https://img.shields.io/badge/maps-open%20data-7EBC6F?logo=openstreetmap&logoColor=white">
+  <img alt="Linux and Windows" src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows-94a3b8">
+  <a href="https://github.com/bazilinskyy/coupled-carla/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/bazilinskyy/coupled-carla?color=64748b"></a>
+  <a href="https://github.com/sponsors/bazilinskyy"><img alt="Sponsor on GitHub" src="https://img.shields.io/badge/sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white"></a>
+  <a href="https://ko-fi.com/bazilinskyy"><img alt="Support on Ko-fi" src="https://img.shields.io/badge/support-Ko--fi-ff5e5b?logo=kofi&logoColor=white"></a>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#make-a-map-of-any-place">Make a map</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#coupled-experiments-phase-2">Coupled experiments</a> ·
+  <a href="#phase-3-carla-10-and-the-eindhoven-digital-twin">Digital twin</a> ·
+  <a href="#drones">Drones</a> ·
+  <a href="docs/lab_guide.md">Lab guide</a> ·
+  <a href="#support-coupled-carla">Support</a>
+</p>
+
+coupled-carla builds a drivable [CARLA](https://carla.org)
 world for any bounding box on Earth from OpenStreetMap, fills it with traffic from [SUMO](https://eclipse.dev/sumo/)
 (cars, cyclists, buses with proper car-following and lane-change models), puts a participant at the wheel
 (keyboard, Logitech G25 with force feedback, or an autopilot for tests) and logs every trial at 50 Hz in the
@@ -52,6 +80,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Roadmap](#roadmap)
 - [Lessons learned (gotchas)](#lessons-learned-gotchas)
 - [Project layout](#project-layout)
+- [Support coupled-carla](#support-coupled-carla)
 - [Credits, data and licences](#credits-data-and-licences)
 
 ---
@@ -1588,6 +1617,14 @@ make_map.bat, make_map.sh, "Make a map.command"   double-click launchers of the 
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
 ```
+
+## Support coupled-carla
+
+coupled-carla is free and stays free. If it is useful to you and you would like to give something back, you can
+[sponsor it on GitHub](https://github.com/sponsors/bazilinskyy) (monthly or once) or
+[buy me a coffee on Ko-fi](https://ko-fi.com/bazilinskyy). Bug reports, ideas, new cities and pull requests help
+just as much. If you use it in research, please cite it (the "Cite this repository" button on GitHub, from
+[`CITATION.cff`](CITATION.cff)).
 
 ## Credits, data and licences
 
