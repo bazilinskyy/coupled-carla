@@ -352,7 +352,7 @@ class SumoTrafficLight(object):
 # ==================================================================================================
 
 
-def _netconvert_carla_impl(xodr_file, output, tmpdir, guess_tls=False, sidewalks=True):
+def _netconvert_carla_impl(xodr_file, output, tmpdir, guess_tls=False, sidewalks=True, extra=()):
     """
     Implements netconvert carla.
     """
@@ -377,6 +377,7 @@ def _netconvert_carla_impl(xodr_file, output, tmpdir, guess_tls=False, sidewalks
             '--output.original-names',
             # Discard loading traffic lights as them will be inserted manually afterwards.
             '--tls.discard-loaded', 'true',
+            *extra,      # coupled-carla: junction options (mapbuild.SUMO_NETCONVERT)
         ])
     except subprocess.CalledProcessError:
         raise RuntimeError('There was an error when executing netconvert.')
@@ -498,7 +499,7 @@ def _netconvert_carla_impl(xodr_file, output, tmpdir, guess_tls=False, sidewalks
     tree.write(output, pretty_print=True, encoding='UTF-8', xml_declaration=True)
 
 
-def netconvert_carla(xodr_file, output, guess_tls=False, sidewalks=True):
+def netconvert_carla(xodr_file, output, guess_tls=False, sidewalks=True, extra=()):
     """
     Generates sumo net.
 
@@ -509,7 +510,7 @@ def netconvert_carla(xodr_file, output, guess_tls=False, sidewalks=True):
     """
     try:
         tmpdir = tempfile.mkdtemp()
-        _netconvert_carla_impl(xodr_file, output, tmpdir, guess_tls, sidewalks)
+        _netconvert_carla_impl(xodr_file, output, tmpdir, guess_tls, sidewalks, extra)
 
     finally:
         if os.path.exists(tmpdir):
@@ -529,6 +530,8 @@ if __name__ == '__main__':
                            help='guess traffic lights at intersections (default: False)')
     argparser.add_argument('--no-sidewalks', action='store_true',
                            help='leave the OpenDRIVE sidewalk lanes out of the SUMO net (coupled-carla)')
+    argparser.add_argument('--netconvert-args', default='',
+                           help='more netconvert options, one string (coupled-carla)')
     args = argparser.parse_args()
 
-    netconvert_carla(args.xodr_file, args.output, args.guess_tls, not args.no_sidewalks)
+    netconvert_carla(args.xodr_file, args.output, args.guess_tls, not args.no_sidewalks, args.netconvert_args.split())
