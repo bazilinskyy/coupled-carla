@@ -565,6 +565,8 @@ def collect_frames(ctx, clip, rec):
         d = trial / "film" / ((clip.get("camera") or clip["cameras"][0]).get("name", "main"))
         film = json.loads((trial / "film" / "film.json").read_text())
         chk = film["cameras"][d.name]
+        if chk.get("realism"):      # look.py: an empty world, a black or glaring clip is never shown
+            ctx.log(f"{clip['name']}: REJECTED by the realism guard: {'; '.join(chk['realism'])}")
         filled = fill_gaps(d, n)
         return d, {"step": step, "check": chk, "filled": len(filled)}
     st = clip["stations"]

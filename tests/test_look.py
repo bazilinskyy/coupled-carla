@@ -205,3 +205,19 @@ def test_semantic_shares_and_cli(tmp_path):
     Image.fromarray(np.zeros((20, 20, 3), np.uint8)).save(tmp_path / "dark.png")
     assert look.main([str(tmp_path / "ok.png")]) == 0
     assert look.main([str(tmp_path / "ok.png"), str(tmp_path / "dark.png")]) == 1
+
+
+def test_film_realism_guard(tmp_path):
+    film = pytest.importorskip("coupledcarla.film")
+    from PIL import Image
+
+    class Rig:
+        dir = tmp_path
+        sem_tags = [np.full((18, 32), 10, np.uint8)] * 3            # terrain and nothing else: an empty world
+    for k in (1, 5, 9):
+        Image.fromarray(np.full((20, 20, 3), 5 if k == 5 else 120, np.uint8)).save(tmp_path / f"{k:06d}.jpg")
+    probs = film.realism(Rig, 10)
+    assert any("empty world" in p for p in probs) and any(p.startswith("frame 5: too dark") for p in probs)
+    Rig.sem_tags = [np.full((18, 32), 3, np.uint8)]
+    Image.fromarray(np.full((20, 20, 3), 120, np.uint8)).save(tmp_path / "000005.jpg")
+    assert film.realism(Rig, 10) == []

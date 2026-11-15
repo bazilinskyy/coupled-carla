@@ -201,7 +201,7 @@ def main():
             print("no frame shared by every camera (raise --move)")
             return
         f = max(common)
-        semimg = np.frombuffer(sq[f].raw_data, dtype=np.uint8).reshape(H, W, 4)[:, :, 2]
+        semimg = np.frombuffer(sq[f].raw_data, dtype=np.uint8).reshape(H, W, 4)[:, :, 2].copy()
         rows, imgs = {}, {}
         for name, (cam, q) in cams.items():
             rgb = look.downscale(np.ascontiguousarray(look.to_rgb(q[f])), (W, H))

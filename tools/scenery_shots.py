@@ -82,12 +82,12 @@ def shoot(world, tf, size, fov, cap, weather, parent=None, before=False, settle=
         frame = world.tick()
     import time
     time.sleep(0.5)
-    sem = np.frombuffer(cams["_sem"][1][frame].raw_data, dtype=np.uint8).reshape(size[1], size[0], 4)[:, :, 2]
+    sem = np.frombuffer(cams["_sem"][1][frame].raw_data, dtype=np.uint8).reshape(size[1], size[0], 4)[:, :, 2].copy()
     out, meds = {}, {}
     for name, (cam, q) in cams.items():
         if name == "_sem":
             continue
-        out[name] = look.downscale(look.to_rgb(q[frame]), size)
+        out[name] = np.array(look.downscale(look.to_rgb(q[frame]), size))     # a copy: the image buffer goes
         if name.startswith("ev"):
             meds[name] = round(median_ground(out[name], sem), 1)
     for cam, q in cams.values():
@@ -132,6 +132,7 @@ def main():
             sc["sun_altitude"] = args.sun
         bb = cfg["map"]["bbox"]
         set_weather(world, sc, ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real")
+        world.wait_for_tick()       # get_weather() returns the new weather only after a tick
         weather = world.get_weather()
         settings = world.get_settings()
         settings.synchronous_mode, settings.fixed_delta_seconds = True, 0.05

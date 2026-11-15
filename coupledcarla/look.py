@@ -242,22 +242,31 @@ def image_stats(rgb, tags=None):
             "glow": float(glow.mean())}
 
 
-def realism_problems(rgb, tags=None, limits=None):
-    """Why a frame should not be shown ([] when it may): an empty world (semantic tags given), too dark, too bright,
-    clipped, crushed or glaring."""
+def semantic_problems(tags, limits=None):
+    """Why the frame shows an empty world, from its semantic tags (H x W, any size): [] when it does not."""
     lim = {**LIMITS, **(limits or {})}
     out = []
-    if tags is not None:
-        s = semantic_shares(tags)
-        if s["scene"] < lim["scene"]:
-            out.append(f"empty world: buildings, trees, poles, signs and vehicles cover {100 * s['scene']:.0f}% "
-                       f"of the frame (< {100 * lim['scene']:.0f}%)")
-        elif s["fixed"] < lim["fixed"]:
-            out.append(f"empty world: buildings, trees, poles and signs cover {100 * s['fixed']:.1f}% "
-                       f"(< {100 * lim['fixed']:.0f}%; the rest is vehicles)")
-        if s["empty"] > lim["empty"]:
-            out.append(f"empty world: road, ground and sky fill {100 * s['empty']:.0f}% (> {100 * lim['empty']:.0f}%)")
+    s = semantic_shares(tags)
+    if s["scene"] < lim["scene"]:
+        out.append(f"empty world: buildings, trees, poles, signs and vehicles cover {100 * s['scene']:.0f}% "
+                   f"of the frame (< {100 * lim['scene']:.0f}%)")
+    elif s["fixed"] < lim["fixed"]:
+        out.append(f"empty world: buildings, trees, poles and signs cover {100 * s['fixed']:.1f}% "
+                   f"(< {100 * lim['fixed']:.0f}%; the rest is vehicles)")
+    if s["empty"] > lim["empty"]:
+        out.append(f"empty world: road, ground and sky fill {100 * s['empty']:.0f}% (> {100 * lim['empty']:.0f}%)")
+    return out
+
+
+def image_problems(rgb, tags=None, limits=None):
+    """Why the frame is too dark, too bright, clipped, crushed or glaring: [] when it is not. tags (the same
+    size as rgb) keep the sky out of the glare count."""
+    import numpy as np
+    lim = {**LIMITS, **(limits or {})}
+    if tags is not None and np.asarray(tags).shape != np.asarray(rgb).shape[:2]:
+        tags = None
     st = image_stats(rgb, tags)
+    out = []
     if st["mean"] < lim["dark"]:
         out.append(f"too dark: mean luminance {st['mean']:.0f} (< {lim['dark']:.0f})")
     if st["mean"] > lim["bright"]:
@@ -270,6 +279,12 @@ def realism_problems(rgb, tags=None, limits=None):
         out.append(f"glare: {100 * st['glow']:.1f}% bright saturated pixels (> {100 * lim['glow']:.0f}%; "
                    f"an over-bright eHMI or debug drawing)")
     return out
+
+
+def realism_problems(rgb, tags=None, limits=None):
+    """Why a frame should not be shown ([] when it may): an empty world (semantic tags given), too dark, too bright,
+    clipped, crushed or glaring."""
+    return (semantic_problems(tags, limits) if tags is not None else []) + image_problems(rgb, tags, limits)
 
 
 def main(argv=None):

@@ -168,6 +168,24 @@ def check_frames(rows, fps, step, n=None):
 
 # -- the cameras on a running trial -----------------------------------------------------------------------------
 
+def realism(rig, n):
+    """The realism guard (look.py) on a film camera: an empty world in most of its semantic samples, or a dark,
+    bright, clipped or glaring frame at 10, 50 and 90 % of the clip. [] when it may be shown."""
+    from PIL import Image
+    from . import look
+    out = []
+    tags = rig.sem_tags
+    if tags:
+        empty = [p for p in (look.semantic_problems(t) for t in tags) if p]
+        if len(empty) > len(tags) / 2:
+            out.append(f"{len(empty)} of {len(tags)} semantic samples: {empty[0][0]}")
+    for k in sorted({int(n * q) for q in (0.1, 0.5, 0.9)}):
+        f = rig.dir / f"{k:06d}.jpg"
+        if f.exists():
+            out += [f"frame {k}: {p}" for p in look.image_problems(np.asarray(Image.open(f).convert("RGB")))]
+    return out
+
+
 class _DroneView:
     """Stands in for drones.DroneView so DroneWorld moves this camera with the pilot every tick."""
 
@@ -188,6 +206,7 @@ class Rig:
         self.dir.mkdir(parents=True, exist_ok=True)
         self.kept = {}               # index -> (carla frame, trial time)
         self.poses = []
+        self.sem, self.sem_tags = None, []      # realism guard (look.py): semantic tags along the clip
 
     # positions from the config
     def point(self, p, default_h=1.7):
@@ -230,6 +249,17 @@ class Rig:
         else:
             self.camera = world.spawn_actor(bp, self.transform(f.t + f.step, None) or carla.Transform())
         self.camera.listen(self._on_image)
+        try:        # a small semantic camera riding on this one, once a second: is the world around it empty?
+            sbp = world.get_blueprint_library().find("sensor.camera.semantic_segmentation")
+            for k, v in (("image_size_x", 320), ("image_size_y", 180), ("fov", bp.get_attribute("fov").as_float()),
+                         ("sensor_tick", 1.0)):
+                sbp.set_attribute(k, str(v))
+            self.sem = world.spawn_actor(sbp, carla.Transform(), attach_to=self.camera)
+            self.sem.listen(lambda img: self.sem_tags.append(
+                np.frombuffer(img.raw_data, dtype=np.uint8).reshape(img.height, img.width, 4)[:, :, 2].copy())
+                if len(self.sem_tags) < 120 else None)
+        except RuntimeError:
+            self.sem = None
         if f.focus_list is not None and self.kind in ("tripod", "orbit", "path", "follow") and self.c.get("focus", True):
             f.focus_list.append(self.camera)
 
@@ -481,12 +511,13 @@ class Film:
         while time.time() < t_end and any(len(r.kept) < self.n for r in self.rigs if r.camera is not None):
             time.sleep(0.2)
         for r in self.rigs:
-            if r.camera is not None:
-                try:
-                    r.camera.stop()
-                    r.camera.destroy()
-                except RuntimeError:
-                    pass
+            for cam in (r.sem, r.camera):
+                if cam is not None:
+                    try:
+                        cam.stop()
+                        cam.destroy()
+                    except RuntimeError:
+                        pass
         self.jobs.join()
         for _ in self.writers:
             self.jobs.put(None)
@@ -505,6 +536,9 @@ class Film:
             summary[r.name] = {k: (v[:20] if isinstance(v, list) else v) for k, v in chk.items()}
             self.log(f"film: {r.name} kept {chk['frames']} of {self.n} frames, even {chk['even']}, "
                      f"missing {len(chk['missing'])}")
+            summary[r.name]["realism"] = realism(r, self.n)
+            if summary[r.name]["realism"]:
+                self.log(f"film: {r.name} REJECTED by the realism guard: {'; '.join(summary[r.name]['realism'])}")
         import json
         (self.dir / "film.json").write_text(json.dumps({"fps": self.fps, "start_s": self.start, "frames": self.n,
                                                         "step": self.step, "cameras": summary}, indent=2))
