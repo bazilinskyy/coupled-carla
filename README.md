@@ -22,6 +22,7 @@
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#make-a-map-of-any-place">Make a map</a> ·
+  <a href="#videos">Videos</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#coupled-experiments-phase-2">Coupled experiments</a> ·
   <a href="#phase-3-carla-10-and-the-eindhoven-digital-twin">Digital twin</a> ·
@@ -58,6 +59,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [License](#license)
 - [What you get](#what-you-get)
 - [Make a map of any place](#make-a-map-of-any-place)
+- [Videos](#videos)
 - [Screenshots](#screenshots)
 - [How it works](#how-it-works)
 - [Quick start](#quick-start)
@@ -204,6 +206,46 @@ exp = make_map("Shibuya crossing", size="small")   # -> experiments/places/<name
 Options: `--size small|medium|large|<km>` (above 2.5 km it warns that it gets slow; 4 km at most), `--name`,
 `--pedestrians` (a crowd on the pavements, `traffic.walkers.count: auto`), `--open`, `--drive`, `--force`,
 `--no-build`, `--build <experiment>`. Without arguments in a terminal it asks for the place.
+
+## Videos
+
+Short clips of what a session looks and sounds like, with sound (18-20 s, 2-5 MB each; click a picture to play or
+download). They are made headless by [`tools/make_videos.py`](tools/make_videos.py) from the clip list
+[`experiments/videos/clips.yaml`](experiments/videos/clips.yaml), on CARLA 0.9.16 at Epic quality: frames kept at 25
+fps of simulation time, so even a run slower than real time gives a smooth clip; first-person clips carry what the
+participant hears (`--record-audio`), outside cameras what can be heard where the camera is. All files:
+[release demo-videos](https://github.com/bazilinskyy/coupled-carla/releases/tag/demo-videos). Clips of the CARLA 1.0
+Eindhoven digital twin follow.
+
+<table>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_rush_hour.mp4"><img src="docs/img/videos/eindhoven_rush_hour.jpg" alt="Rush hour in Eindhoven"></a><br><b>Rush hour in Eindhoven</b><br><sub>Eindhoven centre, Netherlands · driver (autopilot), chase camera · 20 s, 3.8 MB<br>dense mixed traffic around the station, buses of the real lines, cyclists sharing the road</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_pedestrian_ehmi.mp4"><img src="docs/img/videos/eindhoven_pedestrian_ehmi.jpg" alt="Crossing in front of an automated car"></a><br><b>Crossing in front of an automated car</b><br><sub>Eindhoven, east of the station · pedestrian · 18 s, 2.2 MB<br>the AV slows, shows I'M STOPPING, then GO AHEAD; its eyes follow the pedestrian</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/crossing_four_views.mp4"><img src="docs/img/videos/crossing_four_views.jpg" alt="Four people, one street"></a><br><b>Four people, one street</b><br><sub>Eindhoven, east of the station · pedestrian, AV passenger, driver, drone pilot (four bot stations) · 20 s, 3.8 MB<br>the same moment from four stations, frame-locked in simulation time</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/robotaxi_passenger.mp4"><img src="docs/img/videos/robotaxi_passenger.jpg" alt="Riding in a robotaxi"></a><br><b>Riding in a robotaxi</b><br><sub>Eindhoven, east of the station · AV passenger (bot station) · 18 s, 3.7 MB<br>the centre screen's message and the eHMI as the AV stops and lets the pedestrian cross</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_cyclist.mp4"><img src="docs/img/videos/eindhoven_cyclist.jpg" alt="Riding with Dutch cyclists"></a><br><b>Riding with Dutch cyclists</b><br><sub>Eindhoven, Vestdijk cycle path · chase camera on a SUMO cyclist · 20 s, 3.0 MB<br>cyclists on the cycle track and the street beside it, overtaking each other</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/tokyo_shibuya.mp4"><img src="docs/img/videos/tokyo_shibuya.jpg" alt="Shibuya crossing, left-hand traffic"></a><br><b>Shibuya crossing, left-hand traffic</b><br><sub>Tokyo (Shibuya), Japan · orbiting camera above the crossing · 20 s, 2.6 MB<br>traffic keeps left, Toei buses, pedestrians crossing at the junction (80 walkers calibrated for Tokyo)</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/new_york_avenue.mp4"><img src="docs/img/videos/new_york_avenue.jpg" alt="Up Sixth Avenue"></a><br><b>Up Sixth Avenue</b><br><sub>New York (Midtown), USA · automated driver, chase camera · 20 s, 4.0 MB<br>Midtown's towers at their real heights (NYC Open Data), the avenue's five lanes</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/kigali_hills.mp4"><img src="docs/img/videos/kigali_hills.jpg" alt="Kigali's hills"></a><br><b>Kigali's hills</b><br><sub>Kigali, Rwanda · crane camera over the road · 20 s, 3.2 MB<br>the roads climb and fall with the real terrain (AWS Terrain Tiles); Overture buildings on the slopes</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/lyon_night_rain.mp4"><img src="docs/img/videos/lyon_night_rain.jpg" alt="Rainy night in Lyon"></a><br><b>Rainy night in Lyon</b><br><sub>Lyon (Bellecour), France · driver, chase camera · 20 s, 4.7 MB<br>night after sunset with rain, headlights and lit shop windows (0.9.16's street lamps give no light)</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_drones.mp4"><img src="docs/img/videos/eindhoven_drones.jpg" alt="Drones over Eindhoven"></a><br><b>Drones over Eindhoven</b><br><sub>Eindhoven centre · drone pilot (FPV) · 20 s, 3.8 MB<br>the pilot's gimbal camera climbing out of a square over the roofs to the skyline (coupled-sim's flight model)</sub></td>
+</tr>
+</table>
+
+Re-render a clip (or `--all`), or put new sound on one without re-encoding the picture:
+
+```bash
+python tools/make_videos.py render tokyo_shibuya            # --no-launch --port 2000 against a running server
+python tools/make_videos.py remux tokyo_shibuya
+```
 
 ## Screenshots
 
