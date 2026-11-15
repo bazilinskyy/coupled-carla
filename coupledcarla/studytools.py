@@ -227,7 +227,7 @@ class HostStudy:
                     part.input.restart(part.actor.get_world().get_map().get_waypoint(part.actor.get_location()))
                 return False
         elif tor.state == MANUAL and button and tor.engage(t):
-            self._resume(self.cars[part.role])
+            self._resume(part.role)
         return tor.state != MANUAL
 
     def step(self, t, dt, walkers=(), frame=None):
@@ -259,13 +259,18 @@ class HostStudy:
                 self.control.send(role, tor.message())
                 tor.changed = False
 
-    @staticmethod
-    def _resume(car):
-        """The automation continues from the route point nearest the car."""
+    def _resume(self, role):
+        """The automation continues from the route point nearest the car; take-over triggers it passed while
+        the driver drove count as done (else the first step would request a take-over for a point behind)."""
+        car = self.cars[role]
         loc = car.vehicle.get_location()
         pts = [(w.transform.location.x, w.transform.location.y) for w, _ in car.plan]
         i = takeover.nearest_index(pts, loc.x, loc.y)
         car.progress = i
+        for k, trg in enumerate(car.triggers):
+            if trg[1].get("takeover") and not trg[2] and trg[0] < i:
+                trg[2] = True
+                self.fired.add((role, k))
         car.agent.set_global_plan(car.plan[i:], stop_waypoint_creation=True, clean_queue=True)
         car.target = 3.6 * _speed(car.vehicle)
 
@@ -280,7 +285,7 @@ class HostStudy:
             return True
         if kind == "engage" and role in self.tor:
             if self.tor[role].engage(t):
-                self._resume(self.cars[role])
+                self._resume(role)
             return True
         if kind == "takeover_request":
             roles = [role] if role in self.tor else list(self.tor)
