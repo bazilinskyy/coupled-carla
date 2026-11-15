@@ -24,6 +24,8 @@ import random
 import carla
 import traci
 
+STUCK_S = 10.0      # standing this long where its route cannot go on from its lane: take another road
+
 
 def sumo_xy(offset, x, y):
     """CARLA (x, y) -> SUMO net (x, y) (bridge_helper: CARLA = SUMO - offset, y flipped)."""
@@ -178,6 +180,38 @@ class SumoDriver:
         self.inserted = True
         self.events.append(("sumo_driver", f"{self.sid} into SUMO on {self.lane.getID()}"))
 
+    def _unblock(self, route, idx, now):
+        """Stuck for STUCK_S at the end of a lane from which its route's next edge cannot be reached (it waited for
+        a lane change that the queue beside it never allowed, Eindhoven rush hour: 100 s at a green light): it
+        takes a road that this lane leads to and a new destination from there, as a driver who missed the turn."""
+        try:
+            speed = traci.vehicle.getSpeed(self.sid)
+            lane_id = traci.vehicle.getLaneID(self.sid)
+        except traci.TraCIException:
+            return
+        if speed > 0.1:
+            self._still_since = None
+            return
+        self._still_since = getattr(self, "_still_since", None) or now
+        if now - self._still_since < STUCK_S or lane_id.startswith(":") or idx < 0 or idx + 1 >= len(route):
+            return
+        try:
+            lane = self.net.getLane(lane_id)
+        except KeyError:
+            return
+        reach = [c.getTo() for c in lane.getOutgoing() if c.getTo().allows("passenger")]
+        if not reach or route[idx + 1] in {e.getID() for e in reach}:
+            return
+        nxt = self.rng.choice(reach)
+        tail = random_destination(self.net, nxt, self.rng) or [nxt.getID()]
+        try:
+            traci.vehicle.setRoute(self.sid, [route[idx]] + tail)
+            self.events.append(("sumo_driver", f"{self.sid} rerouted via {nxt.getID()}: could not change lanes "
+                                               f"for {now - self._still_since:.0f} s"))
+            self._still_since = None
+        except traci.TraCIException:
+            pass
+
     def control(self, vehicle, events=()):
         if self.sid is None:
             return None
@@ -199,6 +233,7 @@ class SumoDriver:
             idx = traci.vehicle.getRouteIndex(self.sid)
         except traci.TraCIException:
             return None                                     # not inserted yet (its lane was taken)
+        self._unblock(route, idx, now)
         if idx >= 0 and len(route) - idx <= 3:                # near the end: drive on to a new destination
             nxt = random_destination(self.net, self.net.getEdge(route[-1]), self.rng)
             if nxt:
