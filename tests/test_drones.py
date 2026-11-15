@@ -378,12 +378,13 @@ def test_soundscape_hears_a_drone(carla_mod):
          [12, 900.0, 0.0, 30.0, 0.0, 0.0, 0.0, 110.0, 1.0, 96.6, 2]]        # too far: not heard
     sc.update(0.0, (0.0, 0.0, 1.7, 0.0), [], drones=d)
     assert ("drone", 11) in sc.info and ("drone", 12) not in sc.info
-    assert sc.info[("drone", 11)]["db"] == pytest.approx(81 - 20 * math.log10(5) - 8, abs=0.01)
+    # Lw - 20 lg r - 11 + 3 (spherical spreading, the ground's reflection, ISO 9613-2), less a little air absorption
+    assert sc.info[("drone", 11)]["db"] == pytest.approx(81 - 20 * math.log10(5) - 8, abs=0.2)
     v = sc.mixer.get(("drone", 11))
-    assert v.freq == pytest.approx(hover_bpf) and abs(v.pan) < 0.1, "straight ahead of a listener facing east"
-    x = render_offline(sc, 0.5)
-    level = audio.gain_db(audio.rms(x) / audio.FS_RMS, 94.0)
-    assert level == pytest.approx(sc.info[("drone", 11)]["db"] - 3.0, abs=3.0)   # the level at the ears
+    assert v.base == pytest.approx(hover_bpf) and abs(v.paths[0].az) < 0.1, "straight ahead of a listener facing east"
+    from coupledcarla.soundrec import level_dba
+    x = render_offline(sc, 1.0)
+    assert level_dba(x) == pytest.approx(sc.info[("drone", 11)]["db"], abs=1.5)   # the level at the ears
     sc.update(0.1, (0.0, 0.0, 1.7, 0.0), [], drones=[])
     assert sc.mixer.get(("drone", 11)) is None
 

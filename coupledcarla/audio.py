@@ -397,8 +397,46 @@ def lowpass_kernel(cutoff, rate=RATE, taps=63):
     return h
 
 
+class Limiter:
+    """A peak limiter on the master bus so that nothing clips: a gain that falls at once (within the block) to
+    keep the block's peak under `threshold` and recovers with `release_s`, then a soft clipper (tanh above the knee)
+    for what the block gain misses. `active` counts the samples it reduced."""
+
+    def __init__(self, threshold=0.89, release_s=0.3, rate=RATE):
+        self.thr, self.rate, self.release = threshold, rate, release_s
+        self.g = 1.0
+        self.active = 0
+
+    def process(self, out):
+        n = len(out)
+        peak = float(np.max(np.abs(out))) if n else 0.0
+        want = min(1.0, self.thr / peak) if peak > 0 else 1.0
+        if want < self.g:
+            g1 = want
+        else:
+            g1 = self.g + (want - self.g) * (1.0 - math.exp(-n / (self.release * self.rate)))
+        if g1 < 1.0 or self.g < 1.0:
+            env = np.linspace(self.g, g1, n, endpoint=False, dtype=np.float32)
+            # attack: no ramp-in when the block is louder than the last gain allows
+            if want < self.g:
+                env[:] = np.minimum(env, g1)
+            out *= env[:, None]
+            self.active += int(np.count_nonzero(env < 0.999))
+        self.g = g1
+        knee = 0.9
+        over = np.abs(out) > knee
+        if over.any():
+            x = out[over]
+            out[over] = np.sign(x) * (knee + (1.0 - knee) * np.tanh((np.abs(x) - knee) / (1.0 - knee)))
+        return out
+
+
 class Mixer:
-    """Sums its voices into stereo blocks. Thread-safe: the scene changes voices while the output thread renders."""
+    """Sums its voices into stereo blocks. Thread-safe: the scene changes voices while the output thread renders.
+
+    Plain voices have a gain, pan and low-pass; spatial voices (synth.SpatialVoice) a basis and paths: each path is
+    weighted, delayed (reflections), spatialised (stereo panning, or `spatializer`: binaural, hrtf.py) or sent to
+    `reverb` (synth.Reverb). A limiter keeps the sum under full scale."""
 
     def __init__(self, rate=RATE, master=1.0):
         self.rate, self.master = rate, master
@@ -406,6 +444,53 @@ class Mixer:
         self.lock = threading.Lock()
         self.clipped = 0
         self.rendered = 0
+        self.reverb = None
+        self.spatializer = None
+        self.limiter = Limiter(rate=rate)
+        self.cost_s = 0.0
+
+    def _spatial(self, v, n, out, rev, ramp):
+        if not v.audible():
+            v.advance(n)
+            for p in v.paths:
+                p._w0 = p.w
+            return
+        X = v.basis(n)
+        act, W0, DW = [], [], []
+        for p in v.paths:
+            w1 = p.w
+            if w1 is None:
+                continue
+            w0 = p._w0 if p._w0 is not None and len(p._w0) == len(w1) else w1
+            p._w0 = w1
+            if not (np.any(w1) or np.any(w0)):
+                if p._line is not None and p.kind == "refl":     # keep the delay line's clock
+                    p.delayed(np.zeros(n, np.float32))
+                continue
+            act.append(p)
+            W0.append(w0)
+            DW.append(w1 - w0)
+        if not act:
+            return
+        k = len(act)
+        Y = np.vstack(W0 + DW).astype(np.float32) @ X           # one product for every path: (2k, n)
+        for j, p in enumerate(act):
+            y = Y[j] + Y[k + j] * ramp
+            if p.kind == "reverb":
+                rev += y
+                continue
+            if p.kind == "refl":
+                y = p.delayed(y)
+            if self.spatializer is not None:
+                out += self.spatializer.render(y, p)
+                continue
+            s = math.sin(p.az) * math.cos(p.el)
+            th = (max(-1.0, min(1.0, s)) + 1.0) * math.pi / 4.0
+            l, r = math.cos(th), math.sin(th)
+            l0, r0 = p._lr if p._lr is not None else (l, r)
+            p._lr = (l, r)
+            out[:, 0] += y * (l0 + (l - l0) * ramp)
+            out[:, 1] += y * (r0 + (r - r0) * ramp)
 
     def add(self, key, voice):
         with self.lock:
@@ -424,11 +509,18 @@ class Mixer:
             return list(self.voices)
 
     def render(self, n=BLOCK):
+        t0 = time.perf_counter()
         out = np.zeros((n, 2), np.float32)
+        rev = np.zeros(n, np.float32)
         ramp = np.linspace(0.0, 1.0, n, endpoint=False, dtype=np.float32)
         with self.lock:
             items = list(self.voices.items())
         for key, v in items:
+            if hasattr(v, "paths"):
+                self._spatial(v, n, out, rev, ramp)
+                if v.done:
+                    self.remove(key)
+                continue
             g = float(v.gain)
             th = (max(-1.0, min(1.0, float(v.pan))) + 1.0) * math.pi / 4.0
             l, r = math.cos(th) * g, math.sin(th) * g
@@ -453,12 +545,17 @@ class Mixer:
                 v._l, v._r = l, r
             if v.done:
                 self.remove(key)
+        if self.reverb is not None:
+            out += self.reverb.process(rev)
         out *= self.master
+        if self.limiter is not None:
+            self.limiter.process(out)
         over = np.abs(out) > 1.0
         if over.any():
             self.clipped += int(over.sum())
             np.clip(out, -1.0, 1.0, out=out)
         self.rendered += n
+        self.cost_s += time.perf_counter() - t0
         return out
 
 

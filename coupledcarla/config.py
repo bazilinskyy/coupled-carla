@@ -188,24 +188,48 @@ DEFAULTS = {
                                      # placement and render: world | station | both
     # What the stations add (stationux.py), all off unless set; a participant's own `sound`, `displays` or
     # `haptics` is merged over these. Sound files and speech are made on the station.
-    "sound": {                       # soundscape.py, calibrated in dB SPL
+    "sound": {                       # soundscape.py, calibrated in dB SPL (README: Sound)
         "enabled": False,
         "reference_db": 94.0,        # dB SPL at the ears of the full-scale 1 kHz tone (F3 at a station plays it)
-        "vehicles": True,            # tyre/engine sound of the nearest max_vehicles within max_distance_m
+        "vehicles": True,            # the nearest max_vehicles within max_distance_m one by one, the rest as a hum
         "max_vehicles": 16, "max_distance_m": 150.0,
-        "tyre_db_at_50": 68.0,       # a car's tyre-road noise at 50 km/h, dB at 7.5 m (+30 log10 v)
-        "engine_db": 64.0,           # a combustion engine, dB at 7.5 m (+6 dB by 60 km/h)
+        "model": "cnossos",          # vehicle sound power: cnossos (CNOSSOS-EU as amended 2021) | cnossos2015
+        "road_surface": "DEF",       # CNOSSOS surface: DEF (dense asphalt/SMA), NL01 (porous), NL05 (SMA 8),
+                                     # NL10 / NL11 (paving blocks, herring-bone / not)
+        "diesel_cars": 0.2,          # share of combustion cars with a diesel (by actor id)
         "electric": "auto",          # electric cars (no engine): "auto" (CARLA's EVs and the scripted agents),
                                      # true, false, a share 0-1, or blueprint patterns
-        "doppler": 0.5,              # 0: none, 1: physical
+        "doppler": 1.0,              # 0: none, 1: physical
+        "buildings": True,           # occlusion and facade reflections from maps/<name>/buildings.json
+        "reflections": 2,            # first-order reflections (image sources) per source, 0-2
+        "reverb": True,              # the street canyon's reverberant tail (street: {width_m, height_m} without
+                                     # buildings)
+        "ground": "auto",            # ISO 9613-2 ground factor G: auto (0: hard, in town) or 0..1
+        "spatial": "stereo",         # stereo (panning) | binaural (HRTFs, for headphones)
+        "hrtf": "kemar",             # binaural: kemar (MIT KEMAR, fetched once) | sphere (Brown & Duda model)
+        "environment": True,         # birds, wind, rain and distant traffic from the trial's time and weather
+        "weather": {},               # overrides of what the sound takes from the weather: rain (mm/h), wind (m/s),
+                                     # temperature (C), humidity (%), wet (0..1)
+        "recordings": True,          # fetch open recordings (birds, rain, bicycle bells) from Wikimedia Commons,
+                                     # cached in ~/.cache/coupled-carla/sounds (else synthesised)
+        "distant_traffic_db": 50.0,  # the city beyond the map at the peak hour, dB(A) (follows the hour)
+        "birds_dawn_db": 58.0, "birds_day_db": 47.0,   # in spring among trees; scaled by season, trees, rain, wind
+        "walkers": True, "footstep_db": 58.0,          # footsteps (dB(A) at 1 m per step)
+        "aps": True, "aps_db": 65.0, # accessible pedestrian signals near a pedestrian (dB(A) at 1 m per tick)
+        "bicycles": {"bells": 0.03}, # bell rate (per second, when a pedestrian is ahead)
+        "sirens": "lights",          # emergency vehicles: lights (with their special lights) | always | off
+        "horn": False,               # a vehicle braking hard with a pedestrian ahead sounds its horn
         "own_vehicle": True,         # a driver's or passenger's car from inside: tyres, engine, wind, blinker
-        "interior_reduction_db": 6.0, "wind_db_at_100": 64.0, "blinker_db": 58.0,
-        "ambience": {"kind": "city", "db": 0.0, "file": None},   # city | rural | a sound file; db 0: none
-        "avas": {"enabled": False, "db": 56.0, "until_kmh": 20.0, "vehicles": "electric"},   # db at 2 m
+        "wind_db_at_100": 60.0, "blinker_db": 58.0,    # interior wind noise dB(A) at 100 km/h (+60 lg v)
+        "interior_offset_db": 0.0,   # added to the own car's tyres and engine inside (a quieter or noisier car)
+        "ambience": {"kind": "city", "db": 0.0, "file": None},   # a fixed bed: city | rural | a sound file; 0: none
+        "avas": {"enabled": True, "db": 56.0, "until_kmh": 20.0, "vehicles": "electric"},   # db at 2 m (UN R138)
         "auditory_ehmi": {"enabled": False, "db": 65.0, "cues": []},   # cues: {ehmi: state | on: braking,
                                      # stopped, driving_off, pedestrian_ahead, at; sound | say | file; db; repeat_s}
         "takeover_db": 72.0,         # the take-over alarm in the car
-        "record": False,             # also write what the station plays to logs/stations/<role>_<time>_trialN.wav
+        "record": False,             # host: write the first participant's soundscape to <trial>/audio.wav in
+                                     # simulation time (as --record-audio); stations: also what they play
+        "record_own_drone": True,    # a drone pilot's recording hears its own rotors at the camera
     },
     "displays": {                    # in-car displays over a driver's or AV passenger's view (incar.py)
         "cluster": None,             # a design (data/incar/<name>, a path or a dict), true for the default, or
