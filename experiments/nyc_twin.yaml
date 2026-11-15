@@ -1,0 +1,39 @@
+# New York Midtown as a baked CARLA 1.0 level: the carla-digitaltwins twin NycMidtown (the same box as
+# experiments/cities/new_york_midtown.yaml, 31st to 48th Street from 8th Avenue to Park Avenue: OSM roads with the
+# us_urban profile (lane markings, kerbs and sidewalks), USGS 3DEP ground textured with the NYS orthophoto, the NYC
+# 3D Building Model's 1,761 buildings with a facade style from their PLUTO construction year and floor areas by use),
+# with SUMO driving on the twin's own OpenDRIVE.
+# Needs a CARLA 1.0 server that has the level (baked with carla-digitaltwins bake_level.py; see README).
+name: nyc_twin
+
+map:
+  opendrive: twins/NycMidtown.xodr   # the twin's OpenDRIVE, copied next to the experiments (not in git: see README)
+  carla_level: NycMidtown
+  bbox: [40.74861, -73.9923, 40.76119, -73.9757]
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 3000
+  bikes_per_hour: 300
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 40.75650, lon: -73.98620}   # 7th Avenue south of Times Square
+
+pois:
+  - {name: times_square, lat: 40.7580, lon: -73.9855}
+  - {name: herald_square, lat: 40.7497, lon: -73.9877}
+  - {name: bryant_park, lat: 40.7536, lon: -73.9832}
+  - {name: grand_central, lat: 40.7527, lon: -73.9772}
+
+trials:
+  - {duration_s: 300}
