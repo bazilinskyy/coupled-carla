@@ -287,8 +287,9 @@ class Signals:
             if self.style == "marker":
                 self.debug.draw_line(loc, loc + carla.Location(z=3.0), thickness=0.08,
                                      color=carla.Color(40, 40, 40), life_time=self.life)
-                self.debug.draw_point(loc + carla.Location(z=3.3), size=0.25, color=COLOURS.get(st, COLOURS["o"]),
-                                      life_time=self.life)
+                a, b = lamp_segment((loc.x, loc.y, loc.z + 3.3), yaw + 90.0, 0.35)     # world-sized, not a
+                self.debug.draw_line(carla.Location(*a), carla.Location(*b), thickness=0.35,  # screen-sized point
+                                     color=COLOURS.get(st, COLOURS["o"]), life_time=self.life)
                 continue
             p = head_points(loc.x, loc.y, loc.z, yaw)
             if not self.meshes:     # no meshes on this server: a dark pole and housing, drawn

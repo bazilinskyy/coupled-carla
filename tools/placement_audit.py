@@ -49,6 +49,7 @@ STANDING = {"tree", "bush", "lamp", "furniture", "shelter", "sign_post", "parked
             "building", "landmark", "vehicle", "walker", "carla_sign"}
 UPRIGHT = {"tree", "lamp", "furniture", "shelter", "sign_post", "parked", "shared", "signal_pole", "signal",
            "sign_plate", "carla_light", "carla_sign"}
+POLES = {"lamp", "sign_post", "signal_pole", "tree"}    # stand at their pivot; a small base for overlaps
 ON_ROAD_KINDS = {"tree", "bush", "lamp", "furniture", "shelter", "sign_post", "parked", "shared", "signal_pole",
                  "building", "landmark"}
 FRAME_PROBLEMS = ["blocks_road", "on_drivable", "carla_generated", "floating", "sunk", "duplicate", "in_building",
@@ -67,11 +68,13 @@ def label(h):
     return str(h.label).split(".")[-1].lower()
 
 
-def ground_at(world, x, y, z_top, z_bottom):
-    """(z, label) of the first ground-like hit of a vertical ray from z_top down to z_bottom, or (None, None)."""
+def ground_at(world, x, y, z_top, z_bottom, none_below=None):
+    """(z, label) of the first ground-like hit of a vertical ray from z_top down to z_bottom, or (None, None).
+    CARLA labels its cycle lanes' and junctions' surfaces None, as it does parts of some lamps: a None hit counts
+    as ground below none_below (an object's bottom + 1.5 m) only."""
     for h in world.cast_ray(carla.Location(x=x, y=y, z=z_top), carla.Location(x=x, y=y, z=z_bottom)):
         lab = label(h)
-        if lab in GROUND:
+        if lab in GROUND or (lab == "none" and none_below is not None and h.location.z < none_below):
             return h.location.z, lab
     return None, None
 
@@ -109,7 +112,11 @@ def record(kind, actor, mesh=None, scale=1.0, extra=None, verts=None, cat=None):
          "x": round(cx, 2), "y": round(cy, 2), "z": round(bottom, 2), "bottom": round(bottom, 2),
          "top": round(top, 2), "yaw": round(tf.rotation.yaw, 1) if tf else None,
          "tilt": round(placement.tilt_of(tf.rotation.pitch, tf.rotation.roll), 1) if tf else 0.0,
-         "foot": pts, "problems": [], "detail": {}}
+         "foot": pts, "problems": [], "detail": {},
+         "pivot": [round(tf.location.x, 2), round(tf.location.y, 2)] if tf else None}
+    if kind in POLES and tf is not None:     # the overlap check uses the pole's base, not an arm over the road
+        px, py = tf.location.x, tf.location.y
+        r["base_foot"] = [(px - 0.25, py - 0.25), (px + 0.25, py - 0.25), (px + 0.25, py + 0.25), (px - 0.25, py + 0.25)]
     r.update(extra or {})
     return r
 
@@ -208,10 +215,14 @@ def check_ground(world, recs, tops=None):
         if r["kind"] not in STANDING:
             continue
         cx, cy = r["x"], r["y"]
-        pts = [(cx, cy)] + [(cx + 0.6 * (px - cx), cy + 0.6 * (py - cy)) for px, py in r["foot"][:4]]
+        if r["kind"] in POLES and r.get("pivot"):      # a pole stands at its pivot (a lamp's box is mostly its arm)
+            cx, cy = r["pivot"]
+            pts = [(cx, cy)] + [(cx + dx, cy + dy) for dx, dy in ((0.2, 0), (-0.2, 0), (0, 0.2), (0, -0.2))]
+        else:
+            pts = [(cx, cy)] + [(cx + 0.6 * (px - cx), cy + 0.6 * (py - cy)) for px, py in r["foot"][:4]]
         zs = []
         for px, py in pts:
-            z, lab = ground_at(world, px, py, r["top"] + 1.0, r["bottom"] - 30.0)
+            z, lab = ground_at(world, px, py, r["top"] + 1.0, r["bottom"] - 30.0, r["bottom"] + 1.5)
             t = tops.z(px, py) if tops is not None else None
             if t is not None and t <= r["top"] + 1.0 and (z is None or t > z):
                 z, lab = t, "tile"
@@ -364,7 +375,9 @@ def scan_roads(world, cmap, centre, radius, recs, step=2.0):
                 owner = None
                 if tree is not None:       # the object the hit is in; a ground tile only when nothing else is
                     owners = [cand[int(i)] for i in tree.query(p) if polys[int(i)].contains(p) and
-                              recs[cand[int(i)]]["bottom"] - 0.3 <= h.location.z <= recs[cand[int(i)]]["top"] + 0.3]
+                              recs[cand[int(i)]]["bottom"] - 0.3 <= h.location.z <= recs[cand[int(i)]]["top"] + 0.3
+                              and not (lab == "none" and recs[cand[int(i)]]["kind"] in ("ground", "water"))]
+                    # (a ground tile is Terrain or Sidewalks; None over a lane is CARLA's own junction surface)
                     owners.sort(key=lambda k: recs[k]["kind"] in ("ground", "water"))
                     owner = owners[0] if owners else None
                 if owner is None:
@@ -521,9 +534,11 @@ def main():
     t0 = time.time()
     if args.lat is not None:
         cx, cy = geo.to_carla(args.lat, args.lon)
-    else:
-        sp = cfg["participants"][0]["spawn"]
-        cx, cy = geo.to_carla(sp["lat"], sp["lon"])
+    else:       # the first participant's spawn, else the first point of interest, else the map's middle
+        sp = next((p["spawn"] for p in cfg.get("participants") or [] if p.get("spawn")), None) or \
+            next(iter(cfg.get("pois") or []), None)
+        bb = cfg["map"]["bbox"]
+        cx, cy = geo.to_carla(sp["lat"], sp["lon"]) if sp else geo.to_carla((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2)
     if args.live:
         world = client.get_world()
     else:
