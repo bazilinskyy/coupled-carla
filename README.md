@@ -218,10 +218,13 @@ download). They are made headless by [`tools/make_videos.py`](tools/make_videos.
 [`experiments/videos/clips.yaml`](experiments/videos/clips.yaml), on CARLA 0.9.16 at Epic quality: frames kept at 25
 fps of simulation time, so even a run slower than real time gives a smooth clip; first-person clips carry what the
 participant hears (`--record-audio`), outside cameras what can be heard where the camera is. All files:
-[release demo-videos](https://github.com/bazilinskyy/coupled-carla/releases/tag/demo-videos). Clips of the CARLA 1.0
-Eindhoven digital twin follow. Watch them in the browser on the [project page](https://bazilinskyy.github.io/coupled-carla/).
+[release demo-videos](https://github.com/bazilinskyy/coupled-carla/releases/tag/demo-videos). The first two are on the CARLA 1.0 Eindhoven digital twin. Watch them in the browser on the [project page](https://bazilinskyy.github.io/coupled-carla/).
 
 <table>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_eindhoven.mp4"><img src="docs/img/videos/twin_eindhoven.jpg" alt="The Eindhoven digital twin"></a><br><b>The Eindhoven digital twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 4.8 MB<br>3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and street furniture from open data</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_drones.mp4"><img src="docs/img/videos/twin_drones.jpg" alt="Drones over the Eindhoven twin"></a><br><b>Drones over the Eindhoven twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · drone pilot (FPV) · 20 s, 3.1 MB<br>the pilot climbs over the twin's real roof shapes; delivery and swarm drones fly in the cruise band</sub></td>
+</tr>
 <tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_rush_hour.mp4"><img src="docs/img/videos/eindhoven_rush_hour.jpg" alt="Rush hour in Eindhoven"></a><br><b>Rush hour in Eindhoven</b><br><sub>Eindhoven centre, Netherlands · driver (autopilot), chase camera · 20 s, 3.3 MB<br>dense mixed traffic around the station, buses of the real lines, cyclists sharing the road</sub></td>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_pedestrian_ehmi.mp4"><img src="docs/img/videos/eindhoven_pedestrian_ehmi.jpg" alt="Crossing in front of an automated car"></a><br><b>Crossing in front of an automated car</b><br><sub>Eindhoven, east of the station · pedestrian · 18 s, 2.2 MB<br>the AV slows, shows I'M STOPPING, then GO AHEAD; its eyes follow the pedestrian</sub></td>

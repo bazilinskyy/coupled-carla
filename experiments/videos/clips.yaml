@@ -361,3 +361,55 @@ clips:
     duration_s: 20
     camera: {kind: follow, target: driver, offset: [-7.0, 0, 2.2], look_ahead_m: 8, look_up_m: 1.2, smooth_s: 0.6,
              attributes: {exposure_compensation: -1.2, exposure_min_bright: 8, exposure_max_bright: 12}}
+
+    # CARLA 1.0 twin clips: render on a CARLA 1.0 server with the twin level
+    #   (python tools/make_videos.py render twin_eindhoven --no-launch --port 2000)
+  - name: twin_eindhoven
+    title: The Eindhoven digital twin
+    crf: 29
+    place: Eindhoven centre (CARLA 1.0 twin)
+    role: driver (autopilot), chase camera
+    when: weekday 17:15
+    agents: SUMO cars from the Dutch register, cyclists, real bus lines at their timetable
+    notice: 3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and
+      street furniture from open data
+    experiment: experiments/eindhoven_twin.yaml
+    hold:
+      driver: 20
+    patch:
+      participants:
+        driver:
+          route:
+          - - 51.44479
+            - 5.48053
+          - - 51.4423
+            - 5.4852
+    start_s: 25
+    duration_s: 20
+    camera:
+      kind: follow
+      target: driver
+      offset:
+      - -8.5
+      - 0
+      - 3.4
+      look_ahead_m: 12
+      look_up_m: 1.5
+      smooth_s: 0.8
+    carla: '1.0'
+  - name: twin_drones
+    title: Drones over the Eindhoven twin
+    place: Eindhoven centre (CARLA 1.0 twin)
+    role: drone pilot (FPV)
+    when: midday
+    agents: a pilot's camera drone (bot), delivery drones, a swarm and a patrol in the same world, out of view (0.9.16
+      draws them as plain boxes)
+    notice: the pilot climbs over the twin's real roof shapes; delivery and swarm drones fly in the cruise band
+    experiment: experiments/eindhoven_drones.yaml
+    start_s: 25
+    duration_s: 20
+    camera:
+      kind: drone
+      target: pilot
+      view: fpv
+    carla: '1.0'
