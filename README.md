@@ -886,8 +886,39 @@ python tools/realism_check.py compare                                           
 python tools/realism_check.py pairs   experiments/eindhoven_twin.yaml            # real-vs-real baseline
 ```
 
-**Still to do in phase 3:** human stations at the rendering server (see the [lab guide](docs/lab_guide.md)), multi-GPU
-secondaries on real GPUs, VR.
+Results (2026-11-15, EhvCentre on the Windows package, 201 of the 350 views rendered; `logs/realism/summary.json`).
+On a scale where 0 is a photo of a random place and 1 a second photo of the same street:
+
+| Measure (best alignment) | Twin vs photo | Same street | Random place | Scale |
+|---|---|---|---|---|
+| Coarse IoU (road, sidewalk, building, vegetation, sky, ...) | 0.451 | 0.54 | 0.26 | 0.69 |
+| Coarse pixel accuracy | 0.678 | | | 0.73 |
+| Skyline error | 3.5° | 3.8° | 9.1° | 1.07 |
+| Colour histogram similarity | 0.28 | | | -0.3 |
+
+The layout of the street (where road, buildings, trees and sky are) is close to that of a real photo of the same
+street, and the skyline as close as two real photos. What gives the twin away is the look: renders have half the
+contrast (luminance spread 35 against 62) and a third of the fine detail (edge density 0.04 against 0.13), more road
+and less greenery in view (33 % against 21 % road, 15 % against 22 % vegetation: street trees are smaller than the
+real ones), and no parked or moving cars (0 % against 1 %: the render tool spawns none). KartaView's car-mounted
+views score best (coarse IoU 0.50), Commons photos worst (0.28; often taken from squares and parks).
+
+**New York twin (`experiments/nyc_twin.yaml`).** The same pipeline baked NycMidtown, the box of
+`experiments/cities/new_york_midtown.yaml`: the NYC 3D Building Model's 1,761 buildings with facade styles from
+their PLUTO construction year and use, USGS 3DEP ground under the NYS orthophoto, and OSM roads with US lane
+markings, kerbs and sidewalks; SUMO drives on the twin's own OpenDRIVE. A 40 s trial on the Windows package ran at
+RTF 0.75 with 707 parked cars and 1,004 scenery meshes around the participant.
+
+**Download the Eindhoven twin.** The release
+[twin-eindhoven-2026-11-15](https://github.com/bazilinskyy/coupled-carla/releases/tag/twin-eindhoven-2026-11-15)
+has EhvCentre as a CARLA content pack for Linux and Windows (about 1.7 GB each; release assets, not in git), cooked
+against CARLA's official weekly build of 2026-11-13 (`a1770de89`). Install it with the package's own tool
+(`python Tools/carla_pack.py install EindhovenTwin-...tar.gz --server <package>`, which checks checksums, platform
+and base release) and load `EhvCentre`; a pack works only with the CARLA build it was cooked against. The release
+notes list the exact package downloads.
+
+**Still to do in phase 3:** realistic contrast and detail in the twin's look (see the results above), human stations
+at the rendering server (see the [lab guide](docs/lab_guide.md)), multi-GPU secondaries on real GPUs, VR.
 
 ## Study tools
 
