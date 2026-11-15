@@ -21,8 +21,9 @@ Flocking: Vasarhelyi et al. (2018), "Optimized flocking of autonomous drones in 
 Robotics 3(20) eaat3536.
 Battery (not in coupled-sim): electrical power from momentum theory (ideal induced power T^1.5 / sqrt(2 rho A) per
 rotor over a figure of merit; Leishman 2006, Principles of Helicopter Aerodynamics, 2nd ed., ch. 2-3) plus the drag
-power and the avionics, over the motor and ESC efficiency (the structure of Liu et al. 2017, "A power consumption
-model for multi-rotor small unmanned aircraft systems", ICUAS).
+power, the climb power m g v_z (no energy back when descending) and the avionics, over the motor and ESC efficiency
+(the structure of Liu et al. 2017, "A power consumption model for multi-rotor small unmanned aircraft systems",
+ICUAS). steady_power() gives the same in steady flight, for route planning.
 
 Frames: world x east, y north, z up (ENU); body x forward, y left, z up (the thrust axis). drones.py converts to
 CARLA's (x east, y south, z up, yaw clockwise from east).
@@ -112,6 +113,19 @@ PRESETS = {"consumer": CONSUMER, "industrial": INDUSTRIAL, "delivery": INDUSTRIA
 def preset(name):
     """Consumer or Industrial (also "delivery"); anything else: Consumer, as coupled-sim's Preset()."""
     return PRESETS.get(str(name or "").lower(), CONSUMER)
+
+
+def steady_power(af, vh, vz=0.0):
+    """Electrical power (W) of airframe af in steady flight at horizontal airspeed vh and climb rate vz (m/s), from
+    the same model Fleet integrates: thrust balancing weight and drag, induced power by momentum theory over the
+    figure of merit, drag power, climb power, over the drive efficiency, plus the avionics."""
+    sa = math.hypot(vh, vz)
+    kd = af.lin_drag + af.quad_drag * sa
+    thrust = math.hypot(kd * vh, af.mass * G + kd * vz)
+    induced = 4.0 * (thrust / 4.0) ** 1.5 / (math.sqrt(2.0 * RHO * math.pi * af.rotor_radius ** 2) *
+                                            af.figure_of_merit)
+    climb = af.mass * G * max(vz, 0.0)
+    return (induced + kd * sa * sa + climb) / af.drive_efficiency + af.avionics_w
 
 
 def mix_matrix(p):
@@ -351,7 +365,9 @@ class Fleet:
         # power: induced (momentum theory over the figure of merit), drag and avionics, over the drive efficiency
         induced = np.sum((self.p_kf * w2) ** 1.5, axis=0) * self._area_k
         parasite = np.abs(dx * ax_ + dy * ay_ + dz * az_)
-        p = np.where(rot.max(axis=0) > 1.0, (induced + parasite) / self.p_drive_efficiency, 0.0) + self.p_avionics_w
+        climb = self._mg * np.maximum(vz, 0.0)        # the work of climbing (momentum theory's T v_c; none back)
+        p = np.where(rot.max(axis=0) > 1.0, (induced + parasite + climb) / self.p_drive_efficiency, 0.0) + \
+            self.p_avionics_w
         self.power_w = p
         self.energy_wh += p * (h / 3600.0)
         # resting on the ground until the thrust lifts the drone
@@ -698,7 +714,8 @@ class Waypoints:
     """A drone's mission as a path of waypoints flown with a smooth speed profile: constant acceleration up to the
     cruise speed and down to a stop at the last waypoint (and at corners sharper than 60 degrees), as multirotor
     autopilots do in mission mode (coupled-sim's WaypointGuidance). step() gives the controller a position target and
-    a velocity feed-forward."""
+    a velocity feed-forward. `limits` (one per point, None for none) caps the speed at which a point is passed: the
+    arcs of a smoothed route (droneplan.Router), braked for ahead at `accel`."""
     points: list
     cruise: float = 10.0
     climb: float = 4.0
@@ -707,10 +724,14 @@ class Waypoints:
     index: int = 0
     speed: float = 0.0
     loop_from: int = None        # with a loop: after the last point, go on from this index
+    limits: list = None
+    lag: float = 1.0             # s: the controller follows a speed change this much later (braking for limits)
     pts: np.ndarray = field(init=False, repr=False)
 
     def __post_init__(self):
         self.pts = np.asarray(self.points, float).reshape(-1, 3)
+        self.lim = None if self.limits is None else \
+            np.array([math.inf if v is None else float(v) for v in self.limits], float)
 
     @property
     def done(self):
@@ -743,7 +764,29 @@ class Waypoints:
         cruise = self.climb if abs(d[2]) > 0.8 else self.cruise
         v_stop = math.sqrt(2.0 * self.accel * max(0.0, remaining - self.accept * 0.5))
         want = min(cruise, v_stop)
+        if self.lim is not None:          # brake in time for the speed limits ahead
+            k, ahead, horizon, seen = self.index, dist, dist + cruise * cruise / (2.0 * self.accel), 0
+            while ahead <= horizon and seen < len(pts):
+                if self.lim[k] < want:
+                    room = ahead - self.accept - self.speed * self.lag
+                    want = min(want, math.sqrt(self.lim[k] ** 2 + 2.0 * self.accel * max(0.0, room)))
+                nk = k + 1
+                if nk >= len(pts):
+                    if self.loop_from is None:
+                        break
+                    nk = self.loop_from
+                ahead += float(_norm(pts[nk] - pts[k]))
+                k, seen = nk, seen + 1
         self.speed = min(want, self.speed + self.accel * dt) if want > self.speed else want
         vel = d * self.speed
-        target = p + d * min(dist, max(1.0, self.speed * 0.5))
+        # the target: the nearest point of the leg being flown, a little ahead; the speed comes from the
+        # feed-forward (a target speed * 0.5 ahead made the position gain add half the speed again)
+        base = p
+        if self.index > 0:
+            a0 = pts[self.index - 1]
+            seg = pts[self.index] - a0
+            l2 = float(np.dot(seg, seg))
+            if l2 > 1e-9:
+                base = a0 + seg * min(1.0, max(0.0, float(np.dot(p - a0, seg)) / l2))
+        target = base + d * min(dist, 0.5)
         return target, vel
