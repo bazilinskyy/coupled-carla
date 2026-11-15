@@ -1218,8 +1218,21 @@ drones:
 | ↑/↓ (Space/Shift), ←/→ (Q/E) | climb/descend, turn (left stick) |
 | I/K, C, M, H | gimbal up/down, view, position/attitude mode, return to home |
 
-Delivery drones cruise 20 m (`clearance_m`) above the highest roof or tree within 10 m of their route, 4 m apart in
-height per drone, and descend to land or lower the parcel on a winch. Swarms flock by Vásárhelyi et al. (2018,
+Delivery and patrol drones cruise in a fixed band, 40-60 m above the ground by default (`drones.routing.band_m`;
+Wing cruises at about 45 m, Manna at 50-80 m, Amazon's MK30 at 55-115 m, all under the EU's 120 m), in a layer by
+their heading so that opposite directions never meet (Doole et al. 2021, Aerospace 8(2) 38), and descend to land or
+lower the parcel on a winch. Buildings and trees that reach into the band are kept at SORA's operational-volume
+clearances (GNSS, position-hold and map errors, the reaction distance and the stopping distance; FOCA GM SORA
+13.3.2): 34 m sideways and 16.5 m above for the industrial drone at 12 m/s. Routes go round them (A* on a 4 m grid,
+smoothed into arcs flown at √(a·r)) and climb over only when the battery model says the way round costs more;
+no-fly polygons and OSM aerodromes, helipads and military land can be added (`no_fly`, `no_fly_osm`). On Eindhoven's
+3DBAG heights this keeps every cruise at 40-60 m (before: up to 122 m), with routes 2 % longer and 8 % less energy
+([`tools/drone_routes.py`](tools/drone_routes.py)). `routing: {mode: over}` keeps the old way: 20 m above the
+highest roof under a straight route.
+
+<img src="docs/img/drone_routes.png" width="100%" alt="Delivery routes over Eindhoven's building heights: around the tall buildings inside the 40-60 m band, with the areas kept clear at 40 m shaded">
+
+Swarms flock by Vásárhelyi et al. (2018,
 Science Robotics 3(20)): `coupled_sim` (6 m/s, 15 m apart) or `vasarhelyi2018` (the authors'
 [robotsim](https://github.com/csviragh/robotsim) parameter set, 4 m/s, 26 m apart); buildings that reach up to them
 act through shill agents. AI drones keep 10 m from each other and from the pilots' drones. A pilot crashes into what
@@ -1240,7 +1253,7 @@ arms and rotor discs. [`experiments/eindhoven_drones.yaml`](experiments/eindhove
 Eindhoven twin: on lin5080 (CARLA 1.0, `-nullrhi`, 120 s) 14 drones cost 3.1 ms per tick, 3 parcels were delivered,
 every AI drone stayed 19-43 m above the roofs, and the pilot bot flew 587 m and landed at 0.5 m/s. Not yet checked:
 the rendered looks and views, the rotor sound by ear, a station pilot with a real camera, and the 0.9.16 fallback on
-a 0.9.16 server. Delivery routes climb over tall buildings rather than around them.
+a 0.9.16 server.
 
 ## Traffic
 
