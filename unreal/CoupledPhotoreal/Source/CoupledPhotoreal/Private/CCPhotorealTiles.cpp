@@ -255,11 +255,11 @@ void ACCPhotorealTiles_C::Tick(float DeltaSeconds)
     }
     if (CarlaActor != nullptr && CarlaActor->GetActorInfo() != nullptr)
     {
-      const FActorAttribute *Role = CarlaActor->GetActorInfo()->Description.Variations.Find(TEXT("role_name"));
+      const FActorAttribute *RoleAttr = CarlaActor->GetActorInfo()->Description.Variations.Find(TEXT("role_name"));
       TArray<FString> Pairs;
-      if (Role != nullptr)
+      if (RoleAttr != nullptr)
       {
-        Role->Value.ParseIntoArray(Pairs, TEXT(";"), true);
+        RoleAttr->Value.ParseIntoArray(Pairs, TEXT(";"), true);
       }
       for (const FString &Pair : Pairs)
       {
