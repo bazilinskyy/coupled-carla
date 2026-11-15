@@ -9,7 +9,10 @@ Camera kinds (`camera.kind`):
   attach   rigidly on an actor (`target`): mount driver | passenger | hood | chase | roof | eye, or [x, y, z(, pitch,
            yaw)] in the actor's frame (metres forward, right, up); `spring: true` uses CARLA's spring arm (smooth chase)
   follow   not attached: `offset` [forward, right, up] in the target's frame, its heading smoothed over `smooth_s`,
-           looking at the target (`look_ahead_m` in front, `look_up_m` up); the pose is predicted one tick ahead
+           looking at the target (`look_ahead_m` in front, `look_up_m` up); the pose is predicted one tick ahead. Its
+           boom collides like a game's spring arm (`collide: true`): a ray from above the target to the camera
+           (World.cast_ray) pulls the camera in front of the first vehicle, building or wall on the way, at once,
+           and lets it out again over `boom_release_s`; it never passes through a bus beside the target
   tripod   fixed at `at` {lat, lon, height_m}, looking at `look` ({lat, lon, height_m}, or an actor name, then
            panning after it with `smooth_s`)
   orbit    round `centre` ({lat, lon} or an actor name) at `radius_m`, `height_m`, from `start_deg` (compass) at
@@ -142,6 +145,27 @@ def path_point(keys, t):
     return _catmull(p0, p1, p2, p3, u)
 
 
+BOOM_PIVOT_UP = 2.0     # the follow camera's boom starts this far above the target's origin (above its roof)
+BOOM_MARGIN = 0.5       # the camera stays this far in front of what blocks the boom
+BOOM_MIN = 1.5          # ... and at least this far from the pivot
+# what a boom collides with (CARLA 0.9.16 CityObjectLabel names): not trees (a canopy over the street would pull it
+# in all the time), poles or signs (thin, gone in a frame)
+BOOM_BLOCKERS = {"Buildings", "Walls", "Car", "Bus", "Truck", "Train", "Motorcycle", "Vehicles", "Bridge",
+                 "GuardRail"}
+
+
+def boom_share(prev, hit_dists, full, dt, release_s):
+    """A spring arm's length as a share of the full boom: in at once to BOOM_MARGIN before the nearest hit (hit
+    distances from the pivot, m), out again smoothly (time constant release_s) when nothing blocks it."""
+    want = 1.0
+    if hit_dists:
+        want = max(BOOM_MIN, min(hit_dists) - BOOM_MARGIN) / full
+        want = max(0.0, min(1.0, want))
+    if prev is None or want < prev:
+        return want
+    return prev + (want - prev) * smooth_weight(dt, release_s)
+
+
 def offset_point(origin, yaw_deg, fwd, right, up):
     """origin (x, y, z) moved by (forward, right, up) metres in a frame turned by yaw (CARLA: y points south, so
     right of a heading is +90 degrees of yaw)."""
@@ -204,6 +228,7 @@ class Rig:
         self.yaw = None
         self.look = None
         self.look_target = None
+        self.boom = None             # follow: the boom's length now, as a share of the full offset (spring arm)
         self.dir = film.dir / self.name
         self.dir.mkdir(parents=True, exist_ok=True)
         self.kept = {}               # index -> (carla frame, trial time)
@@ -329,6 +354,8 @@ class Rig:
             self.yaw = yaw if self.yaw is None else angle_lerp(self.yaw, yaw, w)
             fwd, right, up = (list(c.get("offset", [-7.0, 0.0, 2.6])) + [0, 0])[:3]
             pos = offset_point(loc, self.yaw, fwd, right, up)
+            if c.get("collide", True):
+                pos = self._boom(loc, pos, f.step, float(c.get("boom_release_s", 0.6)))
             look = offset_point(loc, self.yaw, float(c.get("look_ahead_m", 4.0)), 0.0, float(c.get("look_up_m", 1.0)))
             if c.get("look_at") is not None:      # eyes on another actor (or a point), blended with straight ahead
                 if self.look_target is None:
@@ -359,6 +386,31 @@ class Rig:
         pitch += float(c.get("pitch_offset", 0.0))
         return carla.Transform(carla.Location(*pos), carla.Rotation(pitch=pitch, yaw=yaw))
 
+    def _boom(self, loc, pos, dt, release_s):
+        """The follow camera's position with its boom shortened in front of what lies between it and the target."""
+        import carla
+        if getattr(self, "_pivot_up", None) is None:    # above the target's own roof (a bus is 3-4 m tall)
+            try:
+                bb = self.target.bounding_box
+                self._pivot_up = max(BOOM_PIVOT_UP, bb.location.z + bb.extent.z + 0.4)
+            except (RuntimeError, AttributeError):
+                self._pivot_up = BOOM_PIVOT_UP
+        pivot = (loc[0], loc[1], loc[2] + self._pivot_up)
+        full = math.dist(pivot, pos)
+        if full < 0.5:
+            return pos
+        try:
+            hits = self.film.world.cast_ray(carla.Location(*pivot), carla.Location(*pos))
+        except (RuntimeError, AttributeError):      # an older server without cast_ray: as before
+            return pos
+        names = {str(h.label).split(".")[-1] for h in hits}
+        dists = [math.dist(pivot, (h.location.x, h.location.y, h.location.z)) for h in hits
+                 if str(h.label).split(".")[-1] in BOOM_BLOCKERS]
+        self.boom = boom_share(self.boom, dists, full, dt, release_s)
+        self.boom_hits = names
+        k = self.boom
+        return tuple(a + (b - a) * k for a, b in zip(pivot, pos))
+
     def update(self, t, snap):
         import carla
         f = self.film
@@ -366,7 +418,7 @@ class Rig:
             alt = f.actor(self.c.get("target"), near=self.c.get("near"))     # it left the world: pick another
             if alt is not None and alt.id != self.target.id:
                 f.log(f"film {self.name}: target {self.target.id} gone, now {alt.id} {alt.type_id}")
-                self.target, self.yaw = alt, None
+                self.target, self.yaw, self._pivot_up = alt, None, None
         if self.kind in ("tripod", "orbit", "path", "follow"):
             tf = self.transform(t + f.step, snap)
             if tf is not None:

@@ -314,3 +314,16 @@ def test_crowd_walker_blocked_by_standing_car():
     assert crowdpeds.blocked(12.4, 0.0, poses)           # just ahead of its bumper (within the margin)
     assert not crowdpeds.blocked(13.0, 0.0, poses) and not crowdpeds.blocked(10.0, 1.5, poses)
     assert not crowdpeds.blocked(0.0, 0.0, None)
+
+
+# -- film.py: the follow camera's colliding boom ---------------------------------------------------------------------
+
+def test_boom_share_pulls_in_at_once_and_out_smoothly():
+    film = pytest.importorskip("coupledcarla.film")
+    full = 9.0
+    assert film.boom_share(None, [], full, 0.02, 0.6) == 1.0
+    k = film.boom_share(1.0, [5.0], full, 0.02, 0.6)                   # a bus 5 m from the pivot
+    assert k == pytest.approx((5.0 - film.BOOM_MARGIN) / full)
+    assert film.boom_share(k, [0.5], full, 0.02, 0.6) == pytest.approx(film.BOOM_MIN / full)   # never shorter
+    k2 = film.boom_share(k, [], full, 0.02, 0.6)                        # clear again: lets out gradually
+    assert k < k2 < 1.0

@@ -248,8 +248,10 @@ class Station:
             view = self.welcome.get("view") or ("passenger" if kind == "av_passenger" else "driver")
 
             def spawn():
+                # chase: CARLA's spring arm (pulls in in front of what is behind the car), else rigid
                 return self.world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=self.actor,
-                                              attachment_type=carla.AttachmentType.Rigid)
+                                              attachment_type=carla.AttachmentType.SpringArm if view == "chase"
+                                              else carla.AttachmentType.Rigid)
         # with secondaries the camera should land on the role's own one (multigpu.py); otherwise spawn + listen
         # (a -nullrhi server without a rendering secondary streams nothing: the station goes on without images)
         say = lambda m: print(f"[station {args.role}] {m}", flush=True)  # noqa: E731

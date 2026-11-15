@@ -36,8 +36,10 @@ class View:
         self._kept_at = None
         self.camera = None
         if window or save_every_s > 0:
+            # chase: CARLA's spring arm, which pulls the camera in front of a bus or a wall behind the car
             self.camera = world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=vehicle,
-                                            attachment_type=carla.AttachmentType.Rigid)
+                                            attachment_type=carla.AttachmentType.SpringArm if view == "chase" else
+                                            carla.AttachmentType.Rigid)
             listen(self.camera, self._on_image, lambda m: print(f"[view] {m}", flush=True), "view")
         self.screen = None
         self.font = None
