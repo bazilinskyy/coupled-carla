@@ -196,7 +196,9 @@ def test_station_camera_rate_headless_default(station_mod, tmp_path):
         st2.welcome = {"kind": "av_passenger"}
         st2.start({"state": "running", "actor_id": 7, "trial": 0})
         attrs = carla.world.spawned[-1].bp.attrs
-        assert attrs["sensor_tick"] == "0.04" and "exposure_mode" not in attrs
+        # a cabin view keeps a fixed exposure at any rate (cockpit.CABIN_EV_BIAS: CARLA's auto exposure meters the
+        # dark cabin and blows the windows out)
+        assert attrs["sensor_tick"] == "0.04" and attrs["exposure_mode"] == "manual"
         # CARLA 1.0 (no exposure attributes, post-process profiles): headless renders every tick so its auto
         # exposure adapts, with the welcome's profile (compat.setup_camera)
         bp_class = type(carla.world.spawned[-1].bp)

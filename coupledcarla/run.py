@@ -427,7 +427,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     view = View(world, part.actor, p.get("view", "driver"), window=window, save_dir=out,
                                 save_every_s=tc["logging"]["frames_every_s"],
                                 profile=tc["simulation"].get("camera_profile", "Dashcam"),
-                                capture=tc["simulation"].get("capture"))
+                                capture=tc["simulation"].get("capture"),
+                                lefthand=bool((tc.get("map") or {}).get("lefthand")))
             if not part.station and part.kind == "drone":
                 window = p.get("window", p.get("input", "keyboard") in ("keyboard", "gamepad", "rc"))
                 drone_world.local_input(part.drone, window and (i == 0))

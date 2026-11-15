@@ -56,12 +56,12 @@ from pathlib import Path
 import carla
 import numpy as np
 
-from . import labcheck, look, multigpu
+from . import cockpit, labcheck, look, multigpu
 from .compat import listen, set_manual_exposure
 from .coupling import ControlClient
 from .studytools import CSV_COLUMNS, StationStudy
 
-VIEWS = {
+VIEWS = {   # driver and passenger: the car's measured seats (cockpit.actor_eye); these are the old fixed mounts
     "driver": carla.Transform(carla.Location(x=-0.05, y=-0.38, z=1.22)),
     "passenger": carla.Transform(carla.Location(x=-0.15, y=0.36, z=1.15)),   # front seat, right
     "chase": carla.Transform(carla.Location(x=-6.5, z=2.8), carla.Rotation(pitch=-10)),
@@ -207,6 +207,15 @@ class Station:
                 break
             self.world.wait_for_tick(5.0)
         kind = self.welcome.get("kind")
+        ck = self.welcome.get("cockpit") or {}
+        seat = None
+        if kind in ("driver", "av_passenger"):
+            v = self.welcome.get("view") or ("passenger" if kind == "av_passenger" else "driver")
+            seat = v if v in ("driver", "passenger") else None
+        if args.fov is None:       # --fov, else the participant's fov / screens (cockpit.hfov_for), else 90
+            args.fov = float(ck.get("fov") or (cockpit.hfov_for(ck.get("screens")) if seat else 90.0))
+        self.version = self.client.get_server_version() if hasattr(self.client, "get_server_version") else "0.9"
+        self.eye = cockpit.actor_eye(self.actor, seat, ck.get("lefthand", False), self.version) if seat else None
         # headless frames with simulation.capture (look.py): rendered at 2x and downscaled, no motion blur, on
         # CARLA 0.9.x an exposure from the sun and clouds and at least 10 Hz rendering (anti-aliasing history)
         cap = look.settings(self.welcome.get("capture")) if (args.headless and args.frames_every and
@@ -228,7 +237,18 @@ class Station:
         if hz > 0:
             bp.set_attribute("sensor_tick", str(1.0 / hz))
         shutter = {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220)
-        if not self.every_tick and self.capture:
+        if not self.every_tick and self.eye is not None:
+            # a cabin view: a fixed exposure between the street's and the cabin's (cockpit.cabin_ev_bias: one stop
+            # brighter than the street's, more behind tinted glass), with or without capture, so the dashboard reads
+            # and the outside keeps its detail (CARLA's auto exposure meters the dark cabin, blowing the windows out)
+            cap = dict(self.capture or {"enabled": True})
+            weather = self.world.get_weather() if hasattr(self.world, "get_weather") else None
+            cabin = cockpit.cabin_ev_bias(cockpit.entry_for(getattr(self.actor, "type_id", ""), self.version),
+                                          float(ck.get("ev_bias", cockpit.CABIN_EV_BIAS)),
+                                          weather.sun_altitude_angle if weather is not None else None)
+            cap["ev_bias"] = float(cap.get("ev_bias") or 0.0) + cabin
+            look.apply_09(bp, cap, weather, shutter if weather is None else None)
+        elif not self.every_tick and self.capture:
             look.apply_09(bp, self.capture, self.world.get_weather(), shutter)
         elif not self.every_tick and args.headless and 0 < hz <= 5:
             # few frames: auto exposure would never adapt
@@ -246,9 +266,13 @@ class Station:
                 return self.world.spawn_actor(bp, self.actor.get_transform())
         else:
             view = self.welcome.get("view") or ("passenger" if kind == "av_passenger" else "driver")
+            mount = VIEWS.get(view, VIEWS["driver"])
+            if self.eye is not None:
+                x, y, z, pitch = self.eye
+                mount = carla.Transform(carla.Location(x=x, y=y, z=z), carla.Rotation(pitch=pitch))
 
             def spawn():
-                return self.world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=self.actor,
+                return self.world.spawn_actor(bp, mount, attach_to=self.actor,
                                               attachment_type=carla.AttachmentType.Rigid)
         # with secondaries the camera should land on the role's own one (multigpu.py); otherwise spawn + listen
         # (a -nullrhi server without a rendering secondary streams nothing: the station goes on without images)
@@ -295,7 +319,8 @@ class Station:
         if wanted(self.welcome):
             self.ux = StationUX(self.welcome, args.role, Path(self.log_f.name).with_suffix(""), self.size,
                                 args.headless, audio_device=args.audio_device)
-            self.ux.start(self.world, self.actor, self.camera, self.trial, msg.get("agents"), self.input)
+            self.ux.start(self.world, self.actor, self.camera, self.trial, msg.get("agents"), self.input,
+                          view=self.eye, fov=args.fov, version=self.version)
         print(f"[station {args.role}] trial {self.trial}: actor {self.actor.id} {self.actor.type_id}", flush=True)
 
     def camera_hz(self):
@@ -611,7 +636,8 @@ def main():
     ap.add_argument("--station-id", help=argparse.SUPPRESS)
     ap.add_argument("--input", default="keyboard", choices=["keyboard", "wheel", "bot", "gamepad", "rc"])
     ap.add_argument("--size", default="1280x720")
-    ap.add_argument("--fov", type=float, default=90)
+    ap.add_argument("--fov", type=float,
+                    help="horizontal field of view (deg; default: the participant's fov or screens, else 90)")
     ap.add_argument("--headless", action="store_true", help="no window (with --input bot)")
     ap.add_argument("--frames-every", type=float, default=0.0, help="headless: save the view every N s")
     ap.add_argument("--out", default="logs")
