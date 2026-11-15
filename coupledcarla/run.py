@@ -26,7 +26,7 @@ import yaml
 from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, photoreal, realworld, season, soundrec, study, \
     towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, livemap, multigpu, placement, stationux
+from . import ehmi_design, levels, livemap, multigpu, placement, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -381,6 +381,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # is the difference between map.net.xml's and geo.net.xml's offsets (CARLA x,y = geo.net x,-y).
         mo, go = sumo.net.getLocationOffset(), geo.net.getLocationOffset()
         BridgeHelper.offset = (mo[0] - go[0], mo[1] - go[1])
+        # stacked roads: where SUMO's lane heights are CARLA's, a car off its lane's height is put back (levels.py)
+        carla_sim._cmap = world.get_map()
+        carla_sim.check_level = levels.check_heights(carla_sim._cmap, sumo.net, BridgeHelper.offset, log=log)
         signals = Signals(world, sumo.net, BridgeHelper.offset, step=step, debug=side.debug,
                           style=(tc["simulation"].get("traffic_lights") or {}).get("style", "head"),
                           lefthand=bool(tc["map"].get("lefthand")), log=log,
@@ -835,8 +838,20 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 veh = part.actor
                 if getattr(ctl_in, "inserted", True) is False:  # the SUMO driver waiting below the road (hold)
                     continue
-                # down on the ground plane; a town has kerbs and real heights: off every driving lane
-                off_road = towns.off_road(cmap, veh.get_location()) if town else veh.get_location().z < -0.25
+                # down on the ground plane; a town has kerbs and real heights: off every driving lane; a map whose
+                # roads have real heights (a baked level, map.elevation): off its lane's height or tipped (levels.py)
+                if town:
+                    off_road = towns.off_road(cmap, veh.get_location())
+                elif carla_sim.check_level:
+                    if summary["ticks"] % 10 == 0 or veh.id not in was_off:
+                        tfv = veh.get_transform()
+                        wpv = cmap.get_waypoint(tfv.location, project_to_road=True, lane_type=carla.LaneType.Driving)
+                        off_road = levels.tipped(tfv.rotation.pitch, tfv.rotation.roll) or (
+                            wpv is not None and levels.off_level(tfv.location.z, wpv.transform.location.z))
+                    else:
+                        off_road = was_off[veh.id]
+                else:
+                    off_road = veh.get_location().z < -0.25
                 if off_road and not was_off.get(veh.id):
                     logger.event(t, snap.frame, "left_road", veh.id, part.role)
                 was_off[veh.id] = off_road
@@ -876,6 +891,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         wall = time.time() - t_wall0
         if profile:
             summary["ms_per_tick"] = laps.totals(summary["ticks"])
+        if carla_sim.level_teleports:
+            summary["level_teleports"] = carla_sim.level_teleports     # put back onto their level or upright
         summary.update({"sim_s": round(t, 2), "wall_s": round(wall, 2), "rtf": round(t / max(wall, 1e-6), 3),
                         "rows": logger.rows, "collisions": len(collisions), "agents": len(agents),
                         "stations": station_roles, "sumo_vehicles_spawned": len(types),

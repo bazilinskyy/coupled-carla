@@ -38,7 +38,8 @@ OVERRIDES = ("simulation", "traffic", "participants", "agents", "logging", "coup
 TRIAL_KEYS = set(OVERRIDES) | {"duration_s", "name", "block", "condition", "conditions", "patch"}
 TOP_EXTRA = {"city", "pois", "eye_contact"}
 PART_KEYS = {"role", "kind", "station", "vehicle", "spawn", "input", "view", "window", "bot", "agent", "blueprint",
-             "seed", "color", "response", "automation", "sound", "displays", "haptics"} | drones.PILOT_KEYS
+             "seed", "color", "response", "automation", "sound", "displays", "haptics",
+             "route", "destination", "autopilot", "fov", "screens"} | drones.PILOT_KEYS   # SUMO driver; cockpit view
 KINDS = {"driver", "pedestrian", "av_passenger", "drone"}
 INPUTS = {"keyboard", "wheel", "autopilot", "bot", "gamepad", "rc"}
 SPAWN_KEYS = {"lat", "lon", "heading", "x", "y"}      # x, y: CARLA coordinates (towns.resolve_xy)

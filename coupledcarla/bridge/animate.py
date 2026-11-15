@@ -32,18 +32,25 @@ def wrap_deg(a):
     return (a + 180.0) % 360.0 - 180.0
 
 
-def follow(target, current, speed, yaw_rate_deg, wheelbase, vz=0.0):
+def follow(target, current, speed, yaw_rate_deg, wheelbase, vz=0.0, dz=None, tilt=None):
     """Commands to follow a SUMO pose with physics on.
 
     target, current: (x, y, yaw_deg) in CARLA coordinates (the SUMO pose as CARLA's, the actor's now); speed (m/s)
     and yaw_rate_deg (deg/s) from SUMO; wheelbase (m) for the steering angle; vz: the actor's vertical speed now
-    (gravity keeps it on the road). Returns {"teleport": bool, "velocity": (vx, vy, vz), "angular_z": deg/s,
+    (gravity keeps it on the road); dz: SUMO's height less the actor's (given only where the net's heights match
+    CARLA's roads, levels.py), tilt: the actor's (pitch, roll). Off by more than levels.LEVEL_M in height (on
+    another level of a stacked road, or knocked up onto something) or tipped beyond levels.MAX_TILT_DEG it is put
+    back too. Returns {"teleport": bool, "why": reason or None, "velocity": (vx, vy, vz), "angular_z": deg/s,
     "throttle", "steer", "brake"}.
     """
+    from coupledcarla import levels  # pylint: disable=import-outside-toplevel
     ex, ey = target[0] - current[0], target[1] - current[1]
     err = math.hypot(ex, ey)
     eyaw = wrap_deg(target[2] - current[2])
-    teleport = err > TELEPORT_M or abs(eyaw) > TELEPORT_DEG
+    why = "position" if err > TELEPORT_M else "heading" if abs(eyaw) > TELEPORT_DEG else \
+        "level" if (dz is not None and abs(dz) > levels.LEVEL_M) else \
+        "tipped" if (tilt is not None and levels.tipped(*tilt)) else None
+    teleport = why is not None
     yaw = math.radians(target[2])
     k = min(1.0, MAX_CORRECTION / (err / FOLLOW_S)) if err > 1e-6 else 0.0
     vx = speed * math.cos(yaw) + ex / FOLLOW_S * k
@@ -57,7 +64,7 @@ def follow(target, current, speed, yaw_rate_deg, wheelbase, vz=0.0):
     else:
         delta = 0.0
     steer = max(-1.0, min(1.0, delta / MAX_STEER_DEG))
-    return {"teleport": teleport, "velocity": (vx, vy, vz), "angular_z": wz,
+    return {"teleport": teleport, "why": why, "velocity": (vx, vy, vz), "angular_z": wz,
             "throttle": THROTTLE if moving else 0.0, "steer": steer, "brake": 0.0 if moving else 1.0}
 
 
