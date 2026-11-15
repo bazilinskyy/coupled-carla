@@ -135,6 +135,7 @@ def fake_carla():
 
 
 def test_render_with_a_fake_server(tmp_path, monkeypatch):
+    pytest.importorskip("sumolib")      # Geo reads the net with sumolib
     carla = fake_carla()
     monkeypatch.setitem(sys.modules, "carla", carla)
     import realism_check as T
