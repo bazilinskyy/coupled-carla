@@ -345,16 +345,51 @@ def welcome(sc, role):
 
 # -- the station's side ---------------------------------------------------------------------------------------
 
+RELAY_PROCESS = True        # run a station's relay in a child process (see Relay)
+
+
+def _relay_process(routes, bind, shared, ports, conn):
+    """The relay's child process: forwards until the station's process ends (its end of the pipe closes)."""
+    index = {p: i for i, p in enumerate(ports)}
+    try:
+        relay = Relay(routes, bind, process=False)
+    except OSError as err:
+        conn.send(f"{err}")
+        return
+
+    def bump(port):
+        shared[index[port]] += 1
+    relay.on_connect = bump
+    conn.send("ok")
+    try:
+        conn.recv()             # nothing is sent: returns with EOFError once the station's process is gone
+    except (EOFError, OSError):
+        pass
+    os._exit(0)
+
+
 class Relay:
     """Forwards 127.0.0.1:port to (host, port) for each given pair; counts the connections per port, so a station
-    can tell which server took its camera stream."""
+    can tell which server took its camera stream.
 
-    def __init__(self, routes, bind="127.0.0.1"):
+    By default it runs in a child process (RELAY_PROCESS): CARLA 1.0's Python client holds the GIL while it waits
+    for some RPC answers (get_world), so a relay in the station's own threads could not forward that very request
+    and every call through it timed out (measured on 2026-11-15 against a CARLA 1.0 primary: the request reached
+    the relay at once and left it 15 s later, at the client's timeout). The child exits when the station's process
+    ends, however it ends."""
+
+    def __init__(self, routes, bind="127.0.0.1", process=None):
         self.routes = dict(routes)                # local port -> (host, port)
+        self.ports = sorted(self.routes)
         self.connections = {p: 0 for p in self.routes}
         self.socks = []
         self.lock = threading.Lock()
         self.closed = False
+        self.on_connect = None
+        self.proc = None
+        if RELAY_PROCESS if process is None else process:
+            self._start_process(bind)
+            return
         try:
             for port in self.routes:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -368,6 +403,23 @@ class Relay:
             raise
         for s in self.socks:
             threading.Thread(target=self._accept, args=(s,), daemon=True).start()
+
+    def _start_process(self, bind):
+        import multiprocessing
+        ctx = multiprocessing.get_context("spawn")
+        self._shared = ctx.RawArray("i", len(self.ports))
+        mine, theirs = ctx.Pipe()
+        self.proc = ctx.Process(target=_relay_process, args=(self.routes, bind, self._shared, self.ports, theirs),
+                                name="coupledcarla-relay", daemon=True)
+        self.proc.start()
+        theirs.close()
+        msg = mine.recv() if mine.poll(30) else "the relay process did not start"
+        if msg != "ok":
+            if self.proc.is_alive():
+                self.proc.kill()
+            self.proc = None
+            raise OSError(msg)
+        self._pipe = mine           # kept open: the child relays as long as it is
 
     def _accept(self, srv):
         port = srv.getsockname()[1]
@@ -386,6 +438,8 @@ class Relay:
                 c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             with self.lock:
                 self.connections[port] += 1
+            if self.on_connect is not None:
+                self.on_connect(port)
             threading.Thread(target=self._pump, args=(conn, up), daemon=True).start()
             threading.Thread(target=self._pump, args=(up, conn), daemon=True).start()
 
@@ -408,10 +462,20 @@ class Relay:
 
     def counts(self):
         with self.lock:
-            return dict(self.connections)
+            out = dict(self.connections)
+        if self.proc is not None:
+            for i, p in enumerate(self.ports):
+                out[p] += self._shared[i]
+        return out
 
     def close(self):
         self.closed = True
+        if self.proc is not None:
+            self._pipe.close()
+            self.proc.join(2)
+            if self.proc.is_alive():
+                self.proc.kill()
+            self.proc = None
         for s in self.socks:
             try:
                 s.close()

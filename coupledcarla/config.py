@@ -340,6 +340,28 @@ DEFAULTS = {
                                      # The seat comes from data/driver_eyes.json; a participant's `fov` (deg) or
                                      # `screens` (1: 90 deg, 3: 180) sets the view's width unless --fov is given.
     },
+    "vr": {                          # VR stations (vr.py, vrxr.py): a participant with view: vr, or a station started
+                                     # with --display vr, sees the world in a headset (OpenXR); a participant's own
+                                     # `vr` block overrides these
+        "ipd_mm": 63.0,              # eye distance; null: the runtime's eye positions (the headset's IPD setting)
+        "scale": 0.5,                # per-eye render size as a share of the headset's recommended size (each axis)
+        "max_size": [1600, 1600],    # cap on the per-eye render size (w, h)
+        "size": None,                # [w, h]: a fixed per-eye render size instead of scale
+        "overscan": 0.10,            # extra field of view around each eye for the runtime's reprojection
+        "predict_ms": "auto",        # head-pose prediction: auto = the measured pose-to-image latency, or ms
+        "max_predict_ms": 80.0,      # cap on the prediction (the runtime's reprojection corrects the rest)
+        "smooth": 0.5,               # angular-velocity smoothing for the prediction (0 none .. 0.9 heavy)
+        "reference": "local",        # OpenXR space: local (seated; origin where the head starts) | stage
+        "recenter": "trial",         # the head at the trial start is the seat's eye point (Home recentres again)
+        "runtime": "openxr",         # openxr: a headset | sim: a scripted head without headset (tests)
+        "sim_motion": "look",        # runtime sim: look (yaw +-35 deg, pitch +-10 deg) | still
+        "fov_deg": [100, 100],       # runtime sim: per-eye field of view (h, v)
+        "sim_hz": 90.0,              # runtime sim: display rate
+        "mirror": True,              # the station's window mirrors the left eye
+        "panel_distance_m": 1.5,     # head-locked panel (station text, prompts, visual-sync bar): distance, width
+        "panel_width_deg": 50.0,
+        "displays_in_eyes": True,    # in-car displays on the car's panels in each eye (dashboard style)
+    },
     "haptics": {                     # haptics.py: take-over requests and cues on the wheel, gamepads, UDP devices
         "enabled": False, "wheel": True, "gamepad": True,
         "udp": [],                   # ["host:port"]: a JSON datagram per cue

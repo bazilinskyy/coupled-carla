@@ -33,8 +33,8 @@ TCP. That decides where stations can sit:
 | a PC on Wi-Fi | over the air | no: lin5080 (USB Wi-Fi, 131.155.229.241) drops packets above ~1,300-1,350 bytes without telling the sender (path-MTU black hole, checked again 2026-11-15 with `ping -M do -s 1300/1400` from win5090), so CARLA's image stream stalls while the control channel still works |
 
 So for 1280x720 at the full rate, put the stations on win5090 (one monitor each). Remote stations at full rate
-need multi-GPU secondaries on their own PC ([below](#rendering-on-more-gpus-multi-gpu-untested)), which is not
-tested yet.
+need multi-GPU secondaries on their own PC ([below](#rendering-on-more-gpus-multi-gpu)), whose protocol is
+tested against a real CARLA 1.0 primary but not yet with a second GPU.
 
 Three limits of several stations on one PC:
 
@@ -291,12 +291,101 @@ End the GPU window (`rm ~/cc58/gpu_flag` on wsl5090) so the crowd workers contin
   2026-11-14 with the editor server). Restart the server task and the session from the next trial
   (`--participant N --trial K`).
 
-## Rendering on more GPUs (multi-GPU, untested)
+## VR stations
+
+A participant can see the world in a headset instead of on a monitor: `--display vr` at the station, or `view: vr`
+on the participant in the experiment (with an optional `vr:` block, `config.DEFAULTS["vr"]`). CARLA's server renders
+no VR, so the station does it (`coupledcarla/vr.py`, `vrxr.py`): two RGB cameras at the participant's eyes, 63 mm
+apart (`vr.ipd_mm`; `null` takes the headset's own IPD setting), moved every tick from the headset's head pose on top
+of the seat's eye point (the car's measured driver or passenger seat from `data/driver_eyes.json`, a pedestrian's
+eyes, a drone's gimbal camera), rendered at the headset's per-eye field of view and handed to the headset through
+OpenXR. The in-car displays and the HUD are drawn on the car's panels in each eye (so they sit at their depth in
+stereo); the station's text, response prompts and the visual-sync bar are a panel 1.5 m ahead that moves with the
+head. The station window mirrors the left eye for the experimenter. **Home** recentres (the head at the trial
+start is the seat's eye point).
+
+### What a station PC with a headset needs
+
+| | |
+|---|---|
+| PC | Windows 10/11 (or Linux with Monado), an NVIDIA GPU with the headset's port (DisplayPort or USB-C), on the wired LAN as any station |
+| Python | the station's environment (above) plus `pip install -e ".[vr]"`: [pyopenxr](https://github.com/cmbruns/pyopenxr) (Apache-2.0, ships the Khronos OpenXR loader), glfw (zlib), PyOpenGL (BSD) |
+| Meta Quest 2 / 3 / Pro | the Meta Quest Link PC app; Link cable (USB-C 3) or Air Link (5/6 GHz Wi-Fi on the same router); in the app: Settings, General: "OpenXR runtime: set Meta Quest Link as active" and allow "Unknown sources" (apps from outside the store) |
+| Varjo (XR-3, XR-4, Aero) | Varjo Base (its OpenXR runtime is the active one once installed) |
+| HTC Vive, Valve Index, Pico (streaming), WMR headsets | Steam and SteamVR; SteamVR, Settings, OpenXR: "Set SteamVR as OpenXR runtime" (Windows Mixed Reality's own runtime has no OpenGL support, so WMR headsets go through SteamVR) |
+| Linux | Monado (`monado-service`); SteamVR for Linux also works |
+| Check | `python -m coupledcarla.vrxr` prints the runtime, the headset, its recommended per-eye resolution and field of view, and runs 5 s of test frames (the runtime's frame rate, display time minus pose time) without CARLA |
+
+The station uses OpenXR's OpenGL binding (all the runtimes above except WMR's own support it), a seated LOCAL
+reference space (`vr.reference: stage` for a room-scale space), and submits every image with the head pose it was
+rendered at, so the runtime's reprojection (Meta's ASW/timewarp, SteamVR's motion smoothing, Varjo's) turns it to
+where the head is when it is shown and fills the headset's rate when CARLA delivers fewer images.
+
+### Frame rate and latency (measured)
+
+Not with a physical headset (none in the lab): with Monado 25.1 (its simulated HMD and null compositor at 90 Hz, on
+lin4080 under Xvfb, the compositor on the CPU) and with `vr.runtime: sim` (a scripted head: yaw +-35 deg at 0.2 Hz,
+44 deg/s at most), on CARLA 0.9.16 (lin4080, RTX 4080 SUPER, Town10HD_Opt at Epic, synchronous, one car on autopilot
+and nothing else), ticking as fast as the server can (`tools/vr_bench.py`):
+
+| Station | Server tick (median) | Frames/s | Head pose to both eye images | Motion to photon (90 Hz display) |
+|---|---|---|---|---|
+| no camera | 4.3 ms | 220 | | |
+| one monitor camera, 1280x720 | 10.6 ms | 94 | | |
+| two eyes 960x1056 (Quest 2 at half its recommended size) | 17.1 ms | 57 | 32 ms | 49 ms |
+| two eyes 1440x1584 | 19.3 ms | 49 | 42 ms | 58 ms |
+| two eyes 1832x1920 (Quest 2's recommended size) | 21.1 ms | 46 | 48 ms | 65 ms |
+| the same through Monado (OpenXR, swapchains, upload on the CPU): 960x1056 / 1440x1584 / 1832x1920 | 17.7 / 19.4 / 22.6 ms | 55 / 51 / 42 | 39 / 48 / 69 ms | 58 / 75 / 93 ms |
+
+Every rendered eye pose was where the station put it (0.0 deg and 0.0 cm off, checked per frame from the image's own
+camera transform). **A coupled run** (the host with SUMO traffic, scripted cars and an AV-passenger station in VR
+through Monado, two 1440x1584 eyes with the cluster and HUD drawn in, 40 s on the Eindhoven crossing): RTF 0.88, the
+station saw 42.5 ticks/s and got every pair of eye images; 32.8 pairs/s reached the headset (here OpenXR's upload
+and compositor run on the CPU, which alone tops out at 45 frames/s at that size; a GPU does it in a fraction of a
+millisecond); head pose to both images 63 ms (median; 96 ms at the 95th percentile), motion to photon 119 ms
+(150 ms), prediction 65 ms. So:
+
+- **90 Hz is not reachable**: CARLA renders each eye as one more camera, and two eyes at a useful size cost 13-17 ms
+  of server time on top of the world, before SUMO traffic, scenery and the other stations. In a coupled session the
+  eyes come at the host's tick rate (50 Hz at most, `simulation.step: 0.02`; the three-station test ran at RTF 0.7),
+  and the runtime reprojects them to 72-90 Hz. Plan for 45 Hz images (Quest's ASW runs at exactly half of 90 Hz).
+- **Use `vr.scale` 0.5** (the default: 960x1056 per eye on a Quest 2, ~1100x1200 on a Quest 3) and `vr.overscan` 0.1
+  (a margin for the reprojection). CARLA's cameras cannot render foveated (one resolution per camera); a narrow
+  sharp inset plus a wide low-resolution camera per eye (OpenXR quad views, Varjo) is possible later, at four cameras.
+- **Latency**: the eye images arrive 30-70 ms after the head pose they were rendered for in this empty town, and
+  100-200 ms in a coupled session (CARLA renders and reads a camera back 4-6 ticks after its tick). The station
+  predicts the head that far ahead (`vr.predict_ms: auto`, at most `vr.max_predict_ms` 80) and the runtime's
+  reprojection corrects the head *rotation* that is left. For the scripted head at 1440x1584 the images were off by
+  0.2 deg (median; 0.6 deg at the 95th percentile) with the prediction and 1.7 deg (3.2 deg) without it, which is
+  what the reprojection then turns away; through OpenXR with Monado's head turning steadily at 14 deg/s, 0.1 deg
+  (0.2) with and 0.6 deg (0.8) without. Head *translation* (leaning) and the world itself keep CARLA's latency.
+- Simulator sickness is the risk to plan for: seated participants, short trials, the sickness question between
+  trials (checklist), and a static reference (the car's cabin) in view.
+
+Each VR station writes `logs/stations/<role>_<time>_vr.csv` next to its frame log, one row per pair of eye images:
+the head pose sampled, the prediction horizon and the predicted orientation, when the images arrived, when the
+headset first showed them (the runtime's predicted display time), the motion-to-photon estimate and the rotation the
+reprojection had to correct, and the check of the rendered pose against the one set. Its `station_stats` carry
+`vr_fps`, `vr_pose_to_image_ms`, `vr_horizon_ms`, `vr_motion_to_photon_ms` and `vr_size`.
+
+On CARLA 0.9.16 a VR station sends its per-tick batch without waiting (`apply_batch`): 0.9.16's `apply_batch_sync`
+holds Python's GIL while it waits for the server, the eye cameras' callbacks need the GIL to read their streams, and
+a stream the client does not read stalls the server, so the first coupled run with big eye images hung at its first
+tick (CARLA 1.0's client releases the GIL there). If a station ever hangs, `kill -USR1 <pid>` of its trial process
+prints every thread's stack into its log.
+
+Not in VR yet: multi-GPU secondaries (each eye would need its own camera turn), the steering wheel turning
+(`displays.wheel`) and hiding the displays behind the wheel's rim, right-hand-drive mirrored cabins (`displays.rhd`).
+Every trial starts the headset session anew (the station's trial process), so the runtime shows its own void for a
+few seconds between trials.
+
+## Rendering on more GPUs (multi-GPU)
 
 CARLA 1.0 can split a simulation over a primary server (physics, actors, clients; `-nullrhi`, no GPU) and
 secondary servers that render the sensors on their own GPUs. Coupled CARLA supports it through
-`server.multigpu` (`coupledcarla/multigpu.py`); the configuration, the command lines, the relay and the camera
-turns are tested without CARLA, **nothing has run on real GPUs yet**.
+`server.multigpu` (`coupledcarla/multigpu.py`). The configuration, the command lines, the relay and the camera turns
+are tested without CARLA, and the protocol against a real CARLA 1.0 primary (below); **no second GPU has rendered
+yet**.
 
 ```yaml
 server:
@@ -327,9 +416,37 @@ What CARLA decides and how Coupled CARLA deals with it:
 - Debug drawings are not mirrored: the eHMI light bars and text drawn in the world do not show in cameras a
   secondary renders. Use a designed eHMI with `ehmi.render: station`.
 
-The test to run when a GPU is free: on win5090 stop `cc58-pkgserver`, start the package as a primary with
-`-nullrhi -carla-rpc-port=2000` and a secondary with `-carla-rpc-port=3000 -carla-primary-host=127.0.0.1
--carla-primary-port=2002 -graphicsadapter=0 -RenderOffScreen` (both with the `-carla-packs` of pkgserver.ps1),
-then the dry run with `server.multigpu.secondaries: [{name: gpu0, launch: false}]` and three local bot stations.
-Compare RTF, frame rates and image latency with the single server. Then a secondary on a station PC with a GPU
-of its own (lin4080's driver 560 cannot run CARLA 1.0; a Windows lab PC with a recent NVIDIA driver can).
+**Tested on 15 Nov 2026 without a second GPU** (`tools/multigpu_check.py`): a CARLA 1.0 primary (the editor binary
+of commit 38b72cc52 with `-nullrhi`, RPC 2099, on lin5080, CPU only, 14.6 GB at most) and two stand-in secondaries
+that speak CARLA's secondary protocol (length-prefixed commands; LOAD_MAP answered with EPISODE_READY, GET_TOKEN with
+a 24-byte streaming token, YOU_ALIVE) and serve their own streaming port: `gpu0` next to the primary, `ped` on
+lin4080 as the pedestrian station's own secondary, sending a small camera image to whoever subscribes. With a real
+carla client and the station's own routing on lin4080:
+
+- the primary ran asynchronously until the first secondary connected, then synchronously at 0.05 s;
+  `guard_settings` put 0.02 s back and it stayed there over 20 ticks;
+- the primary asked the secondaries for camera tokens round-robin (the first camera's from `gpu0`, the next one's from
+  `ped`), with the camera's actor id; it sends every secondary its frame data every tick (677 bytes for an empty
+  world, 12.8 kB with two cameras);
+- a token without an address made the client connect to the address it used for the primary (127.0.0.1 through the
+  relay): the first camera's stream went through the relay to `gpu0` on lin5080, so the station respawned it; the
+  second landed on `ped`, and the client decoded its image (frame 1000, 16x16): placed on the own secondary in
+  0.1 s, at the second try;
+- `multigpu.supervise` stopped the station's secondary within a second of the primary going away and started it
+  again as soon as the primary's secondary port was back (18 s after the primary restarted).
+
+It also found a bug, now fixed: the relay ran in the station's own Python threads, and CARLA 1.0's client holds the
+GIL while it waits for some answers (`get_world`), so the relay could not forward that very request and every
+station through a relay timed out. The relay now runs in a child process (`multigpu.RELAY_PROCESS`), which ends
+with the station's process.
+
+**The test for the lead's GPU window** is a script: `tools/multigpu_win5090.ps1` on win5090 (`-Plan` prints the steps).
+It runs the dry run (three local bot stations, 40 s) against the single packaged server, measures the VR eye
+cameras' cost on the RTX 5090 (`tools/vr_bench.py`), then stops `cc58-pkgserver`, starts the package as a primary
+(`-nullrhi -carla-rpc-port=2000`) and as a secondary on the RTX 5090 (`-carla-rpc-port=3000 -carla-primary-host=127.0.0.1
+-carla-primary-port=2002 -graphicsadapter=0 -RenderOffScreen`, both with `-carla-packs`), checks the protocol with a
+real rendering secondary (`multigpu_check.py settings` and `station`: images > 0), runs the dry run again with
+`server.multigpu.secondaries: [{name: gpu0, launch: false}]`, restores `cc58-pkgserver` and prints both dry runs for
+the comparison (RTF, station frame rates, tick-to-image latency, GPU memory). After that: a secondary on a station
+PC with a GPU of its own (lin4080's driver 560 cannot run CARLA 1.0; a Windows lab PC with a recent NVIDIA driver
+can), with `python -m coupledcarla.multigpu <experiment> --secondary <name>` there.

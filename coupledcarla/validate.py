@@ -39,7 +39,8 @@ TRIAL_KEYS = set(OVERRIDES) | {"duration_s", "name", "block", "condition", "cond
 TOP_EXTRA = {"city", "pois", "eye_contact"}
 PART_KEYS = {"role", "kind", "station", "vehicle", "spawn", "input", "view", "window", "bot", "agent", "blueprint",
              "seed", "color", "response", "automation", "sound", "displays", "haptics", "myosuite",
-             "route", "destination", "autopilot", "fov", "screens"} | drones.PILOT_KEYS   # SUMO driver; cockpit view
+             "route", "destination", "autopilot", "fov", "screens", "vr"} | drones.PILOT_KEYS   # SUMO driver; cockpit
+                                                                                               # view; VR (vr.py)
 KINDS = {"driver", "pedestrian", "av_passenger", "drone"}
 INPUTS = {"keyboard", "wheel", "autopilot", "bot", "gamepad", "rc", "myosuite"}
 SPAWN_KEYS = {"lat", "lon", "heading", "x", "y"}      # x, y: CARLA coordinates (towns.resolve_xy)
@@ -293,6 +294,13 @@ def check_trial_config(rep, tc, where, duration, geo_checks):
                 _unknown(rep, f"{pw} myosuite", p.get("myosuite") or {}, myodriver.DEFAULTS)
                 if (p.get("myosuite") or {}).get("preset", "fast") not in ("fast", "full"):
                     rep.error(f"{pw} myosuite", "preset is fast or full")
+        if p.get("vr") is not None or p.get("view") == "vr":
+            if not isinstance(p.get("vr") or {}, dict):
+                rep.error(f"{pw} vr", "needs a mapping (vr.py's settings)")
+            else:
+                _unknown(rep, f"{pw} vr", p.get("vr") or {}, config.DEFAULTS["vr"])
+            if p.get("view") == "vr" and not p.get("station"):
+                rep.error(f"{pw} view", "vr needs a station (station: true): the headset is the station's")
     # drones: missions, observer cameras, drone participants (drones.check_config)
     drones.check_config(tc, where, duration, rep.error, rep.warn,
                         lambda w, pts, kind: geo_checks.append((w, _points(rep, w, pts), kind, None)))

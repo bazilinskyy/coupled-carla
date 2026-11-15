@@ -264,6 +264,8 @@ def welcome_for(part, geo, tc):
     out.update(stationux.welcome_extras(tc, part.cfg, part.kind, Path(tc["_path"]).parent,
                                         default_states=list(DEFAULT_EHMI), default_ehmi=DEFAULT_EHMI))
     out.update(multigpu.welcome(tc["server"], part.role))     # secondaries: relay and camera placement
+    if part.cfg.get("view") == "vr" or part.cfg.get("vr"):     # a VR station (vr.py): the experiment's and own `vr`
+        out["vr"] = config._merge(tc.get("vr") or {}, part.cfg.get("vr") or {})
     if part.kind == "drone":      # gamepad / RC axes and buttons for the station's stick input (droneinput.py)
         out["drone_input"] = {k: part.cfg[k] for k in ("axes", "joystick", "deadband", "expo", "buttons")
                               if k in part.cfg}

@@ -30,6 +30,10 @@ Controls
 --input bot drives the role without a human (tests): the driver on CARLA's autopilot, the pedestrian along the
 path in the experiment's `bot`, the passenger by the eHMI schedule in `bot`.
 
+VR: --display vr (or the participant's view: vr) shows the view in a headset through OpenXR: two eye cameras moved
+from the head pose every tick, the in-car displays on the car's panels in each eye (vr.py, vrxr.py; pip install -e
+".[vr]"); the window then mirrors the left eye. Home recentres the view on the seat.
+
 Lab options: --display N and --fullscreen put the window on screen N; --audio-device NAME plays the sound there
 (two stations on one PC need two headsets); --camera-hz caps the camera rate (a remote station's images cross the
 LAN raw: 1280x720 is 3.7 MB an image, so about 30 Hz fill gigabit Ethernet). Every 5 s the station reports to the
@@ -56,7 +60,7 @@ from pathlib import Path
 import carla
 import numpy as np
 
-from . import cockpit, labcheck, look, multigpu
+from . import cockpit, labcheck, look, multigpu, vr
 from .compat import listen, set_manual_exposure
 from .coupling import ControlClient
 from .studytools import CSV_COLUMNS, StationStudy
@@ -105,6 +109,8 @@ class Station:
         self.trial = None
         self.tick_lag, self.image_lag, self.seen = [], [], {}      # ms after the host's tick: snapshot seen, camera image here
         self.study = None          # responses and take-over requests (studytools.StationStudy), from the welcome
+        self.vr = None             # vr.VRView of a VR station (--display vr or view: vr), its headset from the welcome
+        self.headset = None
         out = Path(args.out) / "stations"
         out.mkdir(parents=True, exist_ok=True)
         self.log_f = open(out / f"{args.role}_{time.strftime('%Y%m%d-%H%M%S')}.csv", "w", newline="", buffering=1)
@@ -116,7 +122,7 @@ class Station:
             pygame.init()
             flags = pygame.HWSURFACE | pygame.DOUBLEBUF | (pygame.FULLSCREEN if args.fullscreen else 0)
             try:
-                self.screen = pygame.display.set_mode(self.size, flags, display=args.display)
+                self.screen = pygame.display.set_mode(self.size, flags, display=screen_index(args.display))
             except (TypeError, pygame.error):      # pygame 1.x, or no such screen
                 self.screen = pygame.display.set_mode(self.size, flags)
             pygame.display.set_caption(f"coupled-carla: {args.role}")
@@ -140,6 +146,10 @@ class Station:
             print(f"[station {self.args.role}] trial ended", flush=True)
             if self.ux is not None:
                 self.ux.stop()      # closes the sound recording
+            if self.vr is not None:
+                self.vr.stop()      # closes the VR log
+            if self.headset is not None:
+                self.headset.stopped.set()
             import os
             os._exit(EXIT_HOST_CLOSED if msg["state"] == "closed" else EXIT_TRIAL_DONE)
 
@@ -155,6 +165,11 @@ class Station:
                     self.ehmi_states = msg.get("ehmi_states", [])
                     self.study = StationStudy(msg, self.args, self.control.send)
                     print(f"[station {self.args.role}] {msg.get('kind')} in {msg.get('experiment')}", flush=True)
+                    if vr.wanted(self.args.display, msg):
+                        if self.headset is None:
+                            self._start_headset(msg)
+                        else:       # a later welcome (the first can come before the host's trial is set up)
+                            self._vr_settings(msg)
                 elif kind == "state":
                     if msg["state"] == "running" and state != "running" and msg.get("actor_id"):
                         self.start(msg)
@@ -208,10 +223,11 @@ class Station:
             self.world.wait_for_tick(5.0)
         kind = self.welcome.get("kind")
         ck = self.welcome.get("cockpit") or {}
+        in_vr = self.headset is not None
         seat = None
         if kind in ("driver", "av_passenger"):
             v = self.welcome.get("view") or ("passenger" if kind == "av_passenger" else "driver")
-            seat = v if v in ("driver", "passenger") else None
+            seat = vr.seat_for(kind, v) if in_vr else (v if v in ("driver", "passenger") else None)
         if args.fov is None:       # --fov, else the participant's fov / screens (cockpit.hfov_for), else 90
             args.fov = float(ck.get("fov") or (cockpit.hfov_for(ck.get("screens")) if seat else 90.0))
         self.version = self.client.get_server_version() if hasattr(self.client, "get_server_version") else "0.9"
@@ -230,38 +246,48 @@ class Station:
         # frames: a headless camera renders every tick (unless --camera-hz) and frames are kept every --frames-every
         # (compat.setup_camera). CARLA 0.9.x: a slow headless camera gets a fixed manual exposure instead.
         self.every_tick = bp.has_attribute("post_process_profile")
-        profile = (self.capture or {}).get("profile") or self.welcome.get("camera_profile", "Dashcam")
-        if self.every_tick and profile:
-            bp.set_attribute("post_process_profile", str(profile))
         hz = self.camera_hz()
-        if hz > 0:
-            bp.set_attribute("sensor_tick", str(1.0 / hz))
-        shutter = {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220)
-        if not self.every_tick and self.eye is not None:
-            # a cabin view: a fixed exposure between the street's and the cabin's (cockpit.cabin_ev_bias: one stop
-            # brighter than the street's, more behind tinted glass), with or without capture, so the dashboard reads
-            # and the outside keeps its detail (CARLA's auto exposure meters the dark cabin, blowing the windows out)
-            cap = dict(self.capture or {"enabled": True})
-            weather = self.world.get_weather() if hasattr(self.world, "get_weather") else None
-            cabin = cockpit.cabin_ev_bias(cockpit.entry_for(getattr(self.actor, "type_id", ""), self.version),
-                                          float(ck.get("ev_bias", cockpit.CABIN_EV_BIAS)),
-                                          weather.sun_altitude_angle if weather is not None else None)
-            cap["ev_bias"] = float(cap.get("ev_bias") or 0.0) + cabin
-            look.apply_09(bp, cap, weather, shutter if weather is None else None)
-        elif not self.every_tick and self.capture:
-            look.apply_09(bp, self.capture, self.world.get_weather(), shutter)
-        elif not self.every_tick and args.headless and 0 < hz <= 5:
-            # few frames: auto exposure would never adapt
-            set_manual_exposure(bp, shutter)
-        for k, v in (self.welcome.get("camera_attributes") or {}).items():     # the experiment's film.attributes
-            if bp.has_attribute(k):
-                bp.set_attribute(k, str(v))
+
+        def configure(bp):
+            """The camera's exposure, profile, rate and the experiment's attributes (also the VR eyes')."""
+            profile = (self.capture or {}).get("profile") or self.welcome.get("camera_profile", "Dashcam")
+            if self.every_tick and profile:
+                bp.set_attribute("post_process_profile", str(profile))
+            if hz > 0:
+                bp.set_attribute("sensor_tick", str(1.0 / hz))
+            shutter = {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220)
+            if not self.every_tick and self.eye is not None:
+                # a cabin view: a fixed exposure between the street's and the cabin's (cockpit.cabin_ev_bias: one
+                # stop brighter than the street's, more behind tinted glass), with or without capture, so the
+                # dashboard reads and the outside keeps its detail (CARLA's auto exposure meters the dark cabin,
+                # blowing the windows out)
+                cap = dict(self.capture or {"enabled": True})
+                weather = self.world.get_weather() if hasattr(self.world, "get_weather") else None
+                cabin = cockpit.cabin_ev_bias(cockpit.entry_for(getattr(self.actor, "type_id", ""), self.version),
+                                              float(ck.get("ev_bias", cockpit.CABIN_EV_BIAS)),
+                                              weather.sun_altitude_angle if weather is not None else None)
+                cap["ev_bias"] = float(cap.get("ev_bias") or 0.0) + cabin
+                look.apply_09(bp, cap, weather, shutter if weather is None else None)
+            elif not self.every_tick and self.capture:
+                look.apply_09(bp, self.capture, self.world.get_weather(), shutter)
+            elif not self.every_tick and args.headless and 0 < hz <= 5:
+                # few frames: auto exposure would never adapt
+                set_manual_exposure(bp, shutter)
+            for k, v in (self.welcome.get("camera_attributes") or {}).items():     # the experiment's film.attributes
+                if bp.has_attribute(k):
+                    bp.set_attribute(k, str(v))
+        configure(bp)
         if kind == "pedestrian":
             self.heading = self.actor.get_transform().rotation.yaw
 
             def spawn():
                 return self.world.spawn_actor(bp, self._eye_transform())       # moved every tick
         elif kind == "drone":
+            if in_vr:       # only the anchor the host moves (the gimbal): tiny and never rendered; the eyes follow it
+                bp.set_attribute("image_size_x", "32")
+                bp.set_attribute("image_size_y", "32")
+                bp.set_attribute("sensor_tick", "100000")
+
             def spawn():       # the host moves it with the drone every tick (gimbal, line of sight or chase)
                 return self.world.spawn_actor(bp, self.actor.get_transform())
         else:
@@ -282,11 +308,24 @@ class Station:
 
         def listen_cam(cam):
             self.no_render = not listen(cam, self._on_image, say, "camera")
-        self.camera = self.routing.place_camera(spawn, listen_cam,
-                                                self._destroy, self.got_image,
-                                                turn=multigpu.CameraTurn(self.control.send, self.camera_go))
+        if in_vr:
+            # VR (vr.py): two eye cameras moved from the head pose every tick; a drone's camera stays as the anchor
+            # the host moves. Not placed on multi-GPU secondaries (each eye would need its own camera turn).
+            if kind == "drone":
+                self.camera = spawn()
+            self.vr = vr.VRView(self, self.vr_cfg, self.headset, log=say)
+            self.vr.start(self.world, self.actor, kind, self.eye, configure,
+                          vr.log_path(self.log_f.name))
+            if kind != "drone":
+                self.camera = self.vr.cams[0]       # the listener's position (sound) and station-drawn eHMIs
+            self.got_image.set()
+            self.no_render = False
+        else:
+            self.camera = self.routing.place_camera(spawn, listen_cam,
+                                                    self._destroy, self.got_image,
+                                                    turn=multigpu.CameraTurn(self.control.send, self.camera_go))
         self.rhd = None          # left-hand traffic: a right-hand-drive cabin from the mirrored seat (rhd.py)
-        if seat and ck.get("rhd") and self.eye is not None:
+        if seat and ck.get("rhd") and self.eye is not None and self.vr is None:
             from .rhd import RhdCabin
             self.rhd = RhdCabin(self.size, args.fov, self.eye[:3], self.eye[3], log=say, on_ready=self._use_frame)
             try:
@@ -363,6 +402,11 @@ class Station:
         if getattr(self, "rhd", None) is not None:
             self.rhd.stop()
             self.rhd = None
+        if self.vr is not None:
+            self.vr.stop()
+            if self.camera is not None and self.camera in self.vr.cams:
+                self.camera = None
+            self.vr = None
         if self.camera is not None:
             try:
                 self.camera.stop()
@@ -414,6 +458,8 @@ class Station:
                     return False
                 if e.type == pygame.KEYDOWN and e.key == pygame.K_f:
                     self.control.send({"type": "sync"})
+                if e.type == pygame.KEYDOWN and e.key == pygame.K_HOME and self.vr is not None:
+                    self.vr.recenter()
         kind = self.welcome.get("kind")
         try:
             if kind == "driver":
@@ -432,13 +478,16 @@ class Station:
                         self.heading += ((want - self.heading + 180) % 360 - 180) * 0.1
                 else:
                     self._walk(events)
-                self.pending.append(carla.command.ApplyTransform(self.camera.id, self._eye_transform()))
+                if self.vr is None:        # VR: the eyes move with the head (vr.VRView.tick)
+                    self.pending.append(carla.command.ApplyTransform(self.camera.id, self._eye_transform()))
             elif kind == "av_passenger":
                 self._ehmi_keys(events, t)
             elif kind == "drone" and self.input is not None:
                 st = self.input.poll(events)
                 self.control.send({"type": "drone_input", "s": st.as_list(), "g": round(st.gimbal, 3),
                                    "e": [e for e in st.events if e != "quit"]})
+            if self.vr is not None:
+                self.vr.tick(snap)        # both eyes from the head pose, in this tick's batch
             self._flush()
         except RuntimeError:
             self.pending.clear()
@@ -447,7 +496,10 @@ class Station:
             self.ux.tick(snap, t, events, heading=self.heading if kind == "pedestrian" else None,
                          tor=self.study.tor if self.study is not None else None)
         cells = self.study.sample(t, snap.frame, self.screen) if self.study is not None else [""] * len(CSV_COLUMNS)
-        self.render(t)
+        if self.vr is not None:
+            self.render_vr(t)
+        else:
+            self.render(t)
         v = self.actor.get_velocity()
         rtt = self.control.rtt()
         off = self.control.clock_offset()
@@ -460,7 +512,8 @@ class Station:
         self.frames += 1
         self.fps_n += 1
         if kind == "pedestrian" and self.frames % 10 == 0:      # where the pedestrian looks (eye contact)
-            self.control.send({"type": "gaze", "yaw": round(self.heading, 1)})
+            head = self.vr.head_yaw() if self.vr is not None else 0.0      # VR: the head turns on the body
+            self.control.send({"type": "gaze", "yaw": round(self.heading + head, 1)})
         if time.time() - self.fps_t0 >= 5.0:
             self.fps = self.fps_n / (time.time() - self.fps_t0)
             self.fps_t0, self.fps_n = time.time(), 0
@@ -472,8 +525,81 @@ class Station:
                                "ticks_seen": self.count.frames, "camera_hz": self.camera_hz(),
                                "size": self.args.size, "ux": labcheck.ux_flags(self.welcome, self.ux),
                                "camera_on": self.routing.placed if self.routing is not None else None,
-                               "no_render": bool(getattr(self, "no_render", False))})
+                               "no_render": bool(getattr(self, "no_render", False)),
+                               **(self.vr.stats() if self.vr is not None else {})})
         return True
+
+    def _start_headset(self, welcome):
+        """VR: the settings (experiment's and participant's `vr`) and the headset session, started at the welcome so
+        it is up when the trial starts. No headset (no runtime, nothing installed): the station says why and quits."""
+        self._vr_settings(welcome)
+        say = lambda m: print(f"[station {self.args.role}] {m}", flush=True)  # noqa: E731
+        try:
+            self.headset = vr.make_headset(self.vr_cfg, log=say)
+            self.headset.start()
+        except RuntimeError as e:
+            say(f"vr: {e}")
+            self.control.send({"type": "bye"})
+            raise SystemExit(EXIT_QUIT)
+        info = getattr(self.headset, "info", {})
+        say(f"vr: headset ready ({info.get('headset', self.vr_cfg['runtime'])}"
+            f"{', ' + info['runtime'] if info.get('runtime') else ''})")
+
+    def _vr_settings(self, welcome):
+        """The VR settings of a welcome (vr.settings over the experiment's and the participant's `vr`), read when the
+        trial starts; --vr-runtime overrides the runtime."""
+        self.vr_cfg = vr.settings(welcome.get("vr"))
+        if getattr(self.args, "vr_runtime", None):
+            self.vr_cfg["runtime"] = self.args.vr_runtime
+
+    def _vr_images(self, frame):
+        """Both eye images of a frame arrived (vr.VRView): the station's image counts and lag, as _on_image."""
+        lag = self.control.lag_ms(frame, time.time())
+        if lag is not None:
+            self.image_lag = (self.image_lag + [lag])[-500:]
+        self.count.image()
+        self.got_image.set()
+
+    def render_vr(self, t):
+        """VR: the newest eye images with the in-car displays on the car's panels and the head-locked panel (the
+        station's text, prompts and the visual-sync bar) drawn into each eye, handed to the headset; the window
+        mirrors the left eye."""
+        import pygame
+        if self.screen is None:          # headless VR (a bot): no panel to draw, only the eyes
+            self.vr.compose_and_submit(self.vr.drawer(self.ux, None))
+            return
+        panel = pygame.Surface((960, 540), pygame.SRCALPHA)
+        v = self.actor.get_velocity()
+        rtt = self.control.rtt()
+        lines = [f"{3.6 * math.hypot(v.x, v.y):5.1f} km/h" if self.welcome.get("kind") in ("driver", "av_passenger")
+                 else ""]
+        if self.welcome.get("kind") == "drone":
+            lines = list(self.drone_hud)
+        if self.welcome.get("kind") == "av_passenger":
+            lines.append(f"eHMI: {self.ehmi}   " + "  ".join(f"{i + 1} {s}" for i, s in enumerate(self.ehmi_states))
+                         + "  0 off")
+        for i, line in enumerate(x for x in lines if x):
+            panel.blit(self.font.render(line, True, (255, 255, 255)), (16, 440 - 26 * i))
+        if self.study is not None:
+            self.study.draw(panel, self.font, self.big)
+        if self.ux is not None and getattr(self.ux, "indicator", None) is not None and self.actor is not None:
+            self.ux._draw_indicator(panel)
+        if time.time() < self.flash_until:
+            pygame.draw.rect(panel, (255, 0, 0, 255), (0, 0, 960, 60))
+        left = self.vr.compose_and_submit(self.vr.drawer(self.ux, panel))
+        if left is not None:
+            h, w = left.shape[:2]
+            img = pygame.image.frombuffer(left.tobytes(), (w, h), "BGRA")
+            k = min(self.size[0] / w, self.size[1] / h)
+            img = pygame.transform.scale(img, (int(w * k), int(h * k)))
+            self.screen.fill((0, 0, 0))
+            self.screen.blit(img, ((self.size[0] - img.get_width()) // 2, 0))
+            st = self.vr.stats()
+            info = (f"{self.args.role} VR  t {t:6.1f} s  host {rtt:.1f} ms  eyes {st['vr_fps']:.0f} fps  "
+                    f"pose->image {st['vr_pose_to_image_ms'] or 0:.0f} ms  prediction {st['vr_horizon_ms']:.0f} ms"
+                    if rtt is not None else f"{self.args.role} VR")
+            self.screen.blit(self.font.render(info, True, (255, 255, 0)), (16, self.size[1] - 30))
+            pygame.display.flip()
 
     def _eye_transform(self):
         yaw = math.radians(self.heading)   # a little in front of the face, so the walker's own head is not in view
@@ -504,7 +630,13 @@ class Station:
         if self.pending:
             cmds = list(self.pending)
             self.pending.clear()      # in place: the input's send is this list's append
-            self.client.apply_batch_sync(cmds, False)
+            if self.vr is not None and cockpit.major_key(self.version) == "0.9":
+                # VR on CARLA 0.9.x: apply_batch_sync holds the GIL while it waits for the server, the eye cameras'
+                # callbacks need it to read their streams, and an unread stream stalls the server: a deadlock with
+                # two big eye images per tick (measured; CARLA's ue58-dev releases the GIL there since 2a41cbd7b)
+                self.client.apply_batch(cmds)
+            else:
+                self.client.apply_batch_sync(cmds, False)
 
     def _ehmi_keys(self, events, t):
         new = None
@@ -624,6 +756,21 @@ class Station:
         pygame.display.flip()
 
 
+def display_arg(text):
+    """--display: a screen number, or vr."""
+    if str(text).strip().lower() == "vr":
+        return "vr"
+    try:
+        return int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"--display takes a screen number (0, 1, ...) or vr, not {text!r}")
+
+
+def screen_index(display):
+    """The pygame screen of --display (vr mirrors on screen 0)."""
+    return display if isinstance(display, int) else 0
+
+
 def list_devices():
     """Prints this machine's audio outputs, joysticks (wheels, gamepads) and screens, for --audio-device and
     --display, and to check that the wheel and headphones are seen before a session."""
@@ -677,7 +824,10 @@ def main():
     ap.add_argument("--response", help="button,slider[,hidden]: responses here even if the experiment has none")
     ap.add_argument("--camera-hz", type=float, help="camera images per second (0: every tick; default: every tick "
                                                     "with a window, 1/--frames-every headless)")
-    ap.add_argument("--display", type=int, default=0, help="the screen for the window (0, 1, ...)")
+    ap.add_argument("--display", type=display_arg, default=0,
+                    help="the screen for the window (0, 1, ...), or vr: a headset (OpenXR; the window mirrors it)")
+    ap.add_argument("--vr-runtime", choices=["openxr", "sim"], help="VR: openxr (a headset) or sim (a scripted "
+                                                                     "head, no headset: tests)")
     ap.add_argument("--fullscreen", action="store_true", help="full screen at --size on --display")
     ap.add_argument("--audio-device", help="play the sound on this output (names: --list-devices)")
     ap.add_argument("--child", action="store_true", help=argparse.SUPPRESS)
@@ -691,6 +841,10 @@ def main():
     if args.port is None:
         args.port = 2000
     if args.child:
+        import faulthandler
+        import signal
+        if hasattr(signal, "SIGUSR1"):      # kill -USR1 <pid> prints every thread's stack (a hung station)
+            faulthandler.register(signal.SIGUSR1, all_threads=True)
         raise SystemExit(Station(args).run())
     # Supervisor: every trial runs in a fresh child process. CARLA's client library can abort a process whose
     # server goes away (the host restarts the server for every trial); a child that dies that way after its
