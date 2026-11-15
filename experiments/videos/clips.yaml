@@ -357,4 +357,4 @@ clips:
     start_s: 30
     duration_s: 20
     camera: {kind: follow, target: driver, offset: [-7.0, 0, 2.2], look_ahead_m: 8, look_up_m: 1.2, smooth_s: 0.6,
-             attributes: {exposure_compensation: -0.4, exposure_min_bright: 8, exposure_max_bright: 12}}
+             attributes: {exposure_compensation: -1.2, exposure_min_bright: 8, exposure_max_bright: 12}}

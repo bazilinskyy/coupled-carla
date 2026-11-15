@@ -1582,6 +1582,9 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 - **Autopilot:** the test autopilot follows random lanes; on a few lane drops it leaves the road and is put back
   (logged). Scripted agents use routes (CARLA's route planner with a bounded topology walk, see Lessons
   learned); on some maps (New York) a route between two given points is not found and the agent follows lanes.
+- **CARLA towns:** Town06 and Town07 need CARLA 0.9.16's AdditionalMaps package; the towns on CARLA 1.0 are not
+  tested yet. The towns have no bus lines or stops (random buses), and real weather comes from a place you choose
+  (`map.place`), since their geoReference lies in the sea.
 - **CARLA 0.9.16 only:** the UE 5 line (0.10 / ue58-dev) has no SUMO co-simulation; porting the vendored
   bridge is part of phase 3.
 
