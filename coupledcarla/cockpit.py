@@ -127,11 +127,15 @@ def actor_eye(actor, seat="driver", lefthand=False, version="0.9", data=None):
                    attrs.get("base_type", "car") or "car", version, data)
 
 
-def cabin_ev_bias(entry, base=CABIN_EV_BIAS):
+def cabin_ev_bias(entry, base=CABIN_EV_BIAS, sun_altitude=None):
     """A cabin view's exposure bias (EV, negative = brighter than the street's exposure): `base`, less the car's
     measured glass tint (entry "glass_ev": how many EV darker the street looks through its windscreen; the Lincoln
-    MKZ 2020's glass, for one, is dark), kept within -2.5..0."""
-    return max(-2.5, min(0.0, float(base) - float((entry or {}).get("glass_ev") or 0.0)))
+    MKZ 2020's glass, for one, is dark), kept within -2.5..0. At dusk and night (sun under 10 deg) it fades to a
+    quarter: CARLA 0.9.16's night light leaves cabin and street alike, and brightening it washed the cabin out."""
+    bias = max(-2.5, min(0.0, float(base) - float((entry or {}).get("glass_ev") or 0.0)))
+    if sun_altitude is not None:
+        bias *= max(0.25, min(1.0, float(sun_altitude) / 10.0))
+    return bias
 
 
 def hfov_for(screens=1, screen_deg=None, default=90.0):
@@ -394,6 +398,14 @@ def _in_plane(rays, t, centre, normal, eye, pitch):
     return out
 
 
+def _box_blur(a, k):
+    """A k x k box blur of an H x W x C float array (edges clamped), by cumulative sums."""
+    import numpy as np
+    r = k // 2
+    p = np.pad(a, ((r + 1, r), (r + 1, r), (0, 0)), mode="edge").cumsum(0).cumsum(1)
+    return (p[k:, k:] - p[:-k, k:] - p[k:, :-k] + p[:-k, :-k]) / float(k * k)
+
+
 class WheelSpin:
     """Turns the steering wheel in the image: CARLA 0.9.16's cars have no steering-wheel bone, so the mesh's wheel
     never moves. Its pixels (found once in the rigid cabin view's depth image: within 5 cm of the wheel's plane and
@@ -512,7 +524,7 @@ class WheelSpin:
         behind = 0.0
         for li, ri, w in self.fill:      # what lies behind the wheel: the row's and the column's blends, averaged
             behind = behind + 0.5 * (flat[li] * (1 - w[:, None]) + flat[ri] * w[:, None])
-        behind = behind.astype(roi.dtype).reshape(roi.shape)
+        behind = _box_blur(behind.reshape(roi.shape), 7).astype(roi.dtype)      # no streaks
         img[y0:y1, x0:x1] = np.where(self.mask[..., None], behind, roi)
         self.layer = (on.reshape(hh, ww), flat[src].reshape(roi.shape))
         return True
@@ -573,15 +585,16 @@ class CabinView:
         self._wheel_px = sp.full_mask(self.size) if sp.ok else None
 
     def _settle(self, pnl):
-        """A derived panel moved along its up axis (at most 15 cm down or 10 cm up) and towards the viewer (at most
-        10 cm: a cluster in a shallow binnacle), the smallest move first, until it lies on the dashboard: under 5 % of
-        it floating in front of what is far behind it (the windscreen, the street) and under 20 % hidden inside the
-        dashboard (the wheel's pixels do not count)."""
+        """A derived panel moved along its normal (at most 30 cm deeper, into a binnacle, or 10 cm nearer) and its up
+        axis (at most 16 cm down or 10 cm up), the smallest move first (a move along the normal costs half as much),
+        until it lies on the dashboard: under 5 % of it floating in front of what is far behind it (the binnacle's
+        back, the windscreen, the street) and under 20 % hidden inside the dashboard (the wheel's pixels do not
+        count). The Lincoln MKZ 2020's binnacle is 18 cm deeper than the default 16 cm behind the wheel."""
         import numpy as np
         c, n, (w, h) = pnl
         right, up = panel_axes(n)
-        moves = sorted(((k / 100.0, j / 100.0) for k in range(-15, 11) for j in range(0, 11, 2)),
-                       key=lambda m: (abs(m[0]) + m[1], m[1], m[0] > 0))
+        moves = sorted(((k / 100.0, j / 100.0) for k in range(-16, 11, 2) for j in range(-30, 11, 2)),
+                       key=lambda m: (abs(m[0]) + 0.5 * abs(m[1]), abs(m[1]), m[0] > 0))
         for off, fwd in moves:
             cc = tuple(c[i] + up[i] * off + n[i] * fwd for i in range(3))
             corners = panel_corners_px((cc, n, (w, h)), self.eye, self.pitch, self.size, self.fov)

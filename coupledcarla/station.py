@@ -242,10 +242,11 @@ class Station:
             # brighter than the street's, more behind tinted glass), with or without capture, so the dashboard reads
             # and the outside keeps its detail (CARLA's auto exposure meters the dark cabin, blowing the windows out)
             cap = dict(self.capture or {"enabled": True})
-            cabin = cockpit.cabin_ev_bias(cockpit.entry_for(getattr(self.actor, "type_id", ""), self.version),
-                                          float(ck.get("ev_bias", cockpit.CABIN_EV_BIAS)))
-            cap["ev_bias"] = float(cap.get("ev_bias") or 0.0) + cabin
             weather = self.world.get_weather() if hasattr(self.world, "get_weather") else None
+            cabin = cockpit.cabin_ev_bias(cockpit.entry_for(getattr(self.actor, "type_id", ""), self.version),
+                                          float(ck.get("ev_bias", cockpit.CABIN_EV_BIAS)),
+                                          weather.sun_altitude_angle if weather is not None else None)
+            cap["ev_bias"] = float(cap.get("ev_bias") or 0.0) + cabin
             look.apply_09(bp, cap, weather, shutter if weather is None else None)
         elif not self.every_tick and self.capture:
             look.apply_09(bp, self.capture, self.world.get_weather(), shutter)

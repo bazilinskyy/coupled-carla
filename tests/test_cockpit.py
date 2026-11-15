@@ -248,6 +248,11 @@ def test_glass_tint_brightens_the_cabin_exposure():
     assert cockpit.cabin_ev_bias({"glass_ev": 0.8}) == pytest.approx(-1.8)
     assert cockpit.cabin_ev_bias({"glass_ev": 5.6}) == -2.5           # within -2.5..0
     assert cockpit.cabin_ev_bias({"glass_ev": -0.1}, base=-0.5) == pytest.approx(-0.4)
+    assert cockpit.cabin_ev_bias({"glass_ev": 0.8}, sun_altitude=40) == pytest.approx(-1.8)
+    assert cockpit.cabin_ev_bias({"glass_ev": 0.8}, sun_altitude=5) == pytest.approx(-0.9)
+    assert cockpit.cabin_ev_bias({"glass_ev": 0.8}, sun_altitude=-12) == pytest.approx(-0.45)
+    blurred = cockpit._box_blur(np.dstack([np.eye(9) * 9.0]), 3)
+    assert blurred.shape == (9, 9, 1) and blurred[4, 4, 0] == pytest.approx(3.0)
 
 
 def test_derived_panels_settle_onto_the_dashboard():
