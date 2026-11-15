@@ -145,3 +145,20 @@ def test_osm_extract_sent_with_the_project_user_agent(tmp_path, monkeypatch):
     monkeypatch.setattr(mapbuild.requests, "post", lambda url, **kw: sent.append(kw["headers"]) or R())
     mapbuild.fetch_osm([0, 0, 1, 1], tmp_path / "map.osm")
     assert sent == [rw.UA]
+
+
+def test_lane_queries_skip_types_the_map_lacks(tmp_path):
+    # carla.Map.get_waypoint for a lane type the map has none of costs ~0.5 ms (100 x a hit): parking asked for
+    # Bidirectional and Sidewalk lanes OSM maps lack (Eindhoven scenery 56 s -> 9 s), the placer for bike lanes on
+    # maps without them (Cairo 17.8 s -> 5.4 s), with identical scenery.json and parked.json
+    from types import SimpleNamespace
+    from coupledcarla import scenery
+    x = tmp_path / "map.xodr"
+    x.write_text('<OpenDRIVE><road><lanes><laneSection><center><lane id="0" type="none" level="false"/></center>'
+                 '<right><lane id="-1" type="driving" level="false"/></right></laneSection></lanes></road></OpenDRIVE>')
+    assert scenery.lane_types(x) == {"none", "driving"}
+    assert scenery.lane_types(tmp_path / "missing.xodr") is None
+    carla = SimpleNamespace(LaneType=SimpleNamespace(Driving=1, Parking=2, Bidirectional=4, Sidewalk=8, Biking=16))
+    assert scenery.Placer(None, None, None, carla, lanes={"driving"}).masks == (15,)
+    assert scenery.Placer(None, None, None, carla, lanes={"driving", "biking"}).masks == (15, 16)
+    assert scenery.Placer(None, None, None, carla).masks == (15, 16)

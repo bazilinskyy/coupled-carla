@@ -416,8 +416,19 @@ def _number(text):
 
 # --- build ---------------------------------------------------------------------------------------------------
 
+def lane_types(xodr):
+    """The lane types (lower case) of an OpenDRIVE file, or None when it cannot be read. carla.Map.get_waypoint for
+    a lane type the map lacks costs ~0.5 ms (it searches every lane), 100 times a query that finds one."""
+    import re
+    try:
+        text = Path(xodr).read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+    return {t.lower() for t in re.findall(r'<lane\b[^>]*?\btype="([^"]+)"', text)}
+
+
 class Placer:
-    def __init__(self, cat, cmap, ground, carla, sidewalks_free=False):
+    def __init__(self, cat, cmap, ground, carla, sidewalks_free=False, lanes=None):
         self.cat, self.cmap, self.ground, self.carla = cat, cmap, ground, carla
         self.items, self.counts = [], defaultdict(int)
         self.mesh_index = {}
@@ -426,8 +437,9 @@ class Placer:
         if not sidewalks_free:
             self.blocking = self.blocking | lt.Sidewalk
         # Biking asked for apart: in one mask with Driving, get_waypoint picks the nearest bike lane and then
-        # finds the point outside it, so a point on a driving lane beside a cycle lane read as free (eindhoven_centre)
-        self.masks = (self.blocking, lt.Biking)
+        # finds the point outside it, so a point on a driving lane beside a cycle lane read as free (eindhoven_centre);
+        # not at all on a map without bike lanes (lanes: lane_types of its OpenDRIVE), where it only cost time
+        self.masks = (self.blocking, lt.Biking) if lanes is None or "biking" in lanes else (self.blocking,)
 
     def on_lane(self, x, y, z=0.0):
         loc = self.carla.Location(x=x, y=y, z=z)
@@ -627,7 +639,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 
     # a baked level's OpenDRIVE has its real, full-width pavements as sidewalk lanes: street trees, lamps and
     # furniture stand on them (on OSM maps a sidewalk lane is only the walking strip)
-    pl = Placer(cat, cmap, ground, carla, sidewalks_free=bool(mc.get("carla_level")))
+    pl = Placer(cat, cmap, ground, carla, sidewalks_free=bool(mc.get("carla_level")),
+                lanes=lane_types(mdir / "map.xodr"))
     rng = random.Random(42)
     sources = {"osm"}
 

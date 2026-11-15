@@ -579,7 +579,13 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     LT = carla.LaneType
     passable = {LT.Driving, LT.Biking, LT.Parking, LT.Bidirectional, LT.Restricted}
 
-    blocking_types = [LT.Driving, LT.Biking, LT.Bidirectional, LT.Sidewalk, LT.Restricted]
+    # only the types the map has: a query for a type it lacks costs ~0.5 ms (CARLA searches every lane), 100 times
+    # one that finds a lane; Bidirectional and Sidewalk on OSM maps were 64 of Eindhoven's 70 s of parking
+    from .scenery import lane_types
+    have = lane_types(mdir / "map.xodr")
+    blocking_types = [t for t, name in ((LT.Driving, "driving"), (LT.Biking, "biking"),
+                                        (LT.Bidirectional, "bidirectional"), (LT.Sidewalk, "sidewalk"),
+                                        (LT.Restricted, "restricted")) if have is None or name in have]
 
     def on_lane(x, y, z):
         # one query per lane type: with the types OR-ed into one query, a point in a parking lane that another
