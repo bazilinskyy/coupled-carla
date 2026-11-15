@@ -45,6 +45,8 @@ def main():
     ap.add_argument("--radius", type=float, default=400.0)
     ap.add_argument("--no-load", action="store_true", help="use the world the server has loaded")
     ap.add_argument("--out", help="write per-car rows here (json)")
+    ap.add_argument("--no-ground", action="store_true",
+                    help="on an OpenDRIVE world, leave out scenery.json's ground tiles (car parks stand on them)")
     args = ap.parse_args()
     cfg = config.load(args.experiment)
     mdir = config.map_dir(cfg)
@@ -54,7 +56,8 @@ def main():
     parking.car_meshes(cat)
     client = carla.Client(cfg["server"]["host"], args.port or cfg["server"]["port"])
     client.set_timeout(60.0)
-    world = client.get_world() if args.no_load else run.load_world(client, mdir / "map.xodr", cfg["map"])
+    world = client.get_world() if args.no_load else run.load_world(client, mdir / "map.xodr", cfg["map"], slab=True)
+    client.set_timeout(300.0)       # the first rays on a fresh OpenDRIVE world wait for its collision meshes
     sync = world.get_settings().synchronous_mode
     tick = world.tick if sync else world.wait_for_tick
     cmap = world.get_map()
@@ -74,6 +77,24 @@ def main():
         for _ in range(10):
             tick()
     slots = data["slots"]
+    ground_ids = []
+    if not cfg["map"].get("carla_level") and not args.no_ground and (mdir / "scenery.json").exists():
+        # an OpenDRIVE world's ground beside the roads is scenery.json's tiles (at the terrain model's heights), as
+        # in a trial: spawn those within reach
+        sc = json.loads((mdir / "scenery.json").read_text())
+        gbp = world.get_blueprint_library().find("static.prop.mesh")
+        cmds = []
+        for it in sc["items"]:
+            if it[6] in ("ground", "water") and math.hypot(it[1] - cx, it[2] - cy) <= args.radius + 60:
+                gbp.set_attribute("mesh_path", sc["meshes"][it[0]])
+                gbp.set_attribute("scale", str(it[5]))
+                pitch, roll = (it[7] if len(it) > 7 else (0.0, 0.0))
+                cmds.append(carla.command.SpawnActor(gbp, carla.Transform(
+                    carla.Location(x=it[1], y=it[2], z=it[3]), carla.Rotation(pitch=pitch, yaw=it[4], roll=roll))))
+        for k in range(0, len(cmds), 500):
+            ground_ids += [r.actor_id for r in client.apply_batch_sync(cmds[k:k + 500], False) if not r.error]
+        tick()
+        print(f"{len(ground_ids)} ground tiles of scenery.json spawned")
     sel = [i for i, s in enumerate(slots) if len(s) <= 8 and math.hypot(s[1] - cx, s[2] - cy) <= args.radius]
     print(f"server {client.get_server_version()}, map {cmap.name}, parked.json {data.get('catalog')} "
           f"({'snapped ' + str(data['snapped']) if 'snapped' in data else 'not snapped'}); "
@@ -92,6 +113,8 @@ def main():
         check_cell(world, cmap, cat, data, slots, idx, kinds, rows, labels, by_i)
         spawn_cell(client, world, tick, bp, cat, data, slots, idx, refused, gaps, by_i)
     print(f"checked {len(rows)} cars in {len(cells)} cells in {time.time() - t0:.0f} s")
+    if ground_ids:
+        client.apply_batch_sync([carla.command.DestroyActor(i) for i in ground_ids], False)
     report(rows, labels, kinds, refused, gaps, args.out)
 
 
