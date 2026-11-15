@@ -677,15 +677,15 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             ai = {}
             sumo_signals = {}
             for sid, cid in sync.sumo2carla_ids.items():
+                sa = sync.sumo.get_actor(sid)
                 if cid not in types:
                     a = world.get_actor(cid)
                     tid = a.type_id if a else ""
-                    kind = ("bike" if tid in tc["traffic"]["bike_types"] else
-                            "bus" if tid == tc["traffic"]["bus_type"] else "car")
+                    kind = compat.traffic_kind(tid, sa.vclass if sa else None, tc["traffic"]["bike_types"],
+                                               tc["traffic"]["bus_type"])
                     types[cid] = (kind, tid)
                     logger.event(t, snap.frame, "spawn", cid, f"{kind} {tid} sumo:{sid}")
                 ai[cid] = types[cid]
-                sa = sync.sumo.get_actor(sid)
                 sumo_signals[cid] = sa.signals if sa else 0
             if crowd is not None:
                 for w in crowd.walkers:

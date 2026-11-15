@@ -899,6 +899,20 @@ cameras or stations), because the RTX 5080 was full with other jobs. The real-wo
 catalogue ([Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). Install the 1.0 wheel after
 `requirements.txt`, which pins `carla==0.9.16`.
 
+### Tested on CARLA 1.0
+
+`python tools/test_carla10.py --port <port>` runs the features first built on 0.9.16 against a 1.0 server, one
+short trial each, and prints a table ([results](docs/carla10_tests.md); `--launch CMD` starts and restarts the server
+itself under a memory watchdog). On lin5080 (`ue58-dev` editor server, `-nullrhi`, 60 s trials, 2026-11-15) all 13
+passed: the Eindhoven twin with `--local` bots, SUMO traffic, parked cars, snapped scenery, signals and CROWD
+pedestrians (RTF 1.15 without real-time sleep, `carla_to_sumo` 0.9 ms per tick), `generate_opendrive_world` maps
+(`eindhoven_centre` and a map-maker map), `--record-audio` for a driver and a pedestrian (exactly one step of
+samples per tick), drones (3 deliveries, 4.4 ms per tick), real weather, night lights, winter trees, film cameras and
+bot stations. A `-nullrhi` server refuses to stream cameras ("this server cannot render"); Coupled CARLA's cameras then
+go on without images, so film keeps its camera path, timing grid and sound, and stations run and report why they
+have no images. What needs frames (film images, station image rate and latency, drone FPV, night and winter
+frames) runs on a rendering server with `bash tools/render_checks_carla10.sh`.
+
 ### The Eindhoven digital twin
 
 The twin is built with CARLA's [Digital Twin pipeline](https://github.com/carla-simulator/carla-digitaltwins)

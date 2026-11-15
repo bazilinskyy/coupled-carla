@@ -49,10 +49,11 @@ class Env:
 
     @classmethod
     def from_weather(cls, wx, meta=None, carla_weather=None, override=None):
-        """From a trial's weather.json record (run.set_weather: Open-Meteo's hour with `weather: real`), else from
-        CARLA's weather parameters (a preset: precipitation 20 per mm/h, wind intensity 2 per km/h, as
-        realworld.carla_weather_fields maps them the other way), the map's meta.json, and `override` (the
-        experiment's sound.weather: rain, wind, temperature, humidity, wet)."""
+        """From a trial's weather.json record (run.set_weather: Open-Meteo's hour with `weather: real`), else (no
+        record, or a preset or a dict of fields as the trial's weather) from CARLA's weather parameters
+        (precipitation 20 per mm/h, wind intensity 2 per km/h, as realworld.carla_weather_fields maps them the other
+        way), the map's meta.json, and `override` (the experiment's sound.weather: rain, wind, temperature,
+        humidity, wet)."""
         wx = wx or {}
         om = wx.get("open_meteo") or {}
         bbox = (meta or {}).get("bbox")
@@ -64,7 +65,11 @@ class Env:
         p3 = om.get("precipitation_3h")
         if p3 is not None:
             d["wet"] = max(0.0, min(1.0, float(p3) / 1.0))
-        if not om and carla_weather is not None:
+        # a preset weather with simulation.time still has Open-Meteo's hour in weather.json (fetched for the sun and
+        # the time zone): the picture is the preset's, so rain, wind and wet roads are too (air temperature and
+        # humidity, which nobody sees, stay Open-Meteo's)
+        preset = bool(om) and wx.get("weather") not in (None, "real")
+        if (not om or preset) and carla_weather is not None:
             cw = carla_weather
             d["rain"] = float(getattr(cw, "precipitation", 0.0) or 0.0) / 20.0
             d["wind"] = float(getattr(cw, "wind_intensity", 0.0) or 0.0) / 2.0 / 3.6

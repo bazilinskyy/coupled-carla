@@ -110,6 +110,20 @@ def find(world, wanted, vclass=None):
     return bp
 
 
+def traffic_kind(type_id, vclass=None, bike_types=(), bus_type=None):
+    """"bike", "bus" or "car" for a SUMO vehicle shown in CARLA (frames.csv, events.csv): by its SUMO vehicle class
+    where known, as CARLA 1.0 shows a 0.9 bus or bike under another blueprint (vehicle.mitsubishi.fusorosa is
+    vehicle.fuso.mitsubishi), else by the experiment's blueprint names."""
+    v = getattr(vclass, "value", vclass)
+    if v == "bicycle":
+        return "bike"
+    if v in ("bus", "coach"):
+        return "bus"
+    if v is None:
+        return "bike" if type_id in (bike_types or ()) else "bus" if type_id == bus_type else "car"
+    return "car"
+
+
 def left_lane(wp):
     return wp.get_left_waypoint() if hasattr(wp, "get_left_waypoint") else wp.get_left_lane()
 
@@ -160,6 +174,25 @@ def setup_camera(bp, every_s=0.0, profile="Dashcam", shutter=400, world=None, ca
             bp.set_attribute("sensor_tick", str(every_s))
         set_manual_exposure(bp, shutter)
     return 0.0
+
+
+NO_RENDER = "cannot render"     # CARLA 1.0's refusal on a -nullrhi server without a rendering secondary
+
+
+def listen(camera, callback, log=None, what="camera"):
+    """camera.listen(callback); True. False, with one log line, when the server cannot render: a CARLA 1.0 server
+    started with -nullrhi (no rendering secondary) refuses to stream a camera ("this server cannot render (-nullrhi)
+    and no rendering secondary server is connected to own this camera sensor"). The camera actor stays in the world
+    (it can be moved; it renders nothing), so a headless run keeps going with its poses and timing but no images."""
+    try:
+        camera.listen(callback)
+        return True
+    except RuntimeError as err:
+        if NO_RENDER not in str(err):
+            raise
+        if log is not None:
+            log(f"{what}: no images, the server cannot render (-nullrhi)")
+        return False
 
 
 def set_manual_exposure(bp, shutter):
