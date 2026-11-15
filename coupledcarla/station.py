@@ -66,6 +66,7 @@ EXIT_TRIAL_DONE, EXIT_HOST_CLOSED, EXIT_QUIT = 0, 3, 4
 class Station:
     def __init__(self, args):
         self.args = args
+        self.pending = []           # this tick's CARLA commands, sent in one batch (_flush)
         self.size = tuple(int(v) for v in args.size.split("x"))
         self.running = False
         self.control = ControlClient(args.control_host or args.host, args.control_port, args.role,
@@ -226,12 +227,15 @@ class Station:
             from . import inputs
             name = "autopilot" if args.input == "bot" else args.input
             self.input = inputs.make(name, self.actor)
+            if hasattr(self.input, "send"):          # its light state goes with this tick's batch
+                self.input.send = self.pending.append
             if hasattr(self.input, "restart"):
                 self.input.restart(self.world.get_map().get_waypoint(self.actor.get_location()))
         elif kind == "pedestrian" and args.input == "bot":
             from .ai import PathWalker
             pts = [carla.Location(x=x, y=y) for x, y in bot.get("path", [])]
             self.bot = PathWalker(self.actor, pts, float(bot.get("speed", 1.4)), float(bot.get("start_s", 0)))
+            self.bot.apply = lambda c, i=self.actor.id: self.pending.append(carla.command.ApplyWalkerControl(i, c))
             self.look_at = None
             if bot.get("look"):      # the bot keeps its eyes on this actor (role name), as a pedestrian would
                 found = [a for a in self.world.get_actors() if a.attributes.get("role_name") == bot["look"]]
@@ -325,7 +329,7 @@ class Station:
                 ctl = self.input.control(self.actor, events)
                 drive = self.study.drive(ctl, events) if self.study is not None else True   # automation drives?
                 if ctl is not None and drive:
-                    self.actor.apply_control(ctl)
+                    self.pending.append(carla.command.ApplyVehicleControl(self.actor.id, ctl))
                 if getattr(self.input, "reset", False):
                     self._reset_to_lane()
             elif kind == "pedestrian":
@@ -337,10 +341,12 @@ class Station:
                         self.heading += ((want - self.heading + 180) % 360 - 180) * 0.1
                 else:
                     self._walk(events)
-                self.camera.set_transform(self._eye_transform())
+                self.pending.append(carla.command.ApplyTransform(self.camera.id, self._eye_transform()))
             elif kind == "av_passenger":
                 self._ehmi_keys(events, t)
+            self._flush()
         except RuntimeError:
+            self.pending.clear()
             return True      # our actor went away (end of trial); the host will say so
         if self.ux is not None:
             self.ux.tick(snap, t, events, heading=self.heading if kind == "pedestrian" else None,
@@ -392,8 +398,17 @@ class Station:
         dy = fwd * math.sin(yaw) + side * math.cos(yaw)
         n = math.hypot(dx, dy)
         speed = (3.0 if (k[pygame.K_LSHIFT] or k[pygame.K_RSHIFT]) else 1.4) if n else 0.0
-        self.actor.apply_control(carla.WalkerControl(
-            direction=carla.Vector3D(dx / n if n else 0.0, dy / n if n else 0.0, 0.0), speed=speed))
+        self.pending.append(carla.command.ApplyWalkerControl(self.actor.id, carla.WalkerControl(
+            direction=carla.Vector3D(dx / n if n else 0.0, dy / n if n else 0.0, 0.0), speed=speed)))
+
+    def _flush(self):
+        """This tick's controls, light state and camera move in one blocking batch: on CARLA 1.0 two or more
+        fire-and-forget calls in a row hold up the next blocking call by ~40 ms (its rpclib lacks TCP_NODELAY,
+        carla-simulator/carla#10305), as on the host (side.py)."""
+        if self.pending:
+            cmds = list(self.pending)
+            self.pending.clear()      # in place: the input's send is this list's append
+            self.client.apply_batch_sync(cmds, False)
 
     def _ehmi_keys(self, events, t):
         new = None

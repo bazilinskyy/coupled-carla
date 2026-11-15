@@ -593,7 +593,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     elif kind == "sync":
                         sync_at.insert(0, t)
                     elif kind == "stats":
-                        stats = {k: msg.get(k) for k in ("role", "rtt_ms", "fps", "frames", "host", "latency")}
+                        # everything the station reports (labcheck's images, ready_s, camera_hz, ux flags, ...)
+                        stats = {"role": role, **{k: v for k, v in msg.items() if k not in ("type", "role")}}
                         station_stats[role] = stats
                         logger.event(t, snap.frame, "station_stats", "", json.dumps(stats))
                     elif kind in ("hello", "bye"):
