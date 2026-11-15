@@ -733,15 +733,15 @@ traffic, the town's lights run by SUMO, parked cars, a crowd of 20 and 20 CARLA 
 
 | Town | Lane links | Traffic lights run by SUMO | Parking stalls | Parked cars shown | Buildings (sound, drones) | SUMO vehicles shown | Real-time factor | Collisions | Result |
 |---|---|---|---|---|---|---|---|---|---|
-| Town01_Opt | 160 | 36 of 36 | 0 (the level's own) | 0 | 373 | 7 | 0.995 | 0 | ok |
-| Town02_Opt | 112 | 24 of 24 | 0 (the level's own) | 0 | 445 | 7 | 0.995 | 0 | ok |
-| Town03_Opt | 503 | 38 of 38 | 335 | 163 | 726 | 19 | 0.994 | 0 | ok |
-| Town04_Opt | 559 | 43 of 43 | 77 | 22 | 118 | 21 | 0.995 | 0 | ok |
-| Town05_Opt | 604 | 54 of 54 | 107 | 48 | 719 | 16 | 0.995 | 0 | ok |
-| Town10HD_Opt | 200 | 15 of 15 | 120 | 61 | 324 | 14 | 0.971 | 0 | ok |
+| Town01_Opt | 160 | 36 of 36 | 0 (the level's own) | 0 | 373 | 7 | 0.908 | 0 | ok |
+| Town02_Opt | 112 | 24 of 24 | 0 (the level's own) | 0 | 445 | 7 | 0.905 | 0 | ok |
+| Town03_Opt | 503 | 38 of 38 | 335 | 163 | 726 | 19 | 0.985 | 0 | ok |
+| Town04_Opt | 559 | 43 of 43 | 77 | 0 | 118 | 19 | 0.982 | 0 | ok |
+| Town05_Opt | 604 | 54 of 54 | 107 | 48 | 719 | 17 | 0.975 | 0 | ok |
+| Town10HD_Opt | 200 | 15 of 15 | 120 | 61 | 324 | 14 | 0.993 | 0 | ok |
 
-Every town drove its 40 s in real time with no collision, no car leaving the road and no recovery, all 20 AI walkers
-walking (with the GPU to itself; an earlier run beside three other CARLA servers gave the same counts at 0.23-0.995).
+Every town drove its 40 s (the SUMO-driven autopilot) with no collision, no car leaving the road and no recovery, all
+20 AI walkers walking; earlier runs with CARLA's BasicAgent gave the same counts.
 Town06 and Town07 come with CARLA's AdditionalMaps package, which the test machine does not have: their maps build
 and their SUMO traffic runs (167 and 35 vehicles in 300 s SUMO-only runs), and the run says which levels a server
 has. CARLA 1.0 is not tested yet: its towns' OpenDRIVE comes from the server, as the package keeps it in the pak.
