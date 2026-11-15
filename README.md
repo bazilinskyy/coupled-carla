@@ -185,14 +185,6 @@ follow camera with the HUD (speed, next traffic light, time).
 |---|---|
 | ![viewer oblique](docs/img/eindhoven_oblique_127.png) | ![viewer follow](docs/img/eindhoven_follow_127.png) |
 
-**In CARLA** (chase camera, Epic quality): the roads are CARLA's meshes generated from the OpenDRIVE; traffic
-lights are drawn from SUMO's signal states (pole with lamp at each stop line); SUMO vehicles appear near the
-participant. There are no buildings or road markings in CARLA yet ([Known limits](#known-limits)).
-
-| Cairo (Tahrir) | Tokyo (Shibuya) |
-|---|---|
-| ![CARLA Cairo](docs/img/carla_cairo.jpg) | ![CARLA Tokyo](docs/img/carla_tokyo.jpg) |
-
 **New York (Midtown)** in the viewer: OSM building heights give Midtown's towers; the participant drives
 the street grid with SUMO traffic.
 
@@ -202,15 +194,9 @@ the street grid with SUMO traffic.
 
 **Coupled experiment (phase 2)**, Eindhoven: a pedestrian crosses while an automated vehicle approaches; the
 AV yields and its passenger switches the eHMI from "I'M STOPPING" (cyan) to "GO AHEAD" (green); a manual
-driver follows. Each view below was rendered by a separate station process, the pedestrian's on another PC.
+driver follows. Each view below was rendered by a separate station process (here four bot stations on one machine).
 
-| Pedestrian station: the AV stops, "I'M STOPPING" | Pedestrian station: "GO AHEAD" (dusk trial) |
-|---|---|
-| ![pedestrian sees the AV yield](docs/img/station_pedestrian_stopping.jpg) | ![pedestrian sees GO AHEAD](docs/img/station_pedestrian_go.jpg) |
-
-| AV passenger station: their eHMI, seen from inside | Driver station: following the yielding AV at dusk |
-|---|---|
-| ![passenger view with GO AHEAD](docs/img/station_passenger_go.jpg) | ![driver behind the AV](docs/img/station_driver_dusk.jpg) |
+![Four stations in one trial at the same moment, east of Eindhoven station: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot](docs/img/stations_four_views.jpg)
 
 The same moment in the trial viewer: the pedestrian (red) crossing, the AV (dark blue) stopped with its cyan
 eHMI bar, an AI walker further down the street; the event list shows the AV stopping, the passenger's eHMI
@@ -378,8 +364,8 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | Eindhoven centre, 13 November 14:30 with that hour's weather: 3DBAG heights, 1,827 OSM street trees, lamps, bus shelters | Lyon: Place Bellecour, the Saône and the Fourvière hill (135 m of relief), IGN BD TOPO heights |
 | ![Eindhoven at street level](docs/img/scenery_eindhoven_centre_street.jpg) | ![Kigali on its hills](docs/img/scenery_kigali_centre.jpg) |
 | Eindhoven at street level, sun where it stood at 14:30 | Kigali: 188 m of relief, Overture (ML) footprints, OSM tree rows |
-| ![Eindhoven at dusk](docs/img/scenery_eindhoven_centre_dusk.jpg) | ![New York Midtown](docs/img/scenery_new_york_midtown_midtown.jpg) |
-| The same street at 16:55, after sunset that day | New York Midtown with NYC Open Data roof heights |
+| ![Tokyo Shibuya](docs/img/scenery_tokyo_shibuya.jpg) | ![New York Midtown](docs/img/scenery_new_york_midtown_midtown.jpg) |
+| Tokyo Shibuya: left-hand traffic and Toei buses at the crossing, PLATEAU heights | New York Midtown with NYC Open Data roof heights |
 
 | What | Source (free, no key) | Used for |
 |---|---|---|
@@ -486,8 +472,6 @@ gives 27,000 lm with a 70 m reach (CARLA's light defaults). On the packaged serv
 at night, and a lamp lit in front of the camera makes the lower half of the picture 8.8 times brighter.
 `tools/lamp_check.py` checks this on a running server: it spawns lamps at night, prints the light manager's view of
 each and saves camera frames with the street lights off and on.
-
-![A street lamp of the scenery lighting the Eindhoven twin at night (CARLA 1.0, packaged server)](docs/img/twin_night_lamp.jpg)
 
 ### Parked cars
 
@@ -737,7 +721,6 @@ flowchart LR
   | Tokyo (Shibuya) | 80 | 1.30 | 6.1 | 0.45% (measured) |
   | Sydney (CBD) | 28 | 1.40 | 1.6 | 0.5% (modelled) |
 
-  ![The pedestrian station's view in eindhoven_crowd: the AV shows GO AHEAD on its front, roof and the road, the crowd walks beside the street](docs/img/crowd_pedestrian_view.jpg)
 - **SUMO traffic yields to pedestrians**: SUMO vehicles near a pedestrian brake for one in their path and drive
   on when it is clear (`sumo_yields` events). SUMO itself only yields to persons on crossings, and CARLA
   pedestrians are not in SUMO.
