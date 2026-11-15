@@ -854,8 +854,13 @@ def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fe
     params = behaviour(wc, tc, bbox, night, real / "crowdpeds_country.json")
     t0 = time.time()
     segs = kerb_segments(geo_net)
-    xings = osm_crossings(Path(mdir) / "map.osm")
-    n_x = snap_crossings(segs, [geo_net.convertLonLat2XY(lon, lat) for lat, lon, _ in xings])
+    town = (tc.get("map") or {}).get("carla_town")
+    xings = [] if town else osm_crossings(Path(mdir) / "map.osm")
+    pts = [geo_net.convertLonLat2XY(lon, lat) for lat, lon, _ in xings]
+    if town:              # a CARLA town: the crosswalks of its OpenDRIVE (towns.py)
+        from . import towns
+        pts = towns.crosswalk_xy(mdir)
+    n_x = snap_crossings(segs, pts)
     segs = crop(segs, centres_xy, float(wc.get("radius_m", 120)) + 30.0)
     pois, counts, used = [], [], []
     if wc["places"] not in (False, "off", None):
@@ -1009,6 +1014,9 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):
     except Exception as err:  # noqa: BLE001 - a map the planner cannot read: the crowd of before
         log(f"crowd: CROWD behaviour failed ({err!r}); walkers beside the roads instead")
         return legacy()
+    if (tc.get("map") or {}).get("carla_town"):     # a CARLA town: kerbs onto its pavements (walls, sunken roads)
+        from . import towns
+        towns.snap_kerbs(world.get_map(), segs, log)
     sim = CrowdSim(world, geo, segs, walkers, params, int(wc.get("seed", 1)), log)
     sim.stats = stats
     return sim

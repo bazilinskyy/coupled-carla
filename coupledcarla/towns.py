@@ -376,6 +376,41 @@ def lights(world, night, mode="auto", log=print):
     return len(lamps) if on else 0
 
 
+def crosswalk_xy(mdir):
+    """Centres of the town's OpenDRIVE crosswalks in geo.net x, y (CARLA x, -y), for the crowd's marked crossings;
+    cached in crosswalks.json. [] without the carla module."""
+    f = Path(mdir) / "crosswalks.json"
+    if not f.exists():
+        try:
+            pts = [[c["x"], c["y"]] for c in crosswalks(Path(mdir) / "map.xodr")]
+        except ImportError:
+            return []
+        f.write_text(json.dumps(pts))
+    return [(x, -y) for x, y in json.loads(f.read_text())]
+
+
+def snap_kerbs(cmap, segments, log=print, reach=6.0):
+    """The crowd's kerb lines (crowdpeds segments, geo x, y) moved onto the town's pavements: each point to the
+    centre of the nearest sidewalk lane within reach metres. The SUMO net's kerb offset does not know a town's walls
+    and sunken roads (in Town03's underpass a walker stepped off the wall's top). Returns the points moved."""
+    import carla
+    n = tot = 0
+    for seg in segments:
+        for side in seg.sides:
+            for i, (x, y) in enumerate(side):
+                tot += 1
+                wp = cmap.get_waypoint(carla.Location(x=x, y=-y), project_to_road=True,
+                                       lane_type=carla.LaneType.Sidewalk)
+                if wp is None:
+                    continue
+                loc = wp.transform.location
+                if math.hypot(loc.x - x, loc.y + y) <= reach:
+                    side[i] = (loc.x, -loc.y)
+                    n += 1
+    log(f"crowd: {n} of {tot} kerb points on the town's pavements")
+    return n
+
+
 def off_road(cmap, loc, tol=2.5):
     """True when a car at loc is on no driving lane (a town has kerbs and real heights: the z < -0.25 test of the
     generated worlds' ground plane does not apply). tol: metres beyond the lane centre still counted as on it."""
@@ -458,19 +493,19 @@ class NavWalkers:
             self.log(f"town: {len(self.controllers)} AI walkers on the navigation mesh")
 
     def step(self, t, cmap):
-        """Every 2 s: which walkers are on a driving lane (SUMO and scripted cars yield to them); every 10 s a new
+        """Every 0.5 s: which walkers are on a driving lane (SUMO and scripted cars yield to them); every 10 s a new
         destination for a few that stand still (arrived)."""
         import carla
         if not self.walkers or t < self._t_next:
             return
-        self._t_next = t + 2.0
+        self._t_next = t + 0.5
         road = []
         for w in self.walkers:
             loc = w.get_location()
             if cmap.get_waypoint(loc, project_to_road=False, lane_type=carla.LaneType.Driving) is not None:
                 road.append(w)
         self._road = road
-        if int(t) % 10 < 2:
+        if int(t * 2) % 20 == 0:
             sent = 0
             for c, w in zip(self.controllers, self.walkers):
                 v = w.get_velocity()

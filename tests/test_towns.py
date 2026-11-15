@@ -228,3 +228,20 @@ def test_own_parked(tmp_path, monkeypatch, level, stalls, level_cars, want, ours
     tc = {"map": {"carla_level": level}, "simulation": {"parked": {"town_layer": want}}}
     assert towns.own_parked(world, tc, tmp_path, log=lambda m: None) is ours
     assert bool(calls) is unloaded
+
+
+def test_snap_kerbs_and_crosswalk_cache(tmp_path, monkeypatch):
+    class Loc:
+        def __init__(self, x=0.0, y=0.0, z=0.0):
+            self.x, self.y, self.z = x, y, z
+    monkeypatch.setitem(sys.modules, "carla", NS(Location=Loc, LaneType=NS(Sidewalk=4)))
+
+    class Map:      # a pavement along CARLA y = 10 (geo y = -10) for x < 50, none beyond
+        def get_waypoint(self, loc, project_to_road=True, lane_type=None):
+            return NS(transform=NS(location=Loc(loc.x, 10.0))) if loc.x < 50 else None
+    seg = NS(sides=[[(0.0, -7.0), (60.0, -7.0)], [(0.0, -30.0), (10.0, -5.0)]])
+    assert towns.snap_kerbs(Map(), [seg], log=lambda m: None) == 2
+    assert seg.sides[0] == [(0.0, -10.0), (60.0, -7.0)]          # moved 3 m; nothing beyond x 50
+    assert seg.sides[1] == [(0.0, -30.0), (10.0, -10.0)]         # 20 m away: stays; 5 m: moved
+    (tmp_path / "crosswalks.json").write_text("[[1.0, 2.0]]")
+    assert towns.crosswalk_xy(tmp_path) == [(1.0, -2.0)]
