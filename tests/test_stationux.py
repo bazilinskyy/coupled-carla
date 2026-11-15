@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from coupledcarla import config, stationux
+from coupledcarla import config, ehmi_inside, stationux
 
 ROOT = Path(__file__).resolve().parent.parent
 STATES = ["off", "driving", "yielding", "go"]
@@ -35,6 +35,13 @@ def test_existing_experiments_ask_for_nothing():
         tc = config.trial_config(cfg, cfg["trials"][0])
         for p in tc["participants"]:
             w = stationux.welcome_extras(tc, p, p.get("kind"), ROOT / "experiments", default_states=STATES)
+            # only the AV's own front and roof text, which its passenger saw mirrored, is now drawn by the stations
+            # (ehmi_inside.py) where an AV passenger station rides (the crossing's and the crowd's av1)
+            inside = w.pop("ehmi_inside", None)
+            assert (inside is not None) == bool(ehmi_inside.occupied(tc)), (name, p["role"])
+            if inside:
+                assert inside["mode"] == "hide" and list(inside["cars"]) == ["av1"]
+                assert inside["cars"]["av1"]["slots"] == ["front", "roof"]
             assert not stationux.wanted(w), (name, p["role"])
             assert "ehmi_designs" not in w and "ehmi_states" not in w
 

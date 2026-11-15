@@ -49,7 +49,7 @@ AGENT_KEYS = {"id", "kind", "vehicle", "color", "route", "speed_kmh", "accel", "
               "ehmi_offset"}
 TRIGGER_KEYS = {"at", "at_m", "speed_kmh", "accel", "yield_s", "blinker", "ehmi", "takeover"}
 RESPONSE_KEYS = {"button", "slider", "slider_start", "slider_speed", "hidden", "press_threshold", "joystick"}
-EHMI_KEYS = {"states", "slots", "design", "placement", "render", "offset"}
+EHMI_KEYS = {"states", "slots", "design", "placement", "render", "offset", "inside", "indicator"}
 POI_KEYS = {"name", "lat", "lon", "heading", "radius_m", "radius", "x", "y"}
 FREE = {("traffic", "car_types"), ("traffic", "bike_types"), ("conditions",), ("design", "factors"), ("drones", "centre"),
         ("design", "trial"), ("design", "practice"), ("design", "after"), ("ehmi",), ("eye_contact",),
@@ -378,6 +378,8 @@ def check(raw, cfg, roads=True, participants=None, order=None):
         _unknown(rep, "ehmi", ehmi, EHMI_KEYS)
         if ehmi.get("render", "world") not in ("world", "station", "both"):
             rep.error("ehmi.render", f"{ehmi.get('render')!r} is not world, station or both")
+        if str(ehmi.get("inside", "hide")).lower() not in ("hide", "dim", "mirror"):
+            rep.error("ehmi.inside", f"{ehmi.get('inside')!r} is not hide, dim or mirror")
         for name, st in (ehmi.get("states") or {}).items():
             if not isinstance(st, dict) or not set(st) <= {"text", "color"}:
                 rep.warn(f"ehmi.states.{name}", "takes {text, color: [r, g, b]}")

@@ -256,7 +256,10 @@ DEFAULTS = {
     "coupling": {"port": 2100, "wait_for_stations_s": 600, "visual_sync_at_s": []},
     "ehmi": {},                      # {states: {name: {text, color}}, slots}; default in coupledcarla/ai.py; design:
                                      # a designed eHMI (data/ehmi/<name>, a path or a dict; ehmi_design.py) with
-                                     # placement and render: world | station | both
+                                     # placement and render: world | station | both; inside: what an AV passenger
+                                     # sees of its own car's eHMI from behind: hide (default) | dim | mirror;
+                                     # indicator: true (default) shows the passenger the eHMI the right way round
+                                     # (ehmi_inside.py)
     # What the stations add (stationux.py), all off unless set; a participant's own `sound`, `displays` or
     # `haptics` is merged over these. Sound files and speech are made on the station.
     "sound": {                       # soundscape.py, calibrated in dB SPL (README: Sound)

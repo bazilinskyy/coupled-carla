@@ -26,7 +26,7 @@ import yaml
 from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, photoreal, realworld, season, soundrec, study, \
     towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, levels, livemap, multigpu, placement, stationux
+from . import ehmi_design, ehmi_inside, levels, livemap, multigpu, placement, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -262,7 +262,7 @@ def welcome_for(part, geo, tc):
            "camera_attributes": dict((tc.get("film") or {}).get("attributes") or {})}   # demo videos (film.py)
     # sound, in-car displays, haptics and designed eHMIs (stationux.py), when the experiment sets them
     out.update(stationux.welcome_extras(tc, part.cfg, part.kind, Path(tc["_path"]).parent,
-                                        default_states=list(DEFAULT_EHMI)))
+                                        default_states=list(DEFAULT_EHMI), default_ehmi=DEFAULT_EHMI))
     out.update(multigpu.welcome(tc["server"], part.role))     # secondaries: relay and camera placement
     if part.kind == "drone":      # gamepad / RC axes and buttons for the station's stick input (droneinput.py)
         out["drone_input"] = {k: part.cfg[k] for k in ("axes", "joystick", "deadband", "expo", "buttons")
@@ -302,6 +302,16 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     ehmi_slots = tuple((tc.get("ehmi") or {}).get("slots", ["front"]))
     ehmi_designed = ehmi_design.drawers(ehmi_design.for_agents(tc, Path(tc["_path"]).parent, log))
     ehmi_render = (tc.get("ehmi") or {}).get("render", "world")     # designed eHMIs: world | station | both
+    # an AV passenger's own car: the panels it would see from behind are drawn by the stations (ehmi_inside.py)
+    ehmi_cabin = ehmi_inside.host_plan(tc, ehmi_design.for_agents(tc, Path(tc["_path"]).parent, lambda m: None),
+                                       lambda a: a.get("ehmi_slots") or ehmi_slots)
+    for aid, what in ehmi_cabin.items():
+        if "placement" in what and aid in ehmi_designed:
+            d = ehmi_designed[aid]
+            world_pl = ehmi_inside.split(d.placements)[0]
+            ehmi_designed[aid] = ehmi_design.DesignedEhmi(d.design, world_pl, d.offset) if world_pl else None
+        log(f"eHMI of {aid}: its {', '.join(what.get('placement') or what.get('slots'))} drawn by the stations "
+            f"(ehmi.inside: {ehmi_inside.settings(tc)[0]} for its passenger)")
     coupling = tc.get("coupling") or {}
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -682,7 +692,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     sid = sync.carla2sumo_ids.get(ag.vehicle.id)
                     ag.light = signals.next_light(sid) if sid else None
                     if summary["ticks"] % 2 == 0 and ag.id in ehmi_designed:
-                        if ehmi_render != "station":
+                        if ehmi_render != "station" and ehmi_designed[ag.id] is not None:
                             ehmi_design.draw_world(side.debug, ag.vehicle, ag.ehmi, ehmi_designed[ag.id], t,
                                                    life=step * 3)
                     elif summary["ticks"] % 2 == 0 and ag.ehmi not in ("", "off"):
@@ -693,7 +703,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                             look = None
                         draw_ehmi(side.debug, ag.vehicle, ag.ehmi, ehmi_states, life=step * 3,
                                   slots=tuple(ag.cfg.get("ehmi_slots") or ehmi_slots),
-                                  look_at=look + carla.Location(z=0.7) if look is not None else None)
+                                  look_at=look + carla.Location(z=0.7) if look is not None else None,
+                                  text_slots=ehmi_inside.world_slots(ag.cfg.get("ehmi_slots") or ehmi_slots)
+                                  if ag.id in ehmi_cabin else None)
             if summary["ticks"] % 5 == 0:
                 gaze.update(t, snap.frame, parts, agents, station_gaze)
             laps("next_light_ehmi")
