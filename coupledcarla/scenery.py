@@ -428,8 +428,9 @@ def lane_types(xodr):
 
 
 class Placer:
-    def __init__(self, cat, cmap, ground, carla, sidewalks_free=False, lanes=None):
+    def __init__(self, cat, cmap, ground, carla, sidewalks_free=False, lanes=None, junctions=None):
         self.cat, self.cmap, self.ground, self.carla = cat, cmap, ground, carla
+        self.junctions = junctions      # placement.JunctionAreas: a generated map's paved junctions count as lanes
         self.items, self.counts = [], defaultdict(int)
         self.mesh_index = {}
         lt = carla.LaneType
@@ -443,7 +444,9 @@ class Placer:
 
     def on_lane(self, x, y, z=0.0):
         loc = self.carla.Location(x=x, y=y, z=z)
-        return any(self.cmap.get_waypoint(loc, project_to_road=False, lane_type=m) is not None for m in self.masks)
+        if any(self.cmap.get_waypoint(loc, project_to_road=False, lane_type=m) is not None for m in self.masks):
+            return True
+        return self.junctions is not None and self.junctions.contains(x, y)
 
     def footprint_clear(self, cx, cy, l, w, yaw, z):
         r = math.radians(yaw)
@@ -662,8 +665,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 
     # a baked level's OpenDRIVE has its real, full-width pavements as sidewalk lanes: street trees, lamps and
     # furniture stand on them (on OSM maps a sidewalk lane is only the walking strip)
+    # on a generated map a junction is paved all over (no islands): nothing stands in it (placement.py)
+    from . import placement
     pl = Placer(cat, cmap, ground, carla, sidewalks_free=bool(mc.get("carla_level")),
-                lanes=lane_types(mdir / "map.xodr"))
+                lanes=lane_types(mdir / "map.xodr"),
+                junctions=None if mc.get("carla_level") else placement.JunctionAreas.of_map(cmap, carla, log=log))
     rng = random.Random(42)
     sources = {"osm"}
 
@@ -963,6 +969,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 f"{c_['sign_ndw_offroad']} of them on streets without a lane in the map; {c_['sign_ndw_skipped']} "
                 f"without a mesh, {c_['sign_ndw_far']} far from the map's roads, {c_['sign_ndw_unplaced']} without "
                 f"a free spot")
+        try:        # the country, for signs CARLA has only in another country's design (placement.sign_fits)
+            from . import crowdpeds
+            iso3 = crowdpeds.locate(cfg, mc["bbox"], rdir / "crowdpeds_country.json")[0]
+        except Exception:  # noqa: BLE001 - unknown: CARLA's give-way plate (US YIELD) is left out
+            iso3 = None
         speed_re = re.compile(r"(?:maxspeed|A1|274|B14|C43|R2-1|C14|R5)\D{0,3}(\d{2,3})", re.I)
         for el in els:
             if el["type"] != "node":
@@ -982,6 +993,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     sign = ms.SPEED.format(min(ms.SPEEDS, key=lambda s_: abs(s_ - v)))
             if sign is None or sign not in cat:
                 continue
+            kind_ = "stop" if sign == ms.STOP else "give_way" if sign == ms.GIVE_WAY else "speed"
+            if not placement.sign_fits(kind_, iso3):
+                pl.counts["sign_osm_wrong_country"] += 1
+                continue
             x, y = geo.to_carla(el["lat"], el["lon"])
             if ndw_placed and ndwsigns.near_same(ndw_placed, x, y, ndwsigns.osm_kind(sign, ms)):
                 pl.counts["sign_osm_replaced"] += 1
@@ -989,6 +1004,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
             if wp is None or wp.transform.location.distance(carla.Location(x=x, y=y, z=wp.transform.location.z)) > 25:
                 continue
+            wp = placement.approach(wp)     # a sign mapped in a junction belongs at the kerb of the lane into it
             if t.get("direction") == "backward" or t.get("traffic_sign:direction") == "backward":
                 other = wp.get_left_lane()
                 while other is not None and other.lane_id * wp.lane_id > 0:
@@ -1014,6 +1030,9 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             pl.add("sign", sign, px, py, face + ms.SIGN_YAW, 1.0,
                    z=gz + cat.size(ms.POST)[2] - H - 0.05)
             pl.counts["sign_osm"] += 1
+        if pl.counts["sign_osm_wrong_country"]:
+            log(f"scenery: {pl.counts['sign_osm_wrong_country']} OSM stop/give-way signs left out: CARLA has them only "
+                f"in another country's design ({iso3 or 'country unknown'})")
         log(f"scenery: {pl.counts['sign_osm']} road signs from OSM"
             + (f"; {pl.counts['sign_osm_replaced']} left out near a register sign of the same kind" if ndw_placed
                else ""))
