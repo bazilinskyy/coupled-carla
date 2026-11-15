@@ -44,6 +44,8 @@ DEFAULTS = {
     "settle_s": 2.0,          # cameras start this long before start_s (exposure adapts, meshes stream in)
     "jpeg_quality": 93,
     "attributes": {},         # extra sensor.camera.rgb attributes (motion_blur_intensity, exposure_compensation, ...)
+    "capture": {},            # image quality (look.py, as simulation.capture): {} = 2x supersampled, clean, exposure
+                              # from the sun; false: CARLA's camera defaults
     "camera": None,           # one camera, or `cameras`: [{name, kind, ...}, ...]
     "cameras": [],
     "hold": {},               # {role: until_s}: a host-local driver waits with the hand brake on
@@ -166,6 +168,24 @@ def check_frames(rows, fps, step, n=None):
 
 # -- the cameras on a running trial -----------------------------------------------------------------------------
 
+def realism(rig, n):
+    """The realism guard (look.py) on a film camera: an empty world in most of its semantic samples, or a dark,
+    bright, clipped or glaring frame at 10, 50 and 90 % of the clip. [] when it may be shown."""
+    from PIL import Image
+    from . import look
+    out = []
+    tags = rig.sem_tags
+    if tags:
+        empty = [p for p in (look.semantic_problems(t) for t in tags) if p]
+        if len(empty) > len(tags) / 2:
+            out.append(f"{len(empty)} of {len(tags)} semantic samples: {empty[0][0]}")
+    for k in sorted({int(n * q) for q in (0.1, 0.5, 0.9)}):
+        f = rig.dir / f"{k:06d}.jpg"
+        if f.exists():
+            out += [f"frame {k}: {p}" for p in look.image_problems(np.asarray(Image.open(f).convert("RGB")))]
+    return out
+
+
 class _DroneView:
     """Stands in for drones.DroneView so DroneWorld moves this camera with the pilot every tick."""
 
@@ -186,6 +206,7 @@ class Rig:
         self.dir.mkdir(parents=True, exist_ok=True)
         self.kept = {}               # index -> (carla frame, trial time)
         self.poses = []
+        self.sem, self.sem_tags = None, []      # realism guard (look.py): semantic tags along the clip
 
     # positions from the config
     def point(self, p, default_h=1.7):
@@ -228,6 +249,17 @@ class Rig:
         else:
             self.camera = world.spawn_actor(bp, self.transform(f.t + f.step, None) or carla.Transform())
         self.camera.listen(self._on_image)
+        try:        # a small semantic camera riding on this one, once a second: is the world around it empty?
+            sbp = world.get_blueprint_library().find("sensor.camera.semantic_segmentation")
+            for k, v in (("image_size_x", 320), ("image_size_y", 180), ("fov", bp.get_attribute("fov").as_float()),
+                         ("sensor_tick", 1.0)):
+                sbp.set_attribute(k, str(v))
+            self.sem = world.spawn_actor(sbp, carla.Transform(), attach_to=self.camera)
+            self.sem.listen(lambda img: self.sem_tags.append(
+                np.frombuffer(img.raw_data, dtype=np.uint8).reshape(img.height, img.width, 4)[:, :, 2].copy())
+                if len(self.sem_tags) < 120 else None)
+        except RuntimeError:
+            self.sem = None
         if f.focus_list is not None and self.kind in ("tripod", "orbit", "path", "follow") and self.c.get("focus", True):
             f.focus_list.append(self.camera)
 
@@ -437,16 +469,20 @@ class Film:
 
     def _blueprint(self, c=None):
         """The camera blueprint: the film's size, fov and attributes, with a camera's own fov and attributes."""
+        from . import look
         from .compat import setup_camera
         c = c or {}
         bp = self.world.get_blueprint_library().find("sensor.camera.rgb")
-        w, h = self.fc["size"]
+        # film.capture (look.py; default: simulation.capture's defaults): rendered at 2x and downscaled by the
+        # writers, no motion blur or flare, bloom 0.3, a manual exposure from the sun and clouds (0.9.x)
+        cap = look.settings(self.fc.get("capture", {}))
+        w, h = look.capture_size(self.fc["size"], cap)
         bp.set_attribute("image_size_x", str(int(w)))
         bp.set_attribute("image_size_y", str(int(h)))
         bp.set_attribute("fov", str(c.get("fov", self.fc["fov"])))
         if bp.has_attribute("sensor_tick"):
             bp.set_attribute("sensor_tick", "0.0")       # every tick: images are picked by their timestamp
-        setup_camera(bp, 0.0, self.fc.get("camera_profile", "Dashcam"))
+        setup_camera(bp, 0.0, self.fc.get("camera_profile", "Dashcam"), world=self.world, capture=cap)
         for k, v in {**(self.fc.get("attributes") or {}), **(c.get("attributes") or {})}.items():
             if bp.has_attribute(k):
                 bp.set_attribute(k, str(v))
@@ -461,6 +497,8 @@ class Film:
             path, raw, w, h = job
             try:
                 arr = np.frombuffer(raw, dtype=np.uint8).reshape(h, w, 4)[:, :, 2::-1]
+                from . import look
+                arr = look.downscale(np.ascontiguousarray(arr), tuple(int(v) for v in self.fc["size"]))
                 Image.fromarray(np.ascontiguousarray(arr)).save(path, quality=self.quality)
             except Exception as e:  # noqa: BLE001 - a lost frame shows in the check, never stops the trial
                 self.log(f"film: could not write {path.name} ({e})")
@@ -473,12 +511,13 @@ class Film:
         while time.time() < t_end and any(len(r.kept) < self.n for r in self.rigs if r.camera is not None):
             time.sleep(0.2)
         for r in self.rigs:
-            if r.camera is not None:
-                try:
-                    r.camera.stop()
-                    r.camera.destroy()
-                except RuntimeError:
-                    pass
+            for cam in (r.sem, r.camera):
+                if cam is not None:
+                    try:
+                        cam.stop()
+                        cam.destroy()
+                    except RuntimeError:
+                        pass
         self.jobs.join()
         for _ in self.writers:
             self.jobs.put(None)
@@ -497,6 +536,9 @@ class Film:
             summary[r.name] = {k: (v[:20] if isinstance(v, list) else v) for k, v in chk.items()}
             self.log(f"film: {r.name} kept {chk['frames']} of {self.n} frames, even {chk['even']}, "
                      f"missing {len(chk['missing'])}")
+            summary[r.name]["realism"] = realism(r, self.n)
+            if summary[r.name]["realism"]:
+                self.log(f"film: {r.name} REJECTED by the realism guard: {'; '.join(summary[r.name]['realism'])}")
         import json
         (self.dir / "film.json").write_text(json.dumps({"fps": self.fps, "start_s": self.start, "frames": self.n,
                                                         "step": self.step, "cameras": summary}, indent=2))

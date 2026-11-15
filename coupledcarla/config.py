@@ -79,11 +79,25 @@ DEFAULTS = {
         "weather": "CloudyNoon",     # a carla.WeatherParameters preset name, a dict of its fields, or "real"
         "sun_altitude": None,
         "tls_manager": "sumo",       # who runs the traffic lights: sumo | carla | none
+        "traffic_lights": {"style": "head"},   # how SUMO's lights show in CARLA (signals.py): "head" (a signal
+                                     # head on a kerb pole per approach, CARLA's meshes, the lit lamp drawn) or
+                                     # "marker" (a line pole and a big glowing point per lane, as before)
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
         "traffic_manager": False,    # start CARLA's Traffic Manager (only for CARLA-driven autopilot cars)
         "camera_profile": "Dashcam", # CARLA 1.0: the post-process profile of every camera (exposure; CARLA's
                                      # Content/Carla/Config/PostProcess: Dashcam, AutomotiveHDR, Cinematic, ...;
                                      # "" for the server's default). CARLA 0.9.x ignores it
+        "capture": {                 # cameras whose frames are kept (--frames-every, stations' --frames-every,
+                                     # drone observers, tools/scenery_shots.py): coupledcarla/look.py
+            "enabled": True,         # 0.9.x: no motion blur, bloom 0.3, no lens flare, a manual exposure from
+                                     # the sun's altitude and the cloudiness; false: the cameras as before
+            "supersample": 2,        # render at this multiple of the frame size and downscale (Lanczos); 1: off
+            "render_hz": 10.0,       # 0.9.x: a camera that keeps a frame every few s still renders this often
+                                     # (temporal anti-aliasing needs recent frames; at 1 Hz leaves and paint dither)
+            "ev_bias": 0.0,          # added to the exposure (EV; +1 = one stop darker)
+            "profile": None,         # CARLA 1.0: post-process profile of these cameras (e.g. "CoupledClean",
+                                     # coupledcarla/data/postprocess); None: camera_profile
+        },
         "time": None,                # local time at the place, "YYYY-MM-DD HH:MM", "HH:MM" (today) or "now":
                                      # the sun stands where it did; with weather: real, Open-Meteo's weather
         "scenery": {"radius_m": 400.0,   # scenery cells within this distance of participants (0: all at once)
