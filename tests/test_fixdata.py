@@ -99,7 +99,7 @@ def test_transit_rebuild_of_an_opendrive_map_uses_its_built_box(tmp_path, monkey
     box = [51.436, 5.47, 51.45, 5.493]
     (out / "meta.json").write_text(json.dumps({"bbox": box}))
     got = {}
-    monkeypatch.setattr(mapbuild, "sumo_net", lambda out: None)
+    monkeypatch.setattr(mapbuild, "sumo_net", lambda out, **kw: None)
     monkeypatch.setattr(transit, "build", lambda out, bbox: got.setdefault("bbox", bbox) and
                         {"lines": 0, "refs": 0, "stops": 0, "with_timetable": 0, "feeds": []})
     mapbuild.build(cfg, transit_only=True)

@@ -17,6 +17,9 @@ DEFAULTS = {
                                      # SUMO net never has them (SUMO crashes on moveToXY with sidewalks)
         "trim_dead_ends": True,      # drop dead-end chains and keep the largest strongly connected road graph
         "lefthand": False,           # left-hand traffic (UK, Japan, Australia, ...)
+        "internal_junctions": False,  # SUMO's net with netconvert's internal junctions (turning vehicles wait inside
+                                     # the junction); off: they wait at the stop line, as the waiting points of the
+                                     # re-made junctions lay in other lanes (mapbuild.NO_INTERNAL_JUNCTIONS)
         "buildings": True,           # also fetch building footprints (trial viewer, figures)
         "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
         "overture": True,            # Overture Maps buildings (needs duckdb), else OSM
