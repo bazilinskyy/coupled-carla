@@ -476,7 +476,8 @@ class DroneWorld:
             h = float(pt[2]) if len(pt) > 2 else 20.0
             path.append((x, -y, self.road_z(x, y) + h if not bot.get("absolute") else h))     # above the street
         return BotPilot(path, float(bot.get("speed", 6.0)), float(bot.get("start_s", 2.0)), bot.get("sticks"),
-                        bool(bot.get("land", False)), af.max_speed, af.max_climb)
+                        bool(bot.get("land", False)), af.max_speed, af.max_climb,
+                        after_crash=bot.get("after_crash", "stop"))
 
     def local_input(self, pilot, window):
         """A keyboard, gamepad or RC transmitter at the host's window for a host-local pilot; without a window
@@ -904,6 +905,9 @@ class DroneWorld:
     def _crash(self, i, what, speed, t, stop_at=None):
         f = self.fleet
         name = self.names[i]
+        for p in self.pilots:
+            if p.idx == i and isinstance(p.input, BotPilot):
+                p.input.crashed = True
         if stop_at is not None:
             f.place(i, stop_at, (0.0, 0.0, min(0.0, float(f.vel[i, 2]))))
         f.set_command(i, "off")

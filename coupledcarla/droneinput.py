@@ -144,22 +144,25 @@ class BotPilot:
     """A pilot without a human (tests, demos): flies through `path` points (world ENU, metres; z is the height) at
     `speed`, turning to face its way, by setting the sticks as a person would (a P controller on the velocity in the
     heading's frame); or plays `sticks` [[t, climb, yaw, forward, lateral], ...] (held until the next entry). Takes
-    off at start_s. After the last point it hovers (or lands with land: true)."""
+    off at start_s. After the last point it hovers (or lands with land: true). After a crash it stays on the ground
+    (after_crash "stop", the default) or flies on ("continue")."""
 
     def __init__(self, path=(), speed=6.0, start_s=0.0, sticks=None, land=False, max_speed=15.0, max_climb=6.0,
-                 accept=2.0):
+                 accept=2.0, after_crash="stop"):
         self.path = [tuple(map(float, p)) for p in path]
         self.speed, self.start_s, self.land = float(speed), float(start_s), bool(land)
         self.schedule = sorted([list(map(float, s)) for s in (sticks or [])])
         self.max_speed, self.max_climb, self.accept = max_speed, max_climb, accept
         self.i = 0
+        self.after_crash = after_crash
+        self.crashed = False
 
     @property
     def done(self):
         return self.i >= len(self.path)
 
     def sticks(self, t, pos, vel, yaw):
-        if t < self.start_s:
+        if t < self.start_s or (self.crashed and self.after_crash == "stop"):
             return Sticks()
         if self.schedule:
             cur = [s for s in self.schedule if s[0] <= t]

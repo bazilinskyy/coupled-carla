@@ -35,8 +35,8 @@ participants:
     spawn: {lat: 51.43898, lon: 5.47870, heading: 0}       # open ground: nothing within 12 m (3DBAG footprints)
     geofence: {radius_m: 600, max_altitude_m: 120}
     bot:
-      path: [[51.43898, 5.47870, 25], [51.44000, 5.47950, 40], [51.44110, 5.47820, 45], [51.44010, 5.47700, 35],
-             [51.43900, 5.47872, 12]]
+      path: [[51.43898, 5.47870, 30], [51.44000, 5.47950, 45], [51.44110, 5.47820, 50], [51.44010, 5.47700, 45],
+             [51.43900, 5.47872, 40], [51.43898, 5.47870, 3]]      # metres above the street; roofs here: 16-25 m
       speed: 7
       start_s: 4
       land: true

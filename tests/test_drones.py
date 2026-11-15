@@ -137,6 +137,26 @@ def test_pilot_command_modes():
     assert att["mode"] == "attitude" and att["pitch"] == pytest.approx(af.max_tilt) and att["roll"] < 0
 
 
+def test_landing_protection_slows_the_descent_near_the_ground():
+    af = dm.CONSUMER
+    st = di.Sticks(climb=-1.0)
+    high = di.pilot_command(st, (0, 0, 30), (0, 0, 0), 0.0, False, af, agl=30.0)
+    low = di.pilot_command(st, (0, 0, 2), (0, 0, 0), 0.0, False, af, agl=2.0)
+    att = di.pilot_command(st, (0, 0, 2), (0, 0, 0), 0.0, False, af, "attitude", agl=2.0)
+    assert high["vel"][2] == pytest.approx(-af.max_descent)
+    assert low["vel"][2] == pytest.approx(-1.6)
+    assert att["climb"] == pytest.approx(-af.max_descent), "no protection in attitude mode"
+
+
+def test_bot_stops_after_a_crash():
+    bot = di.BotPilot([(0, 0, 10), (100, 0, 10)], speed=5.0)
+    assert bot.sticks(1.0, (0, 0, 10), (0, 0, 0), 0.0).forward > 0
+    bot.crashed = True
+    assert bot.sticks(2.0, (0, 0, 0), (0, 0, 0), 0.0).as_list() == [0, 0, 0, 0]
+    bot.after_crash = "continue"
+    assert bot.sticks(3.0, (0, 0, 10), (0, 0, 0), 0.0).forward > 0
+
+
 def test_bot_pilot_flies_its_path():
     """The bot's sticks through pilot_command fly the flight model to its waypoints."""
     q = dm.Quadrotor(dm.CONSUMER, (0, 0, 0), 0.0)
@@ -477,6 +497,32 @@ def test_geofence_caps_the_height(carla_mod, tmp_path):
     z = dw.fleet.pos[part.drone.idx][2]
     assert 27.0 < z < 31.5, z
     assert any(e[1] == "drone_geofence" for e in lg.events)
+    dw.close()
+
+
+def test_station_messages_and_broadcast(carla_mod, tmp_path):
+    """A station's sticks and camera reach its pilot; the HUD and the drones' sound sources go out every 5th tick."""
+    p = {"role": "pilot", "spawn": {"lat": 51.44, "lon": 5.47}}
+    dw, (part,) = make_world(carla_mod, tmp_path, [p])
+    part.station = True
+    pil = part.drone
+    assert dw.on_message({"type": "drone_camera", "role": "pilot", "camera_id": 42}) and pil.camera_id == 42
+    assert dw.on_message({"type": "drone_input", "role": "pilot", "s": [1, 0, 0, 0], "g": 0.5, "e": ["view"]})
+    assert pil.sticks.climb == 1.0 and pil.view == "los"
+    assert not dw.on_message({"type": "gaze", "role": "pilot"})
+    for k in range(100):
+        dw.step(k * 0.02, 0.02, (), None)
+    assert dw.fleet.pos[pil.idx][2] > 3.0, "the station's climb stick lifted it"
+    sent = []
+    ctl = NS(send=lambda role, msg: sent.append((role, msg)), broadcast=lambda msg: sent.append(("*", msg)))
+    dw.broadcast(ctl, 5)
+    hud = [m for r, m in sent if m["type"] == "drone_hud"][0]
+    assert hud["lines"][0].startswith("ALT") and len(hud["ears"]) == 3
+    d = [m for r, m in sent if m["type"] == "drones"][0]["d"]
+    assert len(d) == 1 and d[0][7] > 100 and d[0][9] == dm.CONSUMER.sound_power_dba
+    sent.clear()
+    dw.broadcast(ctl, 6)
+    assert sent == []
     dw.close()
 
 

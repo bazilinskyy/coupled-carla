@@ -41,7 +41,7 @@ PART_KEYS = {"role", "kind", "station", "vehicle", "spawn", "input", "view", "wi
 KINDS = {"driver", "pedestrian", "av_passenger", "drone"}
 INPUTS = {"keyboard", "wheel", "autopilot", "bot", "gamepad", "rc"}
 SPAWN_KEYS = {"lat", "lon", "heading"}
-BOT_KEYS = {"path", "start_s", "speed", "look", "ehmi", "response", "sticks", "land", "absolute"}
+BOT_KEYS = {"path", "start_s", "speed", "look", "ehmi", "response", "sticks", "land", "absolute", "after_crash"}
 AGENT_KEYS = {"id", "kind", "vehicle", "color", "route", "speed_kmh", "accel", "yield_to_pedestrians", "ehmi",
               "ehmi_slots", "triggers", "at_end", "path", "speed", "start_s", "loop", "ehmi_design", "ehmi_placement",
               "ehmi_offset"}
