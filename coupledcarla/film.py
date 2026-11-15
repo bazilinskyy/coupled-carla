@@ -174,7 +174,9 @@ def realism(rig, n):
     from PIL import Image
     from . import look
     out = []
-    tags = rig.sem_tags
+    # a semantic sample that is almost all "unlabeled" (tag 0) saw no world at all (its camera was elsewhere, as with
+    # a drone camera moved by DroneWorld on 0.9.16): it says nothing about the frames and is not counted
+    tags = [t for t in rig.sem_tags if float((np.asarray(t) == 0).mean()) < 0.95]
     if tags:
         empty = [p for p in (look.semantic_problems(t) for t in tags) if p]
         if len(empty) > len(tags) / 2:

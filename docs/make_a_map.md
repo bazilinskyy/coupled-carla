@@ -19,18 +19,18 @@ the real facades (see [What to expect](#what-to-expect)).
 
 ## Set up once
 
-You do this once per computer. If someone has set up coupled-carla for you, skip to [Every day](#every-day).
+You do this once per computer. If someone has set up Coupled CARLA for you, skip to [Every day](#every-day).
 
-1. **Get coupled-carla.** Download it from <https://github.com/bazilinskyy/coupled-carla> (the green "Code" button,
+1. **Get Coupled CARLA.** Download it from <https://github.com/bazilinskyy/coupled-carla> (the green "Code" button,
    then "Download ZIP") and unpack it, for example into your Documents folder. Or, if you use git:
    `git clone https://github.com/bazilinskyy/coupled-carla.git`.
-2. **Install uv**, a small program that installs Python and the packages coupled-carla needs. Open a terminal
+2. **Install uv**, a small program that installs Python and the packages Coupled CARLA needs. Open a terminal
    (Windows: PowerShell; macOS: Terminal; Linux: any terminal) and paste one line:
    - Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
    - macOS and Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
    Then close the terminal and open a new one.
-3. **Install the packages.** In the new terminal, go to the coupled-carla folder and run these lines:
+3. **Install the packages.** In the new terminal, go to the `coupled-carla` folder and run these lines:
 
    ```
    cd Documents/coupled-carla          (or wherever you unpacked it)
@@ -41,12 +41,12 @@ You do this once per computer. If someone has set up coupled-carla for you, skip
    This takes a few minutes and downloads about 1 GB (Python, the SUMO traffic simulator and map tools).
 4. **To drive (Windows or Linux only):** download CARLA 0.9.16 from
    <https://github.com/carla-simulator/carla/releases/tag/0.9.16> and unpack it as a folder named `CARLA_0.9.16`
-   **next to** the coupled-carla folder (so both are in the same folder). The map maker finds it there. If you put
+   **next to** the `coupled-carla` folder (so both are in the same folder). The map maker finds it there. If you put
    it elsewhere, set the environment variable `CARLA_ROOT` to its folder.
 
 ## Every day
 
-1. **Start the map maker.** Double-click the launcher in the coupled-carla folder:
+1. **Start the map maker.** Double-click the launcher in the `coupled-carla` folder:
    - Windows: `make_map.bat`
    - macOS: `Make a map.command` (the first time, macOS may ask whether to open it: right-click it, choose Open)
    - Linux: `make_map.sh` (or run `./make_map.sh` in a terminal)
@@ -98,7 +98,7 @@ pavements, `--open` shows the picture, `--drive` drives it when it is built, `--
 
 - `experiments/places/<name>.yaml`: the map's experiment file. It is a plain text file with comments; the top
   lines say what was guessed for you (driving side, traffic). Change the numbers there if you know better (for
-  example `cars_per_hour`), then build again with `--force`. Everything else coupled-carla can do (other
+  example `cars_per_hour`), then build again with `--force`. Everything else Coupled CARLA can do (other
   participants, scripted cars, conditions and trial orders) is set in this file: see the main README.
 - `maps/<name>/`: the built map. `preview.png` is the picture, `summary.txt` the summary with the sources,
   `build.log` the full technical log (send it along when you ask for help).
@@ -129,10 +129,10 @@ pavements, `--open` shows the picture, `--drive` drives it when it is built, `--
 | "OpenStreetMap's server is busy: trying a mirror" | Nothing to do: it tries the next server. If all are busy, the build stops with a message; wait a few minutes and press Build again. |
 | "I cannot reach the internet" | Check the Wi-Fi or network cable; a company VPN or proxy can also block the open data services. |
 | "This area is very large" | Fine if you need it, but building takes longer and driving gets slower. Small or medium is usually enough. |
-| "CARLA does not run on a Mac" or "CARLA is not set up" | Driving needs a Windows or Linux PC with CARLA 0.9.16 (see [Set up once](#set-up-once), step 4). Copy the coupled-carla folder (with `maps/` and `experiments/places/`) to that PC. |
+| "CARLA does not run on a Mac" or "CARLA is not set up" | Driving needs a Windows or Linux PC with CARLA 0.9.16 (see [Set up once](#set-up-once), step 4). Copy the `coupled-carla` folder (with `maps/` and `experiments/places/`) to that PC. |
 | The browser does not open | Open <http://127.0.0.1:8777/> yourself (the launcher window shows the exact address). |
 | "No free port" | Another map maker is already running: use that one, or close its window first. |
-| Something else went wrong | Press Build again once. If it fails again, send `maps/<name>/build.log` to whoever set coupled-carla up. |
+| Something else went wrong | Press Build again once. If it fails again, send `maps/<name>/build.log` to whoever set Coupled CARLA up. |
 
 ## Privacy
 

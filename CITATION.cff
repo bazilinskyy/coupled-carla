@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use coupled-carla in your research, please cite it as below."
-title: "coupled-carla: a human-factors driving simulator for real places"
+message: "If you use Coupled CARLA in your research, please cite it as below."
+title: "Coupled CARLA: a human-factors driving simulator for real places"
 abstract: >-
   Builds drivable CARLA worlds of real places from open data (OpenStreetMap, building registers, terrain, weather),
   fills them with SUMO traffic and puts several human participants (drivers, pedestrians, cyclists, AV passengers,
