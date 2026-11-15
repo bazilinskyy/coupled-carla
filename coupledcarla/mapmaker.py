@@ -490,9 +490,11 @@ def plan(place=None, lat=None, lon=None, size="medium", name=None, pedestrians=F
         area, sett = found.get("area"), found.get("settlement")
         found["name"] = (f"{area}, {sett}" if area and sett and area != sett else sett or area or found["name"])
     label = name or found["name"]
-    slug = unique_slug(slugify(name or found["name"], fallback=slugify(found.get("settlement") or "", "place")
-                               if found.get("settlement") else f"place_{abs(lat):.3f}_{abs(lon):.3f}".replace(".", "_")),
-                       bbox(lat, lon, km))
+    point = (f"point_{abs(lat):.3f}{'n' if lat >= 0 else 's'}_{abs(lon):.3f}{'e' if lon >= 0 else 'w'}"
+             .replace(".", "_"))
+    base = point if (not name and parse_coords(found["name"])) else slugify(
+        label, fallback=slugify(found.get("settlement") or "", point) if found.get("settlement") else point)
+    slug = unique_slug(base, bbox(lat, lon, km))
     warnings = []
     if km > SLOW_KM:
         warnings.append(f"This area is very large ({km:g} km across): building takes ~{estimate_minutes(km)} minutes "
@@ -552,7 +554,13 @@ def experiment(p):
     return exp
 
 
+def _one_line(text):
+    return " ".join(str(text or "").split())
+
+
 def experiment_text(p, query=None):
+    p = dict(p, label=_one_line(p["label"]), country=_one_line(p["country"]) or None)   # header lines stay comments
+    query = _one_line(query) or None
     pop = f"~{p['population']:,} people" if p["population"] else p["town_why"]
     t = p["traffic"]
     head = [
@@ -793,6 +801,9 @@ def build(exp_path, emit=None, force=False, check=True):
         n = check_roads(cfg["map"]["bbox"])
         if n == 0:
             prog.set("streets", "failed", "no roads here")
+            if exp_path.resolve().parent == PLACES.resolve():      # nothing to keep of a square without roads
+                exp_path.unlink(missing_ok=True)
+                shutil.rmtree(mdir, ignore_errors=True)
             raise MapMakerError("No roads found here: is this in the sea or in a park?",
                                 "Try a place name in a town, or move the square onto streets.")
         if n:
@@ -1037,12 +1048,22 @@ def drive_command(exp_path, headless=False):
     return cmd
 
 
+def shown_command(cmd):
+    """A command as the user would type it: the project's .venv Python by its relative path, else "python"."""
+    exe = Path(cmd[0])
+    try:
+        first = str(exe.relative_to(ROOT)) if exe.is_absolute() else cmd[0]
+    except ValueError:
+        first = "python"
+    return " ".join([first] + [f'"{c}"' if " " in c else c for c in cmd[1:]])
+
+
 def drive(exp_path, wait=True):
     """Start a drive of the map (keyboard: W/S/A/D or the arrows, Esc ends). Returns the process, or None with the
     reason printed when CARLA is not set up."""
     st = carla_status()
     if not st["ok"]:
-        say(f"Cannot drive here: {st['why']}\n{st['how']}\n    {' '.join(drive_command(exp_path))}")
+        say(f"Cannot drive here: {st['why']}\n{st['how']}\n    {shown_command(drive_command(exp_path))}")
         return None
     cmd = drive_command(exp_path)
     log = ROOT / "logs" / f"drive_{Path(exp_path).stem}.log"
@@ -1058,7 +1079,7 @@ def drive(exp_path, wait=True):
 
 
 def built_maps():
-    """Maps made here, newest first: [{name, label, country, built, experiment, preview, summary}]."""
+    """Maps made here and built, newest first: [{name, label, country, built, experiment, preview, summary}]."""
     out = []
     for exp in sorted(PLACES.glob("*.yaml")) if PLACES.exists() else []:
         try:
@@ -1067,6 +1088,8 @@ def built_maps():
             continue
         name = (cfg.get("map") or {}).get("name") or cfg.get("name") or exp.stem
         mdir = ROOT / "maps" / name
+        if not (mdir / "meta.json").exists():          # written but never built (or a failed build)
+            continue
         city = cfg.get("city") or {}
         summ = None
         if (mdir / "summary.json").exists():
@@ -1197,7 +1220,7 @@ def main(argv=None):
             say(f"Preview picture: {mdir / 'preview.png'}")
             if args.open:
                 open_file(mdir / "preview.png")
-        say(f"Drive it: {' '.join(drive_command(exp))}")
+        say(f"Drive it: {shown_command(drive_command(exp))}")
         if args.drive:
             drive(exp)
         return 0

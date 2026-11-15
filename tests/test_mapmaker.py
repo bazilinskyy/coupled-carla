@@ -187,6 +187,8 @@ def test_coordinates_are_reverse_geocoded(monkeypatch):
     fake_fetch(monkeypatch, {"nominatim": ConnectionError("x"), "photon": ConnectionError("y")})
     p = mm.reverse(10.0, 20.0)                 # offline: the bare point, country unknown
     assert p["country_code"] is None and p["source"] == "coordinates"
+    monkeypatch.setattr(mm, "nearby_places", lambda lat, lon: None)
+    assert mm.plan(found=mm.reverse(45.0, -30.0))["slug"] == "point_45_000n_30_000w"
 
 
 def test_population_from_the_town(monkeypatch):
@@ -315,6 +317,9 @@ def test_unicode_and_warnings(isolated):
     assert any("country" in w for w in p2["warnings"]) and p2["drive"] == "right"
     t = mm.experiment_text(mm.plan(found=place(name="Zürich, Paradeplatz")), query="Zürich")
     assert "Zürich" in t and "\\u" not in t
+    bad = mm.experiment_text(mm.plan(found=place(), name="x\nserver: {launch: false}"), query="a\nb: 1")
+    assert all(line.startswith("#") for line in bad.split("\nname:")[0].splitlines())
+    assert yaml.safe_load(bad).get("server") is None and yaml.safe_load(bad).get("b") is None
 
 
 def test_unique_names(isolated):
@@ -397,6 +402,7 @@ def test_build_refuses_an_empty_area(isolated, monkeypatch, tmp_path):
     from coupledcarla import config
     monkeypatch.setattr(config, "map_dir", lambda cfg: tmp_path / "maps" / cfg["map"]["name"])
     monkeypatch.setattr(mm, "check_roads", lambda box: 0)
+    monkeypatch.setattr(mm, "nearby_places", lambda lat, lon: None)
     exp = mm.write_experiment(mm.plan(found=place(name="Middle of the Atlantic", lat=30.0, lon=-40.0,
                                                   country=None, country_code=None)))
     events = []
@@ -404,6 +410,8 @@ def test_build_refuses_an_empty_area(isolated, monkeypatch, tmp_path):
         mm.build(exp, events.append)
     assert "No roads found here" in str(e.value) and "town" in e.value.advice
     assert events[-1]["state"] == "failed"
+    assert not exp.exists() and not (tmp_path / "maps" / exp.stem).exists()    # nothing left behind
+    assert mm.built_maps() == []
 
 
 def test_summary(tmp_path):
@@ -436,6 +444,9 @@ def test_carla_status(monkeypatch, tmp_path):
     assert not st["ok"] and "0.9.16" in st["how"]
     cmd = mm.drive_command(mm.ROOT / "experiments" / "places" / "x.yaml")
     assert cmd[1:] == ["-m", "coupledcarla.run", str(Path("experiments/places/x.yaml"))]
+    venv = mm.ROOT / ".venv" / "bin" / "python"
+    assert mm.shown_command([str(venv)] + cmd[1:]).startswith(str(Path(".venv/bin/python")) + " -m coupledcarla.run")
+    assert mm.shown_command(["/usr/bin/python3", "-m", "x"]) == "python -m x"
 
 
 # ---------------------------------------------------------------- the web page
@@ -471,6 +482,7 @@ def test_web_page_and_api(server, monkeypatch):
     assert code == 200 and "text/html" in ctype
     page = body.decode()
     assert "Build this map" in page and "leaflet@1.9.4" in page and "integrity=" in page
+    assert "if (!r.ok) throw data" in page          # a failed job (with an "error" field) is shown, not retried
     assert "OpenStreetMap</a> contributors" in page
     monkeypatch.setattr(mm, "search", lambda q, limit=5: [place(name=q)])
     code, body, _ = request(server + "/api/search?q=Kinsale")

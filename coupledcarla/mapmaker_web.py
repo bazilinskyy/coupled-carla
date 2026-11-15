@@ -83,7 +83,7 @@ class Jobs:
     def drive(self, name):
         st = mm.carla_status()
         exp = mm.PLACES / f"{name}.yaml"
-        cmd = " ".join(mm.drive_command(exp)).replace(mm.sys.executable, "python")
+        cmd = mm.shown_command(mm.drive_command(exp))
         if not exp.exists():
             raise mm.MapMakerError("That map is not here any more.", "Build it again.")
         if not st["ok"]:

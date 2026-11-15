@@ -215,7 +215,7 @@ async function api(path, body) {
   const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
   const r = await fetch(path, opt);
   const data = await r.json().catch(() => ({ error: "The map maker did not answer.", advice: "Is its window still open?" }));
-  if (!r.ok || data.error) throw data;
+  if (!r.ok) throw data;                     // a failed job is a normal answer of /api/job
   return data;
 }
 function drawSquare(lat, lon, km) {
@@ -293,6 +293,8 @@ function renderPlan(p) {
   for (const b of $("sizes").children) b.classList.toggle("on", b.dataset.size === p.size);
   $("warnings").innerHTML = p.warnings.map((w) => `<div class="note warn">${esc(w)}</div>`).join("");
   drawSquare(p.lat, p.lon, p.km);
+  if (map.getZoom() < 12 || !map.getBounds().contains(square.getBounds()))   // show what will be built
+    map.flyToBounds(square.getBounds(), { padding: [60, 60], maxZoom: 15, duration: 0.8 });
   $("buildBtn").disabled = false;
 }
 
@@ -329,7 +331,8 @@ async function startBuild() {
 function icon(state) { return state === "done" ? "✓" : state === "failed" ? "!" : ""; }
 
 function renderJob(j) {
-  $("progTitle").textContent = j.state === "running" ? `Building ${j.plan.place.name}…` : `Built ${j.plan.place.name}`;
+  $("progTitle").textContent = j.state === "running" ? `Building ${j.plan.place.name}…`
+    : j.state === "failed" ? `Could not build ${j.plan.place.name}` : `Built ${j.plan.place.name}`;
   const m = Math.floor(j.elapsed / 60), s = j.elapsed % 60;
   $("elapsed").textContent = `${m}:${String(s).padStart(2, "0")} so far · about ${j.plan.minutes} min in all`;
   $("steps").innerHTML = j.steps.map((st) =>
