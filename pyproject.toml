@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coupled-carla"
+dynamic = ["version"]
+description = "Coupled CARLA: a human-factors driving simulator for real places (CARLA + SUMO, built from open data)"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Pavlo Bazilinskyy" }]
+requires-python = ">=3.10"
+keywords = ["driving simulator", "human factors", "CARLA", "SUMO", "OpenStreetMap", "digital twin", "eHMI"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+# Install from a clone, editable, so that maps/, logs/ and experiments/ stay in the project folder:
+#   pip install -e ".[carla,maps]"      (the same as requirements.txt: make maps and drive them on CARLA 0.9.16)
+#   pip install -e ".[maps]"            (make maps only, e.g. on a Mac; or CARLA 1.0: then install its own wheel)
+dependencies = [
+    "eclipse-sumo>=1.20",
+    "sumolib",
+    "traci",
+    "lxml",
+    "networkx",
+    "shapely",
+    "numpy",
+    "pygame",
+    "pyyaml",
+    "requests",
+    "pyproj",
+    "pillow",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+# the CARLA 0.9.16 client (no macOS build of CARLA: maps can be made there, not driven)
+carla = ['carla==0.9.16; sys_platform != "darwin"']
+# real-world data: without them the maps fall back to OSM buildings and the AWS Terrain Tiles
+maps = [
+    "duckdb",                  # Overture Maps buildings
+    "tifffile",                # AHN elevation (Netherlands)
+    "imagecodecs",             # AHN tiles use the floating-point predictor
+    "gtfs-realtime-bindings",  # live bus positions (GTFS-Realtime)
+]
+# tools/: figures and viewer screenshots (then: python -m playwright install chromium)
+tools = ["playwright"]
+dev = ["pytest"]
+all = ["coupled-carla[carla,maps,tools,dev]"]
+
+[project.urls]
+Homepage = "https://bazilinskyy.github.io/coupled-carla/"
+Source = "https://github.com/bazilinskyy/coupled-carla"
+Issues = "https://github.com/bazilinskyy/coupled-carla/issues"
+Funding = "https://github.com/sponsors/bazilinskyy"
+
+[project.scripts]
+coupled-carla-map = "coupledcarla.mapmaker:main"
+coupled-carla-build = "coupledcarla.mapbuild:main"
+coupled-carla-run = "coupledcarla.run:main"
+coupled-carla-station = "coupledcarla.station:main"
+coupled-carla-session = "coupledcarla.session:main"
+coupled-carla-validate = "coupledcarla.validate:main"
+coupled-carla-analysis = "coupledcarla.analysis:main"
+coupled-carla-export = "coupledcarla.export_trial:main"
+coupled-carla-cities = "coupledcarla.cities:main"
+coupled-carla-towns = "coupledcarla.towns:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "coupledcarla.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["coupledcarla*"]
+exclude = ["*__pycache__*"]
+
+[tool.setuptools.package-data]
+# data folders (mesh catalogues, pages, eHMI and display designs, the CARLA content pack, the bridge's type maps)
+"*" = ["*.json", "*.html", "*.md", "*.xml", "*.yaml", "*.uplugin"]

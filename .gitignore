@@ -6,3 +6,5 @@ __pycache__/
 twins/
 /videos/
 /out/
+*.egg-info/
+/_site/

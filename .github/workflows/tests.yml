@@ -17,4 +17,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: pip install numpy pyyaml pytest matplotlib requests shapely pyproj
+      # the package itself (pyproject.toml) without its heavy dependencies (SUMO, CARLA): the install and its commands
+      - run: pip install --no-deps -e .
+      - run: python -c "import importlib.metadata as m; eps = {e.name for e in m.entry_points(group='console_scripts')}; assert {'coupled-carla-map', 'coupled-carla-run', 'coupled-carla-session'} <= eps, eps; print('coupled-carla', m.version('coupled-carla'))"
       - run: python -m pytest -q tests

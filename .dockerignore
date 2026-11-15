@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.venv10
+maps
+logs
+twins
+videos
+out
+_site
+**/__pycache__
+**/*.pyc
+docs/img

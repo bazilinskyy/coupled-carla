@@ -169,6 +169,7 @@ def test_haptic_patterns_and_udp():
 
 def test_wheel_vibrate_mixes_into_the_road_effect(monkeypatch):
     pytest.importorskip("pygame")
+    pytest.importorskip("carla")          # coupledcarla.inputs imports carla
     from coupledcarla.inputs import steering_wheel as sw
     w = sw.SteeringWheel.__new__(sw.SteeringWheel)
     w._haptic, w._cue = None, 0.0

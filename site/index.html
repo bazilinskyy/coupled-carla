@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coupled CARLA</title>
+  <meta name="description" content="Coupled CARLA: a human-factors driving simulator for real places. Type a place, get a drivable world built from open data, and put drivers, pedestrians, cyclists, AV passengers and drone pilots in it together.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b1120" media="(prefers-color-scheme: dark)">
+  <meta property="og:title" content="Coupled CARLA">
+  <meta property="og:description" content="A human-factors driving simulator for real places, built from open data. CARLA + SUMO, MIT licence.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://bazilinskyy.github.io/coupled-carla/videos/crossing_four_views.jpg">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // the theme chosen with the button (kept in this browser), before the first paint
+    try { var t = localStorage.getItem("cc-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="#">
+      <img src="logo.svg" width="32" height="32" alt="">
+      <span>Coupled CARLA</span>
+    </a>
+    <nav aria-label="Sections">
+      <ul class="nav">
+        <li><a href="#videos">Videos</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#start">Quick start</a></li>
+        <li class="wide"><a href="#cite">Cite</a></li>
+        <li class="wide"><a href="{{repo}}">GitHub</a></li>
+      </ul>
+    </nav>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>
+      <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="currentColor"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-text">
+      <p class="eyebrow">Open source · MIT · CARLA + SUMO</p>
+      <h1>A human-factors driving simulator for real places</h1>
+      <p class="lead">Type a place, get a drivable world built from open data, and put drivers, pedestrians,
+        cyclists, AV passengers and drone pilots in it together.</p>
+      <p class="cta">
+        <a class="btn btn-primary" href="#start">Get started</a>
+        <a class="btn" href="#videos">Watch the videos</a>
+        <a class="btn btn-ghost" href="{{repo}}">Code on GitHub</a>
+      </p>
+      <ul class="facts" aria-label="At a glance">
+        <li><b>Any place</b> on Earth, from OpenStreetMap</li>
+        <li><b>19 cities</b> ready, plus CARLA's towns</li>
+        <li><b>Several people</b> in one world, logged at 50 Hz</li>
+      </ul>
+    </div>
+{{hero}}
+  </div>
+</section>
+
+<section class="opendata" aria-labelledby="opendata-h">
+  <div class="wrap split">
+    <div>
+      <h2 id="opendata-h">Easier than ever, from open data</h2>
+      <p>Modelling a city's streets, buildings and traffic by hand used to keep a team of 3D artists busy for
+        months. Today most of it is open data that anyone may download: OpenStreetMap's streets, lanes, signs and
+        trees, mapped by volunteers; building footprints and heights from national registers and Overture Maps;
+        terrain from lidar and global elevation models; the weather and the sun of a real day; bus timetables; open
+        traffic counts. Free, open simulators, CARLA for the 3D world and SUMO for the traffic, turn it into a world
+        you can drive.</p>
+      <p>Coupled CARLA puts these together, and the map maker reduces it to typing a place and pressing a button.
+        It is meant for people who do not program: researchers in psychology and human factors, designers,
+        students, city planners.</p>
+      <ul class="chips" aria-label="Open data used">
+        <li>OpenStreetMap</li><li>Overture Maps</li><li>3DBAG</li><li>IGN BD TOPO</li><li>PLATEAU</li>
+        <li>NYC Open Data</li><li>AHN</li><li>AWS Terrain Tiles</li><li>Open-Meteo</li><li>GTFS</li>
+        <li>vehicle registers</li><li>traffic counts</li><li>CROWD</li>
+      </ul>
+    </div>
+    <figure>
+      <img src="img/mapmaker_page.jpg" width="1400" height="875" loading="lazy"
+           alt="The map maker in the browser: Kinsale, Ireland, built from the page, with its square, preview and summary">
+      <figcaption>The map maker: type a place or click on the map, choose a size, press <i>Build this map</i>,
+        then <i>Drive it</i>.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="videos" class="videos" aria-labelledby="videos-h">
+  <div class="wrap">
+    <h2 id="videos-h">Videos</h2>
+    <p class="section-lead">Short clips of what a session looks and sounds like, rendered headless on CARLA 0.9.16
+      at Epic quality by <code>tools/make_videos.py</code>. Point at a clip to preview it without sound; click or
+      tap to watch it with sound. First-person clips carry what the participant hears.</p>
+    <ul class="gallery" role="list">
+{{videos_places}}
+    </ul>
+    <div class="towns-block"{{towns_hidden}}>
+      <h3 class="sub">CARLA's own towns</h3>
+      <ul class="gallery" role="list">
+{{videos_towns}}
+      </ul>
+    </div>
+    <p class="more">All files: <a href="{{release}}">release demo-videos</a>. Clips of the CARLA 1.0 Eindhoven
+      digital twin follow.</p>
+  </div>
+</section>
+
+<section id="features" class="features" aria-labelledby="features-h">
+  <div class="wrap">
+    <h2 id="features-h">What it does</h2>
+
+    <article class="feature">
+      <img src="img/mapmaker_seoul.png" loading="lazy" width="900" height="900"
+           alt="Preview of a map made with the map maker: Myeong-dong, Seoul, from above with its roads and buildings">
+      <div>
+        <h3>Make a map of any place</h3>
+        <p>Type a town, a square, an address or coordinates, in any language. Coupled CARLA downloads the streets
+          from OpenStreetMap, prunes the road graph so a car can always drive on, and writes an OpenDRIVE map for
+          CARLA with a matching SUMO network. It guesses the driving side from the country and the traffic from
+          the size of the town, and fills the map with buildings at their real footprints and heights, street
+          trees, lamps, benches, signs, parked cars, real terrain and the bus lines with their timetables.
+          A medium map takes 3 to 5 minutes, most of it waiting for the open data services.</p>
+        <p><a href="{{repo}}#make-a-map-of-any-place">Make a map</a> ·
+          <a href="{{repo}}/blob/main/docs/make_a_map.md">step-by-step guide</a></p>
+      </div>
+    </article>
+
+    <article class="feature">
+      <img src="img/stations_four_views.jpg" loading="lazy" width="1400" height="788"
+           alt="Four stations in one trial at the same moment: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot">
+      <div>
+        <h3>Coupled experiments</h3>
+        <p>Several people share one world, as in coupled-sim: a driver (keyboard or a Logitech G25 with force
+          feedback), a pedestrian, an AV passenger who sets the car's eHMI, a drone pilot, each at a station on any
+          machine of the lab network. Scripted AI cars follow routes with coupled-sim-style triggers and show eHMIs
+          on the front, rear, roof, road or as eyes that follow a pedestrian. SUMO traffic yields to pedestrians.
+          Visual sync, round trips and frame latency are logged; analysis measures gaps, time to collision and PET
+          for every encounter.</p>
+        <p><a href="{{repo}}#coupled-experiments-phase-2">Coupled experiments</a> ·
+          <a href="{{repo}}#study-tools">study tools</a> · <a href="{{repo}}/blob/main/docs/lab_guide.md">lab guide</a></p>
+      </div>
+    </article>
+
+    <article class="feature">
+      <img src="img/twin_facades_trees.jpg" loading="lazy" width="1400" height="788"
+           alt="The styled Eindhoven twin rendered by CARLA 1.0: brick and office facades, real trees, a zebra crossing and a yield sign">
+      <div>
+        <h3>Digital twins on CARLA 1.0</h3>
+        <p>Central Eindhoven baked into a CARLA 1.0 (Unreal Engine 5.8) level from Dutch open data: AHN terrain,
+          the 8 cm PDOK aerial photo on the ground and roofs, 3DBAG buildings with real roof shapes and facade
+          styles by construction year and use, lane markings, kerbs and sidewalks. It runs in real time with SUMO
+          traffic and stations. The same pipeline makes a twin of any place from the best open data of its country
+          (Salamanca, Shibuya and Leuven tested). The Eindhoven twin is a downloadable content pack.</p>
+        <p><a href="{{repo}}#the-eindhoven-digital-twin">The Eindhoven digital twin</a> ·
+          <a href="{{repo}}#a-twin-of-any-place">a twin of any place</a> ·
+          <a href="{{repo}}/releases/tag/twin-eindhoven-2026-11-15">download</a></p>
+      </div>
+    </article>
+
+    <article class="feature">
+      <img src="img/drone_routes.png" loading="lazy" width="1400" height="700"
+           alt="Delivery routes over Eindhoven's building heights: around the tall buildings inside the 40-60 metre band">
+      <div>
+        <h3>Drones</h3>
+        <p>A participant can fly a quadrotor with a gamepad, keyboard or RC transmitter, and AI drones fly
+          deliveries, swarms, patrols and hovers, all with coupled-sim's flight model ported to numpy: rotor
+          thrust, a PX4-style controller at 500 Hz, turbulence from the real wind and a battery model. Delivery
+          routes keep their band above the roofs and go round tall buildings at SORA clearances.</p>
+        <p><a href="{{repo}}#drones">Drones</a></p>
+      </div>
+    </article>
+
+    <article class="feature">
+      <img src="img/sound_ped_crossing.jpg" loading="lazy" width="1400" height="560"
+           alt="What a pedestrian waiting at a crossing in Eindhoven hears: pass-bys, idling queues and the crossing signal, as a spectrogram and A-weighted level">
+      <div>
+        <h3>Sound, in-car displays and eHMIs</h3>
+        <p>Each station hears the world in calibrated dB SPL from published acoustic models: CNOSSOS-EU sound
+          power per vehicle, synthesised engines, AVAS on electric cars, reflections off the real facades, ISO 9613
+          propagation, binaural output for headphones, and an ambience that follows the real weather and season.
+          Drivers and AV passengers get an instrument cluster, a HUD and a centre screen on the car's own panels;
+          eHMIs and haptic cues come from coupled-sim's design files.</p>
+        <p><a href="{{repo}}#sound-in-car-displays-and-designed-ehmis">Sound, displays and eHMIs</a></p>
+      </div>
+    </article>
+
+    <article class="feature">
+      <img src="img/session_dashboard.jpg" loading="lazy" width="1400" height="875"
+           alt="The session dashboard during a live trial: four stations connected, a live map over an aerial photo, the agents table and the events">
+      <div>
+        <h3>Session dashboard</h3>
+        <p>Run a whole session from a browser on the host or a tablet: choose the experiment or make a map of a new
+          place, give each station in the lobby its role, start trials on every station at once, and watch a live
+          map over an open aerial photo with every participant, AV, SUMO vehicle and traffic light. Set eHMIs,
+          weather, time of day and take-over requests live; open finished trials in the viewer or download them.</p>
+        <p><a href="{{repo}}#session-dashboard">Session dashboard</a></p>
+      </div>
+    </article>
+
+    <article class="feature">
+      <img src="videos/town10_rush_hour.jpg" loading="lazy" width="640" height="360"
+           alt="Town10HD, CARLA's downtown, with SUMO traffic stopping at the town's own traffic lights">
+      <div>
+        <h3>CARLA's towns</h3>
+        <p>One line, <code>map: {carla_town: Town10HD_Opt}</code>, drives CARLA's own towns with every feature:
+          SUMO traffic that runs the towns' own traffic lights, parked cars, a crowd and CARLA's AI walkers,
+          stations, eHMIs, drones, sound and night lights. Town01 to Town05 and Town10HD passed a smoke test with
+          no collision.</p>
+        <p><a href="{{repo}}#standard-carla-maps">Standard CARLA maps</a></p>
+      </div>
+    </article>
+
+    <article class="feature">
+      <img src="img/twin_render_crossing.jpg" loading="lazy" width="1400" height="788"
+           alt="The baked Eindhoven twin in CARLA 1.0 with lane markings, a zebra crossing, yield signs and SUMO's bus">
+      <div>
+        <h3>Photorealistic tiles (optional)</h3>
+        <p>On a baked twin, <code>map.photoreal: google</code> streams Google's Photorealistic 3D Tiles over the
+          level with Cesium for Unreal, while cars keep driving on CARLA's roads and walkers on its sidewalks. It
+          needs your own Google Maps Platform key with billing; the server caps the requests per day and month.
+          Without a key the trial runs on the normal twin.</p>
+        <p><a href="{{repo}}#photorealistic-tiles-optional">Photorealistic tiles</a></p>
+      </div>
+    </article>
+
+    <div class="more-grid">
+      <div>
+        <h3>Real traffic</h3>
+        <p>SUMO drives everything that is not a participant: EIDM car following, cyclists on the real cycle
+          network, car fleets from open vehicle registers, demand fitted to open traffic counts, and the real bus
+          lines at their GTFS frequencies, live where agencies publish positions.</p>
+        <p><a href="{{repo}}#traffic">Traffic</a> · <a href="{{repo}}#public-transport">public transport</a></p>
+      </div>
+      <div>
+        <h3>19 cities</h3>
+        <p>Eindhoven plus three cities per inhabited continent, from Tokyo and Cairo to Luang Prabang and Ushuaia,
+          left- and right-hand traffic, each with its scenery, terrain and bus lines; all 19 pass a smoke test.</p>
+        <p><a href="{{repo}}#cities">Cities</a></p>
+      </div>
+      <div>
+        <h3>Logging and analysis</h3>
+        <p>coupled-sim-style CSV at 50 Hz, events, live JSON over UDP, SUMO's trajectories of the whole map,
+          CARLA's recorder, and a browser trial viewer (three.js) that replays any trial in 3D.</p>
+        <p><a href="{{repo}}#logging-and-data">Logging</a> · <a href="{{repo}}#analysis">analysis</a> ·
+          <a href="{{repo}}#trial-viewer">viewer</a></p>
+      </div>
+      <div>
+        <h3>Two CARLA generations</h3>
+        <p>The same experiment files run on CARLA 0.9.16 (UE 4.26) and CARLA 1.0 (UE 5.8): renamed blueprints
+          map to their closest stand-ins and the scenery has a mesh catalogue per version.</p>
+        <p><a href="{{repo}}#running-on-carla-10">Running on CARLA 1.0</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="start" class="start" aria-labelledby="start-h">
+  <div class="wrap">
+    <h2 id="start-h">Quick start</h2>
+    <div class="steps">
+      <div>
+        <h3>Without programming</h3>
+        <ol>
+          <li>Download Coupled CARLA (<a href="{{repo}}/archive/refs/heads/main.zip">ZIP</a>) and unpack it.</li>
+          <li>Install <a href="https://docs.astral.sh/uv/getting-started/installation/">uv</a>, then, in the
+            <code>coupled-carla</code> folder:
+<pre><code>uv venv --python 3.12 .venv
+uv pip install -e ".[carla,maps]"</code></pre></li>
+          <li>To drive: unpack <a href="https://github.com/carla-simulator/carla/releases/tag/0.9.16">CARLA 0.9.16</a>
+            as a folder <code>CARLA_0.9.16</code> next to <code>coupled-carla</code>.</li>
+          <li>Double-click <code>make_map.bat</code> (Windows), <code>Make a map.command</code> (macOS) or
+            <code>make_map.sh</code> (Linux), type a place, press <b>Build this map</b>, then <b>Drive it</b>.</li>
+        </ol>
+        <p><a href="{{repo}}/blob/main/docs/make_a_map.md">The map maker, step by step</a></p>
+      </div>
+      <div>
+        <h3>From a terminal</h3>
+<pre><code>git clone https://github.com/bazilinskyy/coupled-carla.git
+cd coupled-carla
+uv venv --python 3.12 .venv &amp;&amp; source .venv/bin/activate
+uv pip install -e ".[carla,maps]"
+export CARLA_ROOT=~/CARLA_0.9.16
+
+coupled-carla-map "Markt, Eindhoven"     # find, build, summarise
+coupled-carla-run experiments/places/&lt;name&gt;.yaml   # the name it printed
+coupled-carla-run experiments/eindhoven_centre.yaml \
+    --input autopilot --headless --duration 60
+coupled-carla-session --experiment experiments/eindhoven_session.yaml</code></pre>
+        <p class="note">The <code>python -m coupledcarla.&lt;module&gt;</code> commands of the README work as
+          well. Driving needs a Windows or Linux PC with a gaming graphics card; maps can be made on a Mac too.
+          A Docker image for the map maker and the SUMO tools: <a href="{{repo}}/blob/main/docs/docker.md">docs/docker.md</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cite" class="cite" aria-labelledby="cite-h">
+  <div class="wrap">
+    <h2 id="cite-h">Cite</h2>
+    <p>If you use Coupled CARLA for academic work, please cite the software (GitHub's <i>Cite this repository</i>
+      button gives it in APA and BibTeX, from <a href="{{repo}}/blob/main/CITATION.cff">CITATION.cff</a>):</p>
+    <blockquote>Bazilinskyy, P. (2026). Coupled CARLA: a human-factors driving simulator for real places [Computer
+      software]. https://github.com/bazilinskyy/coupled-carla</blockquote>
+    <div class="bib">
+<pre id="bibtex"><code>@software{bazilinskyy2026coupledcarla,
+  author  = {Bazilinskyy, Pavlo},
+  title   = {Coupled CARLA: a human-factors driving simulator for real places},
+  year    = {2026},
+  version = {{{version}}},
+  url     = {https://github.com/bazilinskyy/coupled-carla},
+  license = {MIT}
+}</code></pre>
+      <button class="btn btn-small copy" type="button" data-copy="bibtex">Copy BibTeX</button>
+    </div>
+    <p>and the coupled simulator it builds on:</p>
+    <blockquote>Bazilinskyy, P., Kooijman, L., Dodou, D., &amp; De Winter, J. C. F. (2020). Coupled simulator for
+      research on the interaction between pedestrians and (automated) vehicles. 19th Driving Simulation Conference
+      (DSC). Antibes, France.</blockquote>
+  </div>
+</section>
+
+<section class="support" aria-labelledby="support-h">
+  <div class="wrap split">
+    <div>
+      <h2 id="support-h">Support and contribute</h2>
+      <p>Coupled CARLA is free and stays free. If it is useful to you and you would like to give something back,
+        you can sponsor it on GitHub or buy a coffee on Ko-fi. Bug reports, ideas, new cities and pull requests
+        help just as much.</p>
+      <p class="cta">
+        <a class="btn" href="https://github.com/sponsors/bazilinskyy">Sponsor on GitHub</a>
+        <a class="btn" href="https://ko-fi.com/bazilinskyy">Ko-fi</a>
+        <a class="btn btn-ghost" href="{{repo}}/issues/new/choose">Report a bug or propose a feature</a>
+        <a class="btn btn-ghost" href="{{repo}}/blob/main/CONTRIBUTING.md">Contributing</a>
+      </p>
+    </div>
+    <div>
+      <h2>Credits</h2>
+      <p>Made at Eindhoven University of Technology by Pavlo Bazilinskyy; successor of
+        <a href="https://github.com/bazilinskyy/coupled-sim">coupled-sim</a>. Built on
+        <a href="https://carla.org">CARLA</a> (MIT) and <a href="https://eclipse.dev/sumo/">Eclipse SUMO</a>
+        (EPL-2.0). Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors
+        (ODbL), so built maps are derived databases under the ODbL; the other open data sources and their licences
+        are listed in <a href="{{repo}}#credits-data-and-licences">Credits, data and licences</a>.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <p><img src="logo.svg" width="20" height="20" alt=""> Coupled CARLA {{version}} · code under the
+      <a href="{{repo}}/blob/main/LICENSE">MIT License</a> · <a href="{{repo}}">GitHub</a> ·
+      <a href="{{repo}}/releases">Releases</a></p>
+    <p class="muted">Page built {{built}}.</p>
+  </div>
+</footer>
+
+<dialog id="player" aria-labelledby="player-title">
+  <div class="player-bar">
+    <h2 id="player-title">Video</h2>
+    <button class="player-close" type="button" aria-label="Close the video">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <video controls playsinline preload="none"></video>
+</dialog>
+
+<script src="main.js" defer></script>
+</body>
+</html>

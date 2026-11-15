@@ -10,7 +10,9 @@ authors:
   - family-names: Bazilinskyy
     given-names: Pavlo
     affiliation: Eindhoven University of Technology
+version: "1.0.0"
 repository-code: "https://github.com/bazilinskyy/coupled-carla"
+url: "https://bazilinskyy.github.io/coupled-carla/"
 license: MIT
 keywords:
   - driving simulator
