@@ -474,7 +474,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 log(f"parked: {parked.n} cars within {parked.radius:.0f} m of the participants")
         for part in parts:   # BasicAgent planned from (0, 0, 0) before the first tick: plan from the spawn lane
             if hasattr(part.input, "attach"):     # the SUMO driver: its route from the spawn lane (sumodriver.py)
-                part.input.attach(sync, sumo.net, geo, part.cfg, BridgeHelper.offset, log)
+                try:
+                    part.input.attach(sync, sumo.net, geo, part.cfg, BridgeHelper.offset, log)
+                except RuntimeError as err:       # e.g. a spawn on a lane SUMO's net has not got: CARLA's autopilot
+                    log(f"{err}; CARLA's BasicAgent drives instead")
+                    part.input = inputs.make("autopilot", part.actor)
             if hasattr(part.input, "restart"):
                 part.input.restart(world.get_map().get_waypoint(part.actor.get_location()))
         walkers_all = [p.actor for p in parts if p.kind == "pedestrian"] + \

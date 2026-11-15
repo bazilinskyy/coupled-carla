@@ -127,7 +127,7 @@ class SumoDriver:
         self.sid = f"ego_{p['role']}"
         tf = self.vehicle.get_transform()
         x, y = sumo_xy(offset, tf.location.x, tf.location.y)
-        got = pick_lane(net, x, y, tf.rotation.yaw)
+        got = pick_lane(net, x, y, tf.rotation.yaw) or pick_lane(net, x, y, tf.rotation.yaw, radius=60.0)
         if got is None:
             raise RuntimeError(f"{p['role']}: no SUMO lane near the spawn for the SUMO driver")
         self.lane, self.pos = got

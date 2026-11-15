@@ -34,7 +34,7 @@ class CarlaSimulation(object):
     """
     def __init__(self, host, port, step_length):
         self.client = carla.Client(host, port)
-        self.client.set_timeout(30.0)  # coupled-carla: 2 s is too short for a loaded server
+        self.client.set_timeout(120.0)  # coupled-carla: 2 s is too short; the first ticks may wait ~40 s while the server builds the pedestrian navmesh of a generated world
 
         self.world = self.client.get_world()
         self.blueprint_library = self.world.get_blueprint_library()
