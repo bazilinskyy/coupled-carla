@@ -4,6 +4,7 @@
     python -m coupledcarla.mapmaker "51.4416, 5.4697" --size large --open
     python -m coupledcarla.mapmaker "Plaza Mayor, Salamanca" --drive    # then drive it (needs CARLA)
     python -m coupledcarla.mapmaker --web                              # the same as a page in the browser
+    python -m coupledcarla.mapmaker "Plaza Mayor, Salamanca" --twin     # a baked CARLA 1.0 digital twin instead
     python -m coupledcarla.mapmaker                                    # asks for the place (in a terminal)
 
 From Python:
@@ -17,6 +18,11 @@ size of the town, a readable name), writes a commented experiment file with the 
 experiments/cities/*.yaml, builds the map with coupledcarla.mapbuild while it reports each step in plain words
 (the raw log goes to maps/<name>/build.log), then draws a preview picture (maps/<name>/preview.png) and writes a
 summary with the data sources and their licences (maps/<name>/summary.json and summary.txt).
+
+With --twin (and a digital-twin toolchain configured, coupledcarla.twinmaker) it makes a CARLA 1.0 digital twin of
+the same square instead: carla-digitaltwins' TwinModel pipeline with the country's best open data, baked into the
+CARLA 1.0 editor tree, and an experiment experiments/places/<name>_twin.yaml that drives it (map.opendrive,
+map.carla_level), whose SUMO net is then built from the twin's OpenDRIVE.
 """
 import argparse
 import json
@@ -466,9 +472,10 @@ def settlement_population(place):
 # ------------------------------------------------------------------------------------------------ the plan
 
 
-def plan(place=None, lat=None, lon=None, size="medium", name=None, pedestrians=False, found=None):
+def plan(place=None, lat=None, lon=None, size="medium", name=None, pedestrians=False, found=None, twin=False):
     """Everything about a map before it is built: the place, the guesses and the experiment it will write.
-    `found`: a place dict already looked up (from search or reverse)."""
+    `found`: a place dict already looked up (from search or reverse). twin: a CARLA 1.0 digital twin instead
+    (coupledcarla.twinmaker; experiments/places/<name>_twin.yaml)."""
     km = size_km(size)
     if found is None:
         if lat is not None and lon is not None:
@@ -506,8 +513,15 @@ def plan(place=None, lat=None, lon=None, size="medium", name=None, pedestrians=F
             "bbox": bbox(lat, lon, km), "country": found.get("country"), "country_code": cc,
             "continent": CONTINENT.get(cc or "", "unknown"), "drive": side, "town": town, "town_why": why,
             "population": pop, "traffic": traffic_for(town, km), "pedestrians": bool(pedestrians),
-            "minutes": estimate_minutes(km), "warnings": warnings,
-            "experiment": str((PLACES / f"{slug}.yaml").relative_to(ROOT))}
+            "minutes": estimate_minutes(km) + (twin_minutes(km) if twin else 0), "warnings": warnings,
+            "twin": bool(twin),
+            "experiment": str((PLACES / (f"{slug}_twin.yaml" if twin else f"{slug}.yaml")).relative_to(ROOT))}
+
+
+def twin_minutes(km):
+    """A twin's extra time: the national data, the real buildings and the bake grow with the area (1 km: ~35 min)."""
+    from .twinmaker import TWIN_MINUTES
+    return int(round(TWIN_MINUTES * max(1.0, km) ** 2))
 
 
 def unique_slug(slug, box):
@@ -905,7 +919,19 @@ def summary(mdir, cfg=None):
                      if roads_km is not None and roads_km < 2.0 else []),
         "map_dir": str(mdir),
         "experiment": (cfg or {}).get("_path"),
+        "twin": twin_summary(cfg, mdir),
     }
+
+
+def twin_summary(cfg, mdir):
+    """The twin lines of a map built from a baked level (map.carla_level), else []."""
+    if not ((cfg or {}).get("map") or {}).get("carla_level"):
+        return []
+    try:
+        from . import twinmaker
+        return twinmaker.summary_lines(cfg, mdir)
+    except Exception:  # noqa: BLE001 - the summary is fine without them
+        return []
 
 
 def summary_text(s):
@@ -924,6 +950,7 @@ def summary_text(s):
     if s.get("relief_m") is not None:
         lines.append(f"  Ground: {s['ground_m'][0]:.0f} to {s['ground_m'][1]:.0f} m above sea level "
                      f"({s['relief_m']} m of hills)")
+    lines += list(s.get("twin") or [])
     for w in s.get("warnings") or []:
         lines.append(f"  Note: {w}")
     lines.append("  Made from (free, open data; please credit them when you publish pictures or results):")
@@ -962,7 +989,7 @@ def printer(stream=None):
 
 
 def make_map(place=None, lat=None, lon=None, size="medium", name=None, pedestrians=False, build_it=True,
-             force=False, emit=None):
+             force=False, emit=None, twin=False):
     """Make a drivable map of a place. Returns the experiment file (experiments/places/<name>.yaml); the map is built
     into maps/<name>/ with preview.png, summary.json and summary.txt next to it.
 
@@ -970,19 +997,35 @@ def make_map(place=None, lat=None, lon=None, size="medium", name=None, pedestria
     size: "small" (about 1 km), "medium" (1.4 km), "large" (2 km) or a number of km.
     name: a readable name for the map (default: the place's name).
     pedestrians: a crowd of pedestrians on the pavements that behaves like the country's people.
-    build_it: False only writes the experiment file."""
+    build_it: False only writes the experiment file (not with twin).
+    twin: a baked CARLA 1.0 digital twin instead (needs the toolchain of coupledcarla.twinmaker); returns
+    experiments/places/<name>_twin.yaml."""
     emit = emit or printer()
     t0 = time.time()
     emit({"step": "place", "title": TITLES["place"], "state": "running", "text": "", "at": 0.0})
-    p = plan(place, lat, lon, size, name, pedestrians)
+    p = plan(place, lat, lon, size, name, pedestrians, twin=twin)
     emit({"step": "place", "title": TITLES["place"], "state": "done",
           "text": f"{p['place']['full']} ({p['drive']}-hand traffic, {TOWN_WORDS[p['town']]})",
           "at": round(time.time() - t0, 1)})
     for w in p["warnings"]:
         emit({"step": "place", "title": TITLES["place"], "state": "note", "text": w, "at": 0.0})
+    if twin:
+        return make_twin_map(p, emit, force=force)
     path = write_experiment(p, query=place if place else f"{lat}, {lon}")
     if build_it:
         build(path, emit, force=force)
+    return path
+
+
+def make_twin_map(p, emit, force=False):
+    """The twin of a plan (coupledcarla.twinmaker), then its SUMO net from the twin's OpenDRIVE. Returns the
+    experiment file. Raises MapMakerError with advice."""
+    from . import twinmaker
+    try:
+        path = twinmaker.make_twin(p, emit, force=force)
+    except twinmaker.TwinError as err:
+        raise MapMakerError(str(err), err.advice)
+    build(path, emit, force=force, check=False)
     return path
 
 
@@ -1164,6 +1207,8 @@ def main(argv=None):
     ap.add_argument("--force", action="store_true", help="build again even if built before")
     ap.add_argument("--no-build", action="store_true", help="only write the experiment file")
     ap.add_argument("--build", metavar="EXPERIMENT", help="build an experiment file written before")
+    ap.add_argument("--twin", action="store_true",
+                    help="make a baked CARLA 1.0 digital twin instead (needs the toolchain: docs/make_a_map.md)")
     ap.add_argument("--web", action="store_true", help="open the map maker page in the browser")
     ap.add_argument("--port", type=int, default=8777, help="port of the page (--web), on 127.0.0.1 only")
     ap.add_argument("--no-browser", action="store_true", help="with --web: do not open a browser")
@@ -1197,19 +1242,32 @@ def main(argv=None):
             t0 = time.time()
             emit = printer()
             emit({"step": "place", "title": TITLES["place"], "state": "running", "text": "", "at": 0.0})
-            p = plan(query, size=args.size, name=args.name, pedestrians=args.pedestrians, found=found)
+            if args.twin:
+                from . import twinmaker
+                st = twinmaker.status()
+                if not st["ok"]:
+                    raise MapMakerError(f"Cannot make a digital twin here: {st['why']}", st["how"])
+                if not st["bake"]:
+                    say(f"Note: {st['why']}. {st['how']}")
+            p = plan(query, size=args.size, name=args.name, pedestrians=args.pedestrians, found=found, twin=args.twin)
             emit({"step": "place", "title": TITLES["place"], "state": "done",
                   "text": f"{p['place']['full']}", "at": 0.0})
             say(f"    {p['drive']}-hand traffic ({p['country'] or 'country unknown'}); {TOWN_WORDS[p['town']]} "
                 f"({p['town_why']}): {p['traffic']['cars_per_hour']} cars an hour; a {p['km']:g} km square")
             for w in p["warnings"]:
                 say(f"    Note: {w}")
-            exp = write_experiment(p, query)
-            say(f"    experiment file: {exp.relative_to(ROOT)}")
-            if args.no_build:
-                return 0
-            say(f"Building takes about {p['minutes']} minutes the first time.")
-            build(exp, emit, force=args.force)
+            if args.twin:
+                say(f"A digital twin takes about {p['minutes']} minutes (most of it the national data and the "
+                    "bake).")
+                exp = make_twin_map(p, emit, force=args.force)
+                say(f"    experiment file: {exp.relative_to(ROOT)}")
+            else:
+                exp = write_experiment(p, query)
+                say(f"    experiment file: {exp.relative_to(ROOT)}")
+                if args.no_build:
+                    return 0
+                say(f"Building takes about {p['minutes']} minutes the first time.")
+                build(exp, emit, force=args.force)
             say(f"\nReady in {(time.time() - t0) / 60:.1f} minutes.")
         from . import config
         cfg = config.load(exp)
