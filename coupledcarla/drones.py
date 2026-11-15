@@ -736,7 +736,8 @@ class DroneWorld:
                 return
             state["kept"] = img.timestamp
             look.save_frame(img, d / f"{img.frame:08d}.jpg", size)
-        cam.listen(on_image)
+        from .compat import listen
+        listen(cam, on_image, self.log, f"drone camera {name}")
         target = c.get("look", "nearest")      # (not `look`: on_image uses the look module from this scope)
         self.cameras.append({"cam": cam, "pos": (x, y, z), "look": target, "name": name})
 
@@ -1278,7 +1279,8 @@ class DroneView:
         self.keep_every = setup_camera(bp, save_every_s if saving else 0.0, profile, 400, world=world, capture=cap)
         self._kept = None
         self.camera = world.spawn_actor(bp, drones.camera_transform(pilot, 0.02))
-        self.camera.listen(self._on_image)
+        from .compat import listen
+        listen(self.camera, self._on_image, drones.log, f"drone view {pilot.role}")
         self.screen = None
         if window:
             import pygame

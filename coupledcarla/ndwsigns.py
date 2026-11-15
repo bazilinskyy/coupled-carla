@@ -10,7 +10,7 @@ roads are not exactly where the real ones are), facing the traffic it governs: t
 that agrees with the register's bearing, else the bearing itself. Signs of one post (several plates at one spot
 for the same traffic) are stacked, the lowest plate's bottom at 2.2 m (the Dutch rule over pavements and cycle
 paths; a second post in line with the first makes the post that tall). A sign gets CARLA's own mesh where CARLA
-has the same sign (stop, give way, the speed limits it has, no entry), else on CARLA 1.0 a blank plate of the
+has the same sign (stop, the speed limits it has, no entry; not give way: CARLA's says YIELD), else on CARLA 1.0 a blank plate of the
 sign's shape (round, triangle, square, ...), else none. On CARLA 1.0 with the CoupledCarla content cooked into
 the server (/Game/CoupledCarla/Signs/NL, made by tools/nl_sign_faces.py and tools/ue_nl_signs.py), a sign whose
 RVV design exists as a face (data/nl_sign_faces.json: the official drawings from Wikimedia Commons, public domain)
@@ -124,7 +124,8 @@ def _major(cat):
 FACES_FILE = Path(__file__).resolve().parent / "data" / "nl_sign_faces.json"
 NUMBERED = {"A1", "A2", "A4"}      # speed signs: only the face with the sign's own number will do
 ZONES = {"ZB": "ZB", "ZH": "ZB", "ZE": "ZE"}     # register zone codes -> the board: begin (and repeat), end
-KEEP_REAL = {"stop", "give_way", "no_entry"}    # CARLA's own meshes of these stay (its speed plates are US-style)
+KEEP_REAL = {"stop", "no_entry"}    # CARLA's own meshes of these stay (its speed plates are US-style; its give-way
+                                    # plate says YIELD: a Dutch B6 face, a blank triangle or none instead)
 
 
 @lru_cache(maxsize=None)
@@ -196,7 +197,7 @@ def choose(sign, cat, use_faces=True):
     if kind == "stop":
         real = ms.STOP
     elif kind == "give_way":
-        real = ms.GIVE_WAY
+        real = None         # CARLA's is the US plate with YIELD on it (placement.sign_fits); NL's B6 has no text
     elif kind == "speed" and value in ms.SPEEDS:
         real = ms.SPEED.format(value)       # only the posted speed: 20 or 15 get a blank round plate
     elif kind == "no_entry":
@@ -308,10 +309,13 @@ class Roads:
         c, side = self.carla, (1 if self.lefthand else -1)
         r = math.radians(yaw + side * 90.0)      # from the sign towards its traffic's lane (left of it in NL)
         seen = against = None
+        from .placement import approach
         for d in (2.5, 5.0, 0.0, 8.0):
             wp = self._wp(x + d * math.cos(r), y + d * math.sin(r))
             if wp is None:
                 continue
+            if wp.is_junction:      # a lane through a junction: its traffic comes from the lane leading in
+                wp = approach(wp)
             loc = wp.transform.location
             if math.hypot(loc.x - x, loc.y - y) > reach:
                 continue
@@ -417,12 +421,12 @@ def place(pl, cat, signs, xy, roads, log=print, use_faces=True):
         height = min(max(CLEAR_M + stack + 0.05, post_h), 2 * post_h)
         pl.add("sign", ms.POST, px, py, face, 1.0, z=z)
         if height > post_h:     # a taller post: a second one in line with the first, reaching up to `height`
-            pl.add("sign", ms.POST, px, py, face, 1.0, z=z + height - post_h)
+            pl.add("sign", ms.POST, px, py, face, 1.0, z=z + height - post_h, base=(px, py, z))
         top = z + height - 0.05
         r = math.radians(face + 90.0)       # plates hang 5 cm in front of the post
         fx, fy = px + 0.05 * math.cos(r), py + 0.05 * math.sin(r)
         for (_, s, mesh, width, tier), (k, h) in zip(plates, sizes):
-            pl.add("sign", mesh, fx, fy, face + ms.SIGN_YAW, k, z=top - h)
+            pl.add("sign", mesh, fx, fy, face + ms.SIGN_YAW, k, z=top - h, base=(px, py, z))
             top -= h + 0.05
             pl.counts["sign_ndw"] += 1
             pl.counts[f"sign_ndw_{tier}"] += 1

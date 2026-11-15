@@ -2,7 +2,8 @@
 
 A small local web server (Python's standard library only) on 127.0.0.1: a world map to search or click a place on,
 a square that follows the chosen size, the guessed country, driving side and traffic, a "Build this map" button with
-live progress in plain words, then the preview picture, the summary and how to drive it. It listens on this computer
+live progress in plain words, then the preview picture, the summary and how to drive it. Where a digital-twin
+toolchain is configured (coupledcarla.twinmaker), a checkbox makes a baked CARLA 1.0 twin of the square instead. It listens on this computer
 only and refuses requests that come from other web sites.
 """
 import json
@@ -39,8 +40,15 @@ class Jobs:
                 raise mm.MapMakerError("A map is already being built.",
                                        "Wait until it is ready; then build the next one.")
             p = make_plan(req)
+            steps = mm.STEPS
+            if p.get("twin"):
+                from . import twinmaker
+                st = twinmaker.status()
+                if not st["ok"]:
+                    raise mm.MapMakerError(f"Cannot make a digital twin here: {st['why']}", st["how"])
+                steps = mm.STEPS[:1] + twinmaker.STEPS + mm.STEPS[1:]
             self.job = {"id": uuid.uuid4().hex[:8], "state": "running", "started": time.time(), "plan": p,
-                        "steps": [{"step": s, "title": t, "state": "pending", "text": ""} for s, t in mm.STEPS],
+                        "steps": [{"step": s, "title": t, "state": "pending", "text": ""} for s, t in steps],
                         "notes": [], "summary": None, "error": None, "advice": None, "finished": None}
             self.job["steps"][0].update(state="done", text=p["place"]["full"])
             threading.Thread(target=self._run, args=(self.job, req), daemon=True).start()
@@ -61,8 +69,14 @@ class Jobs:
             p = job["plan"]
             for w in p["warnings"]:
                 job["notes"].append(w)
-            exp = mm.write_experiment(p, query=req.get("query") or None)
-            job["summary"] = mm.build(exp, self._emit(job), force=bool(req.get("force")))
+            if p.get("twin"):
+                exp = mm.make_twin_map(p, self._emit(job), force=bool(req.get("force")))
+                from . import config
+                job["summary"] = mm.summary(config.map_dir(config.load(exp)), config.load(exp))
+                job["plan"] = dict(p, slug=f"{p['slug']}_twin")
+            else:
+                exp = mm.write_experiment(p, query=req.get("query") or None)
+                job["summary"] = mm.build(exp, self._emit(job), force=bool(req.get("force")))
             job["state"] = "done"
         except mm.MapMakerError as err:
             job.update(state="failed", error=str(err), advice=err.advice)
@@ -86,6 +100,10 @@ class Jobs:
         cmd = mm.shown_command(mm.drive_command(exp))
         if not exp.exists():
             raise mm.MapMakerError("That map is not here any more.", "Build it again.")
+        if name.endswith("_twin"):
+            return {"started": False, "why": "A digital twin drives on CARLA 1.0, in a server that has its level.",
+                    "how": "Start the CARLA 1.0 server (the editor with -game -nullrhi or -RenderOffScreen, or a "
+                           "package or content pack holding the level), then run:", "command": cmd}
         if not st["ok"]:
             return {"started": False, "why": st["why"], "how": st["how"], "command": cmd}
         with self.lock:
@@ -118,7 +136,8 @@ def make_plan(req):
         if not (-85 <= lat <= 85 and -180 <= lon <= 180):
             raise mm.MapMakerError("That point is off the map.", "Click on land between the polar circles.")
         found = mm.reverse(lat, lon)
-    return mm.plan(size=size, name=name, pedestrians=bool(req.get("pedestrians")), found=found)
+    return mm.plan(size=size, name=name, pedestrians=bool(req.get("pedestrians")), found=found,
+                   twin=bool(req.get("twin")))
 
 
 def make_handler(jobs, port):
@@ -163,6 +182,9 @@ def make_handler(jobs, port):
                     return self._send(200, {"maps": mm.built_maps()})
                 if u.path == "/api/carla":
                     return self._send(200, mm.carla_status())
+                if u.path == "/api/twin":
+                    from . import twinmaker
+                    return self._send(200, twinmaker.status())
                 m = re.fullmatch(r"/maps/([a-z0-9_]+)/preview\.png", u.path)
                 if m and NAME_RE.match(m.group(1)):
                     f = mm.ROOT / "maps" / m.group(1) / "preview.png"

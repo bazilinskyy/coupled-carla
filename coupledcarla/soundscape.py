@@ -46,10 +46,10 @@ EV_PATTERNS = ["vehicle.tesla.*", "vehicle.micro.microlino", "vehicle.nissan.lea
 BICYCLES = ("gazelle", "bh.", "diamondback", "crossbike", "omafiets", "century", "bicycle", "bike")
 MOTORBIKES = ("yamaha", "harley", "kawasaki", "vespa", "motorbike", "scooter")
 MOPEDS = ("vespa", "scooter", "moped")
-BUSES = ("bus", "fusorosa")
+BUSES = ("bus", "fusorosa", "fuso.mitsubishi")     # CARLA 1.0: vehicle.fuso.mitsubishi
 TRUCKS = ("truck", "carlacola", "european_hgv", "firetruck", "hgv")
 VANS = ("sprinter", "t2", "ambulance", "van", "transit")
-EMERGENCY = ("ambulance", "firetruck", "police")
+EMERGENCY = ("ambulance", "firetruck", "police", "dodgecop")     # 1.0: vehicle.dodgecop.charger
 # offsets of the old model (coupled-sim): kept for the cue levels and tests of the legacy functions below
 CLASS_DB = {"car": (0.0, 0.0), "van": (2.0, 3.0), "bus": (5.0, 8.0), "truck": (6.0, 9.0),
             "bike": (-22.0, None), "motorbike": (-4.0, 10.0)}

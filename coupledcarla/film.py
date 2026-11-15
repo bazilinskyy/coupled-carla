@@ -61,7 +61,7 @@ MOUNTS = {   # (x forward, y right, z up, pitch, yaw) in the actor's frame
     "bike": (-3.2, 0.0, 1.9, -8.0, 0.0),
 }
 PICK = {"bike": ("gazelle", "bh.", "diamondback", "crossbike", "omafiets", "century", "bicycle", "bike"),
-        "bus": ("bus", "fusorosa"), "car": (), "walker": ()}
+        "bus": ("bus", "fusorosa", "fuso.mitsubishi"), "car": (), "walker": ()}
 
 
 # -- pure helpers (tests) ---------------------------------------------------------------------------------------
@@ -212,6 +212,7 @@ class Rig:
         self.dir = film.dir / self.name
         self.dir.mkdir(parents=True, exist_ok=True)
         self.kept = {}               # index -> (carla frame, trial time)
+        self.images = None           # False: the server cannot render (-nullrhi); poses only
         self.poses = []
         self.sem, self.sem_tags = None, []      # realism guard (look.py): semantic tags along the clip
 
@@ -255,8 +256,11 @@ class Rig:
                 dw.view = _DroneView(pilot, self.camera)
         else:
             self.camera = world.spawn_actor(bp, self.transform(f.t + f.step, None) or carla.Transform())
-        self.camera.listen(self._on_image)
+        from .compat import listen
+        self.images = listen(self.camera, self._on_image, f.log, f"film {self.name}")
         try:        # a small semantic camera riding on this one, once a second: is the world around it empty?
+            if not self.images:
+                raise RuntimeError("no rendering")
             sbp = world.get_blueprint_library().find("sensor.camera.semantic_segmentation")
             for k, v in (("image_size_x", 320), ("image_size_y", 180), ("fov", bp.get_attribute("fov").as_float()),
                          ("sensor_tick", 1.0)):
@@ -515,7 +519,8 @@ class Film:
     def close(self):
         import time
         t_end = time.time() + 10.0        # images of the last ticks may still be on their way
-        while time.time() < t_end and any(len(r.kept) < self.n for r in self.rigs if r.camera is not None):
+        waiting = [r for r in self.rigs if r.camera is not None and r.images]
+        while time.time() < t_end and any(len(r.kept) < self.n for r in waiting):
             time.sleep(0.2)
         for r in self.rigs:
             for cam in (r.sem, r.camera):
@@ -541,6 +546,8 @@ class Film:
                 w.writerows(r.poses)
             chk = check_frames([(k, v[0], v[1]) for k, v in r.kept.items()], self.fps, self.step, self.n)
             summary[r.name] = {k: (v[:20] if isinstance(v, list) else v) for k, v in chk.items()}
+            summary[r.name]["images"] = r.images is not False
+            summary[r.name]["poses"] = len(r.poses)
             self.log(f"film: {r.name} kept {chk['frames']} of {self.n} frames, even {chk['even']}, "
                      f"missing {len(chk['missing'])}")
             summary[r.name]["realism"] = realism(r, self.n)

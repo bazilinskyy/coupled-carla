@@ -1,0 +1,30 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1",
+	"FriendlyName": "Coupled CARLA photorealistic tiles",
+	"Description": "Streams Google Photorealistic 3D Tiles into a CARLA level with Cesium for Unreal, under CARLA's own roads (map.photoreal in Coupled CARLA). The API key is read on the server machine at run time and never stored in content.",
+	"Category": "Coupled CARLA",
+	"CreatedBy": "Coupled CARLA",
+	"CreatedByURL": "https://github.com/bazilinskyy/coupled-carla",
+	"CanContainContent": false,
+	"EnabledByDefault": false,
+	"Modules": [
+		{
+			"Name": "CoupledPhotoreal",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": ["Win64", "Linux"]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "CesiumForUnreal",
+			"Enabled": true
+		},
+		{
+			"Name": "Carla",
+			"Enabled": true
+		}
+	]
+}

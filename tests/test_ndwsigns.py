@@ -33,7 +33,9 @@ def test_parse_and_shapes():
 
 def test_choose_meshes_both_catalogues():
     assert ndwsigns.choose(S("B7"), C09)[::2] == ("SM_stopSign", "real")
-    assert ndwsigns.choose(S("B6"), C10)[::2] == ("SM_Yield01", "real")
+    # CARLA's give-way plate says YIELD (the US design): a blank triangle on 1.0, none on 0.9.16 (no blank plates)
+    assert ndwsigns.choose(S("B6"), C10, False)[::2] == ("SM_InvertedTriangleShape", "generic")
+    assert ndwsigns.choose(S("B6"), C09)[2] == "skipped"
     assert ndwsigns.choose(S("A1", "50"), C09)[::2] == ("SM_SpeedSign50", "real")
     assert ndwsigns.choose(S("A1", "30"), C10, False)[::2] == ("SM_SpeedLimit30", "real")
     # the posted speed or nothing like it: no 20 km/h plate in CARLA
@@ -52,8 +54,8 @@ def test_choose_meshes_both_catalogues():
 
 
 def test_dutch_faces_on_carla_1():
-    # CARLA's stop, give way and no entry stay; its (US-style) speed plates and the blank plates give way to faces
-    assert ndwsigns.choose(S("B6"), C10)[::2] == ("SM_Yield01", "real")
+    # CARLA's stop and no entry stay; its (US-style) give-way and speed plates and the blank plates give way to faces
+    assert ndwsigns.choose(S("B6"), C10)[::2] == ("SM_NL_B6", "face")
     assert ndwsigns.choose(S("C2"), C10)[::2] == ("SM_DoNoEnter01", "real")
     assert ndwsigns.choose(S("A1", "30"), C10)[::2] == ("SM_NL_A1_30", "face")
     assert ndwsigns.choose(S("A1", "20"), C10)[::2] == ("SM_NL_A1_20", "face")
@@ -160,11 +162,11 @@ def test_place_stacks_plates_facing_the_traffic():
     post, post2, top, low = pl.items[:4]
     assert post[1] == post2[1] == cat.m.POST and abs(post[3]) >= 4.0 and post[6] == 1.0
     assert post2[2:4] == post[2:4] and post2[5] == post[5] == 1.0 and post2[6] > post[6]   # a taller post
-    assert top[1] == "SM_Yield01" and low[1] == "SM_NL_A1_30"     # priority sign on top
+    assert top[1] == "SM_NL_B6" and low[1] == "SM_NL_A1_30"       # priority sign on top (the Dutch B6, not YIELD)
     assert post[4] == pytest.approx(90.0) and top[4] == pytest.approx(90.0)   # face (+y) to the west: oncoming
     assert top[6] > low[6] and low[6] >= 1.0 + ndwsigns.CLEAR_M - 0.01
     assert top[2] < post[2] and top[3] == post[3]   # plates in front of the post: +y of yaw 90 is -x, the west
-    assert pl.counts["sign_ndw"] == 2 and pl.counts["sign_ndw_real"] == 1 and pl.counts["sign_ndw_face"] == 1
+    assert pl.counts["sign_ndw"] == 2 and pl.counts["sign_ndw_real"] == 0 and pl.counts["sign_ndw_face"] == 2
     assert pl.counts["sign_ndw_skipped"] == 1
     assert pl.counts["sign_ndw_posts"] == 1 and len(placed) == 2
     assert ndwsigns.near_same(placed, 12.0, 6.0, "give_way") and not ndwsigns.near_same(placed, 12, 6, "stop")
@@ -182,6 +184,7 @@ class FakeWp:
     def __init__(self, road, lane_id, x):
         self.road, self.lane_id, self.lane_width = road, lane_id, 3.2
         self.lane_type = "Driving"
+        self.is_junction = False
         y = 1.6 if lane_id < 0 else -1.6
         if road.oneway:
             y = 0.0

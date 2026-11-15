@@ -124,6 +124,15 @@ def test_report_thresholds(tmp_path, capsys):
                          "--max-image-p95-ms", "500", "--min-rtf", "0.7"]) == 0
 
 
+def test_report_says_why_a_headless_server_gave_no_images(tmp_path, capsys):
+    # a CARLA 1.0 -nullrhi server: the station runs (ticks, rtt) but its camera streams nothing
+    st = dict(stat(), images=0, image_fps=0.0, ready_s=None, latency={}, no_render=True)
+    write_trial(tmp_path / "t", [dict(st, fps=0.0), st, st])
+    assert _tool().main(["--report", str(tmp_path / "t")]) == 1
+    out = capsys.readouterr().out
+    assert "image_share" in out and "the server cannot render" in out
+
+
 def test_summarise_camera_rate_and_dropped():
     trial = {"trial": {"ticks": 1000, "wall_s": 20.0}, "step": 0.02, "missing": [],
              "stations": {"driver": {"joined": 0.0, "left": None, "stats": [

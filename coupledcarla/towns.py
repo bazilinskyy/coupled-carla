@@ -376,19 +376,6 @@ def lights(world, night, mode="auto", log=print):
     return len(lamps) if on else 0
 
 
-def crosswalk_xy(mdir):
-    """Centres of the town's OpenDRIVE crosswalks in geo.net x, y (CARLA x, -y), for the crowd's marked crossings;
-    cached in crosswalks.json. [] without the carla module."""
-    f = Path(mdir) / "crosswalks.json"
-    if not f.exists():
-        try:
-            pts = [[c["x"], c["y"]] for c in crosswalks(Path(mdir) / "map.xodr")]
-        except ImportError:
-            return []
-        f.write_text(json.dumps(pts))
-    return [(x, -y) for x, y in json.loads(f.read_text())]
-
-
 def snap_kerbs(cmap, segments, log=print, reach=6.0):
     """The crowd's kerb lines (crowdpeds segments, geo x, y) moved onto the town's pavements: each point to the
     centre of the nearest sidewalk lane within reach metres. The SUMO net's kerb offset does not know a town's walls

@@ -165,6 +165,8 @@ CONCRETE, DIRT = "SM_Square_61", "SM_Square_131"     # M_Concrete_04; M_Ground01
 # ground kind (OSM fallback or bgt.surface_kind) -> mesh; bricks and tiles get CARLA's sidewalk paving (no
 # brick ground mesh in the 0.9.16 catalogue)
 GROUND_MESH = {"green": GRASS, "open": PAVING, "closed": CONCRETE, "unpaved": DIRT, "water": WATER}
+LAMP_MIN_M = 1.5        # lamps closer than this are one lamp mapped twice
+LOWER_MAX, TILE_MIN = 0.3, 10.0    # a ground square sinks at most this under the terrain for a road, else it splits
 SPLIT_SHARE = 0.6     # a BGT tile whose main kind covers less than this of its ground is split in four
 GREEN_LANDUSE = {"grass", "forest", "meadow", "village_green", "recreation_ground", "cemetery", "allotments",
                  "farmland", "orchard", "flowerbed"}
@@ -428,9 +430,13 @@ def lane_types(xodr):
 
 
 class Placer:
-    def __init__(self, cat, cmap, ground, carla, sidewalks_free=False, lanes=None):
+    def __init__(self, cat, cmap, ground, carla, sidewalks_free=False, lanes=None, junctions=None):
         self.cat, self.cmap, self.ground, self.carla = cat, cmap, ground, carla
+        self.junctions = junctions      # placement.JunctionAreas: a generated map's paved junctions count as lanes
+        self.lane_points = None         # placement.LanePoints of the blocking lanes, for footprints
         self.items, self.counts = [], defaultdict(int)
+        self.bases = []          # per item (x, y, z) of the ground it was placed on (placement.settle)
+        self.surface = None      # placement.GroundSurface once the ground tiles are laid
         self.mesh_index = {}
         lt = carla.LaneType
         self.blocking = lt.Driving | lt.Parking | lt.Bidirectional
@@ -443,9 +449,15 @@ class Placer:
 
     def on_lane(self, x, y, z=0.0):
         loc = self.carla.Location(x=x, y=y, z=z)
-        return any(self.cmap.get_waypoint(loc, project_to_road=False, lane_type=m) is not None for m in self.masks)
+        if any(self.cmap.get_waypoint(loc, project_to_road=False, lane_type=m) is not None for m in self.masks):
+            return True
+        return self.junctions is not None and self.junctions.contains(x, y)
 
     def footprint_clear(self, cx, cy, l, w, yaw, z):
+        if self.lane_points is not None:        # the whole rectangle, not only nine points of it (placement.py)
+            from .placement import rect
+            if self.lane_points.hits(rect(cx, cy, l, w, yaw), margin=0.3):
+                return False
         r = math.radians(yaw)
         ux, uy, vx, vy = math.cos(r), math.sin(r), -math.sin(r), math.cos(r)
         for a in (-0.5, 0.0, 0.5):
@@ -454,7 +466,10 @@ class Placer:
                     return False
         return True
 
-    def add(self, kind, mesh, cx, cy, yaw, scale, sink=0.0, tilt=None, z=None, anchor="bottom", centre=False):
+    def add(self, kind, mesh, cx, cy, yaw, scale, sink=0.0, tilt=None, z=None, anchor="bottom", centre=False,
+            base=None):
+        """base: (x, y, z) of the ground this item stands on when that is not (cx, cy, z) (a sign's plate: its
+        post's), so placement.settle moves it with what it stands on."""
         g = self.ground(cx, cy) if z is None else z
         x, y, zz, yaw = self.cat.place(mesh, cx, cy, g, yaw, scale, sink, *(tilt or (0.0, 0.0)), anchor=anchor)
         idx = self.mesh_index.setdefault(mesh, len(self.mesh_index))
@@ -464,6 +479,7 @@ class Placer:
         if centre:      # where the mesh is (Town03 ground meshes have their pivot 100-400 m away): its cell
             item.append([round(cx, 1), round(cy, 1)])
         self.items.append(item)
+        self.bases.append(base or (x, y, g))     # (the pivot: a lamp's pole, not the middle of its arm)
         self.counts[kind] += 1
         return item
 
@@ -471,6 +487,8 @@ class Placer:
         """The same transform with another mesh (a building's separate window glass on CARLA 1.0)."""
         idx = self.mesh_index.setdefault(mesh, len(self.mesh_index))
         self.items.append([idx] + item[1:])
+        k = next((i for i in range(len(self.items) - 2, -1, -1) if self.items[i] is item), None)
+        self.bases.append(self.bases[k] if k is not None else None)
 
 
 def tile_cover(size, T):
@@ -662,8 +680,14 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 
     # a baked level's OpenDRIVE has its real, full-width pavements as sidewalk lanes: street trees, lamps and
     # furniture stand on them (on OSM maps a sidewalk lane is only the walking strip)
+    # on a generated map a junction is paved all over (no islands): nothing stands in it (placement.py)
+    from . import placement
     pl = Placer(cat, cmap, ground, carla, sidewalks_free=bool(mc.get("carla_level")),
-                lanes=lane_types(mdir / "map.xodr"))
+                lanes=lane_types(mdir / "map.xodr"),
+                junctions=None if mc.get("carla_level") else placement.JunctionAreas.of_map(cmap, carla, log=log))
+    lt_ = carla.LaneType
+    pl.lane_points = placement.LanePoints.of_map(cmap, {lt_.Driving, lt_.Parking, lt_.Bidirectional, lt_.Biking} | (
+        set() if mc.get("carla_level") else {lt_.Sidewalk}))
     rng = random.Random(42)
     sources = {"osm"}
 
@@ -702,7 +726,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                         continue
                     # tall buildings stay loaded all trial (the skyline); others stream with their cell
                     it = pl.add("landmark" if b["h"] > 40 else "building", mesh, px, py, yaw + turn, ss, sink=0.3,
-                                z=b["z"], anchor="ground" if ms.GROUND_PIVOT else "bottom")
+                                z=b["z"], anchor="ground" if ms.GROUND_PIVOT else "bottom",
+                                base=(px, py, b["z"], ss * L, ss * W, yaw))
                     for extra in ms.COMPANIONS.get(mesh, ()):
                         if extra in cat:
                             pl.companion(it, extra)
@@ -880,6 +905,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             return wp.transform.rotation.yaw, math.degrees(math.atan2(loc.y - y, loc.x - x))
 
         lamps = 0
+        lamp_at = {}        # 2 m cells -> lamps placed: a lamp mapped twice (two lights of one mast) stands once
+
+        def lamp_twin(x, y):
+            return any(math.hypot(x - a, y - b) < LAMP_MIN_M for i in (-1, 0, 1) for j in (-1, 0, 1)
+                       for a, b in lamp_at.get((int(x // 2) + i, int(y // 2) + j), ()))
         for el in els:
             if el["type"] != "node":
                 continue
@@ -888,6 +918,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             if t.get("highway") == "street_lamp":
                 if not free(x, y, 0.3):
                     continue
+                if lamp_twin(x, y):
+                    pl.counts["lamp_twin"] += 1
+                    continue
+                lamp_at.setdefault((int(x // 2), int(y // 2)), []).append((x, y))
                 _, towards = road_yaw(x, y)
                 wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
                 far = wp is None or wp.transform.location.distance(carla.Location(x=x, y=y)) > 9
@@ -935,6 +969,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             log(f"scenery: OSM maps {lamps} street lamps; {done} more along the roads")
         elif m_lamps:
             log(f"scenery: {lamps} street lamps from the city's register")
+        if pl.counts["lamp_twin"]:
+            log(f"scenery: {pl.counts['lamp_twin']} lamps left out within {LAMP_MIN_M} m of another (mapped twice)")
         log(f"scenery: {pl.counts['furniture']} pieces of street furniture, {pl.counts['lamp']} lamps")
 
     # shared bikes and scooters where GBFS feeds put them (gbfs.py)
@@ -963,6 +999,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 f"{c_['sign_ndw_offroad']} of them on streets without a lane in the map; {c_['sign_ndw_skipped']} "
                 f"without a mesh, {c_['sign_ndw_far']} far from the map's roads, {c_['sign_ndw_unplaced']} without "
                 f"a free spot")
+        try:        # the country, for signs CARLA has only in another country's design (placement.sign_fits)
+            from . import crowdpeds
+            iso3 = crowdpeds.locate(cfg, mc["bbox"], rdir / "crowdpeds_country.json")[0]
+        except Exception:  # noqa: BLE001 - unknown: CARLA's give-way plate (US YIELD) is left out
+            iso3 = None
         speed_re = re.compile(r"(?:maxspeed|A1|274|B14|C43|R2-1|C14|R5)\D{0,3}(\d{2,3})", re.I)
         for el in els:
             if el["type"] != "node":
@@ -982,6 +1023,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     sign = ms.SPEED.format(min(ms.SPEEDS, key=lambda s_: abs(s_ - v)))
             if sign is None or sign not in cat:
                 continue
+            kind_ = "stop" if sign == ms.STOP else "give_way" if sign == ms.GIVE_WAY else "speed"
+            if not placement.sign_fits(kind_, iso3):
+                pl.counts["sign_osm_wrong_country"] += 1
+                continue
             x, y = geo.to_carla(el["lat"], el["lon"])
             if ndw_placed and ndwsigns.near_same(ndw_placed, x, y, ndwsigns.osm_kind(sign, ms)):
                 pl.counts["sign_osm_replaced"] += 1
@@ -989,6 +1034,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
             if wp is None or wp.transform.location.distance(carla.Location(x=x, y=y, z=wp.transform.location.z)) > 25:
                 continue
+            wp = placement.approach(wp)     # a sign mapped in a junction belongs at the kerb of the lane into it
             if t.get("direction") == "backward" or t.get("traffic_sign:direction") == "backward":
                 other = wp.get_left_lane()
                 while other is not None and other.lane_id * wp.lane_id > 0:
@@ -1012,8 +1058,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             pl.add("sign", ms.POST, px, py, face, 1.0, z=gz)
             L, W, H = cat.size(sign)
             pl.add("sign", sign, px, py, face + ms.SIGN_YAW, 1.0,
-                   z=gz + cat.size(ms.POST)[2] - H - 0.05)
+                   z=gz + cat.size(ms.POST)[2] - H - 0.05, base=(px, py, gz))
             pl.counts["sign_osm"] += 1
+        if pl.counts["sign_osm_wrong_country"]:
+            log(f"scenery: {pl.counts['sign_osm_wrong_country']} OSM stop/give-way signs left out: CARLA has them only "
+                f"in another country's design ({iso3 or 'country unknown'})")
         log(f"scenery: {pl.counts['sign_osm']} road signs from OSM"
             + (f"; {pl.counts['sign_osm_replaced']} left out near a register sign of the same kind" if ndw_placed
                else ""))
@@ -1039,12 +1088,16 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         pad = 160.0
         gx0, gy0 = math.floor((min(xs) - pad) / TILE) * TILE, math.floor((min(ys) - pad) / TILE) * TILE
         gx1, gy1 = max(xs) + pad, max(ys) + pad
-        tiles = lowered = 0
+        tiles = lowered = deep = 0
+        surface = placement.GroundSurface()
         bgt_tiles, changed, split, kinds, moves = 0, 0, 0, defaultdict(int), defaultdict(int)
 
         def lay(kind, x, y, T):
-            """One square of ground: tilted to the terrain, under the road surface, covered by its mesh."""
-            nonlocal lowered
+            """One square of ground: tilted to the terrain, under the road surface, covered by its mesh. A square
+            that would have to sink more than LOWER_MAX under the terrain for a road crossing it is split in four
+            (down to TILE_MIN): a whole 40 m tile lowered for one low road left pits beside the other roads on it,
+            up to 1.4 m deep in Eindhoven, and everything standing in them."""
+            nonlocal lowered, deep
             z = ground(x, y) - 0.05
             zx = (ground(x + T / 2, y) - ground(x - T / 2, y)) / T if dem is not None else 0.0
             zy = (ground(x, y + T / 2) - ground(x, y - T / 2)) / T if dem is not None else 0.0
@@ -1054,6 +1107,12 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             if near:
                 gap = min(q[2] - (z + zx * (q[0] - x) + zy * (q[1] - y)) for q in near)
                 if gap < 0.15:
+                    if 0.15 - gap > LOWER_MAX and T / 2 >= TILE_MIN:
+                        deep += 1
+                        for a in (-T / 4, T / 4):
+                            for b in (-T / 4, T / 4):
+                                lay(kind, x + a, y + b, T / 2)
+                        return
                     z += gap - 0.15
                     lowered += 1
             tilt = (math.degrees(math.atan(zx)), -math.degrees(math.atan(zy)))
@@ -1061,6 +1120,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             if mesh not in cat:
                 mesh, kind = ms.PAVING, "open"
             dz = {"water": -0.5, "open": -0.02}.get(kind, 0.0)
+            surface.add(x, y, T, z + dz, zx, zy)
             for i, ((dx, dy), s) in enumerate(tile_cover(cat.size(mesh), T)):
                 pl.add("water" if kind == "water" else "ground", mesh, x + dx, y + dy, 0.0, s,
                        z=z + zx * dx + zy * dy + dz - 0.01 * i, tilt=tilt, anchor="top", centre=True)
@@ -1098,7 +1158,15 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 f": {', '.join(f'{k} {v}' for k, v in sorted(kinds.items()))}; squares changed "
                 f"{', '.join(f'{k} {v}' for k, v in sorted(moves.items(), key=lambda kv: -kv[1]))}")
             pl.counts["ground_bgt"], pl.counts["ground_changed"], pl.counts["ground_split"] = bgt_tiles, changed, split
-        log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface)")
+        log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface, {deep} split "
+            f"where they would have sunk more than {LOWER_MAX} m)")
+        # everything standing beside the roads onto the tiles' top (they are lowered under the roads)
+        road = placement.paved(carla)
+        pl.surface = surface
+        moved, total = placement.settle(pl.items, pl.bases, surface, lambda x, y, z: cmap.get_waypoint(
+            carla.Location(x=x, y=y, z=z), project_to_road=False, lane_type=road) is not None)
+        pl.counts["settled"] = moved
+        log(f"scenery: {moved} objects stood on the ground tiles (mean shift {total / max(1, moved):.2f} m)")
 
     if sc.get("parked", True):      # parked cars at the kerbs and on car parks (parking.py, parked.json)
         from . import parking
@@ -1110,6 +1178,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
     out = {"version": 1, "catalog": cat.version, "cell_m": CELL, "meshes": [cat.path(m) for m in meshes],
            "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources), "leaf": leaf}
+    if pl.surface is not None and len(pl.surface):      # the ground's top, for signals.py's poles
+        out["ground_planes"] = pl.surface.to_list()
     from .ndwsigns import fallbacks
     if fallbacks(meshes, cat):      # Dutch sign faces: the blank plate where the server lacks our content
         out["fallbacks"] = fallbacks(meshes, cat)

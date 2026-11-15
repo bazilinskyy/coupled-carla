@@ -47,6 +47,7 @@ CLEAN_09 = {
 }
 
 DEFAULTS = {"enabled": True, "supersample": 2, "render_hz": 10.0, "ev_bias": 0.0, "profile": None}
+ATTRIBUTION = None   # text stamped on saved frames while Google's photorealistic tiles are on (photoreal.py)
 MAX_WIDTH = 3840     # a supersampled camera never renders wider than this
 
 
@@ -198,6 +199,9 @@ def save_frame(image, path, size=None, quality=90):
     rgb = to_rgb(image) if hasattr(image, "raw_data") else image
     if size is not None:
         rgb = downscale(rgb, size)
+    if ATTRIBUTION:
+        from .photoreal import stamp
+        rgb = stamp(rgb, ATTRIBUTION)
     import numpy as np
     im = Image.fromarray(np.ascontiguousarray(rgb))
     if str(path).lower().endswith((".jpg", ".jpeg")):

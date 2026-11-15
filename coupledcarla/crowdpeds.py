@@ -845,21 +845,21 @@ def _next_arrival(a, b, vehicles):
 
 # --- set-up for a trial ---------------------------------------------------------------------------------------------
 
-def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fetch=True):
+def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fetch=True, crossings_xy=None):
     """Everything about the crowd that needs no server: (params, segments, walkers, stats). centres_xy in geo.net
-    x, y (the participants; [] for the whole map)."""
+    x, y (the participants; [] for the whole map). crossings_xy: crossings in geo.net x, y for a map without
+    map.osm (a baked level: its OpenDRIVE crosswalks, see make_crowd)."""
     wc = {**DEFAULTS, **(tc["traffic"].get("walkers") or {})}
     bbox = tc["map"]["bbox"]
     real = Path(mdir) / "real"
     params = behaviour(wc, tc, bbox, night, real / "crowdpeds_country.json")
     t0 = time.time()
     segs = kerb_segments(geo_net)
-    town = (tc.get("map") or {}).get("carla_town")
-    xings = [] if town else osm_crossings(Path(mdir) / "map.osm")
+    osm = Path(mdir) / "map.osm"
+    xings = osm_crossings(osm) if osm.exists() else []
     pts = [geo_net.convertLonLat2XY(lon, lat) for lat, lon, _ in xings]
-    if town:              # a CARLA town: the crosswalks of its OpenDRIVE (towns.py)
-        from . import towns
-        pts = towns.crosswalk_xy(mdir)
+    if not xings and crossings_xy:
+        pts = list(crossings_xy)
     n_x = snap_crossings(segs, pts)
     segs = crop(segs, centres_xy, float(wc.get("radius_m", 120)) + 30.0)
     pois, counts, used = [], [], []
@@ -887,7 +887,7 @@ def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fe
     stats = plan_stats(segs, walkers, duration_s)
     stats["rate_used"], stats["jaywalk_used"] = round(rate, 3), round(jay, 4)
     stats.update({"kerb_km": round(kerb_km, 2), "segments": len(segs), "osm_crossings": len(xings),
-                  "crossings_snapped": n_x, "segments_with_crossing": sum(1 for s in segs if s.crossings),
+                  "xodr_crossings": len(crossings_xy or []) if not xings else 0, "crossings_snapped": n_x, "segments_with_crossing": sum(1 for s in segs if s.crossings),
                   "places": len(pois), "count_sites": len(counts), "place_sources": used,
                   "plan_s": round(time.time() - t0, 1)})
     log(f"crowd: {params['country_name'] or 'unknown country'} ({params['located_by']}): {count} walkers "
@@ -1009,8 +1009,17 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):
     if wc["behaviour"] in ("off", False, None):
         return legacy()
     centres_xy = [(c.x, -c.y) for c in centres]
+    xodr_x = None
+    if not (Path(mdir) / "map.osm").exists() and (Path(mdir) / "map.xodr").exists():
+        try:        # a baked level has no map.osm: its OpenDRIVE's crosswalks and pedestrian signals instead
+            from .parking import _xodr_points
+            xp = _xodr_points(Path(mdir) / "map.xodr", world.get_map())
+            xodr_x = [(c.centroid.x, -c.centroid.y) for c in xp["crossing"]]       # CARLA -> geo.net
+        except Exception as err:  # noqa: BLE001 - then junction and mid-block crossings only, as before
+            log(f"crowd: no OpenDRIVE crossings ({type(err).__name__}: {err})")
     try:
-        params, segs, walkers, stats = prepare(tc, mdir, geo.net, centres_xy, duration_s, night, log)
+        params, segs, walkers, stats = prepare(tc, mdir, geo.net, centres_xy, duration_s, night, log,
+                                               crossings_xy=xodr_x)
     except Exception as err:  # noqa: BLE001 - a map the planner cannot read: the crowd of before
         log(f"crowd: CROWD behaviour failed ({err!r}); walkers beside the roads instead")
         return legacy()
