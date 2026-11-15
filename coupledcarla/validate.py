@@ -16,6 +16,7 @@ Checks (errors stop a run going wrong; warnings are worth a look):
   eHMI       every eHMI state used (agents' triggers, auto mode, AV-passenger bot schedules) is defined
   durations  positive trial durations; visual syncs, take-over requests and bot schedules within their trial
   design     conditions used are defined, factors and block_by, the counterbalancing order
+  multi-GPU  server.multigpu: secondary names, roles, port clashes, launch only on this machine (multigpu.py)
 
 Exit code 1 when there are errors.
 """
@@ -29,7 +30,7 @@ from pathlib import Path
 
 import yaml
 
-from . import config, responses, study, takeover
+from . import config, multigpu, responses, study, takeover
 
 OVERRIDES = ("simulation", "traffic", "participants", "agents", "logging", "coupling", "ehmi", "eye_contact",
              "sound", "displays", "haptics")
@@ -360,6 +361,8 @@ def check(raw, cfg, roads=True, participants=None, order=None):
         rep.error("file", "is not a YAML mapping")
         return rep, {}
     _keys(rep, raw, config.DEFAULTS)
+    for level, msg in multigpu.problems(cfg):        # server.multigpu: names, roles, ports
+        (rep.error if level == "error" else rep.warn)("server.multigpu", msg)
     ehmi = raw.get("ehmi")
     if isinstance(ehmi, dict):
         _unknown(rep, "ehmi", ehmi, EHMI_KEYS)

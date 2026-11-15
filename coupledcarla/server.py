@@ -8,7 +8,7 @@ from pathlib import Path
 
 import carla
 
-from . import season
+from . import multigpu, season
 
 WINDOWS = os.name == "nt"
 
@@ -24,6 +24,7 @@ def _port_open(host, port):
 class Server:
     def __init__(self, sc, log=print):
         self.sc, self.log, self.proc = sc, log, None
+        self.secondaries = None       # multi-GPU (multigpu.py): secondaries that render the cameras
 
     def start(self):
         sc = self.sc
@@ -34,6 +35,7 @@ class Server:
             exe = next((root / n for n in names if (root / n).exists()), root / names[0])
             args = [str(exe), f"-carla-rpc-port={sc['port']}", f"-quality-level={sc['quality']}", "-nosound",
                     *(["-RenderOffScreen"] if sc["offscreen"] else []), *season.pack_args(exe.name),
+                    *multigpu.primary_args(sc),     # -nullrhi when secondaries render the cameras
                     *sc["extra_args"]]      # pack: the street-light blueprints of CARLA 1.0 (season.py)
             self.proc = subprocess.Popen(args, **({} if WINDOWS else {"start_new_session": True}))
             self.log(f"started {exe.name} (pid {self.proc.pid})")
@@ -46,6 +48,9 @@ class Server:
             time.sleep(2)
         else:
             raise RuntimeError(f"no CARLA server on {sc['host']}:{sc['port']}")
+        if multigpu.enabled(sc):      # after the primary, before the world loads (they follow its load_world)
+            self.secondaries = multigpu.Launcher(sc, self.log, packs_args=season.pack_args("CarlaUnreal"))
+            self.secondaries.start()
         time.sleep(3)
         client = carla.Client(sc["host"], sc["port"])
         client.set_timeout(60.0)
@@ -53,6 +58,8 @@ class Server:
         return client
 
     def stop(self):
+        if self.secondaries is not None:
+            self.secondaries.stop()
         if self.proc and self.proc.poll() is None:
             if WINDOWS:
                 subprocess.call(["taskkill", "/T", "/F", "/PID", str(self.proc.pid)], stdout=subprocess.DEVNULL)

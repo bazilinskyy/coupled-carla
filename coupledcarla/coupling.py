@@ -6,8 +6,13 @@ controls directly, and to the host on this channel, for everything else: which a
 starts and ends, visual-sync flashes, eHMI commands from an AV passenger, and latency.
 
 Messages are JSON objects, one per line. Station -> host: hello {role}, ping {t}, ehmi {state}, sync {},
-stats {rtt_ms, fps, frames, latency}, bye. Host -> station: welcome {role, ...}, state {state, actor_id, ...},
-pong {t, th}, tick {frame, t}, flash {frame}, ehmi {state} (echo to the passenger).
+stats {rtt_ms, fps, frames, latency, ...}, camera_turn, camera_done, bye. Host -> station: welcome {role, ...},
+state {state, actor_id, ...}, pong {t, th}, tick {frame, t}, flash {frame}, ehmi {state} (echo to the passenger),
+camera_go.
+
+Camera turns (multi-GPU, multigpu.py): a station that must see which secondary takes its camera asks for a turn
+(camera_turn); the server grants one station at a time (camera_go) until it says camera_done, leaves, or holds
+the turn longer than TURN_S.
 
 Latency: every pong carries the host's clock (th), so the station estimates the clock offset from the ping with
 the shortest round trip (NTP's rule: offset = th - (sent + received) / 2). The host sends `tick` (frame number,
@@ -19,6 +24,8 @@ import queue
 import socket
 import threading
 import time
+
+TURN_S = 30.0       # a camera turn not given back after this long goes to the next station
 
 
 def _send(sock, lock, msg):
@@ -41,6 +48,7 @@ class ControlServer:
         self.sock.listen(16)
         self.port = port
         self.on_hello = None          # callable(role) -> welcome dict (set by the host)
+        self._turn, self._turn_t, self._turn_queue = None, 0.0, []      # camera turns (see the module doc)
         threading.Thread(target=self._accept, daemon=True).start()
 
     def _accept(self):
@@ -61,6 +69,8 @@ class ControlServer:
                 if kind == "ping":                      # answered here, at once
                     _send(conn, lock, {"type": "pong", "t": msg.get("t"), "th": time.time()})
                     continue
+                if kind in ("camera_turn", "camera_done"):
+                    self._camera(role, kind)
                 if kind == "hello":
                     role = msg["role"]
                     with self._lock:
@@ -78,9 +88,30 @@ class ControlServer:
                 with self._lock:
                     if self.stations.get(role, (None,))[0] is conn:
                         del self.stations[role]
+                self._camera(role, "camera_done")
                 self.inbox.put({"type": "bye", "role": role, "recv": time.time()})
                 self.log(f"station '{role}' disconnected")
             conn.close()
+
+    def _camera(self, role, kind):
+        """Camera turns: one station at a time between camera_go and its camera_done."""
+        grant = None
+        with self._lock:
+            if kind == "camera_turn":
+                if role not in self._turn_queue and role != self._turn:
+                    self._turn_queue.append(role)
+            elif role == self._turn:
+                self._turn = None
+            else:
+                self._turn_queue = [r for r in self._turn_queue if r != role]
+            if self._turn is not None and time.time() - self._turn_t > TURN_S:
+                self.log(f"station '{self._turn}' kept its camera turn over {TURN_S:.0f} s: next")
+                self._turn = None
+            if self._turn is None and self._turn_queue:
+                self._turn, self._turn_t = self._turn_queue.pop(0), time.time()
+                grant = self._turn
+        if grant is not None:
+            self.send(grant, {"type": "camera_go"})
 
     def send(self, role, msg):
         with self._lock:

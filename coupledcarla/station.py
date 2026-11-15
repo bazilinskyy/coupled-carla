@@ -3,6 +3,7 @@
     python -m coupledcarla.station --host <host machine> --role pedestrian
     python -m coupledcarla.station --host 131.155.x.y --role driver --input wheel
     python -m coupledcarla.station --host 127.0.0.1 --role av_passenger --input bot --headless --frames-every 2
+    python -m coupledcarla.station --list-devices      # audio outputs, joysticks and screens of this machine
 
 The station connects to the host's control channel (port 2100) to learn its role (driver, pedestrian,
 av_passenger) and, at each trial start, which actor is theirs; and to the CARLA server (port 2000) to render
@@ -22,6 +23,12 @@ Controls
 --input bot drives the role without a human (tests): the driver on CARLA's autopilot, the pedestrian along the
 path in the experiment's `bot`, the passenger by the eHMI schedule in `bot`.
 
+Lab options: --display N and --fullscreen put the window on screen N; --audio-device NAME plays the sound there
+(two stations on one PC need two headsets); --camera-hz caps the camera rate (a remote station's images cross the
+LAN raw: 1280x720 is 3.7 MB an image, so about 30 Hz fill gigabit Ethernet). Every 5 s the station reports to the
+host (station_stats events): round trip, loop and camera frame rates, ticks and images received, tick-to-image
+latency, the time to its first image, and which of sound, displays and haptics are on (labcheck.py, the dry run).
+
 Each station writes logs/stations/<role>_<time>.csv: one row per rendered frame with wall-clock time, CARLA
 frame and simulation time, round trip to the host, and the visual-sync flag, for aligning with eye trackers,
 video or physiology recorded at that station.
@@ -34,13 +41,15 @@ import argparse
 import csv
 import math
 import socket
+import threading
 import time
 from pathlib import Path
 
 import carla
 import numpy as np
 
-from .compat import setup_camera
+from . import labcheck, multigpu
+from .compat import set_manual_exposure
 from .coupling import ControlClient
 from .studytools import CSV_COLUMNS, StationStudy
 
@@ -74,6 +83,11 @@ class Station:
         self.screen = None
         self.frames = 0
         self.fps_t0, self.fps_n, self.fps = time.time(), 0, 0.0
+        self.count = labcheck.Counter()         # ticks, images, time to the first image (the stats)
+        self.got_image = threading.Event()
+        self.camera_go = threading.Event()      # multi-GPU camera turn granted by the host
+        self.routing = None                     # multigpu.StationRouting, from the welcome
+        self.last_saved = -1e9
         self.t0_sim = None
         self.trial = None
         self.tick_lag, self.image_lag, self.seen = [], [], {}      # ms after the host's tick: snapshot seen, camera image here
@@ -87,7 +101,11 @@ class Station:
         if not args.headless:
             import pygame
             pygame.init()
-            self.screen = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
+            flags = pygame.HWSURFACE | pygame.DOUBLEBUF | (pygame.FULLSCREEN if args.fullscreen else 0)
+            try:
+                self.screen = pygame.display.set_mode(self.size, flags, display=args.display)
+            except (TypeError, pygame.error):      # pygame 1.x, or no such screen
+                self.screen = pygame.display.set_mode(self.size, flags)
             pygame.display.set_caption(f"coupled-carla: {args.role}")
             self.font = pygame.font.SysFont("monospace", 22, bold=True)
             self.big = pygame.font.SysFont("sans", 36, bold=True)
@@ -96,6 +114,8 @@ class Station:
     def _on_message(self, msg):
         """Runs in the control reader thread. The end of a trial ends this (child) process at once: the host
         stops the CARLA server right after, and a process blocked in a CARLA call would hang or abort."""
+        if msg.get("type") == "camera_go":
+            self.camera_go.set()
         if msg.get("type") != "state":
             return
         if (msg.get("state") == "ended" and self.running) or msg.get("state") == "closed":
@@ -150,13 +170,17 @@ class Station:
 
     def start(self, msg):
         args = self.args
+        self.count.running()
         while True:   # the host restarts the CARLA server for every trial: wait for its port
             try:
                 socket.create_connection((args.host, args.port), timeout=2).close()
                 break
             except OSError:
                 time.sleep(1)
-        self.client = carla.Client(args.host, args.port)
+        if self.routing is None:      # multi-GPU: a relay when secondaries are on other machines (multigpu.py)
+            self.routing = multigpu.StationRouting(self.welcome.get("multigpu"), args.host, args.port,
+                                                   log=lambda m: print(f"[station {args.role}] {m}", flush=True))
+        self.client = carla.Client(*self.routing.address())
         self.client.set_timeout(30.0)
         self.world = self.client.get_world()
         self.trial = msg.get("trial")       # before the camera exists: its callback names the frames folder by it
@@ -170,20 +194,33 @@ class Station:
         bp.set_attribute("image_size_x", str(self.size[0]))
         bp.set_attribute("image_size_y", str(self.size[1]))
         bp.set_attribute("fov", str(args.fov))
-        self.keep_every, self._kept_at = 0.0, None
-        if args.headless:     # few frames kept: see compat.setup_camera (0.9.x renders only those, 1.0 all of them)
-            self.keep_every = setup_camera(bp, args.frames_every or 1.0, self.welcome.get("camera_profile", "Dashcam"),
-                                           {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220))
-        elif bp.has_attribute("post_process_profile") and self.welcome.get("camera_profile", "Dashcam"):
+        # CARLA 1.0: exposure from a post-process profile with auto exposure, which adapts only over consecutive
+        # frames: a headless camera renders every tick (unless --camera-hz) and frames are kept every --frames-every
+        # (compat.setup_camera). CARLA 0.9.x: a slow headless camera gets a fixed manual exposure instead.
+        self.every_tick = bp.has_attribute("post_process_profile")
+        if self.every_tick and self.welcome.get("camera_profile", "Dashcam"):
             bp.set_attribute("post_process_profile", str(self.welcome.get("camera_profile", "Dashcam")))
+        hz = self.camera_hz()
+        if hz > 0:
+            bp.set_attribute("sensor_tick", str(1.0 / hz))
+        if not self.every_tick and args.headless and 0 < hz <= 5:
+            # few frames: auto exposure would never adapt
+            set_manual_exposure(bp, {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220))
         if kind == "pedestrian":
             self.heading = self.actor.get_transform().rotation.yaw
-            self.camera = self.world.spawn_actor(bp, self._eye_transform())       # moved every tick
+
+            def spawn():
+                return self.world.spawn_actor(bp, self._eye_transform())       # moved every tick
         else:
             view = self.welcome.get("view") or ("passenger" if kind == "av_passenger" else "driver")
-            self.camera = self.world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=self.actor,
-                                                 attachment_type=carla.AttachmentType.Rigid)
-        self.camera.listen(self._on_image)
+
+            def spawn():
+                return self.world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=self.actor,
+                                              attachment_type=carla.AttachmentType.Rigid)
+        # with secondaries the camera should land on the role's own one (multigpu.py); otherwise spawn + listen
+        self.camera = self.routing.place_camera(spawn, lambda cam: cam.listen(self._on_image), self._destroy,
+                                                self.got_image,
+                                                turn=multigpu.CameraTurn(self.control.send, self.camera_go))
         bot = self.welcome.get("bot") or {}
         if kind == "driver":
             from . import inputs
@@ -208,9 +245,26 @@ class Station:
         from .stationux import StationUX, wanted
         if wanted(self.welcome):
             self.ux = StationUX(self.welcome, args.role, Path(self.log_f.name).with_suffix(""), self.size,
-                                args.headless)
+                                args.headless, audio_device=args.audio_device)
             self.ux.start(self.world, self.actor, self.camera, self.trial, msg.get("agents"), self.input)
         print(f"[station {args.role}] trial {self.trial}: actor {self.actor.id} {self.actor.type_id}", flush=True)
+
+    def camera_hz(self):
+        """The camera's rate: --camera-hz, else every tick with a window and 1/--frames-every (1 Hz) headless."""
+        a = self.args
+        if a.camera_hz is not None:
+            return max(0.0, float(a.camera_hz))
+        if getattr(self, "every_tick", False):      # CARLA 1.0: every tick, so auto exposure adapts
+            return 0.0
+        return (1.0 / (a.frames_every or 1.0)) if a.headless else 0.0
+
+    @staticmethod
+    def _destroy(cam):
+        try:
+            cam.stop()
+            cam.destroy()
+        except RuntimeError:
+            pass
 
     def stop(self):
         if self.ux is not None:
@@ -243,6 +297,7 @@ class Station:
             return True      # host busy (or between ticks): keep listening to the control channel
         # the snapshot usually arrives before the host's tick message for it: keep the time, pair it up later
         self.seen[snap.frame] = time.time()
+        self.count.frame(snap.frame)
         lag = None
         for f in [f for f in self.seen if f < snap.frame - 5]:
             lag_f = self.control.lag_ms(f, self.seen.pop(f))
@@ -308,9 +363,14 @@ class Station:
         if time.time() - self.fps_t0 >= 5.0:
             self.fps = self.fps_n / (time.time() - self.fps_t0)
             self.fps_t0, self.fps_n = time.time(), 0
+            self.count.window(0.0)
             self.control.send({"type": "stats", "rtt_ms": round(rtt, 2) if rtt is not None else None,
                                "fps": round(self.fps, 1), "frames": self.frames, "host": socket.gethostname(),
-                               "latency": self.latency()})
+                               "latency": self.latency(), **{k: v for k, v in self.count.stats().items()
+                                                             if k not in ("fps", "frames")},
+                               "ticks_seen": self.count.frames, "camera_hz": self.camera_hz(),
+                               "size": self.args.size, "ux": labcheck.ux_flags(self.welcome, self.ux),
+                               "camera_on": self.routing.placed if self.routing is not None else None})
         return True
 
     def _eye_transform(self):
@@ -373,12 +433,11 @@ class Station:
         lag = self.control.lag_ms(image.frame, time.time())
         if lag is not None:
             self.image_lag = (self.image_lag + [lag])[-500:]
+        self.count.image()
+        self.got_image.set()
         if self.screen is None:
-            if self.args.frames_every:
-                if self.keep_every:
-                    if self._kept_at is not None and image.timestamp - self._kept_at < self.keep_every - 1e-6:
-                        return
-                    self._kept_at = image.timestamp
+            if self.args.frames_every and image.timestamp - self.last_saved >= 0.95 * self.args.frames_every:
+                self.last_saved = image.timestamp
                 out = Path(self.args.out) / "stations" / f"{self.args.role}_trial{self.trial}_frames"
                 out.mkdir(parents=True, exist_ok=True)
                 if self.ux is not None and self.ux.wants_frames():     # with the in-car displays drawn over it
@@ -425,13 +484,46 @@ class Station:
         pygame.display.flip()
 
 
+def list_devices():
+    """Prints this machine's audio outputs, joysticks (wheels, gamepads) and screens, for --audio-device and
+    --display, and to check that the wheel and headphones are seen before a session."""
+    import pygame
+    pygame.init()
+    try:
+        from pygame._sdl2 import audio as sdl_audio
+        outs = sdl_audio.get_audio_device_names(False)
+    except Exception as e:  # noqa: BLE001 - pygame 1.x or no audio subsystem
+        outs = [f"(cannot list: {e})"]
+    print("audio outputs (--audio-device):")
+    for name in outs:
+        print(f"  {name}")
+    pygame.joystick.init()
+    print("joysticks:")
+    for i in range(pygame.joystick.get_count()):
+        j = pygame.joystick.Joystick(i)
+        j.init()
+        print(f"  {i}: {j.get_name()}  axes {j.get_numaxes()}, buttons {j.get_numbuttons()}, hats {j.get_numhats()}")
+    if not pygame.joystick.get_count():
+        print("  (none)")
+    try:
+        sizes = pygame.display.get_desktop_sizes()
+    except (AttributeError, pygame.error):
+        sizes = []
+    print("screens (--display):")
+    for i, (w, h) in enumerate(sizes):
+        print(f"  {i}: {w}x{h}")
+    if not sizes:
+        print("  (none found)")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--list-devices", action="store_true", help="list audio outputs, joysticks and screens; exit")
     ap.add_argument("--host", default="127.0.0.1", help="the CARLA server (usually the host machine)")
     ap.add_argument("--port", type=int, default=2000)
     ap.add_argument("--control-host", help="the host process, if not on the CARLA server's machine")
     ap.add_argument("--control-port", type=int, default=2100)
-    ap.add_argument("--role", required=True)
+    ap.add_argument("--role")
     ap.add_argument("--input", default="keyboard", choices=["keyboard", "wheel", "bot"])
     ap.add_argument("--size", default="1280x720")
     ap.add_argument("--fov", type=float, default=90)
@@ -439,8 +531,18 @@ def main():
     ap.add_argument("--frames-every", type=float, default=0.0, help="headless: save the view every N s")
     ap.add_argument("--out", default="logs")
     ap.add_argument("--response", help="button,slider[,hidden]: responses here even if the experiment has none")
+    ap.add_argument("--camera-hz", type=float, help="camera images per second (0: every tick; default: every tick "
+                                                    "with a window, 1/--frames-every headless)")
+    ap.add_argument("--display", type=int, default=0, help="the screen for the window (0, 1, ...)")
+    ap.add_argument("--fullscreen", action="store_true", help="full screen at --size on --display")
+    ap.add_argument("--audio-device", help="play the sound on this output (names: --list-devices)")
     ap.add_argument("--child", action="store_true", help=argparse.SUPPRESS)
     args = ap.parse_args()
+    if args.list_devices:
+        list_devices()
+        return
+    if not args.role:
+        ap.error("--role is required")
     if args.child:
         raise SystemExit(Station(args).run())
     # Supervisor: every trial runs in a fresh child process. CARLA's client library can abort a process whose
