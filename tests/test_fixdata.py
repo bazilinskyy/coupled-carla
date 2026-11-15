@@ -65,3 +65,42 @@ def test_parking_median_side_follows_the_traffic_side():
     assert parking.median_side(False) == "left"
     assert parking.median_side(True) == "right"
 
+
+def _map_cfg(tmp_path, **map_over):
+    from coupledcarla import config
+    cfg = config._merge(config.DEFAULTS, {"name": "m", "map": map_over})
+    cfg["map"]["name"] = "m"
+    cfg["_root"] = str(tmp_path)
+    out = tmp_path / "maps" / "m"
+    (out / "real").mkdir(parents=True)
+    return cfg, out
+
+
+def test_changed_bbox_drops_the_old_box_caches(tmp_path):
+    # map.osm and real/*.json are cached by name: after a change of map.bbox, --force built the old box's roads
+    # (Noumea moved 1.1 km north: geo.net.xml still covered the old box) under the new box's meta.json
+    from coupledcarla import mapbuild
+    cfg, out = _map_cfg(tmp_path)
+    old, new = [-22.28209, 166.4512, -22.26951, 166.4648], [-22.27209, 166.4512, -22.25951, 166.4648]
+    (out / "meta.json").write_text(json.dumps({"bbox": old}))
+    (out / "map.osm").write_text("<osm/>")
+    (out / "real" / "dem.npz").write_text("x")
+    mapbuild.forget_other_box(out, old, log=lambda m: None)
+    assert (out / "map.osm").exists() and (out / "real" / "dem.npz").exists()      # the same box: kept
+    mapbuild.forget_other_box(out, new, log=lambda m: None)
+    assert not (out / "map.osm").exists() and not (out / "real" / "dem.npz").exists()
+    assert json.loads((out / "real" / "bbox.json").read_text())["bbox"] == new
+
+
+def test_transit_rebuild_of_an_opendrive_map_uses_its_built_box(tmp_path, monkeypatch):
+    # map.opendrive maps (the Eindhoven twin) have no map.bbox: --transit passed None to transit.build
+    from coupledcarla import mapbuild, transit
+    cfg, out = _map_cfg(tmp_path, opendrive="twin.xodr", carla_level="EhvCentre")
+    box = [51.436, 5.47, 51.45, 5.493]
+    (out / "meta.json").write_text(json.dumps({"bbox": box}))
+    got = {}
+    monkeypatch.setattr(mapbuild, "sumo_net", lambda out: None)
+    monkeypatch.setattr(transit, "build", lambda out, bbox: got.setdefault("bbox", bbox) and
+                        {"lines": 0, "refs": 0, "stops": 0, "with_timetable": 0, "feeds": []})
+    mapbuild.build(cfg, transit_only=True)
+    assert got["bbox"] == box

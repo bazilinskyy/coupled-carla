@@ -262,7 +262,10 @@ def build_scenery(cfg, out, meta, cmap=None, server_major=None, log=log):
     from . import scenery
     from .geo import Geo
     mc = cfg["map"]
-    if not mc.get("bbox"):
+    if meta.get("bbox") and list(mc.get("bbox") or []) != list(meta["bbox"]):
+        if mc.get("bbox"):
+            log(f"map.bbox {mc['bbox']} is not the built map's {meta['bbox']}: the scenery follows the built roads "
+                f"(rebuild with --force for the new box)")
         mc = dict(mc, bbox=meta["bbox"])
     if mc.get("carla_level"):
         mc = dict(mc, scenery=dict(mc.get("scenery") or {}, buildings=False, ground=False))
@@ -411,6 +414,28 @@ def build_from_opendrive(cfg, out):
     return out
 
 
+def forget_other_box(out, bbox, log=log):
+    """Drop the cached OSM extract and real-world data when they were fetched for another box. They are cached by
+    file name only, so after a change of map.bbox a rebuild (--force, which reuses map.osm) built the old box's
+    roads and scenery under the new box's meta.json. The box they are for is kept in real/bbox.json (maps built
+    before: meta.json's)."""
+    import shutil
+    stamp = out / "real" / "bbox.json"
+    old = None
+    if stamp.exists():
+        old = json.loads(stamp.read_text()).get("bbox")
+    elif (out / "meta.json").exists():
+        meta = json.loads((out / "meta.json").read_text())
+        old = None if meta.get("opendrive") else meta.get("bbox")
+    if old and (len(old) != 4 or any(abs(float(a) - float(b)) > 1e-7 for a, b in zip(old, bbox))):
+        log(f"map.bbox changed ({old} -> {list(bbox)}): fetching the OSM extract and real-world data again")
+        for f in ("map.osm", "map_ele.osm"):
+            (out / f).unlink(missing_ok=True)
+        shutil.rmtree(out / "real", ignore_errors=True)
+    stamp.parent.mkdir(parents=True, exist_ok=True)
+    stamp.write_text(json.dumps({"bbox": list(bbox)}))
+
+
 def absolute_elevation(bbox, out):
     """meta.elevation for a map whose heights are absolute metres (a baked level's): the terrain model, base 0."""
     import numpy as np
@@ -428,7 +453,7 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
     if transit_only and (out / "meta.json").exists():
         meta = json.loads((out / "meta.json").read_text())
         sumo_net(out)            # nets built before bus lanes were open to buses
-        build_transit(cfg, out, meta)
+        build_transit(dict(cfg, map=dict(mc, bbox=meta.get("bbox") or mc["bbox"])), out, meta)   # a twin's box
         (out / "meta.json").write_text(json.dumps(meta, indent=2))
         log(f"public transport rebuilt: {out}")
         return out
@@ -448,6 +473,7 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
     if not mc["bbox"]:
         sys.exit("map.bbox is required")
 
+    forget_other_box(out, mc["bbox"])
     osm = out / "map.osm"
     if refetch:
         osm.unlink(missing_ok=True)
