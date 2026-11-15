@@ -24,7 +24,9 @@ from pathlib import Path
 import numpy as np
 import requests
 
-UA = {"User-Agent": "coupled-carla/0.2 (+https://github.com/bazilinskyy/coupled-carla)"}
+from . import __version__
+
+UA = {"User-Agent": f"coupled-carla/{__version__} (+https://github.com/bazilinskyy/coupled-carla)"}
 OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.openstreetmap.fr/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter",
             "https://overpass.private.coffee/api/interpreter",
