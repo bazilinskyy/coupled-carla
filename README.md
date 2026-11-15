@@ -747,7 +747,7 @@ catalogue ([Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). In
 The twin is built with CARLA's [Digital Twin pipeline](https://github.com/carla-simulator/carla-digitaltwins)
 (`ue58-twins`), extended with Dutch open data in the fork
 [bazilinskyy/carla-digitaltwins](https://github.com/bazilinskyy/carla-digitaltwins/tree/nl-data) (branch
-`nl-data`):
+`nl-data`; offered upstream as carla-simulator/carla-digitaltwins#122):
 
 | Layer | Source | Resolution |
 |---|---|---|
@@ -851,8 +851,43 @@ carla-simulator/rpclib#2 (tested in a CARLA ue58-dev build: 41 ms -> 0.2-0.4 ms;
 in WSL and three bot stations (pedestrian, AV passenger, driver) against the packaged server on win5090: all three
 joined within a second, ran the practice trial with responses and left cleanly.
 
-**Still to do in phase 3:** camera exposure on CARLA 1.0 (day frames are washed out, so the ground photo and sign
-faces are hard to judge in them), human stations at the rendering server, VR.
+**Camera exposure on CARLA 1.0 (2026-11-15).** CARLA 1.0's RGB camera has no exposure attributes: exposure comes
+from a post-process profile (`Content/Carla/Config/PostProcess`), and every profile uses histogram auto exposure,
+which adapts over consecutive frames. Cameras that rendered only every few seconds never adapted (a cloudy day
+clipped 25 % of the frame to white, night was 99.7 % black). On 1.0 coupled-carla's cameras now render every tick
+and keep frames at the requested interval, with `simulation.camera_profile` (default `Dashcam`, the best of CARLA's
+profiles at the twin: day mean brightness 105-116 of 255 with nothing clipped, night 30 with 1 % crushed).
+
+**Lit windows at night.** The twin's facades light their windows at night: CARLA's weather sets `NightFactor` (0 by
+day, 1 by night, from the sun's altitude) in a material parameter collection, and the facade material
+(`/Game/CoupledCarla/Materials/M_TwinFacadeNight`, a copy of CARLA's `M_GeneralMaster`) lights a window when its rank
+in a night mask is below the lit share of its building's use times `NightFactor`, so windows come on one by one at
+dusk and none are lit by day. The masks are drawn per facade style by carla-digitaltwins (8 x 8 windows, shifted per
+building and wall); the shares by use are a plausible Dutch weekday evening, not measured (20:00: homes 52 %,
+offices 12 %, shop windows 60 %, industry 8 %; `bake_level.py --window-hour H`). `tools/window_lights_check.py`
+saves day, dusk and night frames to check it.
+
+**How close is the twin to the real street? (`tools/realism_check.py`)** Real street-level photos with position and
+heading from open sources that need no key: Panoramax (1,734 in the twin's box, CC BY-SA 4.0, mostly 360°
+panoramas from a cyclist), KartaView (87, CC BY-SA 4.0) and Wikimedia Commons (218 with a camera heading, per-file
+CC licences); 350 daytime views are kept. Each is rendered in CARLA at the same place, height, heading and field of
+view under the real weather and sun of the photo's hour, both images are segmented (SegFormer-B2, Cityscapes), and
+the layouts are compared (coarse and fine IoU, class areas, skyline) along with simple image statistics; photo
+headings are often off by up to about 20°, so each view is also scored at its best alignment. The same metrics
+between real photos set the scale: two photos of the same street 10-25 m apart reach a coarse IoU of 0.54 and a
+skyline error of 3.8°, photos of random places 0.26 and 9.1°. CROWD's Eindhoven videos have no positions inside
+the box (their GPS overlays stay on the ring roads), so they are not used. Photographers are credited in
+`ATTRIBUTION.csv` next to the views.
+
+```bash
+python tools/realism_check.py prepare experiments/eindhoven_twin.yaml --labels   # photos (internet)
+python tools/realism_check.py render  experiments/eindhoven_twin.yaml            # CARLA server, GPU
+python tools/realism_check.py compare                                            # CPU: compare.csv, summary.json, sheets/
+python tools/realism_check.py pairs   experiments/eindhoven_twin.yaml            # real-vs-real baseline
+```
+
+**Still to do in phase 3:** human stations at the rendering server (see the [lab guide](docs/lab_guide.md)), multi-GPU
+secondaries on real GPUs, VR.
 
 ## Study tools
 
@@ -882,6 +917,21 @@ Tools for running studies with participants, ported from coupled-sim (#80, #88, 
   http://127.0.0.1:8780/ with the plan, the trial's state and real-time factor, every participant (station, speed,
   round trip, responses, automation), collisions and events; buttons Start trial, Pause, End trial, Stop session,
   Visual sync and Take-over request. Localhost only unless `--dashboard-host` (then with a token in the link).
+- **Running sessions with people** ([docs/lab_guide.md](docs/lab_guide.md), [docs/session_checklist.md](docs/session_checklist.md)):
+  machines, what a station PC needs (Python 3.10, the carla 1.0 wheel of the server's build, pygame, a wired link),
+  ports and Windows firewall rules, start order, calibration, what to watch, where the data goes, troubleshooting.
+  `tools/station_dryrun.py` runs a short trial with bot stations (here, over ssh, or on another PC) and checks each
+  station: time to join and to its first image, round trip, loop and camera rates, tick-to-image latency, missed
+  ticks and images, and whether sound, displays and station-drawn eHMIs are on; exit 1 when a threshold is missed,
+  `--report <trial>` checks a real session. New station options: `--display N --fullscreen`, `--audio-device`,
+  `--list-devices`, `--camera-hz`. A remote station's camera crosses the LAN as raw pixels: 1280x720 at 50 Hz is
+  184 MB/s against 117 MB/s measured from win5090 to lin4080, so remote stations need `--camera-hz 25` or a smaller
+  `--size`. Stations send their controls, lights and camera moves in one batch per tick (CARLA 1.0's RPC stall).
+- **Multi-GPU secondaries (CARLA 1.0, untested on GPUs)** (`server.multigpu`, `coupledcarla/multigpu.py`): secondary
+  servers render the cameras of a `-nullrhi` primary, on another GPU or on a station's own PC. CARLA hands cameras
+  to secondaries in turn and gives stream tokens no address, so a station takes a camera turn and respawns its camera
+  until it lands on its own secondary, and reaches secondaries on other machines through a relay on 127.0.0.1.
+  Debug drawings are not mirrored: use `ehmi.render: station` with secondaries.
 - **Analysis**: `python -m coupledcarla.analysis` also summarises responses and take-overs per trial and writes
   `study_responses.csv` and `study_takeovers.csv` per experiment; the viewer shows the responses.
 
@@ -1328,6 +1378,8 @@ coupledcarla/
   soundscape.py      station sound: vehicles, own car, ambience, AVAS, auditory eHMIs (audio.py synthesises)
   incar.py           cluster, HUD, centre screen, timed messages; haptics.py: wheel/gamepad/UDP cues
   ehmi_design.py     eHMIs from design files (designs.py loads coupled-sim's format)
+  realism.py         street-level photos (Panoramax, KartaView, Commons), view matching and layout metrics
+  labcheck.py        station readiness numbers and thresholds; multigpu.py: CARLA 1.0 secondaries
   data/              meshes_0.9.16.json, meshes_1.0.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
   traffic.py         SUMO vehicle types and demand per trial
