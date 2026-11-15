@@ -150,8 +150,8 @@ def _fake_modules(monkeypatch):
         def reset(self):
             pass
 
-        def act(self, state):
-            seen["states"].append(dict(state))
+        def act(self, state, acceleration_offset=0.0):
+            seen["states"].append({**state, "offset": acceleration_offset})
             return types.SimpleNamespace(right_foot=0.03, left_foot=0.0, steer=0.5 * state["near_angle_rad"])
 
     pkg = types.ModuleType("myosuite_carla")
@@ -188,6 +188,7 @@ def test_drives_from_the_muscles_logs_and_resets(monkeypatch, tmp_path):
     assert st["near_angle_rad"] < 0 and st["target_speed_mps"] == pytest.approx(10.0)
     assert st["lead_present"] == 1.0 and st["gap_m"] == pytest.approx(30.0 - 2.2 - 2.3, abs=0.3)
     assert ctl.throttle == pytest.approx(0.3) and ctl.steer < 0          # what the fake mechanisms measured
+    assert ctl.steer == pytest.approx(-drv.sample.command.steer ** 2)    # through the square (steer_exponent 2)
     assert seen["motions"][-1]["acceleration"][0] == md.ACC_CLIP
     sync.poses.clear()
     drv.light = ("tl3", 15.0, "r")         # a red light: a standing car at its stop line
@@ -197,14 +198,22 @@ def test_drives_from_the_muscles_logs_and_resets(monkeypatch, tmp_path):
     car.loc = _P(4.0, 5.0)                 # far off the lane
     drv.control(car)
     assert drv.reset and drv.events[-1][0] == "myosuite_off_lane"
-    assert drv.restart(_WP(4.0)) and drv.plan.pts[0] == (4.0, 0.0)
+    assert seen["states"][-1]["offset"] == pytest.approx(0.1 * 2.0 * 0.02)    # free road, 2 m/s slow: speed trim
+    car.loc, car.v = _P(4.0, 0.0), _P(0.0, 0.0)
+    for _ in range(int(4.0 / 0.02) + 1):     # throttle on (the fake body: 0.3), standing still: stuck after 4 s
+        drv.control(car)
+    assert drv.stuck and drv.events[-1][0] == "myosuite_stuck"
+    n = len(seen["motions"])
+    assert drv.restart(_WP(4.0)) and drv.plan.pts[0] == (4.0, 0.0) and drv.sample is None
+    drv.control(car)
+    assert len(seen["motions"]) == n                  # the body sits at rest for a moment after a reset
     drv.close()
     rows = (tmp_path / "myodriver.csv").read_text().splitlines()
-    assert len(rows) == 4 and rows[0].startswith("timestamp;tick;speed_mps")
+    assert len(rows) == 206 and rows[0].startswith("timestamp;tick;speed_mps")
     mus = (tmp_path / "myodriver_muscles.csv").read_text().splitlines()
-    assert mus[0].split(";")[2:] == ["act_muscle0", "act_muscle1", "force_muscle0", "force_muscle1"] and len(mus) == 2
+    assert mus[0].split(";")[2:] == ["act_muscle0", "act_muscle1", "force_muscle0", "force_muscle1"] and len(mus) == 103
     summ = json.loads((tmp_path / "myodriver_summary.json").read_text())
-    assert summ["ticks"] == 3 and summ["resets"] == 1 and summ["lane_offset_max_m"] == pytest.approx(5.0)
+    assert summ["ticks"] == 205 and summ["resets"] == 2 and summ["lane_offset_max_m"] == pytest.approx(5.0)
 
 
 def test_without_myosuite_the_runner_falls_back(monkeypatch):

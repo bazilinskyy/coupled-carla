@@ -36,10 +36,19 @@ DEFAULTS = {
     "preset": "fast",            # fast: 2 ms physics and the 114 driving muscles (myosuite-carla's benchmarked
                                  # preset, 2.5x faster); full: 1 ms physics and all 416 muscles
     "target_speed_kmh": 30.0,    # speed kept on a free road
-    "near_m": 8.0,               # near point on the lane ahead (two-point steering), m
+    "near_m": 8.0,               # near point on the lane ahead (two-point steering), m; nearer at low speed
+    "near_s": 1.0,               # ... at most this many seconds ahead at the current speed, but at least 4 m
     "far_s": 2.0,                # far point: this many seconds ahead at the current speed (at least near_m + 2 m)
-    "steer_gains": None,         # [k_far, k_near, k_integral] of two-point steering; None: myosuite-carla's (6, 2, 1)
+    "steer_gains": [6.0, 2.0, 5.0],   # [k_far, k_near, k_integral] of two-point steering: myosuite-carla's (6, 2, 1)
+                                 # with the integral gain raised to 5 (on its vehicle surrogate: lane RMS in a 60 m
+                                 # bend at 50 km/h 2.1 -> 0.9 m, in a 15 m bend at 30 km/h 1.8 -> 1.5 m); None: (6, 2, 1)
+    "steer_exponent": 2.0,       # the measured wheel position goes to CARLA as sign(s) |s|^e: the reflex driver's gains
+                                 # were identified on CARLA 0.10, which steers by the square of the input (exponent
+                                 # 1.97); CARLA 0.9.16 and 1.0 steer linearly (1: pass the wheel through unchanged)
     "perception_delay_s": 0.2,   # delay of what the driver perceives (ReflexDriver)
+    "speed_trim": 0.1,           # 1/s: a slow integral of the speed error on a free road added to the reflex driver's
+                                 # desired acceleration (a glance at the speedometer; its throttle map was fitted on
+                                 # another car: without it 25 km/h for 30 on 0.9.16's Lincoln); 0: off
     "curve_lat_accel": 2.0,      # drivers slow for bends to keep the lateral acceleration under this, m/s^2
                                  # (assumed; Reymond et al. 2001), braking at most 1.5 m/s^2 before them; 0: off
     "lead_range_m": 60.0,        # SUMO vehicles ahead in the lane within this distance are followed (IDM)
@@ -52,10 +61,12 @@ DEFAULTS = {
     "log_every": 1,              # myodriver.csv every N ticks (0: off)
     "muscles_every": 25,         # myodriver_muscles.csv every N ticks (0: off)
     "reset_off_lane_m": 3.5,     # further than this from the lane centre: back onto the lane (reset_to_lane event)
+    "stuck_s": 4.0,              # throttle on and no movement this long (on a kerb, against a car): back onto the lane
 }
 PLAN_STEP_M = 2.0                # waypoint spacing of the lane plan
 PLAN_AHEAD_M = 120.0             # the plan reaches at least this far ahead
-ACC_CLIP = 30.0                  # m/s^2: a teleport (reset) shows up as a one-frame acceleration spike; not on the body
+ACC_CLIP = 15.0                  # m/s^2: more (a crash, a teleport's one-frame spike) does not reach the body
+SETTLE_S = 0.5                   # after a reset the body sits at rest this long before the car's motion loads it
 LANE_HALF_M = 1.8                # a SUMO vehicle within this lateral distance of the plan is in the lane
 
 
@@ -248,6 +259,10 @@ class MyoDriver:
         self.out = None
         self.tick = 0
         self.t = 0.0
+        self._stuck_s = 0.0
+        self._reset_t = -1e9
+        self._settle_until = 0.0
+        self._acc_i = 0.0
         self.build_s = None
 
     # the runner calls attach(sync, net, geo, participant config, offset, log) for inputs that have it (sumodriver)
@@ -305,6 +320,10 @@ class MyoDriver:
         self._grow()
         if self.reflex is not None:
             self.reflex.reset()
+        if self.body is not None and self.tick:   # put back on the lane: the driver takes the wheel again
+            self.body.reset()                     # (a teleport's jolt had thrown the hands off it: CARLA 1.0, 15 Nov)
+            self.sample = None
+            self._settle_until = self.t + SETTLE_S
         return self.plan.length > 10.0
 
     def _grow(self):
@@ -331,7 +350,7 @@ class MyoDriver:
             self._csv.writerow(["timestamp", "tick", "speed_mps", "target_speed_mps", "lane_offset_m", "near_angle_rad",
                                 "far_angle_rad", "lead_gap_m", "lead_speed_mps", "intent_right_foot",
                                 "intent_left_foot", "intent_steer", "throttle", "brake", "steer", "throttle_travel_m",
-                                "brake_travel_m", "steering_travel_rad", "throttle_contact_n", "brake_contact_n",
+                                "brake_travel_m", "steering_travel_rad", "carla_steer", "throttle_contact_n", "brake_contact_n",
                                 "steering_contact_n", "largest_muscle_n", "desired_accel_mps2", "body_ms"])
         if self.opt["muscles_every"]:
             f = open(out / "myodriver_muscles.csv", "w", newline="")
@@ -353,7 +372,7 @@ class MyoDriver:
         s_car, offset = plan.project(x, y)
         plan.drop_behind()
         s_car, offset = plan.project(x, y)
-        near = float(o["near_m"])
+        near = max(4.0, min(float(o["near_m"]), speed * float(o["near_s"])))
         far = max(near + 2.0, speed * float(o["far_s"]))
         a_near = view_angle(x, y, yaw, *plan.point(s_car + near))
         a_far = view_angle(x, y, yaw, *plan.point(s_car + far))
@@ -373,8 +392,11 @@ class MyoDriver:
                  "input_steer": last.steer if last else 0.0, "input_throttle": last.throttle if last else 0.0,
                  "input_brake": last.brake if last else 0.0}
         t0 = time.perf_counter()
-        intent = self.reflex.act(state)
-        if o["vehicle_loads"]:
+        trim = float(o["speed_trim"])
+        if trim and lead is None and abs(target - speed) < 3.0:
+            self._acc_i = max(-1.0, min(1.0, self._acc_i + trim * (target - speed) * self.step_s))
+        intent = self.reflex.act(state, acceleration_offset=self._acc_i)
+        if o["vehicle_loads"] and self.t >= self._settle_until:
             clip = (lambda a: max(-ACC_CLIP, min(ACC_CLIP, a)))
             self.body.set_vehicle_motion(VehicleMotion(acceleration=(clip(acc.x), clip(acc.y), clip(acc.z)),
                                                        angular_velocity=(w.x, w.y, w.z),
@@ -394,6 +416,7 @@ class MyoDriver:
                                 f"{intent.left_foot:.4f}", f"{intent.steer:.4f}", f"{cmd.throttle:.4f}",
                                 f"{cmd.brake:.4f}", f"{cmd.steer:.4f}", f"{m['throttle_travel']:.5f}",
                                 f"{m['brake_travel']:.5f}", f"{m['steering_travel']:.4f}",
+                                f"{self.to_carla_steer(cmd.steer):.4f}",
                                 f"{m['throttle_contact_newtons']:.2f}", f"{m['brake_contact_newtons']:.2f}",
                                 f"{m['steering_contact_newtons']:.2f}", f"{m['largest_muscle_newtons']:.1f}",
                                 f"{self.reflex.demand[0]:.3f}", f"{ms:.2f}"])
@@ -402,12 +425,26 @@ class MyoDriver:
             self._mcsv.writerow([f"{self.t:.3f}", self.tick] +
                                 [f"{d.act[self.body.model.actuator_actadr[i]]:.4f}" for i in self._muscle_ids] +
                                 [f"{d.actuator_force[i]:.1f}" for i in self._muscle_ids])
-        if abs(offset) > float(o["reset_off_lane_m"]):
+        if abs(offset) > float(o["reset_off_lane_m"]) and self.t - self._reset_t > 1.0:     # once per reset
+            self._reset_t = self.t
             self.reset = True          # the runner puts the car back on the nearest lane and calls restart()
             self.stats.resets += 1
             self.events.append(("myosuite_off_lane", f"{offset:+.1f} m from the lane centre at {3.6 * speed:.0f} km/h"))
-        return carla.VehicleControl(throttle=float(cmd.throttle), steer=float(cmd.steer), brake=float(cmd.brake),
-                                    hand_brake=bool(cmd.hand_brake), reverse=bool(cmd.reverse))
+        if cmd.throttle > 0.25 and speed < 0.3:
+            self._stuck_s += self.step_s
+            if self._stuck_s >= float(o["stuck_s"]):
+                self.stuck, self._stuck_s = True, 0.0    # the runner resets the car onto the lane, as for the autopilot
+                self.stats.resets += 1
+                self.events.append(("myosuite_stuck", f"throttle {cmd.throttle:.2f}, no movement for {o['stuck_s']} s, "
+                                    f"{offset:+.1f} m from the lane centre"))
+        else:
+            self._stuck_s = 0.0
+        return carla.VehicleControl(throttle=float(cmd.throttle), steer=self.to_carla_steer(cmd.steer),
+                                    brake=float(cmd.brake), hand_brake=bool(cmd.hand_brake), reverse=bool(cmd.reverse))
+
+    def to_carla_steer(self, s):
+        e = float(self.opt["steer_exponent"])
+        return float(math.copysign(abs(s) ** e, s)) if e != 1.0 else float(s)
 
     def close(self):
         """The runner, at the end of the trial: the summary, and the CSVs closed."""
