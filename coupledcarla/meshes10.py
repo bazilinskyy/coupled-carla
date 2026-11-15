@@ -51,14 +51,13 @@ COMPANIONS = {f"SM_{n}": [f"SM_{n}_Glass"] for n in ("Apt20_A", "Apt20_B", "Apt2
 
 TREES = {   # family -> meshes, roughly small to large: 0.9.16's trees (its vN is letter N of A-H here), not the new
             # UE5 trees of Vegetation/Trees (millions of triangles, minutes to build on an uncooked server)
-    "maple": ["SM_Maple01_S_D", "SM_Maple01_S_F", "SM_Maple01_M_A", "SM_Maple01_M_D", "SM_Maple01_M_E",
-              "SM_Maple01_M_F", "SM_Maple01_L_A", "SM_Maple01_L_D", "SM_Maple01_L_E", "SM_Maple01_L_F"],
-    "oak": ["SM_Oak01_S_A", "SM_Oak01_S_D", "SM_Oak01_S_F", "SM_Oak01_M_A", "SM_Oak01_M_D", "SM_Oak01_M_F",
-            "SM_Oak01_L_A", "SM_Oak01_L_D", "SM_Oak01_L_F", "SM_QuercusRubra01_A", "SM_QuercusRubra01_B",
-            "SM_QuercusRubra01_C", "SM_QuercusRubra01_D"],
+    "maple": ["SM_Maple01_S_D", "SM_Maple01_M_A", "SM_Maple01_M_D", "SM_Maple01_M_E", "SM_Maple01_L_A",
+              "SM_Maple01_L_D", "SM_Maple01_L_E"],
+    "oak": ["SM_Oak01_S_A", "SM_Oak01_S_D", "SM_Oak01_M_A", "SM_Oak01_M_D", "SM_Oak01_L_A", "SM_Oak01_L_D",
+            "SM_QuercusRubra01_A", "SM_QuercusRubra01_B", "SM_QuercusRubra01_C", "SM_QuercusRubra01_D"],
     "pine": ["SM_Pine01_S_D", "SM_Pine01_M_D", "SM_Pine01_M_E", "SM_Pine01_L_D", "SM_Pine01_L_E",
              "SM_TreePine01_Lod1", "SM_TreePine02_Lod1"],
-    "ash": ["SM_Ash01_A", "SM_Ash01_B", "SM_WhiteAsh01_A", "SM_WhiteAsh01_B", "SM_WhiteAsh02_A", "SM_WhiteAsh02_B"],
+    "ash": ["SM_Ash01_A", "SM_Ash01_B", "SM_WhiteAsh01_A", "SM_WhiteAsh02_A"],
     "beech": ["SM_Beech01_A"],
     "walnut": ["SM_Wallnut01_A", "SM_Wallnut01_B"],
     "cypress": ["SM_Cypress01_S_A", "SM_Cypress01_L_A"],
@@ -69,6 +68,11 @@ TREES = {   # family -> meshes, roughly small to large: 0.9.16's trees (its vN i
     "tropical": ["SM_Aporosa01_A"],
     "plane": ["SM_PlatanusBase01_A", "SM_PlatanusBase01_B", "SM_PlatanusBase01_C"],
 }
+# Leafless meshes (no leaf material: SM_WhiteAsh01_B's is "noleaves", the maples and oaks "_F" are 0.9.16's bare
+# "v6"): 22 % of the Eindhoven twin's trees stood bare in the summer photos' renders before they were taken out of
+# TREES (realism check, 2026-11-15); season.py uses them for bare trees
+BARE = {"maple": ["SM_Maple01_S_F", "SM_Maple01_M_F", "SM_Maple01_L_F"],
+        "oak": ["SM_Oak01_S_F", "SM_Oak01_M_F", "SM_Oak01_L_F"], "ash": ["SM_WhiteAsh02_B", "SM_WhiteAsh01_B"]}
 GENUS = dict(scenery.GENUS, platanus="plane")      # 1.0 has plane trees (0.9.16 used maples for them)
 BUSHES = ["SM_Bush03_M_A", "SM_Bush03_M_C", "SM_Bush03_L_A", "SM_Bush03_L_C", "SM_oldBush03", "SM_longLeavesBush02"]
 
@@ -105,7 +109,7 @@ SPEEDS = [30, 40, 50, 60, 70, 80, 90, 100, 110, 120]
 GROUND_MESH = dict(scenery.GROUND_MESH, water="SM_Lake01")     # SM_TileLake is SM_Lake01 on 1.0
 
 MESHES = SimpleNamespace(
-    BUILDINGS=BUILDINGS, BROKEN=BROKEN, ROOF_OF=scenery.ROOF_OF, TREES=TREES, GENUS=GENUS, BUSHES=BUSHES,
+    BUILDINGS=BUILDINGS, BROKEN=BROKEN, ROOF_OF=scenery.ROOF_OF, TREES=TREES, BARE=BARE, GENUS=GENUS, BUSHES=BUSHES,
     FURNITURE=FURNITURE, SHELTER=SHELTER, LAMP=LAMP, PARK_LAMP=PARK_LAMP, POST=POST, STOP=STOP, GIVE_WAY=GIVE_WAY,
     SPEED=SPEED, SPEEDS=SPEEDS, SIGN_YAW=SIGN_YAW, LAMP_YAW=LAMP_YAW, COMPANIONS=COMPANIONS, GROUND_PIVOT=True,
     GROUND_MESH=GROUND_MESH, PAVING=scenery.PAVING)

@@ -162,6 +162,9 @@ def test_lane_queries_skip_types_the_map_lacks(tmp_path):
     assert scenery.Placer(None, None, None, carla, lanes={"driving"}).masks == (15,)
     assert scenery.Placer(None, None, None, carla, lanes={"driving", "biking"}).masks == (15, 16)
     assert scenery.Placer(None, None, None, carla).masks == (15, 16)
+    # street trees: on a baked level (pavements free) they may stand in parking lanes, never on driving lanes
+    assert scenery.Placer(None, None, None, carla, sidewalks_free=True).tree_masks == (5, 16)
+    assert scenery.Placer(None, None, None, carla, lanes={"driving"}).tree_masks == (15,)
 
 
 def test_expired_caches_are_used_when_the_refresh_fails(tmp_path, monkeypatch):

@@ -94,11 +94,10 @@ KIND_OF = {
 DEFAULT_HEIGHT = {"house": 7.5, "apartments": 13.0, "commercial": 13.0, "industrial": 8.0, "church": 18.0,
                   "tower": 60.0, None: 10.0}
 
-TREES = {   # family -> meshes, roughly small to large
-    "maple": ["SM_Maple_S_v4", "SM_Maple_S_v6", "SM_Maple_M_v1", "SM_Maple_M_v4", "SM_Maple_M_v5", "SM_Maple_M_v6",
-              "SM_Maple_L_v1", "SM_Maple_L_v4", "SM_Maple_L_v5", "SM_Maple_L_v6"],
-    "oak": ["SM_Oak_S_v1", "SM_Oak_S_v4", "SM_Oak_S_v6", "SM_Oak_M_v1", "SM_Oak_M_v4", "SM_Oak_M_v6", "SM_Oak_L_v1",
-            "SM_Oak_L_v4", "SM_Oak_L_v6"],
+TREES = {   # family -> meshes in leaf, roughly small to large
+    "maple": ["SM_Maple_S_v4", "SM_Maple_M_v1", "SM_Maple_M_v4", "SM_Maple_M_v5", "SM_Maple_L_v1", "SM_Maple_L_v4",
+              "SM_Maple_L_v5"],
+    "oak": ["SM_Oak_S_v1", "SM_Oak_S_v4", "SM_Oak_M_v1", "SM_Oak_M_v4", "SM_Oak_L_v1", "SM_Oak_L_v4"],
     "pine": ["SM_Pine_S_v4", "SM_Pine_M_v4", "SM_Pine_M_v5", "SM_Pine_L_v4", "SM_Pine_L_v5", "SM_TreePine_1",
              "SM_TreePine_2"],
     "ash": ["SM_Ash_01", "SM_Ash_02"],
@@ -110,6 +109,10 @@ TREES = {   # family -> meshes, roughly small to large
     "sassafras": ["SM_Sassafras_01", "SM_Sassafras_02", "SM_Sassafras_03"],
     "tropical": ["SM_Aporosa"],
 }
+# Leafless trees: CARLA's maples and oaks "v6" have bark materials only (seen bare in a render, lin4080 2026-11-15),
+# so they are no street tree in leaf; season.py uses them for bare trees (BARE_SCALE stand-ins where a family has none)
+BARE = {"maple": ["SM_Maple_S_v6", "SM_Maple_M_v6", "SM_Maple_L_v6"],
+        "oak": ["SM_Oak_S_v6", "SM_Oak_M_v6", "SM_Oak_L_v6"]}
 GENUS = {
     "acer": "maple", "platanus": "maple", "aesculus": "maple", "liquidambar": "maple", "liriodendron": "maple",
     "quercus": "oak", "ulmus": "oak", "zelkova": "oak", "castanea": "oak", "celtis": "oak",
@@ -129,6 +132,7 @@ GENUS = {
     "delonix": "tropical", "tipuana": "tropical", "mangifera": "tropical", "terminalia": "tropical",
     "spathodea": "tropical", "cassia": "tropical", "pongamia": "tropical", "melia": "tropical",
 }
+TREE_NUDGE_STEPS = (0.5, 1.0, 1.5)      # m: a mapped tree on a lane moves this far at most to a free spot
 BUSHES = ["SM_Bush_M_v1", "SM_Bush_M_v3", "SM_Bush_L_v1", "SM_Bush_L_v3", "SM_oldBush_01", "SM_longLeavesBush_01"]
 
 FURNITURE = {   # (OSM key, value) -> meshes
@@ -179,7 +183,7 @@ ROOF_OF = {"house": "pitched", "church": "pitched"}     # the other CARLA buildi
 # The tables above name CARLA 0.9.16's meshes. CARLA 1.0 (Unreal Engine 5.8) moved and renamed most of them; its
 # choices are in meshes10.py. A Catalog carries the set of its CARLA version as `cat.m`.
 MESHES_09 = SimpleNamespace(
-    BUILDINGS=BUILDINGS, BROKEN=BROKEN, ROOF_OF=ROOF_OF, TREES=TREES, GENUS=GENUS, BUSHES=BUSHES,
+    BUILDINGS=BUILDINGS, BROKEN=BROKEN, ROOF_OF=ROOF_OF, TREES=TREES, BARE=BARE, GENUS=GENUS, BUSHES=BUSHES,
     FURNITURE=FURNITURE, SHELTER=["SM_BusStop"], LAMP=LAMP, PARK_LAMP=PARK_LAMP, POST=POST, STOP="SM_stopSign",
     GIVE_WAY="SM_yield_", SPEED="SM_SpeedSign{}", SPEEDS=SPEEDS, SIGN_YAW=0.0, LAMP_YAW=0.0, COMPANIONS={},
     GROUND_PIVOT=False, GROUND_MESH=GROUND_MESH, PAVING=PAVING)
@@ -446,10 +450,17 @@ class Placer:
         # finds the point outside it, so a point on a driving lane beside a cycle lane read as free (eindhoven_centre);
         # not at all on a map without bike lanes (lanes: lane_types of its OpenDRIVE), where it only cost time
         self.masks = (self.blocking, lt.Biking) if lanes is None or "biking" in lanes else (self.blocking,)
+        # street trees on a baked level may stand in its parking lanes: the city's trees stand in pits between the
+        # bays (Eindhoven twin: 134 register trees in parking lanes), and parking.py keeps the stalls clear of them
+        self.tree_masks = self.masks
+        if sidewalks_free:
+            keep = lt.Driving | lt.Bidirectional
+            self.tree_masks = (keep, lt.Biking) if len(self.masks) > 1 else (keep,)
 
-    def on_lane(self, x, y, z=0.0):
+    def on_lane(self, x, y, z=0.0, masks=None):
         loc = self.carla.Location(x=x, y=y, z=z)
-        if any(self.cmap.get_waypoint(loc, project_to_road=False, lane_type=m) is not None for m in self.masks):
+        if any(self.cmap.get_waypoint(loc, project_to_road=False, lane_type=m) is not None
+               for m in (masks or self.masks)):
             return True
         return self.junctions is not None and self.junctions.contains(x, y)
 
@@ -812,12 +823,26 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         p = Point(x, y)
         return any(occupied[i].contains(p) for i in occ_tree.query(p))
 
-    def free(x, y, r=0.6):
-        if pl.on_lane(x, y, ground(x, y)) or inside_building(x, y):
+    def free(x, y, r=0.6, masks=None):
+        if pl.on_lane(x, y, ground(x, y), masks) or inside_building(x, y):
             return False
         if water_u is not None and water_u.contains(Point(x, y)):
             return False
-        return all(not pl.on_lane(x + dx, y + dy) for dx, dy in ((r, 0), (-r, 0), (0, r), (0, -r)))
+        return all(not pl.on_lane(x + dx, y + dy, 0.0, masks) for dx, dy in ((r, 0), (-r, 0), (0, r), (0, -r)))
+
+    def tree_spot(x, y):
+        """Where a mapped tree can stand: its own spot, or the nearest free one within TREE_NUDGE_STEPS (the map's lanes
+        are wider than the street where they come from lane counts: 281 of Eindhoven's register trees fell on a
+        driving lane of the twin), else None."""
+        if free(x, y, 0.4, pl.tree_masks):
+            return x, y
+        for r in TREE_NUDGE_STEPS:
+            for k in range(8):
+                a = k * math.pi / 4
+                if free(x + r * math.cos(a), y + r * math.sin(a), 0.4, pl.tree_masks):
+                    pl.counts["tree_moved"] += 1
+                    return x + r * math.cos(a), y + r * math.sin(a)
+        return None
 
     tree_pts = []
     can = None   # Meta/WRI 1 m canopy heights: the size of trees whose height OSM does not give (canopy.py)
@@ -838,10 +863,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         for el in els:
             t = el.get("tags", {})
             if el["type"] == "node" and t.get("natural") == "tree":
-                x, y = geo.to_carla(el["lat"], el["lon"])
-                if not free(x, y, 0.4):
+                spot = tree_spot(*geo.to_carla(el["lat"], el["lon"]))
+                if spot is None:
                     pl.counts["tree_dropped"] += 1
                     continue
+                x, y = spot
                 h = _number(t.get("height")) or canopy_h(x, y)
                 fam = _tree_family(t, el["lat"], ms.GENUS)
                 mesh, s = _tree(cat, fam, h, el["id"])
@@ -893,7 +919,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         pl.counts["tree_planted"] = planted
         log(f"scenery: {pl.counts['tree']} trees ({pl.counts['tree_osm']} street trees (OSM and registers), "
             f"{pl.counts['tree_row']} in rows, {planted} planted in parks and woods), {pl.counts['bush']} bushes"
-            + (f"; {pl.counts['tree_canopy']} sized by the canopy height map" if can is not None else ""))
+            + (f"; {pl.counts['tree_canopy']} sized by the canopy height map" if can is not None else "")
+            + f"; {pl.counts['tree_moved']} mapped trees moved off a lane, {pl.counts['tree_dropped']} left out")
 
     # street furniture and lamps
     if sc.get("furniture", True):
