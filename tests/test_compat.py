@@ -146,3 +146,15 @@ def test_listen_other_errors_still_raise():
     import pytest
     with pytest.raises(RuntimeError):
         compat.listen(_Cam("time-out of 5000ms while waiting for the simulator"), print)
+
+
+def test_traffic_kind_by_sumo_class_on_carla10():
+    from types import SimpleNamespace
+    bus = SimpleNamespace(value="bus")
+    # CARLA 1.0 shows the 0.9 bus vehicle.mitsubishi.fusorosa as vehicle.fuso.mitsubishi
+    assert compat.traffic_kind("vehicle.fuso.mitsubishi", bus, [], "vehicle.mitsubishi.fusorosa") == "bus"
+    assert compat.traffic_kind("vehicle.bh.crossbike", "bicycle") == "bike"
+    assert compat.traffic_kind("vehicle.kia.niro", "passenger") == "car"
+    # without a class: the experiment's names, as before
+    assert compat.traffic_kind("vehicle.gazelle.omafiets", None, ["vehicle.gazelle.omafiets"], "x") == "bike"
+    assert compat.traffic_kind("vehicle.mitsubishi.fusorosa", None, [], "vehicle.mitsubishi.fusorosa") == "bus"

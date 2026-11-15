@@ -59,7 +59,7 @@ MOUNTS = {   # (x forward, y right, z up, pitch, yaw) in the actor's frame
     "bike": (-3.2, 0.0, 1.9, -8.0, 0.0),
 }
 PICK = {"bike": ("gazelle", "bh.", "diamondback", "crossbike", "omafiets", "century", "bicycle", "bike"),
-        "bus": ("bus", "fusorosa"), "car": (), "walker": ()}
+        "bus": ("bus", "fusorosa", "fuso.mitsubishi"), "car": (), "walker": ()}
 
 
 # -- pure helpers (tests) ---------------------------------------------------------------------------------------

@@ -110,6 +110,20 @@ def find(world, wanted, vclass=None):
     return bp
 
 
+def traffic_kind(type_id, vclass=None, bike_types=(), bus_type=None):
+    """"bike", "bus" or "car" for a SUMO vehicle shown in CARLA (frames.csv, events.csv): by its SUMO vehicle class
+    where known, as CARLA 1.0 shows a 0.9 bus or bike under another blueprint (vehicle.mitsubishi.fusorosa is
+    vehicle.fuso.mitsubishi), else by the experiment's blueprint names."""
+    v = getattr(vclass, "value", vclass)
+    if v == "bicycle":
+        return "bike"
+    if v in ("bus", "coach"):
+        return "bus"
+    if v is None:
+        return "bike" if type_id in (bike_types or ()) else "bus" if type_id == bus_type else "car"
+    return "car"
+
+
 def left_lane(wp):
     return wp.get_left_waypoint() if hasattr(wp, "get_left_waypoint") else wp.get_left_lane()
 
