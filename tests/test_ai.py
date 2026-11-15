@@ -78,3 +78,21 @@ def test_blinker_trigger_keeps_the_headlights(ai):
     car.triggers.append([0, {"at_m": 0, "blinker": "off"}, False])      # blinker off again: lights stay
     car.step(1.02, 0.02)
     assert state["lights"] == int(night)
+
+
+def test_sumo_yield_releases_cars_that_leave_carla(ai, monkeypatch):
+    """A SUMO car held for a pedestrian keeps speed 0 in SUMO until released: when its CARLA actor goes (out of
+    the participants' radius) it must be released, not left standing in SUMO for the rest of the trial."""
+    speeds = {}
+    monkeypatch.setattr(ai.traci, "vehicle", types.SimpleNamespace(setSpeed=speeds.__setitem__), raising=False)
+    tf = types.SimpleNamespace(location=Loc(x=0.0, y=0.0), rotation=types.SimpleNamespace(yaw=0.0))
+    car = types.SimpleNamespace(get_transform=lambda: tf, get_velocity=lambda: Loc(x=5.0, y=0.0))
+    walker = types.SimpleNamespace(get_location=lambda: Loc(x=8.0, y=0.5))
+    sync = types.SimpleNamespace(sumo2carla_ids={"veh7": 70})
+    world = types.SimpleNamespace(get_actor=lambda cid: car if cid in sync.sumo2carla_ids.values() else None)
+    y = ai.SumoYield(every=1)
+    y.step(sync, world, [walker])
+    assert speeds == {"veh7": 0.0} and y.held == {"veh7"}
+    sync.sumo2carla_ids = {}                        # removed from CARLA (beyond the radius), still in SUMO
+    y.step(sync, world, [walker])
+    assert speeds["veh7"] == -1 and not y.held

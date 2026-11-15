@@ -493,6 +493,8 @@ class SumoYield:
                     self._release(sid)
             return
         wl = [w.get_location() for w in walkers]
+        for sid in [s for s in self.held if s not in sync.sumo2carla_ids]:    # gone from CARLA, still in SUMO
+            self._release(sid)
         for sid, cid in list(sync.sumo2carla_ids.items()):
             actor = world.get_actor(cid)
             if actor is None:
