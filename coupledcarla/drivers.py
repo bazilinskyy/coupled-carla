@@ -20,8 +20,11 @@ EIDM vehicles in the Eindhoven rush hour).
 - tau (time gap) 1.2 s, minGap 2 m for cars and buses (IDM's urban values, Treiber & Kesting 2013, "Traffic Flow
   Dynamics", table 11.2: T 1.0-1.5 s, s0 2 m); bikes tau 1.0 s, minGap 1.0 m.
 - impatience 0 and jmIgnoreFoeProb 0: nobody forces a way through a junction against a vehicle with priority (the
-  former 0.1 grew with waiting and made vehicles with priority brake hard for those that pushed in). SUMO's
-  jmTimegapMinor (1 s) stays: 2 s more than tripled the vehicles teleported after waiting 120 s at a minor road
+  former 0.1 made every driver a little pushy from the start, so vehicles with priority braked hard for them).
+  Tried and left out: --time-to-impatience 60 (SUMO: 180 s, after the 120 s time-to-teleport), so that a driver
+  who finds no gap pushes in rather than being teleported (critical gaps shrink with waiting: Polus, Lazar & Livneh
+  2003, J. Transp. Eng. 129(5)); New York's 3 yield teleports went, London's 25 stayed and Eindhoven's collisions
+  rose from 4 to 11 (seed 42). SUMO's jmTimegapMinor (1 s) stays: 2 s more than tripled the vehicles teleported after waiting 120 s at a minor road
   (Eindhoven rush hour, seed 42: 2 -> 7).
 - length, width, height of each vehicle type from its CARLA blueprint's bounding box (data/blueprint_sizes_*.json),
   so SUMO's gaps are the gaps seen in CARLA; SUMO's defaults (car 5 m, bus 12 m, bike 1.6 m) overlapped the bodies of
@@ -33,6 +36,12 @@ from functools import lru_cache
 from pathlib import Path
 
 DATA = Path(__file__).resolve().parent / "data"
+# SUMO options of every trial (the bridge, sumo_simulation.py) and of tools/traffic_check.py
+SUMO_ARGS = ["--lateral-resolution", "0.25",        # the sublane model: cyclists at the right, cars overtaking them
+             "--collision.check-junctions",
+             # a collision is logged, not "resolved" by teleporting the collider to its next edge (SUMO's default),
+             # which in CARLA made a car vanish or jump; mingap 0: only touching bodies count
+             "--collision.action", "warn", "--collision.mingap-factor", "0"]
 MAX_WIDTH = {"bus": 2.55, "passenger": 2.1, "delivery": 2.3, "bicycle": 0.8}
 
 CAR = {"accel": 2.6, "decel": 3.4, "emergencyDecel": 8.0, "apparentDecel": 3.4, "tau": 1.2, "minGap": 2.0,

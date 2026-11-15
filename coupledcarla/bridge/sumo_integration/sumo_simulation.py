@@ -319,6 +319,11 @@ def _get_sumo_net(cfg_file):
     sumo_net = sumolib.net.readNet(net_file)
     return sumo_net
 
+def _sumo_args():
+    from coupledcarla.drivers import SUMO_ARGS  # pylint: disable=import-outside-toplevel
+    return SUMO_ARGS
+
+
 LANE_SNAP_M = 0.6   # coupled-carla: farthest a CARLA-driven vehicle may sit from its SUMO lane's centre (see below)
 
 
@@ -340,11 +345,7 @@ class SumoSimulation(object):
             traci.start([sumo_binary,
                 '--configuration-file', cfg_file,
                 '--step-length', str(step_length),
-                '--lateral-resolution', '0.25',
-                '--collision.check-junctions',
-                # coupled-carla: a collision is logged, not "resolved" by teleporting the collider to its next edge
-                # (SUMO's default), which in CARLA made a car vanish or jump; mingap 0: only touching bodies count
-                '--collision.action', 'warn', '--collision.mingap-factor', '0',
+                *_sumo_args(),          # coupled-carla: sublane, collisions, impatience (drivers.SUMO_ARGS)
                 # coupled-carla: keep SUMO's own messages next to the trial's SUMO files
                 '--log', os.path.join(os.path.dirname(os.path.abspath(cfg_file)), 'sumo.log')
             ],

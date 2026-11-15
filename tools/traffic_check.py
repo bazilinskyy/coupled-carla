@@ -67,6 +67,7 @@ def main():
     ap.add_argument("--step", type=float, default=0.02)
     ap.add_argument("--seed", type=int)
     ap.add_argument("--out")
+    ap.add_argument("--sumo-args", help="SUMO options instead of the bridge's (drivers.SUMO_ARGS), one string")
     a = ap.parse_args()
     if not (a.experiment or a.clip):
         ap.error("an experiment or --clip")
@@ -91,9 +92,9 @@ def main():
         t = type_id.split("@")[0]
         return "bike" if t in bikes or "bike" in t else "bus" if t == bus or "bus" in t else "car"
 
+    from coupledcarla.drivers import SUMO_ARGS       # the bridge's options: every collision counted, not teleported
     cmd = [sumolib.checkBinary("sumo"), "-c", str(work / "check.sumocfg"), "--step-length", str(a.step),
-           "--lateral-resolution", "0.25", "--collision.check-junctions",          # as the bridge (sumo_simulation)
-           "--collision.action", "warn", "--collision.mingap-factor", "0",       # count every physical collision
+           *(a.sumo_args.split() if a.sumo_args is not None else SUMO_ARGS),
            "--collision-output", str(work / "collisions.xml"),
            "--statistic-output", str(work / "statistics.xml"),
            "--lanechange-output", str(work / "lanechanges.xml"),
