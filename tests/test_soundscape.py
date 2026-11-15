@@ -126,19 +126,31 @@ def test_level_model():
 
 
 def test_vehicle_levels_at_the_listener_match_the_model():
-    sc = ss.Soundscape({"enabled": True}, log=lambda s: None)
+    from coupledcarla import acoustics as ac
+    cfg = {"enabled": True, "environment": False, "reverb": False}
+    sc = ss.Soundscape(cfg, log=lambda s: None)
     car = _car(electric=True)                               # tyres only
-    sc.update(0.0, (0, 0, 0, 0), [car])
-    sc.update(0.05, (0, 0, 0, 0), [car])
+    sc.update(0.0, (0, 0, 1.2, 0), [car], listener_h=1.2)
+    sc.update(0.05, (0, 0, 1.2, 0), [car], listener_h=1.2)
     info = sc.voices_info()[1]
-    assert info["tyre_db"] == pytest.approx(68.0, abs=0.01) and info["engine_db"] is None
+    roll, _ = ac.vehicle_power("1", 50.0, temp_c=15.0)      # the default air temperature: +0.4 dB
+    d = math.dist((7.5, 0, 0.3), (0, 0, 1.2))
+    want = ac.a_weighted(roll - 20 * math.log10(d) - 11 - ac.air_absorption(15, 70) * d
+                         - ac.ground_attenuation(0.05, 1.2, 7.5))
+    assert info["tyre_db"] == pytest.approx(want, abs=0.01) and info["engine_db"] is None
+    assert 70.0 < info["tyre_db"] < 74.0                    # CNOSSOS-EU: a car at 50 km/h, 7.5 m: ~72-73 dB(A)
     x = ss.render_offline(sc, 2.0)
     both = audio.gain_db(math.sqrt(audio.rms(x[:, 0]) ** 2 + audio.rms(x[:, 1]) ** 2) / audio.FS_RMS)
-    assert both == pytest.approx(68.0, abs=1.5)            # the pitch and air low-pass shave a little off
-    # the combustion car adds its engine (64 + 6 * 50/60 = 69 dB at 7.5 m)
-    sc2 = ss.Soundscape({"enabled": True}, log=lambda s: None)
-    sc2.update(0.0, (0, 0, 0, 0), [_car()])
-    assert sc2.voices_info()[1]["engine_db"] == pytest.approx(69.0, abs=0.01)
+    from coupledcarla.soundrec import level_dba
+    assert level_dba(x) == pytest.approx(info["tyre_db"], abs=0.7)     # the rendered sound has the model's level
+    assert both > level_dba(x)                               # unweighted: more (the rolling noise's low end)
+    # the combustion car adds its engine
+    sc2 = ss.Soundscape(cfg, log=lambda s: None)
+    for k in range(20):
+        sc2.update(0.05 * k, (0, 0, 1.2, 0), [_car()], listener_h=1.2)
+    i2 = sc2.voices_info()[1]
+    assert i2["engine_db"] is not None and 55.0 < i2["engine_db"] < i2["tyre_db"]
+    assert 1200 < i2["rpm"] < 2600
 
 
 def test_panning_doppler_and_nearest_vehicles():
@@ -160,18 +172,19 @@ def test_panning_doppler_and_nearest_vehicles():
 
 
 def test_avas_up_to_20_kmh():
-    cfg = {"enabled": True, "avas": {"enabled": True, "db": 56.0}}
-    for kmh, want in ((10, 56.0 - 20 * math.log10(7.5 / 2)), (17.5, None), (25, "none"), (0.0, "none")):
+    cfg = {"enabled": True, "avas": {"enabled": True, "db": 56.0}, "environment": False}
+    at75 = 56.0 - 20 * math.log10(7.5 / 2) + 0.2           # the ground's +3 dB near both, a little air absorption
+    for kmh, want in ((10, at75), (17.5, None), (25, "none"), (0.0, "none")):
         sc = ss.Soundscape(cfg, log=lambda s: None)
         car = _car(kmh=kmh, tid="vehicle.tesla.model3", electric=True)
-        sc.update(0.0, (0, 0, 0, 0), [car])
+        sc.update(0.0, (0, 0, 0, 0), [car], listener_h=0.3)
         a = sc.voices_info()[1]["avas_db"]
         if want == "none":
             assert a is None
         elif want is None:
-            assert a < 56.0 - 20 * math.log10(7.5 / 2) - 5        # fading out
+            assert a < at75 - 5                              # fading out
         else:
-            assert a == pytest.approx(want, abs=0.01)
+            assert a == pytest.approx(want, abs=0.6)
     sc = ss.Soundscape(cfg, log=lambda s: None)
     sc.update(0.0, (0, 0, 0, 0), [_car(kmh=10)])             # a combustion car has none
     assert sc.voices_info()[1]["avas_db"] is None
@@ -218,13 +231,14 @@ def test_auditory_ehmi_cues_on_state_changes_and_motion():
 
 def test_own_car_inside_and_blinker_ticks():
     cues = []
-    sc = ss.Soundscape({"enabled": True}, log=lambda s: None, on_cue=lambda *a: cues.append(a))
+    sc = ss.Soundscape({"enabled": True, "environment": False}, kind="driver", log=lambda s: None,
+                       on_cue=lambda *a: cues.append(a))
     own = _car(1, x=0, kmh=100.0, yaw=0.0, lights=ss.LEFT_BLINKER)
     for k in range(31):
-        sc.update(k * 0.05, (0, 0, 0, 0), [own], own=own)
+        sc.update(k * 0.05, (0, 0, 1.2, 0), [own], own=own)
     info = sc.voices_info()["own"]
-    assert info["wind_db"] == pytest.approx(64.0)
-    assert info["tyre_db"] == pytest.approx(ss.tyre_db_at_7_5(100) - 6.0)
+    assert info["wind_db"] == pytest.approx(60.0)
+    assert 64.0 < info["total_dba"] < 72.0                    # inside a mid-size car at 100 km/h
     assert 1 not in sc.voices_info()                          # not heard as an outside car
     ticks = [c for c in cues if c[1] == "blinker_tick"]
     assert len(ticks) == 5                                    # 1.5 s at three clicks a second (0, 1/3, ...)
@@ -285,3 +299,14 @@ def test_world_bodies_fetches_types_once():
     assert len(calls) == 1                                   # all known now
     del snap.items[1]
     assert [b.id for b in wb(snap, (0, 0))] == [2]           # gone from the world
+
+
+def test_speed_from_positions_when_carla_reports_none():
+    """SUMO's vehicles are moved by transform: CARLA reports no velocity; the soundscape takes it from positions."""
+    sc = ss.Soundscape({"enabled": True, "environment": False}, log=lambda s: None)
+    for k in range(40):
+        t = 0.05 * k
+        car = ss.Body(7, "vehicle.audi.a2", "car", -20.0 + 13.9 * t, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, True, False)
+        sc.update(t, (0, 0, 1.6, 0), [car])
+    assert sc.voices_info()[7]["kmh"] == pytest.approx(50.0, abs=2.0)
+    assert sc.voices_info()[7]["tyre_db"] is not None

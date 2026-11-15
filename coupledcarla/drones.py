@@ -1127,6 +1127,12 @@ class DroneWorld:
         for p in self.pilots:
             if p.part.station:
                 control.send(p.role, {"type": "drone_hud", "lines": self.hud(p), "ears": list(p.los)})
+        control.broadcast({"type": "drones", "d": self.sound_sources()})
+
+    def sound_sources(self):
+        """The drones as sound sources for soundscape.py: [id, x, y, z, vx, vy, vz (CARLA), blade-passing Hz, thrust
+        ratio, sound power dB(A), blades] (the stations get them every 5th tick, the host's recorder every tick)."""
+        f = self.fleet
         bpf, thr = f.blade_passing_hz(), f.thrust_ratio()
         d = []
         for i in range(f.n):
@@ -1135,7 +1141,7 @@ class DroneWorld:
             d.append([self._aid(i) or -1 - i, round(c[0], 2), round(c[1], 2), round(c[2], 2), round(float(v[0]), 2),
                       round(-float(v[1]), 2), round(float(v[2]), 2), round(float(bpf[i]), 1), round(float(thr[i]), 3),
                       f.airframes[i].sound_power_dba, int(f.airframes[i].blades)])
-        control.broadcast({"type": "drones", "d": d})
+        return d
 
     # -- logging ----------------------------------------------------------------------------------------------------
     def records(self):

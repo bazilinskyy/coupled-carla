@@ -23,7 +23,7 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, study, traffic
+from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, soundrec, study, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from . import ehmi_design, multigpu, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
@@ -313,7 +313,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
 
     server = Server(tc["server"], log)
     client = server.start()
-    sync = view = recorder = world = logger = drone_world = film = None
+    sync = view = recorder = world = logger = drone_world = film = host_audio = None
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
     try:
@@ -324,6 +324,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         bb = tc["map"]["bbox"]
         wx = set_weather(world, tc["simulation"], ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real", log)
         (out / "weather.json").write_text(json.dumps(wx, indent=2))
+        tc["_sound_env"] = soundrec.sound_env(wx, mdir, world.get_weather(),
+                                              (tc.get("sound") or {}).get("weather")).as_dict()   # stations' sound
         BridgeHelper.night = wx["night"]
         if tc["server"].get("offscreen", True):
             # nobody sees the spectator of an off-screen server, but the server still renders its view: park it
@@ -487,6 +489,16 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             film = Film(fc, world, geo, out, log, names.get, step, queue, drone_world,
                         focus=focus_actors)
             film.hold(parts)
+        sc_ = tc.get("sound") or {}
+        if parts and (getattr(args, "record_audio", False) or sc_.get("record")):
+            # the first participant's soundscape in simulation time, into audio.wav (soundrec.py)
+            try:
+                host_audio = soundrec.HostAudio(tc, out, parts[0], mdir, wx, step, carla_sim.world, log, agents=[
+                    a for a in agents if isinstance(a, ScriptedCar)], drone_world=drone_world, signals=signals,
+                    net=sumo.net)
+            except Exception as err:  # noqa: BLE001 - a trial without its audio rather than no trial
+                log(f"sound: no audio recording ({type(err).__name__}: {err})")
+                host_audio = None
 
         # stations: wait for them, then tell each its actor and start
         station_roles = [p.role for p in parts if p.station]
@@ -702,6 +714,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 drone_world.log_frame(logger, t, snap.frame)
             tools.log(t, snap.frame)
             laps("log")
+            if host_audio is not None:
+                host_audio.tick(t, snap, carla_sim.frame_lights)
+                laps("audio")
             prof["log"] += time.time() - t_b
             for c in collisions[seen_col:]:
                 logger.event(t, c[1], "collision", c[3], f"{c[2]} hit {c[4]}")
@@ -811,6 +826,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             except Exception as err:  # noqa: BLE001
                 log(f"bridge close: {err}")
         server.stop()
+        if host_audio is not None:
+            host_audio.close(summary)
         (out / "summary.json").write_text(json.dumps(summary, indent=2))
         if tc["logging"].get("analyse", True) and (out / "frames.csv").exists():
             try:
@@ -854,6 +871,9 @@ def main():
     ap.add_argument("--headless", action="store_true", help="no window (autopilot input)")
     ap.add_argument("--duration", type=float, help="override each trial's duration_s")
     ap.add_argument("--frames-every", type=float, help="save the first participant's view every N s")
+    ap.add_argument("--record-audio", action="store_true",
+                    help="write the first participant's soundscape, in simulation time, to audio.wav in the trial's "
+                         "log folder (sound.record; see soundrec.py)")
     ap.add_argument("--quality", choices=["Low", "Epic"], help="override server.quality")
     ap.add_argument("--view", choices=["driver", "chase", "hood"], help="override every participant's view")
     ap.add_argument("--step", type=float, help="override simulation.step (s)")

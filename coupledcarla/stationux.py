@@ -42,6 +42,10 @@ def welcome_extras(tc, pcfg, kind=None, base=None, log=print, default_states=())
             except (OSError, ValueError) as e:
                 log(f"displays: messages: {e}")
             merged["messages_file"] = None
+        if k == "sound" and merged:
+            if tc.get("_sound_env"):              # the trial's weather and time (run.py, once the world is set)
+                merged["env"] = tc["_sound_env"]
+            merged.setdefault("map", (tc.get("map") or {}).get("name"))   # buildings.json, if the station has it
         if merged:
             out[k] = merged
     specs = ehmi_design.for_agents(tc, base, log)
@@ -106,7 +110,14 @@ class StationUX:
         w = self.w
         snd = w.get("sound") or {}
         if snd.get("enabled"):
-            self.scape = Soundscape(snd, self.kind, log=self.log, on_cue=self.cue)
+            mdir = None
+            if snd.get("map") and snd.get("buildings", True):
+                cand = Path(__file__).resolve().parent.parent / "maps" / str(snd["map"])
+                mdir = cand if cand.exists() else None
+            self.scape = Soundscape(snd, self.kind, log=self.log, on_cue=self.cue, env=snd.get("env"), map_dir=mdir)
+            if mdir is not None:
+                from .soundrec import trees_of
+                self.scape.trees = trees_of(mdir)
             record = f"{self.cues_path.parent / self.cues_path.stem.replace('_cues', '')}_trial{trial}.wav" \
                 if (snd.get("record") or self.headless) else None
             self.output = audio.Output(self.scape.mixer, device=(self.audio_device or True) if not self.headless
