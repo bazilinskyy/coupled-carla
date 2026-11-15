@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make a map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+:root {
+  --bg: #f4f5f7; --panel: #ffffff; --text: #1d2330; --muted: #5d6676; --line: #e3e6eb;
+  --accent: #1f6feb; --accent-dark: #1858c4; --accent-soft: #e8f0fe;
+  --ok: #1a7f37; --ok-soft: #e6f4ea; --warn: #9a6700; --warn-soft: #fff8e1; --bad: #c62828; --bad-soft: #fdecea;
+  --radius: 12px; --shadow: 0 1px 3px rgba(20, 30, 50, .08), 0 4px 16px rgba(20, 30, 50, .06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171c; --panel: #1c2027; --text: #e7eaf0; --muted: #9aa3b2; --line: #2c323c;
+    --accent: #4c8dff; --accent-dark: #3a78e6; --accent-soft: #1d2a40;
+    --ok: #4cc26a; --ok-soft: #16301f; --warn: #e0b341; --warn-soft: #33290f; --bad: #ff6b6b; --bad-soft: #3a1b1b;
+    --shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--text); display: flex; flex-direction: column;
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+}
+header { display: flex; align-items: baseline; gap: 16px; padding: 14px 24px; background: var(--panel);
+         border-bottom: 1px solid var(--line); }
+header h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
+header p { margin: 0; color: var(--muted); font-size: 14px; }
+main { flex: 1; display: flex; min-height: 0; }
+#map { flex: 1; min-height: 360px; }
+aside { width: 430px; max-width: 100%; overflow-y: auto; padding: 20px; display: flex; flex-direction: column;
+        gap: 16px; background: var(--bg); border-left: 1px solid var(--line); }
+.card { background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+.card h2 { margin: 0 0 10px; font-size: 16px; font-weight: 650; }
+.hint { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; }
+form.search { display: flex; gap: 8px; }
+input[type=text] { flex: 1; min-width: 0; font: inherit; padding: 10px 12px; border: 1px solid var(--line);
+                   border-radius: 9px; background: var(--panel); color: var(--text); }
+input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+button { font: inherit; cursor: pointer; border-radius: 9px; border: 1px solid var(--line); background: var(--panel);
+         color: var(--text); padding: 9px 14px; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.primary:hover { background: var(--accent-dark); }
+button.big { width: 100%; padding: 14px; font-size: 17px; margin-top: 14px; }
+button:disabled { opacity: .55; cursor: default; }
+ul.results { list-style: none; margin: 10px 0 0; padding: 0; }
+ul.results li { padding: 9px 10px; border-radius: 8px; cursor: pointer; display: flex; gap: 10px; }
+ul.results li:hover, ul.results li:focus { background: var(--accent-soft); outline: none; }
+ul.results small { display: block; color: var(--muted); font-size: 12.5px; }
+.place-title { display: flex; align-items: center; gap: 10px; }
+.flag { font-size: 26px; line-height: 1; }
+.place-title h2 { margin: 0; }
+.full { color: var(--muted); font-size: 13px; margin: 4px 0 12px; }
+dl.facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 14.5px; }
+dl.facts dt { color: var(--muted); }
+dl.facts dd { margin: 0; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 14px; }
+.seg button { padding: 8px 4px; text-align: center; line-height: 1.25; }
+.seg button small { display: block; color: var(--muted); font-size: 12px; }
+.seg button.on { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+.row { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; }
+.row label { color: var(--muted); white-space: nowrap; }
+.note { border-radius: 9px; padding: 10px 12px; font-size: 13.5px; margin-top: 12px; }
+.note.warn { background: var(--warn-soft); color: var(--warn); }
+.note.bad { background: var(--bad-soft); color: var(--bad); }
+.note.ok { background: var(--ok-soft); color: var(--ok); }
+.note.info { background: var(--accent-soft); }
+ol.steps { list-style: none; margin: 6px 0 0; padding: 0; }
+ol.steps li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; padding: 6px 0; font-size: 14.5px; }
+ol.steps li .t { font-weight: 500; }
+ol.steps li small { display: block; color: var(--muted); font-size: 13px; }
+ol.steps li.pending { color: var(--muted); }
+ol.steps li.skipped .t { color: var(--muted); font-weight: 400; }
+.ico { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+       font-size: 12px; margin-top: 1px; border: 2px solid var(--line); color: #fff; }
+li.done .ico { background: var(--ok); border-color: var(--ok); }
+li.failed .ico { background: var(--bad); border-color: var(--bad); }
+li.skipped .ico { border-style: dashed; }
+li.running .ico { border-color: var(--accent); border-top-color: transparent; animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.elapsed { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+img.preview { width: 100%; border-radius: 8px; border: 1px solid var(--line); display: block; background: #fff; }
+.credits { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; padding-left: 18px; }
+code { font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg);
+       padding: 8px 10px; border-radius: 7px; display: block; white-space: pre-wrap; word-break: break-all;
+       margin-top: 8px; }
+.maps { display: grid; gap: 8px; }
+.mapitem { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; padding: 6px;
+           border-radius: 9px; cursor: pointer; }
+.mapitem:hover { background: var(--accent-soft); }
+.mapitem img, .mapitem .noimg { width: 56px; height: 56px; object-fit: cover; border-radius: 7px;
+           border: 1px solid var(--line); background: var(--bg); }
+.mapitem small { display: block; color: var(--muted); font-size: 12.5px; }
+.buttons { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.hidden { display: none !important; }
+@media (max-width: 860px) {
+  main { flex-direction: column; }
+  #map { flex: none; height: 45vh; }
+  aside { width: 100%; border-left: none; }
+  header { flex-direction: column; gap: 2px; padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Make a map</h1>
+  <p>Any place in the world, built from open data, ready to drive in CARLA.</p>
+</header>
+<main>
+  <div id="map" aria-label="World map: click to choose a place"></div>
+  <aside>
+    <section class="card" id="find">
+      <h2>1. Find a place</h2>
+      <form class="search" id="searchForm">
+        <input type="text" id="q" placeholder="A town, a square, an address or 51.44, 5.48" autocomplete="off"
+               aria-label="Place to search for">
+        <button class="primary" type="submit">Search</button>
+      </form>
+      <ul class="results" id="results"></ul>
+      <p class="hint" id="findHint">…or click anywhere on the map.</p>
+    </section>
+
+    <section class="card hidden" id="place">
+      <div class="place-title"><span class="flag" id="flag"></span><h2 id="placeName"></h2></div>
+      <div class="full" id="placeFull"></div>
+      <dl class="facts">
+        <dt>Country</dt><dd id="fCountry"></dd>
+        <dt>Traffic drives</dt><dd id="fSide"></dd>
+        <dt>Traffic</dt><dd id="fTraffic"></dd>
+        <dt>Building takes</dt><dd id="fTime"></dd>
+      </dl>
+      <div class="seg" id="sizes" role="group" aria-label="Size of the square">
+        <button type="button" data-size="small">Small<small>about 1 km</small></button>
+        <button type="button" data-size="medium">Medium<small>1.4 km</small></button>
+        <button type="button" data-size="large">Large<small>2 km</small></button>
+      </div>
+      <div class="row"><label for="name">Name</label><input type="text" id="name" placeholder=""></div>
+      <div class="row"><input type="checkbox" id="peds"><label for="peds" style="color:inherit">Pedestrians on the
+        pavements</label></div>
+      <div id="warnings"></div>
+      <button class="primary big" id="buildBtn">Build this map</button>
+      <p class="hint" id="savedAs"></p>
+    </section>
+
+    <section class="card hidden" id="progress" aria-live="polite">
+      <h2 id="progTitle">Building…</h2>
+      <div class="elapsed" id="elapsed"></div>
+      <ol class="steps" id="steps"></ol>
+      <div id="progNotes"></div>
+      <p class="hint">You can leave this page; the build goes on as long as the map maker window stays open.</p>
+    </section>
+
+    <section class="card hidden" id="error">
+      <h2>That did not work</h2>
+      <div class="note bad" id="errMsg"></div>
+      <p id="errAdvice"></p>
+      <div class="buttons"><button class="primary" id="retryBtn">Try again</button>
+        <button id="backBtn">Choose another place</button></div>
+    </section>
+
+    <section class="card hidden" id="result">
+      <h2 id="resTitle"></h2>
+      <img class="preview" id="resImg" alt="The built map from above: roads, buildings and trees">
+      <dl class="facts" id="resFacts" style="margin-top:14px"></dl>
+      <button class="primary big" id="driveBtn">Drive it</button>
+      <div id="driveInfo"></div>
+      <details style="margin-top:12px"><summary class="hint" style="cursor:pointer">Made from open data (credits)</summary>
+        <ul class="credits" id="resCredits"></ul></details>
+      <div class="buttons"><button id="anotherBtn">Make another map</button></div>
+    </section>
+
+    <section class="card" id="mapsCard">
+      <h2>Your maps</h2>
+      <div class="maps" id="maps"><p class="hint">None yet.</p></div>
+    </section>
+  </aside>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const SIZES = { small: 1.0, medium: 1.4, large: 2.0 };
+const TOWN = { large: "a big city", medium: "a city", small: "a town" };
+const S = { plan: null, size: "medium", job: null, poll: null, maps: [], shown: null };
+
+const map = L.map("map", { worldCopyJump: true }).setView([30, 10], 3);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+}).addTo(map);
+let square = null;
+const builtLayer = L.layerGroup().addTo(map);
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function flag(cc) {
+  return cc && cc.length === 2 ? String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 127397 + c.charCodeAt(0))) : "\u{1F30D}";
+}
+function boxOf(lat, lon, km) {
+  const half = km / 2, dlat = half / 111.32, dlon = half / (111.32 * Math.cos(lat * Math.PI / 180));
+  return [[lat - dlat, lon - dlon], [lat + dlat, lon + dlon]];
+}
+function show(...ids) {
+  for (const id of ["place", "progress", "error", "result"]) $(id).classList.toggle("hidden", !ids.includes(id));
+}
+async function api(path, body) {
+  const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  const r = await fetch(path, opt);
+  const data = await r.json().catch(() => ({ error: "The map maker did not answer.", advice: "Is its window still open?" }));
+  if (!r.ok || data.error) throw data;
+  return data;
+}
+function drawSquare(lat, lon, km) {
+  const b = boxOf(lat, lon, km);
+  if (square) square.setBounds(b);
+  else square = L.rectangle(b, { color: "#1f6feb", weight: 2, fillOpacity: 0.12 }).addTo(map);
+}
+
+// 1. find a place
+$("searchForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = $("q").value.trim();
+  if (!q) return;
+  const ul = $("results");
+  ul.innerHTML = '<li class="hint">Searching…</li>';
+  try {
+    const { results } = await api("/api/search?q=" + encodeURIComponent(q));
+    ul.innerHTML = "";
+    results.forEach((p) => {
+      const li = document.createElement("li");
+      li.tabIndex = 0;
+      li.innerHTML = `<span class="flag" style="font-size:20px">${flag(p.country_code)}</span><span>${esc(p.name)}<small>${esc(p.full)}</small></span>`;
+      const pick = () => { ul.innerHTML = ""; choose(p, q); };
+      li.onclick = pick;
+      li.onkeydown = (ev) => { if (ev.key === "Enter") pick(); };
+      ul.appendChild(li);
+    });
+    if (results.length === 1) { ul.innerHTML = ""; choose(results[0], q); }
+  } catch (err) {
+    ul.innerHTML = `<li class="note warn">${esc(err.error)} ${esc(err.advice || "")}</li>`;
+  }
+});
+
+map.on("click", (e) => {
+  const ll = e.latlng.wrap();
+  choose({ lat: ll.lat, lon: ll.lng }, null);
+});
+
+async function choose(found, query) {
+  S.query = query;
+  drawSquare(found.lat, found.lon, SIZES[S.size]);
+  if (found.name) map.flyTo([found.lat, found.lon], Math.max(map.getZoom(), 14), { duration: 0.8 });
+  show("place");
+  $("placeName").textContent = found.name || "Looking up this place…";
+  $("placeFull").textContent = found.full || "";
+  $("flag").textContent = flag(found.country_code);
+  for (const id of ["fCountry", "fSide", "fTraffic", "fTime"]) $(id).textContent = "…";
+  $("buildBtn").disabled = true;
+  await replan(found.name ? found : null, found);
+}
+
+async function replan(found, point) {
+  const body = { size: S.size, name: $("name").value, pedestrians: $("peds").checked };
+  if (found) body.found = found; else { body.lat = point.lat; body.lon = point.lon; }
+  try {
+    const p = await api("/api/plan", body);
+    S.plan = p;
+    renderPlan(p);
+  } catch (err) {
+    $("warnings").innerHTML = `<div class="note bad">${esc(err.error)} ${esc(err.advice || "")}</div>`;
+  }
+}
+
+function renderPlan(p) {
+  $("placeName").textContent = p.place.name;
+  $("placeFull").textContent = p.place.full;
+  $("flag").textContent = flag(p.country_code);
+  $("fCountry").textContent = p.country || "unknown";
+  $("fSide").textContent = p.drive === "left" ? "on the left" : "on the right";
+  const t = p.traffic;
+  $("fTraffic").textContent = `${TOWN[p.town]}: about ${t.cars_per_hour.toLocaleString()} cars, ${t.bikes_per_hour.toLocaleString()} bikes and ${t.buses_per_hour} buses an hour` + (p.population ? ` (${p.population.toLocaleString()} people)` : "");
+  $("fTime").textContent = `about ${p.minutes} minute${p.minutes === 1 ? "" : "s"}`;
+  $("name").placeholder = p.place.name;
+  $("savedAs").textContent = `Saved as ${p.experiment}`;
+  for (const b of $("sizes").children) b.classList.toggle("on", b.dataset.size === p.size);
+  $("warnings").innerHTML = p.warnings.map((w) => `<div class="note warn">${esc(w)}</div>`).join("");
+  drawSquare(p.lat, p.lon, p.km);
+  $("buildBtn").disabled = false;
+}
+
+for (const b of $("sizes").children) {
+  b.addEventListener("click", () => {
+    S.size = b.dataset.size;
+    for (const o of $("sizes").children) o.classList.toggle("on", o === b);
+    if (S.plan) { drawSquare(S.plan.lat, S.plan.lon, SIZES[S.size]); replan(S.plan.place); }
+  });
+}
+let nameTimer = null;
+$("name").addEventListener("input", () => { clearTimeout(nameTimer); nameTimer = setTimeout(() => S.plan && replan(S.plan.place), 500); });
+$("peds").addEventListener("change", () => S.plan && replan(S.plan.place));
+
+// 2. build
+$("buildBtn").addEventListener("click", startBuild);
+$("retryBtn").addEventListener("click", startBuild);
+$("backBtn").addEventListener("click", () => { show(S.plan ? "place" : null); });
+$("anotherBtn").addEventListener("click", () => { show(); S.plan = null; if (square) { square.remove(); square = null; } $("q").focus(); });
+
+async function startBuild() {
+  if (!S.plan) return;
+  $("buildBtn").disabled = true;
+  try {
+    await api("/api/build", { found: S.plan.place, size: S.size, name: $("name").value, pedestrians: $("peds").checked, query: S.query });
+    watch();
+  } catch (err) {
+    showError(err.error, err.advice);
+  } finally {
+    $("buildBtn").disabled = false;
+  }
+}
+
+function icon(state) { return state === "done" ? "✓" : state === "failed" ? "!" : ""; }
+
+function renderJob(j) {
+  $("progTitle").textContent = j.state === "running" ? `Building ${j.plan.place.name}…` : `Built ${j.plan.place.name}`;
+  const m = Math.floor(j.elapsed / 60), s = j.elapsed % 60;
+  $("elapsed").textContent = `${m}:${String(s).padStart(2, "0")} so far · about ${j.plan.minutes} min in all`;
+  $("steps").innerHTML = j.steps.map((st) =>
+    `<li class="${st.state}"><span class="ico">${icon(st.state)}</span><span><span class="t">${esc(st.title)}</span>` +
+    (st.text ? `<small>${esc(st.text)}</small>` : "") + "</span></li>").join("");
+  $("progNotes").innerHTML = (j.notes || []).map((n) => `<div class="note warn">${esc(n)}</div>`).join("");
+}
+
+async function watch() {
+  clearTimeout(S.poll);
+  let j;
+  try { j = await api("/api/job"); } catch (err) { S.poll = setTimeout(watch, 3000); return; }
+  if (j.state === "idle") return;
+  if (j.state === "running") {
+    show("progress");
+    renderJob(j);
+    if (j.plan) drawSquare(j.plan.lat, j.plan.lon, j.plan.km);
+    S.poll = setTimeout(watch, 1000);
+    return;
+  }
+  if (S.job === j.id) return;                 // already shown
+  S.job = j.id;
+  if (j.state === "failed") { renderJob(j); showError(j.error, j.advice); }
+  else { await loadMaps(); showResult(j.summary, j.plan.slug); }
+}
+
+function showError(msg, advice) {
+  show("error");
+  $("errMsg").textContent = msg || "Something went wrong.";
+  $("errAdvice").textContent = advice || "";
+}
+
+// 3. the result
+function showResult(sum, name) {
+  if (!sum) return;
+  S.shown = name;
+  show("result");
+  $("resTitle").textContent = sum.label + (sum.country && sum.country !== "unknown" ? ", " + sum.country : "");
+  $("resImg").src = `/maps/${encodeURIComponent(name)}/preview.png?t=${Date.now()}`;
+  const h = sum.building_height_m;
+  const rows = [
+    ["Roads", `${sum.roads_km.toFixed(1)} km, ${sum.drive}-hand traffic, ${sum.traffic_lights || 0} traffic lights`],
+    ["Buildings", `${sum.buildings.toLocaleString()}` + (h ? `, typically ${Math.round(h[1])} m, the tallest ${Math.round(h[2])} m` : "")],
+    ["Trees", sum.trees.toLocaleString()],
+    ["Street furniture", `${sum.lamps.toLocaleString()} lamps, ${sum.furniture.toLocaleString()} benches, bins and more, ${sum.signs} signs`],
+    ["Parking places", sum.parking_places.toLocaleString()],
+    ["Bus lines", sum.bus_lines ? `${sum.bus_lines} (${sum.bus_lines_with_timetable} with a real timetable)` : "none mapped (buses drive random routes)"],
+  ];
+  if (sum.relief_m !== null && sum.relief_m !== undefined) rows.push(["Hills", `${sum.relief_m} m from the lowest to the highest point`]);
+  $("resFacts").innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("") +
+    (sum.warnings || []).map((w) => `<dd style="grid-column:1/-1" class="note warn">${esc(w)}</dd>`).join("");
+  $("resCredits").innerHTML = Object.values(sum.sources || {}).map((s) => `<li>${esc(s.what)} (${esc(s.licence)})</li>`).join("");
+  $("driveInfo").innerHTML = "";
+  if (sum.bbox) {
+    const [s, w, n, e] = sum.bbox;
+    map.flyToBounds([[s, w], [n, e]], { padding: [30, 30], duration: 0.8 });
+  }
+}
+
+$("driveBtn").addEventListener("click", async () => {
+  if (!S.shown) return;
+  try {
+    const r = await api("/api/drive", { name: S.shown });
+    $("driveInfo").innerHTML = r.started
+      ? `<div class="note ok">${esc(r.how)}</div>`
+      : `<div class="note warn"><b>${esc(r.why)}</b><br>${esc(r.how)}<code>${esc(r.command)}</code></div>`;
+  } catch (err) {
+    $("driveInfo").innerHTML = `<div class="note bad">${esc(err.error)} ${esc(err.advice || "")}</div>`;
+  }
+});
+
+// your maps
+async function loadMaps() {
+  try { S.maps = (await api("/api/maps")).maps; } catch (err) { return; }
+  builtLayer.clearLayers();
+  const box = $("maps");
+  if (!S.maps.length) { box.innerHTML = '<p class="hint">None yet.</p>'; return; }
+  box.innerHTML = "";
+  for (const m of S.maps) {
+    const div = document.createElement("div");
+    div.className = "mapitem";
+    const img = m.preview ? `<img src="/maps/${encodeURIComponent(m.name)}/preview.png" alt="">` : '<div class="noimg"></div>';
+    const when = m.built ? m.built.slice(0, 10) : (m.ready ? "built" : "not built yet");
+    div.innerHTML = `${img}<span>${flag(m.summary && m.summary.country_code)} ${esc(m.label)}<small>${esc(m.country || "")} · ${esc(when)}</small></span>`;
+    div.onclick = () => (m.summary ? showResult(m.summary, m.name) : null);
+    box.appendChild(div);
+    if (m.summary && m.summary.bbox) {
+      const [s, w, n, e] = m.summary.bbox;
+      L.rectangle([[s, w], [n, e]], { color: "#6b7280", weight: 1, dashArray: "4 4", fillOpacity: 0.05 })
+        .bindTooltip(m.label).on("click", () => showResult(m.summary, m.name)).addTo(builtLayer);
+    }
+  }
+}
+
+// start: a running build, the built maps, and ?q= / ?lat=&lon= / ?map= links
+(async function init() {
+  const u = new URLSearchParams(location.search);
+  if (u.get("size") && SIZES[u.get("size")]) S.size = u.get("size");
+  for (const b of $("sizes").children) b.classList.toggle("on", b.dataset.size === S.size);
+  await loadMaps();
+  await watch();
+  if (u.get("map")) {
+    const m = S.maps.find((x) => x.name === u.get("map"));
+    if (m && m.summary) showResult(m.summary, m.name);
+  } else if (u.get("lat") && u.get("lon")) {
+    choose({ lat: +u.get("lat"), lon: +u.get("lon") }, null);
+  } else if (u.get("q")) {
+    $("q").value = u.get("q");
+    $("searchForm").requestSubmit();
+  }
+})();
+</script>
+</body>
+</html>

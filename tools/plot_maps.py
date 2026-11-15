@@ -2,46 +2,17 @@
 
     python tools/plot_maps.py docs/img/cities.png
 """
-import json
 import sys
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-import sumolib  # noqa: E402
 import yaml  # noqa: E402
-from matplotlib.collections import LineCollection, PolyCollection  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-
-
-def draw(ax, map_dir, title):
-    net = sumolib.net.readNet(str(map_dir / "geo.net.xml"), withInternal=False)
-    roads, bikes = [], []
-    for e in net.getEdges():
-        for lane in e.getLanes():
-            pts = [(x, -y) for x, y in lane.getShape()]
-            if lane.allows("passenger"):
-                roads.append(pts)
-            elif lane.allows("bicycle"):
-                bikes.append(pts)
-    if (map_dir / "buildings.json").exists():
-        polys = [p["p"] for p in json.loads((map_dir / "buildings.json").read_text())]
-        ax.add_collection(PolyCollection(polys, facecolors="#d9d2c5", edgecolors="none"))
-    ax.add_collection(LineCollection(bikes, colors="#b5523f", linewidths=0.6))
-    ax.add_collection(LineCollection(roads, colors="#3b4048", linewidths=0.9))
-    xs = [x for r in roads for x, _ in r]
-    ys = [y for r in roads for _, y in r]
-    if xs:
-        cx, cy, half = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, 720
-        ax.set_xlim(cx - half, cx + half)
-        ax.set_ylim(cy + half, cy - half)   # CARLA y points south: north up
-    ax.set_aspect("equal")
-    ax.set_xticks([]), ax.set_yticks([])
-    ax.set_title(title, fontsize=8)
-    for s in ax.spines.values():
-        s.set_color("#c8ced6")
+sys.path.insert(0, str(ROOT))
+from coupledcarla.preview import draw  # noqa: E402  (shared with the map maker's preview pictures)
 
 
 def main(out):
