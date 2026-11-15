@@ -366,6 +366,7 @@ def check(raw, cfg, roads=True, participants=None, order=None):
         rep.error("file", "is not a YAML mapping")
         return rep, {}
     _keys(rep, raw, config.DEFAULTS)
+    _resolve_xy(cfg)          # points given as CARLA {x, y} (a CARLA town): as lat, lon when the map is built
     for level, msg in multigpu.problems(cfg):        # server.multigpu: names, roles, ports
         (rep.error if level == "error" else rep.warn)("server.multigpu", msg)
     ehmi = raw.get("ehmi")
@@ -388,7 +389,10 @@ def check(raw, cfg, roads=True, participants=None, order=None):
         import json
         bbox = json.loads((mdir / "meta.json").read_text()).get("bbox")
     if not built:
-        if mc.get("opendrive"):
+        if mc.get("carla_town") and not mc.get("opendrive"):
+            rep.warn("map", f"maps/{mc['name']} is not built yet: the run builds it from {mc['carla_town']}'s "
+                            f"OpenDRIVE (CARLA_ROOT or the server)")
+        elif mc.get("opendrive"):
             if not Path(mc["opendrive"]).exists() and not (Path(cfg["_root"]) / mc["opendrive"]).exists():
                 rep.error("map.opendrive", f"{mc['opendrive']} does not exist")
         elif not bbox:
@@ -495,6 +499,23 @@ def check(raw, cfg, roads=True, participants=None, order=None):
         participants = range(1, (min(study.square_rows(n, order), 24) if n else 1) + 1)
     plans = {p: study.plan(cfg, p, order) for p in participants}
     return rep, plans
+
+
+def _resolve_xy(cfg):
+    """towns.resolve_xy on the experiment and its trials with the built map's geo.net.xml (no-op otherwise)."""
+    f = config.map_dir(cfg) / "geo.net.xml"
+    if not f.exists():
+        return
+    try:
+        from .geo import Geo
+        from . import towns
+        geo = Geo(f)
+    except Exception:  # noqa: BLE001 - no sumolib (CI): the points stay as they are
+        return
+    towns.resolve_xy(cfg, geo)
+    for t in cfg.get("trials") or []:
+        if isinstance(t, dict):
+            towns.resolve_xy(t, geo)
 
 
 def load(path):

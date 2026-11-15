@@ -77,12 +77,13 @@ class Signals:
                  lefthand=False, log=print):
         """net: the sumolib net SUMO runs (map.net.xml); offset: the bridge's SUMO->CARLA shift; debug: where to
         draw (the runner passes the side connection's, see side.py), else world.debug; style: "head" or
-        "marker"; lefthand: the kerb is on the left of the lanes."""
+        "marker" (or "none": no drawing, next_light only); lefthand: the kerb is on the left of the lanes."""
         self.debug = world.debug if debug is None else debug
         cmap = world.get_map()
         self.radius, self.every = radius, every
         self.life = every * step * 1.6
-        self.style = style if style in ("head", "marker") else "head"
+        # "none": nothing drawn, the level's own traffic-light actors show SUMO's states (a CARLA town, towns.py)
+        self.style = style if style in ("head", "marker", "none") else "head"
         self.heads = []   # (tls_id, [link indices], carla Location at the stop line, travel yaw)
         self.lanes = {}   # SUMO lane id -> (tls_id, [link indices], lane length)
         self.actors = []
@@ -129,6 +130,8 @@ class Signals:
                 kerb = k == 0      # the group with the kerb lane on the kerb, the others across their lanes
                 lane = by_index[group[0] if kerb else group[-1]][1]
                 self.heads.append((tls, idxs, *place(lane, kerb)))
+        if self.style == "none":
+            self.heads = []
         self.meshes = self.style == "head" and self._spawn_heads(world, log)
         self._tick = 0
 

@@ -139,6 +139,9 @@ def load_obstacles(mdir, tc, ground_z, log=print, geo=None):
                     L, W, H = 6.0, 6.0, 12.0
                 sc = float(it[5])
                 trees.append((it[1], it[2], it[3] + H * sc, max(1.0, max(L, W) * sc / 2)))
+        tj = mdir / "trees.json"       # a CARLA town's vegetation boxes [x, y, top, radius] (towns.environment)
+        if tj.exists():
+            trees += [tuple(t) for t in json.loads(tj.read_text())]
     except Exception as err:  # noqa: BLE001
         log(f"drones: trees not read ({type(err).__name__}: {err})")
     obs = plan.Obstacles(recs, trees)

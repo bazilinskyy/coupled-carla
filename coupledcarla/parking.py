@@ -578,6 +578,14 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     choose = Chooser(cars, reg, tc.get("car_types"))
     LT = carla.LaneType
     passable = {LT.Driving, LT.Biking, LT.Parking, LT.Bidirectional, LT.Restricted}
+    # shoulders of this width are parking strips (the CARLA towns' kerb shoulders, map.scenery.park_shoulders_m)
+    shoulder_m = sc.get("park_shoulders_m")
+    if shoulder_m:
+        passable.add(LT.Shoulder)
+
+    def parks(w):
+        return w.lane_type == LT.Parking or bool(shoulder_m) and w.lane_type == LT.Shoulder and \
+            shoulder_m[0] <= w.lane_width <= shoulder_m[1]
 
     # only the types the map has: a query for a type it lacks costs ~0.5 ms (CARLA searches every lane), 100 times
     # one that finds a lane; Bidirectional and Sidewalk on OSM maps were 64 of Eindhoven's 70 s of parking
@@ -631,7 +639,9 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     if sc.get("bgt", "auto") not in (False, "off", "false") and rw.in_netherlands(bbox):
         f = mdir / "real" / "bgt.json"
         bgt_data = json.loads(f.read_text()) if f.exists() else None
-    areas = _areas(osm_parking(bbox, mdir / "real" / "osm_parking.json", log), bgt_data, geo)
+    # (a CARLA town has no real place: no OSM parking areas)
+    areas = _areas({} if mc.get("carla_town") else osm_parking(bbox, mdir / "real" / "osm_parking.json", log),
+                   bgt_data, geo)
     street_areas, area_src = _Grid(), {}
     for poly, kind, src in areas:
         if kind in ("street", "any"):
@@ -764,20 +774,21 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
             while True:
                 nxt = lid + step if lid + step != 0 else lid + 2 * step
                 w = lane_at(road, nxt, smid)
-                if w is None or w.lane_type not in passable or w.lane_width < 0.5:
+                if w is None or w.lane_type not in passable or w.lane_width < 0.5 or \
+                        (w.lane_type == LT.Shoulder and not parks(w)):      # a narrow or hard shoulder: the edge
                     break
                 outer, lid = w, nxt
-                if w.lane_type == LT.Parking:
+                if parks(w):
                     park = (w, nxt)
             if park is not None:        # a parking lane on this side (also inside a cycle lane): the cars stand in it
                 outer, lid = park
-            if baked and outer.lane_type != LT.Parking:
+            on_parking_lane = parks(outer)
+            if baked and not on_parking_lane:
                 counts["side_no_parking_lane"] += 1     # the twin's lanes reach the real kerb: no room beside them
                 continue
             if outer.lane_type == LT.Restricted:
                 counts["side_bus_lane"] += 1
                 continue
-            on_parking_lane = outer.lane_type == LT.Parking
             ux, uy = _ref_dir(road, lid, smid, smin, smax, lane_at)
             nx, ny = (-uy, ux) if side == "right" else (uy, -ux)
             tf = outer.transform
