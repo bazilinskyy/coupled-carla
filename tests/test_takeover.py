@@ -231,3 +231,27 @@ def test_warning_and_beep_draw_headless(monkeypatch):
         assert not st.sound_on
     finally:
         pygame.quit()
+
+
+def test_reaction_counts_from_the_frame_that_showed_the_warning(monkeypatch):
+    """A windowed station reads its input before it draws the frame: steering on the frame the request arrives
+    on (before the participant could see the warning) is no take-over, and the reaction time starts when the
+    warning is first drawn."""
+    pygame = pytest.importorskip("pygame")
+    monkeypatch.setenv("SDL_VIDEODRIVER", "dummy")
+    monkeypatch.setenv("SDL_AUDIODRIVER", "dummy")
+    pygame.init()
+    try:
+        sent = []
+        st = takeover.StationTakeOver(takeover.spec({"route": ROUTE, "takeover": {"beep": False}}), sent.append)
+        screen = pygame.Surface((800, 450))
+        font, big = pygame.font.SysFont("sans", 18), pygame.font.SysFont("sans", 40)
+        st.draw(screen, big, font, 99.0)                                  # a frame of automated driving
+        st.on_message({"type": "takeover", "state": "requested"})
+        assert st.may_drive(ctl(steer=0.5), False, 100.0) is False        # warning not on screen yet
+        assert st.state == REQUESTED and not sent
+        st.draw(screen, big, font, 100.02)                                # the frame that shows it
+        assert st.may_drive(ctl(steer=0.5), False, 100.5) is True
+        assert sent == [{"type": "takeover", "how": "steer", "reaction_s": 0.48}]
+    finally:
+        pygame.quit()
