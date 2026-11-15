@@ -21,6 +21,7 @@ import time
 from . import responses, takeover
 from .takeover import AUTOMATED, MANUAL, REQUESTED
 
+COMMANDS_HERE = ("start", "pause", "resume", "abort", "stop", "takeover", "sync")
 ENGAGE_KEYS = ("return", "enter")        # pygame key names of the automation button on the keyboard
 REQUEST_KEY = "t"                        # the experimenter's take-over request at the participant's machine
 
@@ -69,6 +70,7 @@ class HostStudy:
         self.events = collections.deque(maxlen=40)
         self.collisions = 0
         self.paused = self.abort = self.stop = False
+        self.other = []           # dashboard commands for the run loop (eHMI, weather: livemap.LiveFeed)
         self.state = "loading"
         self.t, self.frame, self.n = 0.0, 0, 0
         self.t_wall0 = None
@@ -152,6 +154,8 @@ class HostStudy:
                 if cmd["cmd"] in ("abort", "stop"):
                     self.abort, self.stop = True, cmd["cmd"] == "stop"
                     return False
+                if cmd["cmd"] not in ("pause", "resume", "sync", "takeover"):
+                    self.other.append(cmd)        # e.g. the weather, applied once the trial runs
             time.sleep(0.1)
 
     def started(self):
@@ -200,6 +204,8 @@ class HostStudy:
                     self.tor[r].request(self.t, "dashboard")
             elif c == "sync" and self.sync_cb is not None:
                 self.sync_cb(self.t)
+            elif c not in COMMANDS_HERE:
+                self.other.append(cmd)
 
     # -- per tick -------------------------------------------------------------------------------------------
     def drives(self, part):
@@ -356,7 +362,7 @@ class HostStudy:
                 "block": trial.get("_block") or "", "t": round(self.t, 2),
                 "duration_s": float(trial.get("duration_s", 300)), "rtf": round(self.t / wall, 2) if wall > 1 else None,
                 "frame": self.frame, "collisions": self.collisions, "participants": parts,
-                "automated": list(self.tor), "events": list(self.events)[-15:],
+                "automated": list(self.tor), "events": list(self.events)[-15:], "log_dir": str(self.out),
                 "plan": [[t.get("_position"), t.get("_index"), t.get("_condition") or t.get("name") or "",
                           float(t.get("duration_s", 300))] for t in self.plan]}
 
