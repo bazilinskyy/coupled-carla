@@ -629,9 +629,11 @@ def load(map_dir, bbox, refresh=False):
             continue
         try:
             counters = fetch(bbox)
-        except Exception as err:  # noqa: BLE001 - offline or the service changed: random demand
-            log(f"{src}: counts not reached ({type(err).__name__}: {err}); random car demand is used")
-            return None
+        except Exception as err:  # noqa: BLE001 - offline or the service changed: the old counts, else random demand
+            old = json.loads(path.read_text()) if path.exists() else None
+            log(f"{src}: counts not reached ({type(err).__name__}: {err}); "
+                + (f"the counts fetched {old.get('fetched', '?')[:10]} are used" if old else "random car demand is used"))
+            return old if old and old.get("counters") else None
         data = {"source": src, "what": SOURCES[src][0], "licence": SOURCES[src][1],
                 "fetched": datetime.now().isoformat(timespec="seconds"), "counters": counters}
         path.parent.mkdir(parents=True, exist_ok=True)

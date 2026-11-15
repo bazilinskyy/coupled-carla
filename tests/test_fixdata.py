@@ -197,3 +197,24 @@ def test_expired_caches_are_used_when_the_refresh_fails(tmp_path, monkeypatch):
     os.utime(csv, (old, old))
     monkeypatch.setattr(transit.requests, "get", down)
     assert [r["id"] for r in transit.feeds_for([45.75, 4.82, 45.76, 4.84], tmp_path)] == ["mdb-1"]
+
+
+def test_map_counts_older_than_their_age_are_kept_offline(tmp_path, monkeypatch):
+    # real/counts.json and real/bike_counters.json past their age: a failed refetch dropped them (random demand)
+    import os
+    import time
+    from coupledcarla import counts, cycling
+
+    def down(*a, **k):
+        raise OSError("offline")
+    real = tmp_path / "real"
+    real.mkdir()
+    (real / "counts.json").write_text(json.dumps({"source": "nyc_dot", "fetched": "2026-01-01T00:00:00",
+                                                  "counters": [{"id": 1}]}))
+    monkeypatch.setattr(counts, "FETCHERS", [("nyc_dot", lambda b: True, down)])
+    assert counts.load(tmp_path, [40.75, -73.99, 40.76, -73.97])["counters"] == [{"id": 1}]
+    (real / "bike_counters.json").write_text(json.dumps({"sites": [{"id": "a"}]}))
+    old = time.time() - 400 * 86400
+    os.utime(real / "bike_counters.json", (old, old))
+    monkeypatch.setattr(cycling, "FETCHERS", [("nyc", (40.0, -75.0, 41.0, -73.0), down)])
+    assert cycling.counters([40.75, -73.99, 40.76, -73.97], real) == [{"id": "a"}]
