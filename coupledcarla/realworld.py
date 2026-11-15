@@ -737,15 +737,16 @@ def sun_position(lat, lon, utc):
     return alt, (az + 180) % 360
 
 
-def carla_weather_fields(rec, alt, az):
-    """Open-Meteo hour + sun position -> carla.WeatherParameters fields (see README for the mapping)."""
+def carla_weather_fields(rec, alt, az, cloud_scale=0.6):
+    """Open-Meteo hour + sun position -> carla.WeatherParameters fields (see README for the mapping); cloud_scale:
+    CARLA cloudiness per % of cloud cover (simulation.cloud_scale)."""
     rain = (rec.get("rain") or 0) + (rec.get("snowfall") or 0) * 0.7          # mm/h
     vis = rec.get("visibility")
     fog = 0.0 if vis is None or vis >= 10000 else min(100.0, 100.0 * (1 - vis / 10000.0) ** 1.5)
     return {
         # 100 % cover -> 60: above about 60 CARLA 0.9.16 renders an OpenDRIVE world's sky dark grey to black
         # (sky brightness 66, 18 and 1 of 255 at 60, 80 and 90, measured)
-        "cloudiness": 0.6 * float(rec.get("cloud_cover") or 0),
+        "cloudiness": min(100.0, float(cloud_scale) * float(rec.get("cloud_cover") or 0)),
         "precipitation": min(100.0, rain * 20.0),
         "precipitation_deposits": min(100.0, (rec.get("precipitation_3h") or 0) * 15.0),
         "wetness": min(100.0, (rec.get("precipitation_3h") or 0) * 25.0),

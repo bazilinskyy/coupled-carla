@@ -112,7 +112,7 @@ def fake_carla():
             return types.SimpleNamespace(location=Location(loc.x, loc.y, 15.5))
 
         def get_weather(self):
-            return types.SimpleNamespace(sun_altitude_angle=30.0)
+            return types.SimpleNamespace(sun_altitude_angle=30.0, cloudiness=10.0)
 
     class Client:
         def __init__(self, host, port):
@@ -158,7 +158,8 @@ def test_render_with_a_fake_server(tmp_path, monkeypatch):
                               sources="panoramax", refresh=False, spacing=20, pano_offsets="0", max_views=0,
                               action_cams=False, size=64, host="h", port=1, delta=0.05, settle=6, first_settle=9,
                               profile="Dashcam", weather="fixed", budget_min=10, no_scenery=True, no_parked=True,
-                              again=False)
+                              again=False, moving_cars=0, seed=1, look="capture", ev_bias=0.0, camera_attr="",
+                              cloud_scale=None)
     T.cmd_render(args)
     from PIL import Image
     w, h, f = R.wide_size(64, 36, 90.0, 12.0, 6.0)
@@ -177,3 +178,71 @@ def test_render_with_a_fake_server(tmp_path, monkeypatch):
     assert world.sensors[0].bp.attrs["post_process_profile"] == "Dashcam"
     T.cmd_render(args)                            # again: nothing left to render
     assert len(list(csv.DictReader((out / "renders.csv").open()))) == 2
+
+
+def test_moving_cars_in_view(monkeypatch):
+    # a few cars on the driving lanes in front of the camera, inside its field of view, 8 m apart, removed after it
+    carla = fake_carla()
+    carla.LaneType = types.SimpleNamespace(Any=0, Driving=1, Sidewalk=2)
+    spawned = []
+
+    class Cmd:
+        def __init__(self, bp, tf):
+            self.bp, self.tf = bp, tf
+
+        def then(self, other):
+            return self
+    carla.command = types.SimpleNamespace(SpawnActor=Cmd, SetSimulatePhysics=lambda a, b: None, FutureActor=None,
+                                          DestroyActor=lambda i: ("destroy", i))
+    monkeypatch.setitem(sys.modules, "carla", carla)
+    import realism_check as T
+
+    class Attr:
+        def __init__(self, v):
+            self.v, self.recommended_values = v, ["10,10,10", "200,0,0"]
+
+        def as_int(self):
+            return int(self.v)
+
+        def as_str(self):
+            return str(self.v)
+
+    class VBP:
+        id = "vehicle.x"
+
+        def __init__(self):
+            self.attrs = {"number_of_wheels": Attr(4), "base_type": Attr("car"), "color": Attr("")}
+
+        def has_attribute(self, k):
+            return k in self.attrs
+
+        def get_attribute(self, k):
+            return self.attrs[k]
+
+        def set_attribute(self, k, v):
+            self.attrs[k] = Attr(v)
+    lane = [types.SimpleNamespace(lane_type=1, transform=carla.Transform(carla.Location(x, 0.0, 1.0)))
+            for x in np.arange(-100.0, 100.0, 4.0)]
+    walk = [types.SimpleNamespace(lane_type=2, transform=carla.Transform(carla.Location(x, 5.0, 1.0)))
+            for x in np.arange(-100.0, 100.0, 4.0)]
+
+    class Client:
+        def apply_batch_sync(self, cmds, sync=False):
+            if cmds and isinstance(cmds[0], Cmd):
+                spawned.append(list(cmds))
+                return [types.SimpleNamespace(error="", actor_id=i) for i in range(len(cmds))]
+            spawned.append([])
+            return []
+    world = types.SimpleNamespace(get_blueprint_library=lambda: types.SimpleNamespace(filter=lambda p: [VBP()]))
+    cmap = types.SimpleNamespace(generate_waypoints=lambda d: lane + walk)
+    mc = T.MovingCars(Client(), world, cmap, cars_per_km=250.0)       # one car per lane point drawn: all that fit
+    mc.place("v1", carla.Location(0.0, 0.0, 2.0), 0.0, 90.0)
+    xs = sorted(c.tf.location.x for c in spawned[-1])
+    assert mc.n == len(xs) >= 5
+    assert all(10.0 < x < 80.0 for x in xs)                          # in front (yaw 0 = +x), 10-80 m away
+    assert all(b - a >= 8.0 for a, b in zip(xs, xs[1:]))             # 8 m apart
+    assert all(c.tf.location.y == 0.0 for c in spawned[-1])          # on the driving lane only
+    mc.place("v1", carla.Location(0.0, 0.0, 2.0), 180.0, 90.0)       # the next view: the old cars go first
+    assert spawned[-2] == [] and all(c.tf.location.x < 0 for c in spawned[-1])
+    mc.clear()
+    assert mc.n == 0

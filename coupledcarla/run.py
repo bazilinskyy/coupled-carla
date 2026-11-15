@@ -165,7 +165,7 @@ def set_weather(world, sc, latlon=None, cache_dir=None, log=print):
                 datetime.now(timezone.utc).replace(tzinfo=None)
             local = local or utc + timedelta(hours=lon / 15.0)
         alt, az = realworld.sun_position(lat, lon, utc.replace(tzinfo=timezone.utc))
-        fields = realworld.carla_weather_fields(rec or {}, alt, az)
+        fields = realworld.carla_weather_fields(rec or {}, alt, az, float(sc.get("cloud_scale") or 0.6))
         if not real or rec is None:
             fields = {k: fields[k] for k in ("sun_altitude_angle", "sun_azimuth_angle")}
         for k, v in fields.items():

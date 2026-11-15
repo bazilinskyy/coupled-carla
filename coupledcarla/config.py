@@ -87,6 +87,8 @@ DEFAULTS = {
         "real_time": True,           # sleep so that simulated time follows the wall clock
         "profile": False,            # print ms per tick by part of the loop every 10 s (the trial's in summary.json)
         "weather": "CloudyNoon",     # a carla.WeatherParameters preset name, a dict of its fields, or "real"
+        "cloud_scale": 0.6,          # weather "real": CARLA cloudiness per % of cloud cover (0.6: overcast = 60;
+                                     # above ~60 CARLA 0.9.16 draws an OpenDRIVE world's sky dark grey to black)
         "sun_altitude": None,
         "tls_manager": "sumo",       # who runs the traffic lights: sumo | carla | none
         "traffic_lights": {"style": "head"},   # how SUMO's lights show in CARLA (signals.py): "head" (a signal
