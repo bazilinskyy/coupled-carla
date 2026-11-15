@@ -5,7 +5,9 @@
 # Run in the client environment beside a running server that has EhvCentre (win5090: WSL with ~/cc58/env58.sh, the
 # packaged server of the task cc58-pkgserver, ~/cc58/gpu_window.sh holding the GPU):
 #     bash tools/realism_window.sh              # ~35 min of GPU (5 x 201 views), then ~40 min of CPU on $CPU_HOST
-#     ONLY="look overcast" bash tools/realism_window.sh      # some variants only
+#     ONLY="look overcast" bash tools/realism_window.sh      # some variants only (also: clean)
+# CoupledReal is fitted with a model of Unreal's tone mapping (lookfit.py) that got the direction of each setting
+# right on CARLA 0.9.16 but its size 30-50 % low, so its predicted gain must be measured here before it is adopted.
 #
 # Needs in this checkout:
 #   maps/eindhoven_twin/                 the twin's map folder (geo.net.xml, map.xodr, real/ with the weather caches)
@@ -30,11 +32,12 @@ BUDGET=${BUDGET:-12}       # minutes per variant (201 views take ~6)
 log() { echo "$(date +%T) $*"; }
 
 # variant -> scenery set and render options
-declare -A SCN=([before]=before [trees]=after [cars]=after [look]=after [overcast]=after)
+declare -A SCN=([before]=before [trees]=after [cars]=after [clean]=after [look]=after [overcast]=after)
 declare -A OPT=(
   [before]="--no-parked --moving-cars 0 --profile Dashcam"
   [trees]="--no-parked --moving-cars 0 --profile Dashcam"
   [cars]="--moving-cars 20 --profile Dashcam"
+  [clean]="--moving-cars 20 --profile CoupledClean"      # optional (ONLY=...): the profile CoupledReal starts from
   [look]="--moving-cars 20 --profile CoupledReal"
   [overcast]="--moving-cars 20 --profile CoupledReal --cloud-scale 1.0"
 )
