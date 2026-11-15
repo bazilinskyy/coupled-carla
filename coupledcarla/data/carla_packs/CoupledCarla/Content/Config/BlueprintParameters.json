@@ -55,6 +55,10 @@
 		{
 			"Name": "cc_drone_industrial_parked",
 			"Path": "/Game/CoupledCarla/Drones/BP_CCDrone_Industrial_Parked.BP_CCDrone_Industrial_Parked"
+		},
+		{
+			"Name": "cc_photoreal_google",
+			"Path": "/Script/CoupledPhotoreal.CCPhotorealTiles_C"
 		}
 	]
 }

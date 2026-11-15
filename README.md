@@ -198,7 +198,16 @@ exp = make_map("Shibuya crossing", size="small")   # -> experiments/places/<name
 
 Options: `--size small|medium|large|<km>` (above 2.5 km it warns that it gets slow; 4 km at most), `--name`,
 `--pedestrians` (a crowd on the pavements, `traffic.walkers.count: auto`), `--open`, `--drive`, `--force`,
-`--no-build`, `--build <experiment>`. Without arguments in a terminal it asks for the place.
+`--no-build`, `--build <experiment>`, `--twin` (a baked CARLA 1.0 digital twin instead, below). Without arguments in
+a terminal it asks for the place.
+
+**A digital twin instead (`--twin`).** Where a digital-twin toolchain is set up (a CARLA 1.0 source build with the
+editor and carla-digitaltwins, named in `~/.config/coupled-carla/twin.json`; [docs/make_a_map.md](docs/make_a_map.md#a-digital-twin-carla-10)),
+the map maker makes a CARLA 1.0 twin of the same square: real building shapes with facade styles, the aerial photo
+on the ground and roofs, the national terrain, CARLA's road materials with lane markings, from the best open data
+of the country ([A twin of any place](#a-twin-of-any-place)). The page shows a checkbox for it only where the
+toolchain is configured. It writes `experiments/places/<name>_twin.yaml` (`map.opendrive`, `map.carla_level`) and
+the level `/Game/Carla/Maps/Twins/<Name>/<Name>` in the CARLA 1.0 tree (`coupledcarla/twinmaker.py`).
 
 ## Videos
 
@@ -1089,6 +1098,71 @@ views score best (coarse IoU 0.50), Commons photos worst (0.28; often taken from
 their PLUTO construction year and use, USGS 3DEP ground under the NYS orthophoto, and OSM roads with US lane
 markings, kerbs and sidewalks; SUMO drives on the twin's own OpenDRIVE. A 40 s trial on the Windows package ran at
 RTF 0.75 with 707 parked cars and 1,004 scenery meshes around the participant.
+
+#### Photorealistic tiles (optional)
+
+`map.photoreal: google` ([`experiments/eindhoven_twin_photoreal.yaml`](experiments/eindhoven_twin_photoreal.yaml))
+streams Google's Photorealistic 3D Tiles into a baked level with [Cesium for
+Unreal](https://github.com/CesiumGS/cesium-unreal) (v2.31.0, Apache 2.0) and the `CoupledPhotoreal` plugin
+([`unreal/`](unreal/)), after the approach of the open-source flight simulator
+[FableFlight](https://github.com/Rolandjg/fableflight). The photogrammetry mesh replaces the twin's buildings and
+ground on screen; CARLA's roads (smooth surface, lane markings) stay, as the mesh is clipped above the twin's
+carriageway cut from its OpenDRIVE. Collision, LiDAR and navigation keep the twin's geometry, so cars drive on CARLA's
+roads and walkers on its sidewalks. At night the twin's buildings with their lit windows come back inside a cut along
+their footprints, and CARLA's street lamps light the photo streets. Heights are NAP + NLGEO2018 (43.93 m at
+Eindhoven) plus the ETRS89 → ITRF drift (0.90 m north-east in 2026).
+
+It needs your own Google Maps Platform key with billing, on the server machine only (`GOOGLE_MAPS_API_KEY` or
+`~/.config/coupled-carla/google_maps_key`, mode 600; never stored in a file of ours, a log or content). Photorealistic
+3D Tiles is an Enterprise SKU: 1,000 billable root requests a month are free, then USD 6.00 per 1,000, each opening a
+session of up to three hours (Google's pricing, November 2026). Each level load sends one root request; the server
+counts them (`~/.config/coupled-carla/google_tiles_usage.json`) and stops at `day_cap` (50) and `month_cap` (1,000).
+Also set a Cloud quota cap of about 50 root requests a day so a bug cannot run up a bill. Tiles stream and are never
+stored beyond their Cache-Control lifetime, baked into packages or content packs, or redistributed; saved frames
+carry Google's attribution. Limits: it is photogrammetry (parked cars and people baked into the streets, no semantic
+labels for sensors, sun and shadows baked in, so they double when relit by day). Without a key, the plugin or the
+level data the trial runs on the normal twin. Status: built and checked on lin5080 without a key (one root request
+per level load, caps, fail-soft); not yet seen with a key on a rendering server. Shareable open alternatives:
+[PLATEAU](https://www.mlit.go.jp/plateau/)'s textured LoD2 buildings for Japan (used by the twin of any place),
+[Helsinki's reality mesh](https://hel.fi/3d) and Espoo's (CC BY 4.0), [Rotterdam 3D](https://data.overheid.nl/dataset/10230-rotterdam-3d)
+(public domain, LoD2 textured from aerial photos).
+
+#### A twin of any place
+
+The same pipeline now makes a twin of any place, with the best open data of its country (carla-digitaltwins branch
+[`anytwin`](https://github.com/bazilinskyy/carla-digitaltwins/tree/anytwin), `twinmodel/regions.py`): national aerial photos, terrain models and building registers where they are open and need
+no key (PDOK/AHN/3DBAG in the Netherlands; PNOA, MDT05 and the Catastro's buildings with their floors, year and use in
+Spain; BD ORTHO, RGE ALTI and BD TOPO in France; the Flemish orthophoto; SWISSIMAGE and swissALTI3D; NAIP and 3DEP in
+the US; GSI's photo and DEM and PLATEAU in Japan), Overture Maps' buildings and the AWS Terrain Tiles elsewhere (there
+is no open global aerial photo at street scale, so there the ground keeps CARLA's materials). Footprint buildings get
+roof shapes where the data has them and facade styles by region (sandstone and warm render in southern Europe).
+Left-hand countries get left-hand twins: the lane graph is built in the mirror image of the place and mirrored back,
+and the OpenDRIVE says `rule="LHT"`, which CARLA 1.0 reads. One command makes the twin and, on a machine with the CARLA
+1.0 editor, bakes it; the map maker's `--twin` runs it and writes the experiment
+([Make a map of any place](#make-a-map-of-any-place)):
+
+```bash
+python -m twinmodel twin "Plaza Mayor, Salamanca" --name SalamancaPlaza --bake \
+    --carla-root ~/carla58/carla --engine ~/carla58/UnrealEngine5_carla --carla-python ~/carla58/venv/bin/python
+python -m coupledcarla.mapmaker "Plaza Mayor, Salamanca" --twin --size small     # the same from the map maker
+```
+
+Tested on two places (2026-11-15, lin5080, 1 km and 0.9 km squares, baked headless with `-nullrhi`):
+
+| Twin | Data | Roads | Buildings | Textures | Python stages | Bake (peak RAM) | Content | 60 s trial (`--local`, headless) |
+|---|---|---|---|---|---|---|---|---|
+| `SalamancaPlaza` (Plaza Mayor, Salamanca) | IGN PNOA 25 cm photo, IGN MDT05 terrain, Catastro buildings | 568 | 1,221 (5,615 parts; 1,215 with their year: 252 sandstone, 830 render, ...) | 82 (50 MB) | 9 min | 5 min, 7.8 GB | 90 MB | RTF 1.16, 0 collisions, 33 SUMO vehicles, 371 spawn points |
+| `ShibuyaCrossing` (the scramble crossing, Tokyo) | GSI photo and 5 m DEM, PLATEAU LoD 2 with its photo textures, left-hand | 1,399 | 1,648 (54,501 photo-textured surfaces in 18 atlases) | 54 (72 MB) | 38 min (5 with the downloads cached) | 3 min, 7.5 GB | 117 MB | RTF 1.18, 0 collisions, 46 SUMO vehicles, 400 spawn points; the driver kept left for 34 s, then left the lanes on the stacked roads by the station |
+
+The levels load in a CARLA 1.0 server and drive with SUMO traffic; what they look like must still be checked on a
+rendering server (`-nullrhi` renders nothing): the PLATEAU photo facades (taken from oblique aerial photos: right in
+colour and layout, soft at street level), the scramble's zebras (drawn along OSM's crossing ways: the five legs and
+one diagonal), Shibuya's stacked roads and plazas (the autopilot left the lanes there and circled on a paved area),
+and the scenery, which stands at the AWS Terrain Tiles' heights until `tools/snap_scenery.py` puts it on the level's
+ground. The map maker ran the whole chain with `--twin` for a third place (Grote Markt, Leuven, 0.5 km, without the
+bake): the Flemish orthophoto, 849 Overture buildings, the experiment and its SUMO net in 29 minutes. Shibuya's large video screens and billboards (Q-Front, the 109 tower's signs) are not in any
+open data: PLATEAU models them as part of the facade photo at best; screens playing video would need emissive
+media-texture materials placed by hand or from a sign inventory.
 
 **Download the Eindhoven twin.** The release
 [twin-eindhoven-2026-11-15](https://github.com/bazilinskyy/coupled-carla/releases/tag/twin-eindhoven-2026-11-15)
