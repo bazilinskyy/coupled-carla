@@ -1,4 +1,4 @@
-<h1 align="center"><img src="docs/logo.svg" width="48" alt="" align="top">&nbsp;coupled-carla</h1>
+<h1 align="center"><img src="docs/logo.svg" width="48" alt="" align="top">&nbsp;Coupled CARLA</h1>
 
 <p align="center">
   <b>A human-factors driving simulator for real places.</b><br>
@@ -31,7 +31,7 @@
   <a href="#support-coupled-carla">Support</a>
 </p>
 
-coupled-carla builds a drivable [CARLA](https://carla.org)
+Coupled CARLA builds a drivable [CARLA](https://carla.org)
 world for any bounding box on Earth from OpenStreetMap, fills it with traffic from [SUMO](https://eclipse.dev/sumo/)
 (cars, cyclists, buses with proper car-following and lane-change models), puts a participant at the wheel
 (keyboard, Logitech G25 with force feedback, or an autopilot for tests) and logs every trial at 50 Hz in the
@@ -55,41 +55,33 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 ---
 
 ## Contents
-
-- [License](#license)
-- [What you get](#what-you-get)
-- [Make a map of any place](#make-a-map-of-any-place)
-- [Videos](#videos)
-- [Screenshots](#screenshots)
-- [How it works](#how-it-works)
-- [Quick start](#quick-start)
-- [Cities](#cities)
-- [Real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather)
-- [Public transport](#public-transport)
-- [Experiment files](#experiment-files)
-- [Participants, inputs and views](#participants-inputs-and-views)
-- [Coupled experiments (phase 2)](#coupled-experiments-phase-2)
-- [Phase 3: CARLA 1.0 and the Eindhoven digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin)
-- [Drones](#drones)
-- [Traffic](#traffic)
-- [Traffic lights](#traffic-lights)
-- [Logging and data](#logging-and-data)
-- [Analysis](#analysis)
-- [Trial viewer](#trial-viewer)
-- [Performance](#performance)
-- [coupled-sim features in coupled-carla](#coupled-sim-features-in-coupled-carla)
-- [Known limits](#known-limits)
-- [Roadmap](#roadmap)
-- [Lessons learned (gotchas)](#lessons-learned-gotchas)
-- [Project layout](#project-layout)
-- [Support coupled-carla](#support-coupled-carla)
+- [Citation](#citation) · [License](#license) · [Support](#support-coupled-carla)
+- [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
+- [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
+- [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport)
+- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
+- [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
+- [Traffic](#traffic) · [Traffic lights](#traffic-lights)
+- [Data](#logging-and-data): [logging](#logging-and-data), [analysis](#analysis), [trial viewer](#trial-viewer)
+- [Performance](#performance) · [coupled-sim features](#coupled-sim-features-in-coupled-carla) · [Known limits](#known-limits) · [Roadmap](#roadmap)
+- [Lessons learned](#lessons-learned-gotchas) · [Project layout](#project-layout)
 - [Credits, data and licences](#credits-data-and-licences)
 
----
+## Citation
+If you use Coupled CARLA for academic work, please cite the software (GitHub's "Cite this repository" button gives
+it in APA and BibTeX, from [`CITATION.cff`](CITATION.cff)):
+
+> Bazilinskyy, P. (2026). Coupled CARLA: a human-factors driving simulator for real places [Computer software].
+> https://github.com/bazilinskyy/coupled-carla
+
+and the coupled simulator it builds on:
+
+> Bazilinskyy, P., Kooijman, L., Dodou, D., & De Winter, J. C. F. (2020). Coupled simulator for research on the
+> interaction between pedestrians and (automated) vehicles. 19th Driving Simulation Conference (DSC). Antibes, France.
 
 ## License
 
-The source code of coupled-carla is released under the [MIT License](LICENSE). Third-party code and data used by
+The source code of Coupled CARLA is released under the [MIT License](LICENSE). Third-party code and data used by
 it are not covered by this license and remain under the licenses of their developers: the SUMO bridge vendored in
 `coupledcarla/bridge` (CARLA, MIT, © CVC), CARLA and Eclipse SUMO themselves (MIT, EPL-2.0), and the map and
 city data (OpenStreetMap under the ODbL, so built maps are derived databases under the ODbL; the other sources
@@ -123,7 +115,7 @@ traffic by hand used to keep a team of 3D artists busy for months. Today most of
 download: OpenStreetMap's streets, lanes, signs and trees, mapped by volunteers; building footprints and heights
 from national registers (3DBAG, BD TOPO, PLATEAU, NYC) and Overture Maps; terrain from lidar and global elevation
 models; the weather and the sun of a real day; bus timetables; open traffic counts. Free, open simulators, CARLA
-for the 3D world and SUMO for the traffic, turn it into a world you can drive. coupled-carla puts these together,
+for the 3D world and SUMO for the traffic, turn it into a world you can drive. Coupled CARLA puts these together,
 and the map maker reduces it to typing a place and pressing a button. It is meant for people who do not program:
 researchers in psychology and human factors, designers, students, city planners.
 
@@ -132,11 +124,11 @@ researchers in psychology and human factors, designers, students, city planners.
 **Set up once** (a computer with an internet connection; to drive, a Windows or Linux PC with a gaming graphics
 card):
 
-1. Download coupled-carla (the green Code button, Download ZIP) and unpack it.
-2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then, in the coupled-carla folder:
+1. Download Coupled CARLA (the green Code button, Download ZIP) and unpack it.
+2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then, in the `coupled-carla` folder:
    `uv venv --python 3.12 .venv` and `uv pip install -r requirements.txt`.
 3. To drive: unpack [CARLA 0.9.16](https://github.com/carla-simulator/carla/releases/tag/0.9.16) as a folder
-   `CARLA_0.9.16` next to the coupled-carla folder.
+   `CARLA_0.9.16` next to the `coupled-carla` folder.
 
 **Every day:** double-click `make_map.bat` (Windows), `Make a map.command` (macOS) or `make_map.sh` (Linux). The
 browser opens a world map. Type a place (a town, a square, an address, coordinates; any language) or click on the
@@ -168,7 +160,7 @@ answered 502 and 504 several times and the map maker moved on to the next).
 | **Plaza Mayor, Salamanca** | **Hallstatt** |
 | ![Preview of Plaza Mayor, Salamanca](docs/img/mapmaker_salamanca.png) | ![Preview of Hallstatt](docs/img/mapmaker_hallstatt.png) |
 
-![Chase-camera frames of the test drives: Seoul, New Delhi (left-hand), Hallstatt, Salamanca](docs/img/mapmaker_drives.jpg)
+<img src="docs/img/mapmaker_drives.jpg" width="100%" alt="Chase-camera frames of the test drives: Seoul, New Delhi (left-hand), Hallstatt, Salamanca">
 
 *The test drives in CARLA (chase camera): Seoul and New Delhi (left-hand traffic, buses) above, Hallstatt and
 Salamanca below.*
@@ -271,7 +263,7 @@ driver follows. Each view below was rendered by a separate station process (here
 |---|---|
 | ![pedestrian sees I'M STOPPING](docs/img/ehmi_pedestrian_stopping.jpg) | ![pedestrian sees GO AHEAD on the AV's front, roof and the road](docs/img/ehmi_pedestrian_go.jpg) |
 
-![Four stations in one trial at the same moment, east of Eindhoven station: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot](docs/img/stations_four_views.jpg)
+<img src="docs/img/stations_four_views.jpg" width="100%" alt="Four stations in one trial at the same moment, east of Eindhoven station: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot">
 
 The same moment in the trial viewer: the pedestrian (red) crossing, the AV (dark blue) stopped with its cyan
 eHMI bar, an AI walker further down the street; the event list shows the AV stopping, the passenger's eHMI
@@ -428,7 +420,7 @@ real-time factors of 0.55-0.99; see [Performance](#performance) for what changed
 
 ## Real-world scenery, terrain and weather
 
-CARLA builds only the roads of an OpenDRIVE map. coupled-carla fills every map with CARLA's own meshes, placed
+CARLA builds only the roads of an OpenDRIVE map. Coupled CARLA fills every map with CARLA's own meshes, placed
 from real-world data that free services give without an account or key, and runs a trial at the weather and
 sun of a real place and time. Everything is fetched once at map build time and cached in `maps/<name>/real/`;
 `meta.json` lists the sources a map was built from.
@@ -537,7 +529,7 @@ modis` uses MODIS MCD12Q2 dates (keyless) where they agree with the model; in ci
 lawns. CARLA cannot show snow; Open-Meteo's snow depth is logged.
 
 **Street lamps at night (CARLA 1.0).** A small content pack (`coupledcarla/data/carla_packs`) puts CARLA's
-street-light blueprints in the blueprint library (coupled-carla adds `-carla-packs=` when it starts the server);
+street-light blueprints in the blueprint library (Coupled CARLA adds `-carla-packs=` when it starts the server);
 at night the scenery lamps within `lights_radius_m` (200 m) of a participant are spawned as those blueprints and
 the server lights them when the sun sets. Headless: 225 lit lamps add 0.2 ms per tick, 781 add 0.7 ms (the cost to
 rendering is not measured). CARLA 1.0's OpenDRIVE worlds also bring generic lamps of their own along every road.
@@ -877,7 +869,7 @@ and Eindhoven built from Dutch national open data instead of OSM alone.
 
 ### Running on CARLA 1.0
 
-coupled-carla takes the same experiment files on CARLA 0.9.16 and CARLA 1.0. CARLA 1.0 renamed or dropped
+Coupled CARLA takes the same experiment files on CARLA 0.9.16 and CARLA 1.0. CARLA 1.0 renamed or dropped
 most vehicle blueprints; [`compat.py`](coupledcarla/compat.py) maps every 0.9 name used here to the closest 1.0
 blueprint (by body type and size, then by `base_type`, then by wheel count) and logs each substitution once.
 The SUMO conversion script that CARLA 1.0 no longer ships is vendored in `bridge/util/`. Set up a second
@@ -900,11 +892,25 @@ visible; lin5080 (driver 595, RTX 5080) is the 1.0 machine.
 about 15 minutes once the UE 5.8 engine fork is built (`cmake --preset Release`, then the `carla-server`,
 `carla-client`, `carla-python-api-install`, `carla-unreal` and `carla-unreal-editor` targets; the venv needs
 `build` installed). The server is the editor binary in `-game` mode; the first start spends a few minutes building
-derived data. The first coupled-carla run on it: `eindhoven_centre.yaml`, 40 s, autopilot driver with SUMO traffic,
+derived data. The first Coupled CARLA run on it: `eindhoven_centre.yaml`, 40 s, autopilot driver with SUMO traffic,
 RTF 0.82, 0 collisions, every 0.9 blueprint mapped to a 1.0 stand-in. That run used `-nullrhi` (no rendering, so no
 cameras or stations), because the RTX 5080 was full with other jobs. The real-world scenery has its own 1.0 mesh
 catalogue ([Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). Install the 1.0 wheel after
 `requirements.txt`, which pins `carla==0.9.16`.
+
+### Tested on CARLA 1.0
+
+`python tools/test_carla10.py --port <port>` runs the features first built on 0.9.16 against a 1.0 server, one
+short trial each, and prints a table ([results](docs/carla10_tests.md); `--launch CMD` starts and restarts the server
+itself under a memory watchdog). On lin5080 (`ue58-dev` editor server, `-nullrhi`, 60 s trials, 2026-11-15) all 13
+passed: the Eindhoven twin with `--local` bots, SUMO traffic, parked cars, snapped scenery, signals and CROWD
+pedestrians (RTF 1.15 without real-time sleep, `carla_to_sumo` 0.9 ms per tick), `generate_opendrive_world` maps
+(`eindhoven_centre` and a map-maker map), `--record-audio` for a driver and a pedestrian (exactly one step of
+samples per tick), drones (3 deliveries, 4.4 ms per tick), real weather, night lights, winter trees, film cameras and
+bot stations. A `-nullrhi` server refuses to stream cameras ("this server cannot render"); Coupled CARLA's cameras then
+go on without images, so film keeps its camera path, timing grid and sound, and stations run and report why they
+have no images. What needs frames (film images, station image rate and latency, drone FPV, night and winter
+frames) runs on a rendering server with `bash tools/render_checks_carla10.sh`.
 
 ### The Eindhoven digital twin
 
@@ -953,7 +959,7 @@ The baked level's folders (`Content/Carla/Maps/Twins/EhvCentre`, `Content/Carla/
 level's `__ExternalActors__`) are plain uasset files: copied into another CARLA 1.0 tree (win5090) the level loads
 there too, and `-DCARLA_MAPS_TO_COOK=.../Twins/EhvCentre/EhvCentre` cooks it into a package.
 
-coupled-carla drives it with [`experiments/eindhoven_twin.yaml`](experiments/eindhoven_twin.yaml):
+Coupled CARLA drives it with [`experiments/eindhoven_twin.yaml`](experiments/eindhoven_twin.yaml):
 `map.opendrive` names the twin's OpenDRIVE (copy `build/ehv_centre/EhvCentre.xodr` to `twins/`) and
 `map.carla_level` the level. `mapbuild` then makes the SUMO net from that same OpenDRIVE (so SUMO and the level
 share their roads; the real bus lines and GTFS timetables are matched onto it as on any map), and the trial
@@ -1018,7 +1024,7 @@ joined within a second, ran the practice trial with responses and left cleanly.
 **Camera exposure on CARLA 1.0 (2026-11-15).** CARLA 1.0's RGB camera has no exposure attributes: exposure comes
 from a post-process profile (`Content/Carla/Config/PostProcess`), and every profile uses histogram auto exposure,
 which adapts over consecutive frames. Cameras that rendered only every few seconds never adapted (a cloudy day
-clipped 25 % of the frame to white, night was 99.7 % black). On 1.0 coupled-carla's cameras now render every tick
+clipped 25 % of the frame to white, night was 99.7 % black). On 1.0 Coupled CARLA's cameras now render every tick
 and keep frames at the requested interval, with `simulation.camera_profile` (default `Dashcam`, the best of CARLA's
 profiles at the twin: day mean brightness 105-116 of 255 with nothing clipped, night 30 with 1 % crushed).
 
@@ -1164,7 +1170,7 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   lin4080 the sound costs 5-7 ms per 50 ms tick. Models, recordings and licences: [sound
   credits](coupledcarla/data/sound_credits.md).
 
-  ![What a pedestrian waiting at the Fellenoord crossing in Eindhoven hears: pass-bys, idling queues and the crossing signal (spectrogram and A-weighted level)](docs/img/sound_ped_crossing.jpg)
+  <img src="docs/img/sound_ped_crossing.jpg" width="100%" alt="What a pedestrian waiting at the Fellenoord crossing in Eindhoven hears: pass-bys, idling queues and the crossing signal (spectrogram and A-weighted level)">
 - **Audio for videos** (`run --record-audio`, or `sound.record: true`): the host renders the first participant's
   soundscape (the driver in the car, the AV passenger, the pedestrian's head, the drone pilot's camera) in
   simulation time and writes `audio.wav` (44.1 kHz stereo) to the trial's folder. Sample 0 is simulation time 0 and
@@ -1218,8 +1224,21 @@ drones:
 | ↑/↓ (Space/Shift), ←/→ (Q/E) | climb/descend, turn (left stick) |
 | I/K, C, M, H | gimbal up/down, view, position/attitude mode, return to home |
 
-Delivery drones cruise 20 m (`clearance_m`) above the highest roof or tree within 10 m of their route, 4 m apart in
-height per drone, and descend to land or lower the parcel on a winch. Swarms flock by Vásárhelyi et al. (2018,
+Delivery and patrol drones cruise in a fixed band, 40-60 m above the ground by default (`drones.routing.band_m`;
+Wing cruises at about 45 m, Manna at 50-80 m, Amazon's MK30 at 55-115 m, all under the EU's 120 m), in a layer by
+their heading so that opposite directions never meet (Doole et al. 2021, Aerospace 8(2) 38), and descend to land or
+lower the parcel on a winch. Buildings and trees that reach into the band are kept at SORA's operational-volume
+clearances (GNSS, position-hold and map errors, the reaction distance and the stopping distance; FOCA GM SORA
+13.3.2): 34 m sideways and 16.5 m above for the industrial drone at 12 m/s. Routes go round them (A* on a 4 m grid,
+smoothed into arcs flown at √(a·r)) and climb over only when the battery model says the way round costs more;
+no-fly polygons and OSM aerodromes, helipads and military land can be added (`no_fly`, `no_fly_osm`). On Eindhoven's
+3DBAG heights this keeps every cruise at 40-60 m (before: up to 122 m), with routes 2 % longer and 8 % less energy
+([`tools/drone_routes.py`](tools/drone_routes.py)). `routing: {mode: over}` keeps the old way: 20 m above the
+highest roof under a straight route.
+
+<img src="docs/img/drone_routes.png" width="100%" alt="Delivery routes over Eindhoven's building heights: around the tall buildings inside the 40-60 m band, with the areas kept clear at 40 m shaded">
+
+Swarms flock by Vásárhelyi et al. (2018,
 Science Robotics 3(20)): `coupled_sim` (6 m/s, 15 m apart) or `vasarhelyi2018` (the authors'
 [robotsim](https://github.com/csviragh/robotsim) parameter set, 4 m/s, 26 m apart); buildings that reach up to them
 act through shill agents. AI drones keep 10 m from each other and from the pilots' drones. A pilot crashes into what
@@ -1240,7 +1259,7 @@ arms and rotor discs. [`experiments/eindhoven_drones.yaml`](experiments/eindhove
 Eindhoven twin: on lin5080 (CARLA 1.0, `-nullrhi`, 120 s) 14 drones cost 3.1 ms per tick, 3 parcels were delivered,
 every AI drone stayed 19-43 m above the roofs, and the pilot bot flew 587 m and landed at 0.5 m/s. Not yet checked:
 the rendered looks and views, the rotor sound by ear, a station pilot with a real camera, and the 0.9.16 fallback on
-a 0.9.16 server. Delivery routes climb over tall buildings rather than around them.
+a 0.9.16 server.
 
 ## Traffic
 
@@ -1449,9 +1468,9 @@ cyclist** (the bike carries an animated rider), which is why the level of detail
 Epic is about 20 ms, which is the whole budget at 50 Hz; on an unshared GPU (or at `--quality Low`) the trial
 runs in real time. Map building takes 2-4 s per city plus the Overpass downloads.
 
-## coupled-sim features in coupled-carla
+## coupled-sim features in Coupled CARLA
 
-| coupled-sim | coupled-carla | Status |
+| coupled-sim | Coupled CARLA | Status |
 |---|---|---|
 | Roles: manual driver, AV passenger, pedestrian | `participants` with kind driver / av_passenger / pedestrian, each host-local or at a station | done |
 | Experiment definitions, trial sequence, run automatically | YAML experiment, `trials` with overrides, run in order | done |
@@ -1520,7 +1539,7 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
    events, tick-to-station and tick-to-image latency, a pedestrian crowd. **Still open from phase 2:** CARLA
    multi-GPU secondaries for station rendering, Xsens suit, SUMO persons, head tracking for the driver's gaze,
    a human (not bot) pilot study.
-3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8: coupled-carla runs on it with scenery (its own mesh
+3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8: Coupled CARLA runs on it with scenery (its own mesh
    catalogue), the Eindhoven digital twin (AHN terrain, PDOK aerial photos, 3DBAG buildings) is baked into a
    CARLA 1.0 level and driven with the SUMO bridge on its own OpenDRIVE, and CARLA 1.0 builds and renders on
    Windows (win5090), where a packaged server renders the styled twin (facades, photo ground, Dutch sign faces,
@@ -1707,9 +1726,9 @@ tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
 ```
 
-## Support coupled-carla
+## Support Coupled CARLA
 
-coupled-carla is free and stays free. If it is useful to you and you would like to give something back, you can
+Coupled CARLA is free and stays free. If it is useful to you and you would like to give something back, you can
 [sponsor it on GitHub](https://github.com/sponsors/bazilinskyy) (monthly or once) or
 [buy me a coffee on Ko-fi](https://ko-fi.com/bazilinskyy). Bug reports, ideas, new cities and pull requests help
 just as much. If you use it in research, please cite it (the "Cite this repository" button on GitHub, from
@@ -1717,7 +1736,7 @@ just as much. If you use it in research, please cite it (the "Cite this reposito
 
 ## Credits, data and licences
 
-- coupled-carla's own code is released under the [MIT License](LICENSE).
+- Coupled CARLA's own code is released under the [MIT License](LICENSE).
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL. Built maps and
   `buildings.json` are derived databases under the ODbL.

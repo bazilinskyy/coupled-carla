@@ -287,6 +287,12 @@ def build_scenery(cfg, out, meta, cmap=None, server_major=None, log=log):
     srcs = set(res["sources"]) | ({elev["source"]} if elev else set())
     meta["sources"] = {k: {"what": realworld.SOURCES[k][0], "licence": realworld.SOURCES[k][1]}
                        for k in sorted(srcs) if k in realworld.SOURCES}
+    if server_major is None:      # at build time, not in a trial: the crowd's places (Overture over S3: minutes)
+        try:
+            from . import crowdpeds
+            crowdpeds.overture_places(mc["bbox"], out / "real" / "overture_places.json")
+        except Exception as err:  # noqa: BLE001 - the crowd fetches (or skips) them itself
+            log(f"crowd places not fetched ({type(err).__name__}: {err})")
     return meta
 
 

@@ -52,7 +52,7 @@ import carla
 import numpy as np
 
 from . import labcheck, look, multigpu
-from .compat import set_manual_exposure
+from .compat import listen, set_manual_exposure
 from .coupling import ControlClient
 from .studytools import CSV_COLUMNS, StationStudy
 
@@ -243,8 +243,13 @@ class Station:
                 return self.world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=self.actor,
                                               attachment_type=carla.AttachmentType.Rigid)
         # with secondaries the camera should land on the role's own one (multigpu.py); otherwise spawn + listen
-        self.camera = self.routing.place_camera(spawn, lambda cam: cam.listen(self._on_image), self._destroy,
-                                                self.got_image,
+        # (a -nullrhi server without a rendering secondary streams nothing: the station goes on without images)
+        say = lambda m: print(f"[station {args.role}] {m}", flush=True)  # noqa: E731
+
+        def listen_cam(cam):
+            self.no_render = not listen(cam, self._on_image, say, "camera")
+        self.camera = self.routing.place_camera(spawn, listen_cam,
+                                                self._destroy, self.got_image,
                                                 turn=multigpu.CameraTurn(self.control.send, self.camera_go))
         bot = self.welcome.get("bot") or {}
         if kind == "driver":
@@ -416,7 +421,8 @@ class Station:
                                                              if k not in ("fps", "frames")},
                                "ticks_seen": self.count.frames, "camera_hz": self.camera_hz(),
                                "size": self.args.size, "ux": labcheck.ux_flags(self.welcome, self.ux),
-                               "camera_on": self.routing.placed if self.routing is not None else None})
+                               "camera_on": self.routing.placed if self.routing is not None else None,
+                               "no_render": bool(getattr(self, "no_render", False))})
         return True
 
     def _eye_transform(self):
