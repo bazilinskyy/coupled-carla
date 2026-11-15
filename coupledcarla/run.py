@@ -98,15 +98,17 @@ def load_world(client, xodr, mc, slab=False):
         bounds = [w.transform.location for w in world.get_map().generate_waypoints(50.0)]
         cx = sum(b.x for b in bounds) / len(bounds)
         cy = sum(b.y for b in bounds) / len(bounds)
-        if slab:   # with scenery: a 20 km paving cube whose top is the ground beyond the scenery tiles, out to
-            # the horizon (the void beyond a smaller one shows as a black band under a cloudy sky)
-            bp.set_attribute("mesh_path", "/Game/Carla/Static/SideWalk/SideWalkCube.SideWalkCube")
-            bp.set_attribute("scale", "20000")
-            world.spawn_actor(bp, carla.Transform(carla.Location(x=cx, y=cy, z=-0.45 - 10000.0)))
-        else:
-            bp.set_attribute("mesh_path", "/Engine/BasicShapes/Plane.Plane")
-            bp.set_attribute("scale", "3000")
-            world.spawn_actor(bp, carla.Transform(carla.Location(x=cx, y=cy, z=-0.3)))
+        # with scenery: a 20 km paving cube whose top is the ground beyond the scenery tiles, out to the horizon (the
+        # void beyond a smaller one shows as a black band under a cloudy sky); else a 3 km plane. A packaged CARLA 1.0
+        # server may not have cooked the cube ("invalid actor description"): then the plane, then nothing.
+        choices = ([("/Game/Carla/Static/SideWalk/SideWalkCube.SideWalkCube", "20000", -0.45 - 10000.0)] if slab else [])
+        choices.append(("/Engine/BasicShapes/Plane.Plane", "3000", -0.3))
+        for mesh, scale, z in choices:
+            bp.set_attribute("mesh_path", mesh)
+            bp.set_attribute("scale", scale)
+            if world.try_spawn_actor(bp, carla.Transform(carla.Location(x=cx, y=cy, z=z))) is not None:
+                break
+            print(f"[run] ground {mesh.rsplit('/', 1)[-1]} not on this server; trying the next", flush=True)
     return world
 
 
