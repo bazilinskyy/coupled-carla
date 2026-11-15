@@ -1355,6 +1355,22 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   light bars, shapes, arrows, text, pulse/blink/sweep animations) on the front, rear, roof, windshield, bumper or
   projected on the road, drawn in the world or over each station's camera image; examples in `data/ehmi/`.
 
+**In-car views (driver and AV passenger).** Every car has its own seat: `coupledcarla/data/driver_eyes.json` holds
+the driver's and the front passenger's eye point for each CARLA 0.9.16 car, measured by `tools/cabin_measure.py`
+(depth cameras find the steering wheel, the seat cushion and the roof lining; the eye goes where SAE J941/J1100 put
+it, about 0.635 m above the seat's hip point and 0.65 m behind the wheel's centre); 32 of 34 cars measured, the rest
+scaled defaults. On left-hand-traffic maps both seats change sides (CARLA's cars are all left-hand drive, so a
+right-hand-drive driver sees the wheel on the passenger's side). The view is 90 degrees wide unless a participant sets
+`fov` or `screens`. The cluster and the centre screen are drawn on the car's own panels (`displays.style: dashboard`),
+warped into perspective and hidden where the wheel's rim or the dashboard stands in front; the HUD is light on the
+windscreen, a virtual image 2.5 m ahead. CARLA 0.9.16's cars have no steering-wheel bone, so the station turns the
+wheel's pixels with the steering (7:1 like the G25, up to 450 degrees). Cabin views on 0.9.x use an exposure one stop
+brighter than the street's, plus the car's measured glass tint (at most 2.5 EV), so the dashboard reads and the
+windscreen keeps its detail. `displays.style: overlay` keeps the old flat panels; `python tools/cockpit_shots.py`
+renders before/after frames.
+
+<img src="docs/img/cockpit_before_after.jpg" width="100%" alt="The driver's view before (a flat cluster rectangle over the dashboard, no steering wheel, dark cabin) and after (the car's own eye point, the steering wheel in view, the cluster in the instrument panel, a light HUD)">
+
 ## Drones
 
 A participant can fly a quadrotor (`kind: drone`) and AI drones fly missions (`drones:`), all with coupled-sim's
