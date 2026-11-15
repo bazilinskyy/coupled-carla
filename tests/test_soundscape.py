@@ -299,3 +299,14 @@ def test_world_bodies_fetches_types_once():
     assert len(calls) == 1                                   # all known now
     del snap.items[1]
     assert [b.id for b in wb(snap, (0, 0))] == [2]           # gone from the world
+
+
+def test_speed_from_positions_when_carla_reports_none():
+    """SUMO's vehicles are moved by transform: CARLA reports no velocity; the soundscape takes it from positions."""
+    sc = ss.Soundscape({"enabled": True, "environment": False}, log=lambda s: None)
+    for k in range(40):
+        t = 0.05 * k
+        car = ss.Body(7, "vehicle.audi.a2", "car", -20.0 + 13.9 * t, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, True, False)
+        sc.update(t, (0, 0, 1.6, 0), [car])
+    assert sc.voices_info()[7]["kmh"] == pytest.approx(50.0, abs=2.0)
+    assert sc.voices_info()[7]["tyre_db"] is not None

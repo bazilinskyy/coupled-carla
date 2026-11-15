@@ -258,10 +258,11 @@ class Ambience:
             night = env.night and dawn == 0.0
             calm = 1.0 / (1.0 + max(0.0, env.wind - 6.0) / 3.0) * (0.3 if env.rain > 0.5 else 1.0)
             tr = max(0.15, min(1.0, trees))
-            lev_dawn = float(cfg.get("birds_dawn_db", 58.0)) + 10 * math.log10(max(1e-3, dawn * season * tr * calm))
-            lev_day = float(cfg.get("birds_day_db", 47.0)) + 10 * math.log10(max(1e-3, season * tr * calm *
-                                                                                (0.0 if night else 1.0)))
-            info["birds_dba"] = float(ac.db_sum([lev_dawn if dawn > 0 else -99, lev_day if not night else -99]))
+            f_dawn = dawn * season * tr * calm
+            f_day = season * tr * calm * (0.0 if night else 1.0)
+            lev_dawn = float(cfg.get("birds_dawn_db", 58.0)) + 10 * math.log10(f_dawn) if f_dawn > 1e-3 else -99.0
+            lev_day = float(cfg.get("birds_day_db", 47.0)) + 10 * math.log10(f_day) if f_day > 1e-3 else -99.0
+            info["birds_dba"] = float(ac.db_sum([lev_dawn, lev_day]))
             for (role, side), v in self.birds.items():
                 lev = (lev_dawn if role == "birds_dawn" else lev_day) - 3.0
                 bd = v.band_db(lev, il)

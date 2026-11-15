@@ -452,6 +452,7 @@ class Soundscape:
         self.il = (ac.CABIN_IL_BUS if own is not None and own.kind == "bus" else ac.CABIN_IL) if self.inside \
             else np.zeros(ac.NB)
         maxd = float(cfg.get("max_distance_m", 150.0))
+        bodies = self._velocities(bodies, t)
         others = []
         for b in bodies:
             if own is not None and b.id == own.id:
@@ -525,6 +526,31 @@ class Soundscape:
             self.reported = True
             self.log(f"sound: {len(heard)} vehicles heard within {maxd:.0f} m, reference {self.ref:.1f} dB"
                      + (f", {self.buildings.n} buildings" if self.buildings is not None else ""))
+
+    def _velocities(self, bodies, t):
+        """Velocities from the positions where the reported one is zero: the SUMO bridge moves its vehicles by
+        transform, so CARLA (and frames.csv) report them standing still. Smoothed over ~0.15 s; jumps (a reset to
+        the lane) are ignored."""
+        if not hasattr(self, "_vel"):
+            self._vel = {}
+        out = []
+        seen = {}
+        for b in bodies:
+            prev = self._vel.get(b.id)
+            vx, vy = b.vx, b.vy
+            ex, ey = (prev[3], prev[4]) if prev else (0.0, 0.0)
+            if prev is not None and t - prev[0] > 1e-4:
+                dt = t - prev[0]
+                rx, ry = (b.x - prev[1]) / dt, (b.y - prev[2]) / dt
+                if math.hypot(rx, ry) < 70.0:
+                    a = 1.0 - math.exp(-dt / 0.15)
+                    ex, ey = ex + (rx - ex) * a, ey + (ry - ey) * a
+            seen[b.id] = (t, b.x, b.y, ex, ey)
+            if math.hypot(vx, vy) < 0.05 and math.hypot(ex, ey) > 0.2:
+                b = b._replace(vx=ex, vy=ey)
+            out.append(b)
+        self._vel = seen
+        return out
 
     # -- geometry -------------------------------------------------------------------------------------------------
     @staticmethod
@@ -605,7 +631,11 @@ class Soundscape:
             p.delay[1 + i] = (L - d3) / C_SOUND
             p.az[1 + i], p.el[1 + i] = self._dir(rx, ry, (z + lz) / 2.0)
         if self.mixer.reverb is not None:
-            p.att[3] = np.full(ac.NB, -self.rev_level) + self.il
+            # the tail is the listener's street answering: sources further along it (or in other streets, behind
+            # buildings) feed it less (the reverberant level falls along a street, Kang 2000)
+            w = (self.canyon[0] if self.canyon and self.canyon[0] else 20.0) / 2.0
+            occ = float(np.mean(occl)) if np.ndim(occl) else float(occl)
+            p.att[3] = np.full(ac.NB, -self.rev_level + 20.0 * math.log10(max(1.0, d3 / w)) + 0.5 * occ) + self.il
         return p
 
     def _apply(self, voice, lw, paths, mute=1.0):
@@ -672,10 +702,11 @@ class Soundscape:
             _g, rpm = gear_for(kmh, load, gk)
         _r2, prop = ac.vehicle_power(cat, max(kmh, 20.0), accel=acc, temp_c=self.env.temp, surface=self.surface,
                                      table=self.table)
-        # CNOSSOS assumes the engine speed typical of the speed; the actual one (gear changes, idling, pulling
-        # away) moves the level with ~35 lg(rpm) (engine noise rises 30-50 lg n with engine speed)
-        _g0, rpm_typ = gear_for(max(kmh, 20.0), 0.3, gk)
-        prop = prop + max(-18.0, min(10.0, 35.0 * math.log10(max(rpm, 300.0) / rpm_typ)))
+        # CNOSSOS assumes the engine speed typical of the speed (and its acceleration term covers the load); the
+        # actual engine speed moves the level with ~35 lg(rpm) (engine noise rises 30-50 lg n): idling below
+        # 20 km/h, and the gearbox's lag behind the gear a steady driver would pick at this load
+        _g0, rpm_typ = gear_for(max(kmh, 20.0), load, gk)
+        prop = prop + max(-18.0, min(5.0, 35.0 * math.log10(max(rpm, 300.0) / rpm_typ)))
         return roll, prop, rpm, load
 
     def _vehicle(self, b, d, t, dt, lvx, lvy, walkers):
@@ -686,6 +717,12 @@ class Soundscape:
         dx, dy = b.x - lx, b.y - ly
         on = self._on
         roll, prop, rpm, load = self._source_power(b, tr, dt)
+        # a vehicle that appears close by (SUMO puts one on an edge near the listener) fades in over 0.6 s
+        # instead of popping up
+        if tr is not None:
+            if not hasattr(tr, "born"):
+                tr.born = t if d < 60.0 and self.t_last is not None and t > 0.5 else -1e9
+            on *= min(1.0, max(0.05, (t - tr.born) / 0.6))
         paths = self._propagation(b.id, b.x, b.y, b.z + 0.3, 0.05 if b.kind != "bike" else 0.3, t)
         dop = self._doppler(b, dx, dy, max(paths.d, 1e-3), lvx, lvy)
         voices = {}

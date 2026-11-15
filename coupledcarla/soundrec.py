@@ -81,15 +81,16 @@ def read_wav(path):
 
 class PedSignals:
     """Where a pedestrian hears accessible pedestrian signals: the signal poles (Signals.heads: the lamp beside each
-    signalled lane's stop line) within `radius` m, and whether crossing that lane is allowed: its light is red and
-    a lane of the same junction roughly at right angles to it has green (SUMO's programmes rarely have pedestrian
-    phases of their own, so the crossing goes with the parallel traffic)."""
+    signalled lane's stop line) within `radius` m, one per spot, and whether crossing that lane is allowed: its light
+    is red and a signalled lane within 50 m roughly at right angles to it has green, or none has (SUMO's programmes
+    rarely have pedestrian phases of their own, so the crossing goes with the parallel traffic; on maps from
+    OpenDRIVE each signal is a programme of its own, hence the search by distance rather than by junction)."""
 
     def __init__(self, signals, net, radius=30.0):
         import traci
         self.traci = traci
         self.radius = radius
-        self.poles = []          # (tls, link idxs, carla Location, unit direction of the lane (SUMO x, y))
+        self.poles = []          # (tls, link idxs, (x, y, z) CARLA, unit direction of the lane (SUMO x, y))
         for tls, idxs, loc in signals.heads:
             try:
                 links = traci.trafficlight.getControlledLinks(tls)
@@ -99,28 +100,36 @@ class PedSignals:
                 self.poles.append((tls, idxs, (loc.x, loc.y, loc.z), ((x1 - x0) / dn, (y1 - y0) / dn)))
             except Exception:  # noqa: BLE001
                 continue
-        self.by_tls = {}
-        for p in self.poles:
-            self.by_tls.setdefault(p[0], []).append(p)
         self._cache = (-1e9, [])
 
     def near(self, x, y, t):
         if t - self._cache[0] < 0.25:
             return self._cache[1]
         near = sorted(((math.hypot(p[2][0] - x, p[2][1] - y), p) for p in self.poles), key=lambda q: q[0])
+        states = {}
+
+        def state(tls):
+            if tls not in states:
+                try:
+                    states[tls] = self.traci.trafficlight.getRedYellowGreenState(tls)
+                except Exception:  # noqa: BLE001
+                    states[tls] = ""
+            return states[tls]
+
         out = []
         for d, (tls, idxs, loc, u) in near:
             if d > self.radius or len(out) >= 2:
                 break
-            try:
-                state = self.traci.trafficlight.getRedYellowGreenState(tls)
-            except Exception:  # noqa: BLE001
+            if any(math.hypot(loc[0] - o[0], loc[1] - o[1]) < 4.0 for o in out):
+                continue                       # one signal box per spot
+            st = state(tls)
+            if not st:
                 continue
-            red = all(state[i] in "rRs" for i in idxs if i < len(state))
-            cross_green = any(abs(u[0] * q[3][0] + u[1] * q[3][1]) < 0.5 and
-                              any(state[i] in "gG" for i in q[1] if i < len(state))
-                              for q in self.by_tls.get(tls, []))
-            out.append((loc[0], loc[1], loc[2], bool(red and cross_green)))
+            red = all(st[i] in "rRs" for i in idxs if i < len(st))
+            perp = [q for q in self.poles if math.hypot(q[2][0] - loc[0], q[2][1] - loc[1]) < 50.0
+                    and abs(u[0] * q[3][0] + u[1] * q[3][1]) < 0.5]
+            cross_green = any(any(state(q[0])[i] in "gG" for i in q[1] if i < len(state(q[0]))) for q in perp)
+            out.append((loc[0], loc[1], loc[2], bool(red and (cross_green or not perp))))
         self._cache = (t, out)
         return out
 
@@ -302,3 +311,102 @@ class HostAudio:
         self.log(f"sound: audio.wav {self.written / RATE:.1f} s, {1000 * self.cost / max(1, self.ticks):.1f} ms per "
                  f"tick, peak {self.peak:.2f}{', credits in audio_credits.txt' if lines else ''}")
         return rec
+
+
+# -- offline: a soundscape again from a trial's logs ------------------------------------------------------------------
+
+def replay(trial, out=None, cfg_over=None, log=print, probe=None):
+    """Renders a finished trial's soundscape again from its frames.csv (the first participant as the listener, the
+    vehicles logged within logging.radius_m around it), weather.json and map: new sound settings without running
+    CARLA again (and a way to inspect a recording: probe(t, scape) is called every tick). Writes `out` (default
+    <trial>/audio_replay.wav) in the same simulation-time alignment as audio.wav. Drones and pedestrian signals are
+    not in frames.csv, so they are missing; walkers are heard when the crowd was logged."""
+    import csv
+    import yaml
+    from . import config
+    from .soundscape import Body, Soundscape, classify, is_electric
+    from .soundgeo import Buildings
+    trial = Path(trial)
+    tc = yaml.safe_load((trial / "config.yaml").read_text())
+    tc = config._merge(config.DEFAULTS, tc)
+    snd = config._merge(tc.get("sound") or {}, cfg_over or {})
+    p0 = (tc.get("participants") or [{}])[0]
+    snd = config._merge(snd, p0.get("sound") or {})
+    snd["enabled"] = True
+    snd["reference_db"] = float(snd.get("record_reference_db") or snd.get("reference_db", 94.0))
+    kind, role = p0.get("kind", "driver"), p0.get("role")
+    mdir = Path(config.__file__).resolve().parent.parent / "maps" / tc["map"]["name"]
+    wx = json.loads((trial / "weather.json").read_text()) if (trial / "weather.json").exists() else {}
+    env = sound_env(wx, mdir, None, snd.get("weather"))
+    b = Buildings.from_map(mdir, log) if snd.get("buildings", True) else None
+    sc = Soundscape(snd, kind, log=log, env=env, buildings=b)
+    sc.trees = trees_of(mdir)
+    step = float(tc["simulation"]["step"])
+    frames = {}
+    with open(trial / "frames.csv", newline="") as f:
+        for r in csv.DictReader(f, delimiter=";"):
+            frames.setdefault(int(r["frame"]), []).append(r)
+    out = Path(out) if out else trial / "audio_replay.wav"
+    w = wave.open(str(out), "wb")
+    w.setnchannels(2)
+    w.setsampwidth(2)
+    w.setframerate(RATE)
+    written = 0
+    for fr in sorted(frames):
+        rows = frames[fr]
+        t = float(rows[0]["timestamp"])
+        me = next((r for r in rows if r["kind"] == "participant" and r["role"] == role), None)
+        if me is None:
+            continue
+        bodies = []
+        own = None
+        for r in rows:
+            tid = r["type_id"]
+            if not (tid.startswith("vehicle.") or tid.startswith("walker.")):
+                continue
+            i = int(r["actor_id"])
+            bl = int(r.get("blinkers") or 0)            # logger: 1 left, 2 right, 3 both
+            lights = (32 if bl in (1, 3) else 0) | (16 if bl in (2, 3) else 0)
+            body = Body(i, tid, classify(tid), float(r["pos_x"]), float(r["pos_y"]), float(r["pos_z"]), float(r["vel_x"]),
+                        float(r["vel_y"]), float(r["vel_z"]), float(r["rot_yaw"]),
+                        is_electric(snd.get("electric", "auto"), tid, i, r["kind"] == "agent"), r["kind"] == "agent",
+                        lights)
+            if r is me:
+                own = body if kind in ("driver", "av_passenger") else None
+                continue
+            bodies.append(body)
+        x, y, z, yaw = float(me["pos_x"]), float(me["pos_y"]), float(me["pos_z"]), float(me["rot_yaw"])
+        cy, sy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+        if kind == "pedestrian":
+            lis, h = (x + 0.22 * cy, y + 0.22 * sy, z + 0.72, yaw), 1.6
+        else:
+            lis, h = (x - 0.38 * -sy, y - 0.38 * cy, z + 1.22, yaw), 1.2
+        ctl = None
+        if own is not None and me.get("throttle"):
+            ctl = types_ns(throttle=float(me["throttle"] or 0.0))
+        sc.update(t, lis, bodies, own=own, own_control=ctl, listener_h=h)
+        if probe is not None:
+            probe(t, sc)
+        n = int(round((t + step) * RATE)) - written
+        if n > 0:
+            xb = sc.mixer.render(n)
+            w.writeframes((np.clip(xb, -1, 1) * 32767).astype("<i2").tobytes())
+            written += n
+    w.close()
+    log(f"sound: replayed {written / RATE:.1f} s into {out}")
+    return out
+
+
+def types_ns(**kw):
+    import types
+    return types.SimpleNamespace(**kw)
+
+
+if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser(description="Render a trial's soundscape again from its logs (frames.csv)")
+    ap.add_argument("trial")
+    ap.add_argument("--out")
+    ap.add_argument("--spatial", choices=["stereo", "binaural"])
+    a = ap.parse_args()
+    replay(a.trial, a.out, {"spatial": a.spatial} if a.spatial else None)
