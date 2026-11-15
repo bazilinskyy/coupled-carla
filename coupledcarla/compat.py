@@ -147,6 +147,25 @@ def setup_camera(bp, every_s=0.0, profile="Dashcam", shutter=400):
     return 0.0
 
 
+NO_RENDER = "cannot render"     # CARLA 1.0's refusal on a -nullrhi server without a rendering secondary
+
+
+def listen(camera, callback, log=None, what="camera"):
+    """camera.listen(callback); True. False, with one log line, when the server cannot render: a CARLA 1.0 server
+    started with -nullrhi (no rendering secondary) refuses to stream a camera ("this server cannot render (-nullrhi)
+    and no rendering secondary server is connected to own this camera sensor"). The camera actor stays in the world
+    (it can be moved; it renders nothing), so a headless run keeps going with its poses and timing but no images."""
+    try:
+        camera.listen(callback)
+        return True
+    except RuntimeError as err:
+        if NO_RENDER not in str(err):
+            raise
+        if log is not None:
+            log(f"{what}: no images, the server cannot render (-nullrhi)")
+        return False
+
+
 def set_manual_exposure(bp, shutter):
     """Fixed exposure for cameras that save few frames (auto exposure would never adapt between them)."""
     if bp.has_attribute("exposure_mode"):

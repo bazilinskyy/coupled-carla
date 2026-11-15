@@ -179,6 +179,7 @@ def summarise(trial, join_s=None, camera_hz=None):
             "dropped": (span - frames) if span and frames is not None else None,
             "dropped_share": (span - frames) / span if span and frames is not None else None,
             "image_share": image_share, "camera_hz": hz, "camera_on": last.get("camera_on"),
+            "no_render": bool(last.get("no_render")),
             "ux": last.get("ux"), "stats": len(stats), "left": s["left"],
         })
     return rows

@@ -116,3 +116,33 @@ def test_setup_camera_versions():
     assert new.attrs == {"sensor_tick": None, "post_process_profile": "Dashcam"}
     live = _BP(["sensor_tick", "post_process_profile"])
     assert setup_camera(live, 0.0, "", 400) == 0.0 and live.attrs["post_process_profile"] is None
+
+
+class _Cam:
+    def __init__(self, err=None):
+        self.err, self.cb = err, None
+
+    def listen(self, cb):
+        if self.err:
+            raise RuntimeError(self.err)
+        self.cb = cb
+
+
+def test_listen_streams_on_a_rendering_server():
+    cam, said = _Cam(), []
+    assert compat.listen(cam, print, said.append) is True
+    assert cam.cb is print and said == []
+
+
+def test_listen_without_rendering_goes_on_without_images():
+    # CARLA 1.0 -nullrhi: spawning works, listen refuses
+    cam, said = _Cam("this server cannot render (-nullrhi) and no rendering secondary server is connected to own "
+                     "this camera sensor"), []
+    assert compat.listen(cam, print, said.append, "film main") is False
+    assert len(said) == 1 and said[0].startswith("film main: no images")
+
+
+def test_listen_other_errors_still_raise():
+    import pytest
+    with pytest.raises(RuntimeError):
+        compat.listen(_Cam("time-out of 5000ms while waiting for the simulator"), print)
