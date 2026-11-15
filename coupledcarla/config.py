@@ -17,6 +17,9 @@ DEFAULTS = {
                                      # SUMO net never has them (SUMO crashes on moveToXY with sidewalks)
         "trim_dead_ends": True,      # drop dead-end chains and keep the largest strongly connected road graph
         "lefthand": False,           # left-hand traffic (UK, Japan, Australia, ...)
+        "internal_junctions": False,  # SUMO's net with netconvert's internal junctions (turning vehicles wait inside
+                                     # the junction); off: they wait at the stop line, as the waiting points of the
+                                     # re-made junctions lay in other lanes (mapbuild.NO_INTERNAL_JUNCTIONS)
         "buildings": True,           # also fetch building footprints (trial viewer, figures)
         "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
         "overture": True,            # Overture Maps buildings (needs duckdb), else OSM
@@ -87,6 +90,8 @@ DEFAULTS = {
         "real_time": True,           # sleep so that simulated time follows the wall clock
         "profile": False,            # print ms per tick by part of the loop every 10 s (the trial's in summary.json)
         "weather": "CloudyNoon",     # a carla.WeatherParameters preset name, a dict of its fields, or "real"
+        "cloud_scale": 0.6,          # weather "real": CARLA cloudiness per % of cloud cover (0.6: overcast = 60;
+                                     # above ~60 CARLA 0.9.16 draws an OpenDRIVE world's sky dark grey to black)
         "sun_altitude": None,
         "tls_manager": "sumo",       # who runs the traffic lights: sumo | carla | none
         "traffic_lights": {"style": "head"},   # how SUMO's lights show in CARLA (signals.py): "head" (a signal
@@ -111,7 +116,8 @@ DEFAULTS = {
             "render_hz": 10.0,       # 0.9.x: a camera that keeps a frame every few s still renders this often
                                      # (temporal anti-aliasing needs recent frames; at 1 Hz leaves and paint dither)
             "ev_bias": 0.0,          # added to the exposure (EV; +1 = one stop darker)
-            "profile": None,         # CARLA 1.0: post-process profile of these cameras (e.g. "CoupledClean",
+            "profile": None,         # CARLA 1.0: post-process profile of these cameras (e.g. "CoupledClean", or
+                                     # "CoupledReal" fitted to Eindhoven photos by tools/look_fit.py; both in
                                      # coupledcarla/data/postprocess); None: camera_profile
         },
         "time": None,                # local time at the place, "YYYY-MM-DD HH:MM", "HH:MM" (today) or "now":

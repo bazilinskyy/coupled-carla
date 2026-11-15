@@ -22,11 +22,12 @@ Leaves. Deciduous trees are in leaf, in autumn colour or bare depending on the d
   evergreen genera (pines, spruces, cypresses, hollies, holm and cork oaks, eucalypts, figs, palms, ...) excluded
   and deciduous conifers (larch, dawn redwood, swamp cypress) and ginkgo included.
 
-CARLA has no bare or winter tree meshes (0.9.16's cooked content and 1.0's source tree have none: the "Base"
-trees are the same trees with a tree pit), so a bare tree is a stand-in: the same family at half its size by
-default (scenery.bare "small"), or left out ("drop"), or kept in leaf ("keep"). Autumn has real meshes: CARLA's
-sugar maple in autumn colour (0.9.16 SM_Acer_Red_01, 1.0 SM_Acer01_B; its leaf textures are the
-Acer_Saccharum_*_Autumn ones) and the red Japanese maples; during the colouring weeks a growing share of the
+CARLA has a few leafless trees (0.9.16's maples and oaks "v6", 1.0's "_F" and SM_WhiteAsh01_B/02_B: bark materials
+only; the "Base" trees are the same trees with a tree pit): a bare maple, oak or (1.0) ash takes one of them at its
+own height (scenery.BARE / meshes10.BARE). Other families have none, so their bare tree is a stand-in: the same
+family at half its size by default (scenery.bare "small"), or left out ("drop"), or kept in leaf ("keep"). Autumn
+has real meshes: CARLA's sugar maple in autumn colour (0.9.16 SM_Acer_Red_01, 1.0 SM_Acer01_B; its leaf textures are
+the Acer_Saccharum_*_Autumn ones) and the red Japanese maples; during the colouring weeks a growing share of the
 deciduous trees take one of them. There is no snow in either CARLA (WeatherParameters has no snow or frost field
 in 0.9.16 or 1.0), and the ground tiles cannot change colour at run time.
 
@@ -297,7 +298,12 @@ def variants(cat, ms, tags, family, mesh, scale, key):
     if autumn:
         a = min(autumn, key=lambda m: abs(math.log(cat.size(m)[2] / height)) + (scenery._h(key, m) % 10) / 100.0)
         out["autumn"], out["autumn_scale"] = a, max(0.5, min(1.6, height / cat.size(a)[2]))
-    b, s = scenery._tree(cat, family, height * BARE_SCALE, key)
+    bare = [m for m in (getattr(ms, "BARE", None) or {}).get(family, ()) if m in cat]
+    if bare:        # a real leafless tree of the family, at the tree's own height
+        b = min(bare, key=lambda m: abs(math.log(cat.size(m)[2] / height)) + (scenery._h(key, m) % 10) / 100.0)
+        s = max(0.5, min(1.6, height / cat.size(b)[2]))
+    else:
+        b, s = scenery._tree(cat, family, height * BARE_SCALE, key)
     out["bare"], out["bare_scale"] = b, s
     return out
 

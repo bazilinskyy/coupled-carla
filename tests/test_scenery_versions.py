@@ -125,3 +125,16 @@ def test_absolute_elevation(tmp_path, monkeypatch):
     monkeypatch.setattr(mapbuild.realworld, "dem", lambda bbox, path: (FakeDem(), "ahn"))
     e = mapbuild.absolute_elevation([51.43, 5.46, 51.45, 5.49], tmp_path)
     assert e["base_m"] == 0.0 and e["absolute"] and e["min_m"] == pytest.approx(15.0) and e["max_m"] == 18.0
+
+
+@pytest.mark.parametrize("version", ["0.9.16", "1.0"])
+def test_no_leafless_tree_in_leaf(version):
+    # CARLA's maples/oaks v6 (1.0: _F) and 1.0's SM_WhiteAsh01_B/02_B have bark materials only: 22 % of the
+    # Eindhoven twin's trees stood bare in summer renders while TREES listed them
+    cat = scenery.Catalog(version)
+    m = cat.m
+    in_leaf = {n for k in m.TREES.values() for n in k}
+    bare = {n for k in m.BARE.values() for n in k}
+    assert bare and not in_leaf & bare
+    assert all(n in cat for n in bare) and set(m.BARE) <= set(m.TREES)
+    assert not any(n.endswith(("_v6", "_F")) for n in in_leaf if "Maple" in n or "Oak" in n)

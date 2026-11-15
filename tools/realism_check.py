@@ -10,6 +10,8 @@ comparison of the two (coupledcarla/realism.py: semantic layout, skyline, image 
     python tools/realism_check.py compare --out logs/realism
     # validation without CARLA: real photo against real photo (same place / neighbour / random place)
     python tools/realism_check.py pairs experiments/eindhoven_twin.yaml --out logs/realism
+    # several compared runs (e.g. before and after a change) side by side over their common views
+    python tools/realism_check.py table logs/realism_before logs/realism_after
 
 render works from views.csv alone (it builds it from the cached photo metadata when missing); compare downloads
 real images it lacks. Contact sheets and real images stay out of git (logs/).
@@ -166,11 +168,74 @@ def write_attribution(views, path):
 
 # ---------------------------------------------------------------- rendering (CARLA)
 
+class MovingCars:
+    """A few cars on the driving lanes in each view, as a street photo has them: vehicle actors with physics off at
+    points of the lanes 10-80 m in front of the camera and inside its field of view, cars_per_km per km of lane
+    (in both directions) and at least 8 m apart, drawn anew for every view (seeded by its id) and removed after it.
+    eindhoven_centre (0.9.16, 350 views, with its parked cars): more than 0.5 % of the view is car in 22 % of the
+    renders without moving cars, 32 % at 6 per km, 45 % at 20 per km (the default), and in 58 % of the photos."""
+
+    SPACING = 4.0
+
+    def __init__(self, client, world, cmap, cars_per_km, seed=1):
+        import carla
+        self.client, self.world, self.carla = client, world, carla
+        self.p = float(cars_per_km) * self.SPACING / 1000.0
+        self.seed = seed
+        pts = [w.transform for w in cmap.generate_waypoints(self.SPACING) if w.lane_type == carla.LaneType.Driving]
+        self.xy = np.array([[t.location.x, t.location.y] for t in pts]) if pts else np.zeros((0, 2))
+        self.tf = pts
+        lib = world.get_blueprint_library()
+        self.bps = [b for b in lib.filter("vehicle.*")
+                    if (not b.has_attribute("number_of_wheels") or b.get_attribute("number_of_wheels").as_int() == 4)
+                    and (not b.has_attribute("base_type") or b.get_attribute("base_type").as_str().lower()
+                         in ("car", ""))]
+        self.loaded = {"cars": []}
+        self.n = 0
+        print(f"moving cars: {cars_per_km} per km of lane, {len(self.tf)} lane points, {len(self.bps)} car models",
+              flush=True)
+
+    def place(self, vid, loc, yaw, hfov):
+        carla = self.carla
+        self.clear()
+        if not len(self.xy) or not self.bps:
+            return
+        rng = random.Random(f"{self.seed}:{vid}")
+        d = self.xy - np.array([loc.x, loc.y])
+        dist = np.hypot(d[:, 0], d[:, 1])
+        ang = (np.degrees(np.arctan2(d[:, 1], d[:, 0])) - yaw + 180.0) % 360.0 - 180.0
+        cand = np.where((dist > 10.0) & (dist < 80.0) & (np.abs(ang) < hfov / 2.0 + 5.0))[0]
+        chosen, cmds = [], []
+        for i in cand[np.argsort(dist[cand])]:
+            if rng.random() >= self.p or any(np.hypot(*(self.xy[i] - self.xy[j])) < 8.0 for j in chosen):
+                continue
+            chosen.append(i)
+            t = self.tf[i]
+            bp = rng.choice(self.bps)
+            if bp.has_attribute("color"):
+                vals = bp.get_attribute("color").recommended_values
+                if vals:
+                    bp.set_attribute("color", rng.choice(vals))
+            tf = carla.Transform(carla.Location(x=t.location.x, y=t.location.y, z=t.location.z + 0.05),
+                                 carla.Rotation(yaw=t.rotation.yaw))
+            cmds.append(carla.command.SpawnActor(bp, tf).then(carla.command.SetSimulatePhysics(
+                carla.command.FutureActor, False)))
+        if cmds:
+            res = self.client.apply_batch_sync(cmds, False)
+            self.loaded["cars"] = [r.actor_id for r in res if not r.error]
+        self.n = len(self.loaded["cars"])
+
+    def clear(self):
+        if self.loaded["cars"]:
+            self.client.apply_batch_sync([self.carla.command.DestroyActor(i) for i in self.loaded["cars"]], False)
+        self.loaded["cars"], self.n = [], 0
+
+
 def cmd_render(args):
     import queue
 
     import carla
-    from coupledcarla import compat
+    from coupledcarla import compat, look
     from coupledcarla.geo import Geo, heading_to_yaw
     from coupledcarla.scenery import Scenery
     cfg, mdir, bbox = _map(args.experiment)
@@ -219,6 +284,10 @@ def cmd_render(args):
         parked_done = False
         cmap = world.get_map()
         lib = world.get_blueprint_library()
+        capture_09 = lib.find("sensor.camera.rgb").has_attribute("exposure_mode")
+        traffic = MovingCars(client, world, cmap, args.moving_cars, args.seed) if args.moving_cars > 0 else None
+        if traffic is not None:
+            spawned.append(traffic)
         rows = []
         wide = {}
         for v in todo:
@@ -229,9 +298,10 @@ def cmd_render(args):
         # crowd tmux service went down with it; 2026-11-15)
         todo.sort(key=lambda v: (wide[v["id"]][0], wide[v["id"]][1], round(wide[v["id"]][2], 2)))
         cams = {}
+        extra_attrs = dict(kv.split("=", 1) for kv in args.camera_attr.split(",") if "=" in kv)
 
-        def camera(size):
-            if size not in cams:
+        def camera(size, ev=None):
+            if (size, ev) not in cams:
                 for old_size in list(cams):          # the previous size's pair: destroyed, not left streaming
                     o_rgb, o_sem, _ = cams.pop(old_size)
                     for a in (o_rgb, o_sem):
@@ -251,6 +321,11 @@ def cmd_render(args):
                 if bp.has_attribute("motion_blur_intensity"):
                     bp.set_attribute("motion_blur_intensity", "0")
                 compat.setup_camera(bp, 0.0, args.profile)
+                if ev is not None:      # 0.9.x capture look (look.py): no blur, flare or fringes, exposure ev
+                    look.apply_09(bp, {"ev_bias": 0.0}, None, look.shutter_for_ev(ev))
+                for k_, v_ in extra_attrs.items():
+                    if bp.has_attribute(k_):
+                        bp.set_attribute(k_, v_)
                 sb = lib.find("sensor.camera.semantic_segmentation")
                 sb.set_attribute("image_size_x", str(w))
                 sb.set_attribute("image_size_y", str(h))
@@ -270,8 +345,8 @@ def cmd_render(args):
                             pass
                 rgb.listen(put)
                 actors.extend([rgb, sem])
-                cams[size] = (rgb, sem, q)
-            return cams[size]
+                cams[(size, ev)] = (rgb, sem, q)
+            return cams[(size, ev)]
         print(f"{len(sizes)} camera sizes; setup {time.time() - t0:.0f} s; about "
               f"{len(todo) * args.settle * 0.035 / 60:.0f} min to render", flush=True)
         weather_key = None
@@ -286,6 +361,8 @@ def cmd_render(args):
             if hour and hour != weather_key and args.weather != "fixed":
                 from coupledcarla.run import set_weather
                 sc = dict(cfg["simulation"], weather=args.weather, time=v["local_time"])
+                if args.cloud_scale is not None:
+                    sc["cloud_scale"] = args.cloud_scale
                 set_weather(world, sc, (v["lat"], v["lon"]), mdir / "real", log=lambda m: None)
                 weather_key = hour
             if not parked_done and not args.no_parked:
@@ -295,6 +372,9 @@ def cmd_render(args):
                     tc = dict(cfg, map=dict(cfg["map"], bbox=bbox),
                               simulation=dict(cfg["simulation"], time=v["local_time"] or None))
                     data = parking.trial_data(mdir, tc, log=lambda m: None)
+                    if not (mdir / "parked.json").exists():
+                        print(f"no parked cars: {mdir / 'parked.json'} is missing (python -m coupledcarla.mapbuild "
+                              f"{args.experiment} --scenery makes it)", flush=True)
                     if data and data["items"]:
                         pk = Scenery(client, world, mdir, {"radius_m": 0, "kinds": ["parked"]}, data=data)
                         pk.update([])
@@ -314,10 +394,16 @@ def cmd_render(args):
                 pass
             loc = carla.Location(x=x, y=y, z=gz + v["height_m"])
             tf = carla.Transform(loc, carla.Rotation(yaw=heading_to_yaw(v["heading"]), pitch=v["pitch"], roll=0.0))
-            rgb, sem, q = camera((*wide[v["id"]][:2], round(wide[v["id"]][2], 2)))
+            ev = None
+            if args.look == "capture" and capture_09:
+                wt = world.get_weather()
+                ev = round(4 * (look.exposure_ev(wt.sun_altitude_angle, wt.cloudiness) + args.ev_bias)) / 4
+            rgb, sem, q = camera((*wide[v["id"]][:2], round(wide[v["id"]][2], 2)), ev)
             rgb.set_transform(tf)
             sem.set_transform(tf)
             spectator.set_transform(tf)
+            if traffic is not None:
+                traffic.place(v["id"], loc, tf.rotation.yaw, wide[v["id"]][2])
             n = max(3, args.first_settle if k == 0 else args.settle)
             for _ in range(n - 2):
                 world.tick()
@@ -350,7 +436,9 @@ def cmd_render(args):
             rows.append({"id": v["id"], "x": round(x, 2), "y": round(y, 2), "ground_z": round(gz, 2),
                          "lane_z": round(z0, 2), "cam_z": round(loc.z, 2), "yaw": round(tf.rotation.yaw, 2),
                          "wide_w": w_, "wide_h": h_, "wide_hfov": round(f_, 2), "frame": frame,
-                         "sun_alt": round(world.get_weather().sun_altitude_angle, 1)})
+                         "sun_alt": round(world.get_weather().sun_altitude_angle, 1),
+                         "cloudiness": round(world.get_weather().cloudiness, 1), "ev": "" if ev is None else ev,
+                         "moving_cars": traffic.n if traffic is not None else 0})
             if (k + 1) % 25 == 0:
                 el = time.time() - t_render
                 print(f"{k + 1}/{len(todo)} rendered, {el / (k + 1):.2f} s per view", flush=True)
@@ -366,7 +454,7 @@ def cmd_render(args):
                 pass
         if photo is not None:
             photo.destroy()
-        for sc in spawned:        # leave the server as it was: scenery and parked cars removed
+        for sc in spawned:        # leave the server as it was: scenery, parked and moving cars removed
             ids = [i for key in sc.loaded for i in sc.loaded[key]]
             client.apply_batch_sync([carla.command.DestroyActor(i) for i in ids], False)
         world.apply_settings(old)
@@ -699,6 +787,41 @@ def cmd_pairs(args):
             print(kind, json.dumps({k: summ[kind].get(k) for k in ["n"] + SUMMARY_KEYS if k in summ[kind]}))
 
 
+TABLE_KEYS = [("al_miou_coarse", "coarse IoU"), ("al_pix_acc_coarse", "coarse pixel acc."),
+              ("al_skyline_mae_deg", "skyline error (deg)"), ("colour_hist_sim", "colour hist. sim."),
+              ("lum_mean", "luminance mean"), ("lum_std", "luminance spread"), ("sat_mean", "saturation"),
+              ("edge_density", "edge density"), ("area_road", "road share"), ("area_vegetation", "vegetation share"),
+              ("area_vehicle", "vehicle share"), ("area_sky", "sky share")]
+
+
+def cmd_table(args):
+    """Several compared runs side by side, over the views all of them have (medians; [photo, render] pairs give the
+    render's value, the photo's in the first column). Writes <first out>/table.json when --json is given."""
+    runs = {}
+    for out in args.runs:
+        with (Path(out) / "compare.csv").open(newline="") as f:
+            runs[out] = {r["id"]: r for r in csv.DictReader(f)}
+    common = set.intersection(*(set(r) for r in runs.values()))
+    res = {}
+    for out, rows in runs.items():
+        summ = summarise([rows[i] for i in sorted(common)])["all"]
+        res[out] = summ
+    names = [Path(o).name for o in runs]
+    print(f"{len(common)} views in all of {len(runs)} runs")
+    print("| Measure | Photos | " + " | ".join(names) + " |")
+    print("|---|---|" + "---|" * len(names))
+    for k, label in TABLE_KEYS:
+        vals = [res[o].get(k) for o in runs]
+        if all(v is None for v in vals):
+            continue
+        photo = next((v[0] for v in vals if isinstance(v, list)), "")
+        cells = [(v[1] if isinstance(v, list) else v) for v in vals]
+        fmt = (lambda x: "" if x is None else (f"{x:.3f}" if abs(x) < 10 else f"{x:.1f}"))
+        print(f"| {label} | {fmt(photo) if photo != '' else ''} | " + " | ".join(fmt(c) for c in cells) + " |")
+    if args.json:
+        Path(args.json).write_text(json.dumps({"views": len(common), "runs": res}, indent=1))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -735,13 +858,26 @@ def main():
     p.add_argument("--budget-min", type=float, default=10.0, help="stop rendering after this many minutes")
     p.add_argument("--no-scenery", action="store_true")
     p.add_argument("--no-parked", action="store_true")
+    p.add_argument("--moving-cars", type=float, default=20.0, help="cars per km of driving lane in view (0: none)")
+    p.add_argument("--seed", type=int, default=1, help="draw of the moving cars")
+    p.add_argument("--look", default="capture", choices=["capture", "auto"],
+                   help="CARLA 0.9.x: capture (look.py: manual exposure from sun and clouds, no blur or flare) or "
+                        "auto (CARLA's auto exposure); CARLA 1.0 uses --profile")
+    p.add_argument("--ev-bias", type=float, default=0.0, help="CARLA 0.9.x capture look: exposure offset (EV)")
+    p.add_argument("--camera-attr", default="", help="extra RGB camera attributes, e.g. gamma=2.2,temp=7000")
+    p.add_argument("--cloud-scale", type=float, default=None,
+                   help="CARLA cloudiness per % of real cloud cover (default simulation.cloud_scale)")
     p.add_argument("--again", action="store_true", help="render views that already have a render")
     p = sub.add_parser("compare", parents=[common, seg])
     p = sub.add_parser("pairs", parents=[common, seg])
     p.add_argument("experiment")
     p.add_argument("--max-pairs", type=int, default=60)
+    p = sub.add_parser("table", help="compared runs side by side over their common views")
+    p.add_argument("runs", nargs="+", help="output folders of compared runs (the first is the reference)")
+    p.add_argument("--json", default=None)
     args = ap.parse_args()
-    {"prepare": cmd_prepare, "render": cmd_render, "compare": cmd_compare, "pairs": cmd_pairs}[args.cmd](args)
+    {"prepare": cmd_prepare, "render": cmd_render, "compare": cmd_compare, "pairs": cmd_pairs,
+     "table": cmd_table}[args.cmd](args)
 
 
 if __name__ == "__main__":

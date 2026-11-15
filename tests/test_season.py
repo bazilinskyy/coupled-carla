@@ -79,9 +79,14 @@ def test_variants_autumn_and_bare(version):
     mesh, s = scenery._tree(cat, "maple", 12.0, "k1")
     alt = season.variants(cat, cat.m, {"genus": "Acer"}, "maple", mesh, s, "k1")
     assert alt["autumn"] in season.AUTUMN[scenery.major(version)]
-    assert alt["bare"] in cat.m.TREES["maple"]
+    assert alt["bare"] in cat.m.BARE["maple"]          # CARLA's own leafless maple, at the tree's height
     h = cat.size(mesh)[2] * s
-    assert cat.size(alt["bare"])[2] * alt["bare_scale"] == pytest.approx(h * season.BARE_SCALE, rel=0.35)
+    assert cat.size(alt["bare"])[2] * alt["bare_scale"] == pytest.approx(h, rel=0.2)
+    beech, bs = scenery._tree(cat, "beech", 18.0, "k3")    # no leafless beech: the half-size stand-in
+    alt = season.variants(cat, cat.m, {"genus": "Fagus"}, "beech", beech, bs, "k3")
+    assert alt["bare"] in cat.m.TREES["beech"]
+    assert cat.size(alt["bare"])[2] * alt["bare_scale"] == pytest.approx(
+        cat.size(beech)[2] * bs * season.BARE_SCALE, rel=0.35)
     assert 0.5 <= alt["autumn_scale"] <= 1.6
     pine, ps = scenery._tree(cat, "pine", 10.0, "k2")
     assert season.variants(cat, cat.m, {"genus": "Pinus"}, "pine", pine, ps, "k2") is None
@@ -102,7 +107,7 @@ def test_record_and_finish():
     assert len(leaf) == 1 and leaf[0][0] == 0 and len(leaf[0]) == 11       # only the maple
     assert all(pl.mesh_index[m] == i for m, i in placed.items())             # placed meshes keep their index
     names = sorted(pl.mesh_index, key=pl.mesh_index.get)
-    assert names[leaf[0][1]] in season.AUTUMN[0] and names[leaf[0][6]] in scenery.TREES["maple"]
+    assert names[leaf[0][1]] in season.AUTUMN[0] and names[leaf[0][6]] in scenery.BARE["maple"]
     assert pl.counts["tree_deciduous"] == 1
 
 
