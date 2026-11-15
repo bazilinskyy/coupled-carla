@@ -53,7 +53,9 @@ def tick(world, n=1):
 def camera_bp(world, night_ev):
     bp = world.get_blueprint_library().find("sensor.camera.rgb")
     attrs = [("image_size_x", "1280"), ("image_size_y", "720"), ("fov", "90"), ("motion_blur_intensity", "0"),
-             ("exposure_mode", "manual")]
+             ("exposure_mode", "manual"),
+             # CARLA 1.0 has no exposure attributes: a post-process profile with auto exposure (compat.setup_camera)
+             ("post_process_profile", "Dashcam")]
     if night_ev:     # EV100 about 1 (a night street): f/1.4, 1/30 s, ISO 3200
         attrs += [("fstop", "1.4"), ("shutter_speed", "30"), ("iso", "3200")]
     else:
@@ -82,6 +84,10 @@ def measure(img):
 
 
 def shoot(world, tf, night_ev, path):
+    # a baked World Partition level streams its cells around the spectator: put it over the view first (without
+    # it the frames showed sky over a black void)
+    world.get_spectator().set_transform(carla.Transform(tf.location + carla.Location(z=30.0), carla.Rotation(pitch=-90)))
+    tick(world, 30)
     cam = world.spawn_actor(camera_bp(world, night_ev), tf)
     frames = []
     try:
@@ -89,7 +95,7 @@ def shoot(world, tf, night_ev, path):
             cam.listen(frames.append)
         except RuntimeError as err:     # a -nullrhi server has no camera
             sys.exit(f"no camera: {err}")
-        tick(world, 10)                 # streaming and the camera's first captures
+        tick(world, 60)                 # streaming and the camera's auto exposure (CARLA 1.0 profiles adapt)
         frames.clear()
         t0 = time.time()
         while not frames and time.time() - t0 < 15:

@@ -218,10 +218,25 @@ def cmd_render(args):
         for v in todo:
             wide[v["id"]] = R.wide_size(v["width"], v["height"], v["hfov"], args.yaw_margin, args.pitch_margin)
         sizes = sorted({(w, h, round(f, 2)) for w, h, f in wide.values()})
+        # views grouped by camera size, and one camera pair alive at a time: every camera streams a frame each
+        # tick, and cameras kept for other sizes filled their queues until WSL ran out of memory (47 GB, the
+        # crowd tmux service went down with it; 2026-11-15)
+        todo.sort(key=lambda v: (wide[v["id"]][0], wide[v["id"]][1], round(wide[v["id"]][2], 2)))
         cams = {}
 
         def camera(size):
             if size not in cams:
+                for old_size in list(cams):          # the previous size's pair: destroyed, not left streaming
+                    o_rgb, o_sem, _ = cams.pop(old_size)
+                    for a in (o_rgb, o_sem):
+                        try:
+                            if a.is_listening:
+                                a.stop()
+                            a.destroy()
+                        except RuntimeError:
+                            pass
+                        if a in actors:
+                            actors.remove(a)
                 w, h, f = size
                 bp = lib.find("sensor.camera.rgb")
                 bp.set_attribute("image_size_x", str(w))
@@ -236,8 +251,18 @@ def cmd_render(args):
                 sb.set_attribute("fov", str(f))
                 tf = carla.Transform(carla.Location(z=500))
                 rgb, sem = world.spawn_actor(bp, tf), world.spawn_actor(sb, tf)
-                q = queue.Queue()
-                rgb.listen(q.put)
+                q = queue.Queue(maxsize=8)       # bounded: a frame nobody reads is dropped, not kept
+
+                def put(img, q=q):
+                    try:
+                        q.put_nowait(img)
+                    except queue.Full:
+                        try:
+                            q.get_nowait()
+                            q.put_nowait(img)
+                        except (queue.Empty, queue.Full):
+                            pass
+                rgb.listen(put)
                 actors.extend([rgb, sem])
                 cams[size] = (rgb, sem, q)
             return cams[size]
