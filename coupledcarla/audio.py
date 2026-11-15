@@ -417,9 +417,10 @@ class Limiter:
             g1 = self.g + (want - self.g) * (1.0 - math.exp(-n / (self.release * self.rate)))
         if g1 < 1.0 or self.g < 1.0:
             env = np.linspace(self.g, g1, n, endpoint=False, dtype=np.float32)
-            # attack: no ramp-in when the block is louder than the last gain allows
-            if want < self.g:
-                env[:] = np.minimum(env, g1)
+            if want < self.g:       # attack within ~1 ms (no step, so no click); the soft clipper takes the rest
+                k = min(n, 48)
+                env[:k] = np.linspace(self.g, g1, k, endpoint=False, dtype=np.float32)
+                env[k:] = g1
             out *= env[:, None]
             self.active += int(np.count_nonzero(env < 0.999))
         self.g = g1

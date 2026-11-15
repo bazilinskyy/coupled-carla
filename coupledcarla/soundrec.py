@@ -157,6 +157,9 @@ class HostAudio:
         self.log, self.step, self.part, self.drones = log, float(step), part, drone_world
         snd = config._merge(tc.get("sound") or {}, (part.cfg or {}).get("sound") or {})
         snd["enabled"] = True
+        # a recording has no amplifier to calibrate: more headroom than a lab's 94 dB (a car's cabin boom and a bus
+        # passing at the kerb reach 90-95 dB unweighted)
+        snd["reference_db"] = float(snd.get("record_reference_db") or snd.get("reference_db", 94.0))
         self.cfg = snd
         self.kind = part.kind
         self.out = Path(out)
@@ -272,7 +275,7 @@ class HostAudio:
             self.wav.close()
         except Exception:  # noqa: BLE001
             pass
-        credits = dict(self.scape.credits)
+        credits = self.scape.used_credits()
         lines = []
         from . import soundfetch
         for role, info in sorted(credits.items()):

@@ -757,6 +757,7 @@ class Soundscape:
                     and t - getattr(tr, "bell_t", -1e9) > 6.0:
                 tr.bell_t = t
                 self._oneshot(("veh", b.id, "bell", int(t * 10)), self.bell_buf, _lw_from_lp(72.0, 2.0), paths)
+                self.bell_played = True
                 self.on_cue("sound_cue", "bicycle_bell", f"actor {b.id}")
         # horn: a car braking hard with a pedestrian ahead (optional)
         hc = cfg.get("horn")
@@ -898,6 +899,8 @@ class Soundscape:
                 v = self.mixer.get(key)
                 if v is None:
                     v = self.mixer.add(key, synth.EventVoice(self.aps_ticks, seed=40 + i, jitter=0.0, gain_db_sd=0.3))
+                if v.period != (0.125 if walk else 1.0):
+                    self.on_cue("aps", "walk" if walk else "wait", f"pole {i} at {x:.0f},{y:.0f}")
                 v.period = 0.125 if walk else 1.0
                 p = self._propagation(key, x, y, z + 1.0, 1.0, self.t_last or 0.0, refl=1)
                 self._apply(v, v.band_db(_lw_from_lp(float(cfg.get("aps_db", 65.0)), 1.0)), p, self._on)
@@ -1022,6 +1025,14 @@ class Soundscape:
 
     def voices_info(self):
         return self.info
+
+    def used_credits(self):
+        """The attributions of the recordings (and HRTF set) actually heard so far."""
+        used = set(self.ambience.used) if self.ambience is not None else set()
+        if getattr(self, "bell_played", False):
+            used.add("bicycle_bell")
+        used.add("hrtf")
+        return {k: v for k, v in self.credits.items() if k in used}
 
     def close(self):
         for k in self.mixer.keys():

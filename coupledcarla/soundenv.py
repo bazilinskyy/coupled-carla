@@ -148,6 +148,7 @@ class Ambience:
     def __init__(self, scape, cfg, env, log=print):
         self.sc, self.cfg, self.env, self.log = scape, cfg, env, log
         self.credits = {}
+        self.used = set()          # recording roles actually heard (for the credits)
         self.voices = {}
         m = scape.mixer
         rec = cfg.get("recordings", True)
@@ -265,6 +266,8 @@ class Ambience:
                 lev = (lev_dawn if role == "birds_dawn" else lev_day) - 3.0
                 bd = v.band_db(lev, il)
                 w = v.weights(bd, ref) * (0.0 if mute or lev < 10 else 1.0)
+                if lev >= 10:
+                    self.used.add(role)
                 v.paths[0].w = w
                 v.paths[1].w = w * 0.4
         # wind: leaves rustle (with the trees around) and wind at the ear, with gusts
@@ -303,6 +306,8 @@ class Ambience:
                 else:
                     bd = v.band_db(lev, il)
                 v.paths[0].w = v.weights(bd, ref) * (0.0 if mute else 1.0)
+                if share > 0.01:
+                    self.used.add(role)
             # nearby drops on hard surfaces (outside) or on the roof (inside)
             drops = self.drops
             drops.period = 1.0 / max(1.0, 25.0 * R) if not inside else None

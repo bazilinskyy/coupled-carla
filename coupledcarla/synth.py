@@ -49,10 +49,29 @@ def band_loops(kind="pink", seconds=4.0, seed=7, rate=RATE):
     edges = ac.EDGES.copy()
     edges[0] = 30.0                     # nothing below 30 Hz (rumble no headphone or speaker plays)
     edges[-1] = min(16000.0, rate / 2)
+    # whiten per octave first (every band the same power), then split with amplitude-complementary cosine
+    # crossovers a third of an octave wide at each inner edge: the bands sum back to the noise exactly, and unequal
+    # band weights give a smooth spectrum instead of steps at the band edges
     for b in range(NB):
-        x = np.fft.irfft(spec * ((f >= edges[b]) & (f < edges[b + 1])), n)
-        r = float(np.sqrt(np.mean(x * x)))
-        out[b] = (x * (FS / r if r > 0 else 0.0)).astype(np.float32)
+        m = (f >= edges[b]) & (f < edges[b + 1])
+        pw = float(np.sum(np.abs(spec[m]) ** 2))
+        if pw > 0:
+            spec[m] *= 1.0 / math.sqrt(pw)
+    spec[(f < edges[0]) | (f >= edges[-1])] = 0.0
+    lf = np.log2(np.maximum(f, 1.0))
+    H = np.zeros((NB, len(f)))
+    half = 1.0 / 6.0
+    for b in range(NB):
+        lo = math.log2(edges[b]) if b > 0 else -1e9
+        hi = math.log2(edges[b + 1]) if b < NB - 1 else 1e9
+        rise = np.clip((lf - (lo - half)) / (2 * half), 0.0, 1.0) if b > 0 else np.ones_like(lf)
+        fall = np.clip(((hi + half) - lf) / (2 * half), 0.0, 1.0) if b < NB - 1 else np.ones_like(lf)
+        H[b] = np.minimum(np.sin(0.5 * np.pi * rise) ** 2, np.sin(0.5 * np.pi * fall) ** 2)
+    H /= np.maximum(H.sum(axis=0), 1e-12)          # exactly complementary (amplitude)
+    total = np.fft.irfft(spec, n)
+    scale = FS / float(np.sqrt(np.mean(total * total))) * math.sqrt(NB)    # each band: power of one FS_RMS row
+    for b in range(NB):
+        out[b] = (np.fft.irfft(spec * H[b], n) * scale).astype(np.float32)
     _LOOPS[key] = out
     return out
 
@@ -205,6 +224,7 @@ class _Partials(SpatialVoice):
         self._rot = np.exp(1j * self.ph0).astype(np.complex64)
         self.nlive = self.nh          # partials rendered (fewer for far sources)
         self._plan = self._groups(self.mults)
+        self._gph = [0.0] * len(self._plan)
         self.jf, self.ja = jitter_f, jitter_a
         self._jf = 0.0
         self._ja = np.zeros(self.nh)
@@ -257,8 +277,13 @@ class _Partials(SpatialVoice):
         self._ja = ja_new
         # partials by complex recurrence: exp(i k u w) = exp(i u w)^k for each group of multiples k of a unit u
         nlive = self.nlive
-        for unit, ks, idx in self._plan:
-            wu = (unit * w).astype(np.float32)
+        cyc = np.cumsum(f) / RATE                        # base cycles over the block
+        for g, (unit, ks, idx) in enumerate(self._plan):
+            # each group keeps its own phase in cycles of its unit (wrapping the base phase would make half orders
+            # and detuned partials jump at block edges)
+            pg = self._gph[g] + unit * cyc
+            self._gph[g] = float(pg[-1] % 1.0)
+            wu = (2 * np.pi * pg).astype(np.float32)
             e = np.empty(n, np.complex64)
             e.real, e.imag = np.cos(wu), np.sin(wu)
             z = e.copy()

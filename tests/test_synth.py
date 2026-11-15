@@ -32,12 +32,16 @@ def render(v, seconds=2.0, warm=2):
     return m.render(int(seconds * audio.RATE))
 
 
-def test_band_loops_are_calibrated_and_disjoint():
+def test_band_loops_are_calibrated_and_add_up():
     L = synth.band_loops("pink", 2.0, 1)
     assert L.shape == (8, 88200)
-    assert np.allclose(np.sqrt(np.mean(L.astype(float) ** 2, axis=1)), audio.FS_RMS, rtol=1e-3)
+    # each band about one full-scale row (the crossovers' overlap takes up to ~0.5 dB from a band on its own)
+    assert np.allclose(np.sqrt(np.mean(L.astype(float) ** 2, axis=1)), audio.FS_RMS, rtol=0.06)
     c = np.corrcoef(L)
-    assert np.all(np.abs(c - np.eye(8)) < 0.02)              # the bands are uncorrelated: their powers add
+    assert np.all(np.abs(c - np.eye(8))[np.abs(np.subtract.outer(range(8), range(8))) > 1] < 0.02)
+    # only neighbours overlap (the crossovers); equal weights give back the whole noise, flat across the edges
+    s = L.sum(axis=0)
+    assert np.sqrt(np.mean(s.astype(float) ** 2)) == pytest.approx(audio.FS_RMS * math.sqrt(8), rel=1e-3)
 
 
 def test_band_noise_plays_the_given_band_levels():
@@ -199,3 +203,23 @@ def test_recordings_licence_check_and_cache(monkeypatch, tmp_path):
     assert "Someone" in soundfetch.credit_line(info)
     n = len(calls)
     assert soundfetch.recording("r", log=lambda s: None)[0] == path and len(calls) == n    # cached
+
+
+def test_no_clicks_at_block_edges():
+    """Partials keep their phase across blocks (half orders and detuned rotor pairs included): no jump at the
+    edges of the mixer's blocks."""
+    for v in (synth.EngineVoice(4, False, seed=1, kinds=("direct",)), synth.RotorVoice(2, seed=2, kinds=("direct",))):
+        m = audio.Mixer()
+        m.add("v", v)
+        xs = []
+        for k in range(120):
+            if isinstance(v, synth.EngineVoice):
+                v.set_rpm(1500 + 8 * k, 0.3)
+            else:
+                v.set_bpf(150 + k)
+            v.paths[0].w = v.weights(np.array([80, 75, 70, 65, 60, 55, 50, 45.0]), REF)
+            xs.append(m.render(2205))
+        x = np.concatenate(xs)[:, 0]
+        d = np.abs(np.diff(x))
+        seg = d[:len(d) // 110 * 110].reshape(-1, 110).max(axis=1)
+        assert np.sum(seg > 8 * np.median(seg)) == 0

@@ -230,6 +230,7 @@ DEFAULTS = {
         "record": False,             # host: write the first participant's soundscape to <trial>/audio.wav in
                                      # simulation time (as --record-audio); stations: also what they play
         "record_own_drone": True,    # a drone pilot's recording hears its own rotors at the camera
+        "record_reference_db": 100.0,    # the host's audio.wav: dB SPL of a full-scale 1 kHz sine (headroom)
     },
     "displays": {                    # in-car displays over a driver's or AV passenger's view (incar.py)
         "cluster": None,             # a design (data/incar/<name>, a path or a dict), true for the default, or
