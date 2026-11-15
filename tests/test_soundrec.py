@@ -144,3 +144,47 @@ def test_level_helpers():
     assert len(t) == 8 and np.allclose(lv, 94.0, atol=0.2)
     assert soundrec.a_weighting_db([1000.0])[0] == pytest.approx(0.0, abs=0.05)
     assert soundrec.a_weighting_db([100.0])[0] == pytest.approx(-19.1, abs=0.1)
+
+
+def test_pedestrian_signals_walk_with_the_crossing_traffic(monkeypatch):
+    import sys
+    states = {"a": "r", "b": "G"}
+    fake = types.SimpleNamespace(trafficlight=types.SimpleNamespace(
+        getControlledLinks=lambda tls: [[("lane_" + tls, "out", "via")]],
+        getRedYellowGreenState=lambda tls: states[tls]))
+    monkeypatch.setitem(sys.modules, "traci", fake)
+    shapes = {"lane_a": [(0.0, -20.0), (0.0, 0.0)], "lane_b": [(-20.0, 5.0), (0.0, 5.0)]}   # a north, b east
+    net = types.SimpleNamespace(getLane=lambda lid: types.SimpleNamespace(getShape=lambda: shapes[lid]))
+    signals = types.SimpleNamespace(heads=[("a", [0], Loc(3.0, 0.0)), ("b", [0], Loc(0.0, -8.0))])
+    ps = soundrec.PedSignals(signals, net)
+    near = ps.near(5.0, 0.0, 0.0)
+    assert near[0][:2] == (3.0, 0.0) and near[0][3] is True      # lane a red, crossing lane b green: walk
+    states.update(a="G", b="r")
+    assert ps.near(5.0, 0.0, 0.1)[0][3] is True                  # cached for 0.25 s
+    assert ps.near(5.0, 0.0, 1.0)[0][3] is False                 # lane a green: wait
+
+
+def test_replay_from_frames_csv(tmp_path, monkeypatch):
+    """A trial's soundscape rendered again from its logs, in the same alignment."""
+    from coupledcarla import config
+    trial = tmp_path / "trial"
+    trial.mkdir()
+    (trial / "config.yaml").write_text("name: x\nmap: {name: nomap}\nsimulation: {step: 0.05}\n"
+                                       "sound: {recordings: false, environment: false}\n"
+                                       "participants: [{role: walker1, kind: pedestrian}]\n")
+    head = ("timestamp;frame;actor_id;kind;role;type_id;pos_x;pos_y;pos_z;rot_pitch;rot_yaw;rot_roll;lat;lon;vel_x;"
+            "vel_y;vel_z;speed_kmh;acc_x;acc_y;acc_z;blinkers;front_lights;stop_lights;throttle;steer;brake;reverse;"
+            "hand_brake;next_tl;next_tl_dist;next_tl_state;ehmi")
+    rows = [head]
+    for k in range(40):
+        t = 0.05 * k
+        rows.append(f"{t:.3f};{100 + k};5;participant;walker1;walker.pedestrian.0001;0;0;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;;;;;;;;")
+        rows.append(f"{t:.3f};{100 + k};9;car;;vehicle.audi.a2;{-20 + 13.9 * t:.2f};6;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;;;;;;;;")
+    (trial / "frames.csv").write_text("\n".join(rows) + "\n")
+    seen = []
+    out = soundrec.replay(trial, log=lambda s: None, probe=lambda t, sc: seen.append(sc.info.get(9, {}).get("kmh")))
+    x, rate = soundrec.read_wav(out)
+    assert len(x) == round((39 * 0.05 + 0.05) * 44100)
+    assert seen[-1] == pytest.approx(50.0, abs=3.0)                 # speed taken from the positions
+    assert soundrec.level_dba(x[-20000:], 100.0) > 55.0
+    assert config.DEFAULTS["sound"]["record_reference_db"] == 100.0
