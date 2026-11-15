@@ -267,13 +267,13 @@ def check_xodr(xodr):
 def build_scenery(cfg, out, meta, cmap=None, server_major=None, log=log):
     """Scenery and buildings for a built map (scenery.py), recorded in meta. On a baked CARLA level (map.carla_level)
     only trees, bushes, lamps, street furniture and signs: the level has its own buildings and ground."""
-    from . import scenery
-    from .geo import Geo
     mc = cfg["map"]
     if mc.get("carla_town"):     # a CARLA town has its own scenery: parked cars only (towns.py)
         from . import towns
         return towns.build_scenery(dict(cfg, map=dict(mc, bbox=mc.get("bbox") or meta.get("bbox"))), out, meta, cmap,
                                    server_major, log)
+    from . import scenery
+    from .geo import Geo
     if meta.get("bbox") and list(mc.get("bbox") or []) != list(meta["bbox"]):
         if mc.get("bbox"):
             log(f"map.bbox {mc['bbox']} is not the built map's {meta['bbox']}: the scenery follows the built roads "
@@ -465,7 +465,8 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
     out.mkdir(parents=True, exist_ok=True)
     if transit_only and (out / "meta.json").exists():
         meta = json.loads((out / "meta.json").read_text())
-        sumo_net(out, guess_tls=not mc.get("carla_town"))   # nets built before bus lanes were open to buses
+        # nets built before bus lanes were open to buses (a CARLA town's without guessed lights)
+        sumo_net(out, guess_tls=False) if mc.get("carla_town") else sumo_net(out)
         build_transit(dict(cfg, map=dict(mc, bbox=meta.get("bbox") or mc["bbox"])), out, meta)   # a twin's box
         (out / "meta.json").write_text(json.dumps(meta, indent=2))
         log(f"public transport rebuilt: {out}")

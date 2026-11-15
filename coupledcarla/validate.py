@@ -40,7 +40,7 @@ PART_KEYS = {"role", "kind", "station", "vehicle", "spawn", "input", "view", "wi
              "seed", "color", "response", "automation", "sound", "displays", "haptics"} | drones.PILOT_KEYS
 KINDS = {"driver", "pedestrian", "av_passenger", "drone"}
 INPUTS = {"keyboard", "wheel", "autopilot", "bot", "gamepad", "rc"}
-SPAWN_KEYS = {"lat", "lon", "heading"}
+SPAWN_KEYS = {"lat", "lon", "heading", "x", "y"}      # x, y: CARLA coordinates (towns.resolve_xy)
 BOT_KEYS = {"path", "start_s", "speed", "look", "ehmi", "response", "sticks", "land", "absolute", "after_crash"}
 AGENT_KEYS = {"id", "kind", "vehicle", "color", "route", "speed_kmh", "accel", "yield_to_pedestrians", "ehmi",
               "ehmi_slots", "triggers", "at_end", "path", "speed", "start_s", "loop", "ehmi_design", "ehmi_placement",
@@ -48,7 +48,7 @@ AGENT_KEYS = {"id", "kind", "vehicle", "color", "route", "speed_kmh", "accel", "
 TRIGGER_KEYS = {"at", "at_m", "speed_kmh", "accel", "yield_s", "blinker", "ehmi", "takeover"}
 RESPONSE_KEYS = {"button", "slider", "slider_start", "slider_speed", "hidden", "press_threshold", "joystick"}
 EHMI_KEYS = {"states", "slots", "design", "placement", "render", "offset"}
-POI_KEYS = {"name", "lat", "lon", "heading", "radius_m", "radius"}
+POI_KEYS = {"name", "lat", "lon", "heading", "radius_m", "radius", "x", "y"}
 FREE = {("traffic", "car_types"), ("traffic", "bike_types"), ("conditions",), ("design", "factors"), ("drones", "centre"),
         ("design", "trial"), ("design", "practice"), ("design", "after"), ("ehmi",), ("eye_contact",),
         ("film", "camera"), ("film", "cameras"), ("film", "hold"), ("film", "attributes")}
@@ -242,7 +242,7 @@ def check_trial_config(rep, tc, where, duration, geo_checks):
                                        "car" if kind == "driver" else "any" if kind == "drone" else "walk",
                                        p.get("role") if kind == "driver"
                                        else None))
-        if kind == "pedestrian" and not (isinstance(sp, dict) and "lat" in sp):
+        if kind == "pedestrian" and not (isinstance(sp, dict) and ("lat" in sp or "x" in sp)):
             rep.error(pw, "a pedestrian needs spawn: {lat, lon}")
         if kind == "av_passenger":
             ag = next((a for a in agents if isinstance(a, dict) and a.get("id") == p.get("agent")), None)

@@ -1,0 +1,28 @@
+# Town01 at night in heavy rain: CARLA's small river town with its own street and building lights on (LightManager),
+# headlights on the SUMO cars, wet roads. The night comes from simulation.time at the town's place: the towns'
+# geoReference lies at 0 N 0 E, where the sun sets at about 18:00 all year; map.place puts the town anywhere else.
+#   python -m coupledcarla.run experiments/towns/town01_night_rain.yaml
+name: town01_night_rain
+
+map:
+  carla_town: Town01_Opt
+  # place: [49.0, 8.4]             # take the sun (and with weather: real, the weather) of Karlsruhe instead
+
+simulation:
+  weather: HardRainNight
+  time: "2026-11-15 21:30"
+  town_lights: auto                # street and building lights on at night (on | off | false: the server's)
+
+traffic:
+  cars_per_hour: 500
+  walkers: {ai: {count: 15}}
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {x: 200.0, y: 59.5, heading: 90}                 # east along the long street by the river
+
+trials:
+  - {duration_s: 300}

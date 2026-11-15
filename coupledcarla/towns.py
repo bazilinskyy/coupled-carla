@@ -211,7 +211,7 @@ def build_scenery(cfg, out, meta, cmap=None, server_major=None, log=print):
         cmap = carla.Map(mc["name"], (out / "map.xodr").read_text(encoding="utf-8"))
     (out / "scenery.json").write_text(json.dumps(
         {"version": 1, "catalog": cat.version, "cell_m": scenery.CELL, "meshes": [], "items": [], "counts": {},
-         "sources": [], "leaf": {}, "town": town_of(cfg)}, separators=(",", ":")))
+         "sources": [], "leaf": {}, "town": town_of(cfg), "snapped": "opendrive"}, separators=(",", ":")))
     counts = {}
     if sc.get("parked", True):
         def ground(x, y):
@@ -220,6 +220,11 @@ def build_scenery(cfg, out, meta, cmap=None, server_major=None, log=print):
         bbox = mc.get("bbox") or meta.get("bbox")
         counts = parking.build(out, dict(cfg, map=dict(mc, bbox=bbox)), None, cat, cmap, ground,
                                SimpleNamespace(items=[], mesh_index={}), [], log) or {}
+        pj = out / "parked.json"
+        if pj.exists():     # a town's OpenDRIVE heights are its level's road surface: nothing to snap
+            data = json.loads(pj.read_text())
+            data["snapped"] = "opendrive"
+            pj.write_text(json.dumps(data, separators=(",", ":")))
     meta["scenery"] = counts
     meta["buildings"] = meta.get("buildings", 0)
     meta.setdefault("sources", {})
@@ -471,13 +476,24 @@ class NavWalkers:
 
 
 def resolve_xy(tc, geo):
-    """Points given in CARLA coordinates, {x: .., y: ..} (and heading, height_m, ... kept), become {lat, lon} with
-    the map's geo (geo.Geo) in the participants, agents, points of interest, drones and film sections: in a CARLA
-    town people know places by their CARLA x, y. Returns how many were converted."""
+    """Points given in CARLA coordinates become lat, lon with the map's geo (geo.Geo) in the participants, agents,
+    points of interest, drones and film sections (in a CARLA town people know places by their CARLA x, y):
+    {x: .., y: ..} dicts (heading, height_m, ... kept) become {lat, lon}, and a key ending in _xy holding [x, y] or
+    a list of [x, y(, height)] becomes the key without _xy in [lat, lon(, height)] (route_xy -> route, path_xy ->
+    path, at_xy -> at). Returns how many were converted."""
     n = [0]
+
+    def pt(p):
+        lat, lon = geo.to_latlon(float(p[0]), float(p[1]))
+        return [round(lat, 8), round(lon, 8), *p[2:]]
 
     def walk(v):
         if isinstance(v, dict):
+            for k in [k for k in v if isinstance(k, str) and k.endswith("_xy")]:
+                pts = v.pop(k)          # route_xy, path_xy, at_xy, ...: [x, y(, more)] or a list of them
+                single = bool(pts) and isinstance(pts[0], (int, float))
+                v[k[:-3]] = pt(pts) if single else [pt(p) for p in pts]
+                n[0] += 1
             if "x" in v and "y" in v and "lat" not in v and isinstance(v["x"], (int, float)) \
                     and isinstance(v["y"], (int, float)):
                 lat, lon = geo.to_latlon(float(v["x"]), float(v["y"]))

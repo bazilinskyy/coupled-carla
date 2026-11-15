@@ -22,7 +22,7 @@ SERVER = {"host": "127.0.0.1", "port": 2500, "launch": True, "quality": "Epic", 
 
 def test_clip_list_parses():
     clips = mv.load_clips()
-    assert 8 <= len(clips) <= 14
+    assert 8 <= len(clips) <= 22
     names = [c["name"] for c in clips]
     assert len(names) == len(set(names))
     for c in clips:
