@@ -338,7 +338,12 @@ and nothing else), ticking as fast as the server can (`tools/vr_bench.py`):
 | the same through Monado (OpenXR, swapchains, upload on the CPU): 960x1056 / 1440x1584 / 1832x1920 | 17.7 / 19.4 / 22.6 ms | 55 / 51 / 42 | 39 / 48 / 69 ms | 58 / 75 / 93 ms |
 
 Every rendered eye pose was where the station put it (0.0 deg and 0.0 cm off, checked per frame from the image's own
-camera transform). So:
+camera transform). **A coupled run** (the host with SUMO traffic, scripted cars and an AV-passenger station in VR
+through Monado, two 1440x1584 eyes with the cluster and HUD drawn in, 40 s on the Eindhoven crossing): RTF 0.88, the
+station saw 42.5 ticks/s and got every pair of eye images; 32.8 pairs/s reached the headset (here OpenXR's upload
+and compositor run on the CPU, which alone tops out at 45 frames/s at that size; a GPU does it in a fraction of a
+millisecond); head pose to both images 63 ms (median; 96 ms at the 95th percentile), motion to photon 119 ms
+(150 ms), prediction 65 ms. So:
 
 - **90 Hz is not reachable**: CARLA renders each eye as one more camera, and two eyes at a useful size cost 13-17 ms
   of server time on top of the world, before SUMO traffic, scenery and the other stations. In a coupled session the
@@ -352,7 +357,8 @@ camera transform). So:
   predicts the head that far ahead (`vr.predict_ms: auto`, at most `vr.max_predict_ms` 80) and the runtime's
   reprojection corrects the head *rotation* that is left. For the scripted head at 1440x1584 the images were off by
   0.2 deg (median; 0.6 deg at the 95th percentile) with the prediction and 1.7 deg (3.2 deg) without it, which is
-  what the reprojection then turns away. Head *translation* (leaning) and the world itself keep CARLA's latency.
+  what the reprojection then turns away; through OpenXR with Monado's head turning steadily at 14 deg/s, 0.1 deg
+  (0.2) with and 0.6 deg (0.8) without. Head *translation* (leaning) and the world itself keep CARLA's latency.
 - Simulator sickness is the risk to plan for: seated participants, short trials, the sickness question between
   trials (checklist), and a static reference (the car's cabin) in view.
 
@@ -361,6 +367,12 @@ the head pose sampled, the prediction horizon and the predicted orientation, whe
 headset first showed them (the runtime's predicted display time), the motion-to-photon estimate and the rotation the
 reprojection had to correct, and the check of the rendered pose against the one set. Its `station_stats` carry
 `vr_fps`, `vr_pose_to_image_ms`, `vr_horizon_ms`, `vr_motion_to_photon_ms` and `vr_size`.
+
+On CARLA 0.9.16 a VR station sends its per-tick batch without waiting (`apply_batch`): 0.9.16's `apply_batch_sync`
+holds Python's GIL while it waits for the server, the eye cameras' callbacks need the GIL to read their streams, and
+a stream the client does not read stalls the server, so the first coupled run with big eye images hung at its first
+tick (CARLA 1.0's client releases the GIL there). If a station ever hangs, `kill -USR1 <pid>` of its trial process
+prints every thread's stack into its log.
 
 Not in VR yet: multi-GPU secondaries (each eye would need its own camera turn), the steering wheel turning
 (`displays.wheel`) and hiding the displays behind the wheel's rim, right-hand-drive mirrored cabins (`displays.rhd`).
