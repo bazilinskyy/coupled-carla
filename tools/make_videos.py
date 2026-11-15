@@ -467,7 +467,8 @@ def run_clip(ctx, clip, attempts=3):
     for k in range(attempts):
         rec = _run_clip(ctx, clip)
         log = (ctx.work / clip["name"] / "host.log").read_text(errors="replace")
-        if rec["host_rc"] == 0 or not any(m in log for m in START_FAILURES) or k == attempts - 1:
+        started = "trial done:" in log or "film: camera" in log
+        if rec["host_rc"] == 0 or started or not any(m in log for m in START_FAILURES) or k == attempts - 1:
             return rec
         ctx.log(f"{clip['name']}: the CARLA server did not come up; trying again")
         if ctx.server["launch"]:
@@ -491,6 +492,15 @@ def _run_clip(ctx, clip):
     if want_audio:
         argv.append("--record-audio")
     dog = None
+    if ctx.server["launch"] and sys.platform.startswith("linux") and ctx.args.need_free_gb > 0:
+        t_wait = time.time()       # a shared machine: start a server only with room for it
+        while Watchdog.available_gb() < ctx.args.need_free_gb:
+            if time.time() - t_wait > 3 * 3600:
+                raise RuntimeError(f"under {ctx.args.need_free_gb:g} GB free for 3 hours")
+            if int(time.time() - t_wait) % 300 < 10:
+                ctx.log(f"{clip['name']}: {Watchdog.available_gb():.1f} GB free, waiting for "
+                        f"{ctx.args.need_free_gb:g} GB before starting CARLA")
+            time.sleep(10)
     if ctx.server["launch"] and sys.platform.startswith("linux") and not ctx.args.no_watchdog:
         dog = Watchdog(ctx.server["port"], ctx.args.max_rss_gb, ctx.args.min_free_gb, ctx.log)
         dog.start()
@@ -597,8 +607,8 @@ def make_audio(ctx, clip, rec, frames_info):
             own = cam.get("target")
     else:
         v0 = clip["stations"]["views"][0]
-        listener_role = v0["role"]
         own = own or v0.get("own")
+        listener_role = own or v0["role"]       # an AV passenger has no rows of its own: its car's
     x = filmaudio.render(trial / "frames.csv", t0, t1, listener=listener, listener_role=listener_role,
                          own_role=own, sound=sound, log=lambda m: None)
     x = filmaudio.normalise(x, float(clip["loudness_db"]))
@@ -626,7 +636,8 @@ def encode_clip(ctx, clip, rec=None, crf=None, out_name=None, frames=None):
         out_h = (clip.get("scale") or clip["size"])[1]
         filters = caption_filter(wd / "title.txt" if cap[0] else None, wd / "line.txt" if cap[1] else None, out_h,
                                  ctx.font, ctx.font_bold, float(clip["caption_s"]),
-                                 "bottom-centre" if clip["kind"] == "stations" else "bottom-left")
+                                 "bottom-centre" if clip["kind"] == "stations" and
+                                 cell_size(clip) != tuple(clip["size"]) else "bottom-left")
     mp4 = ctx.out / f"{name}.mp4"
     cmd = encode_cmd(fdir / "%06d.jpg", mp4, float(clip["fps"]), crf, clip["preset"], audio, ss,
                      float(clip["duration_s"]), clip.get("scale"), filters, clip["audio_kbps"], ffmpeg=ctx.ffmpeg)
@@ -700,6 +711,8 @@ def main(argv=None):
     ap.add_argument("--max-rss-gb", type=float, default=12.0)
     ap.add_argument("--min-free-gb", type=float, default=4.0)
     ap.add_argument("--no-watchdog", action="store_true")
+    ap.add_argument("--need-free-gb", type=float, default=12.0,
+                    help="wait for this much free memory before the runner starts CARLA (Linux; 0: do not wait)")
     ap.add_argument("--crf", type=int, help="encode/remux: override the clip's CRF")
     ap.add_argument("--values", default="24,26,28,30", help="crf: the CRF values to try")
     ap.add_argument("--audio", help="remux: the WAV to put on the video (default: the trial's audio.wav)")

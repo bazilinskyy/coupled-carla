@@ -92,7 +92,8 @@ def samples_per_tick(times, t0, rate):
 def render(frames_csv, t0, t1, listener=None, listener_role=None, own_role=None, sound=None, kind=None,
            rate=audio.RATE, log=print):
     """Stereo float32 (n, 2) of the soundscape from t0 to t1 (trial seconds). listener: a track [(t, x, y, z, yaw)]
-    (a film camera); else the rows of participant `listener_role` (eyes 1.6 m up). own_role: whose car is heard from
+    (a film camera); else the rows of `listener_role` (a participant's role or an agent's id; eyes 0.8 m above
+    its centre). own_role: whose car is heard from
     inside (a driver's or passenger's camera)."""
     cfg = {**DEFAULT_SOUND, **(sound or {})}
     cfg["enabled"] = True
@@ -109,7 +110,7 @@ def render(frames_csv, t0, t1, listener=None, listener_role=None, own_role=None,
         rows = frames[fr][1]
         bodies, own, ctl, lst = [], None, None, None
         for row in rows:
-            if row.get("kind") == "participant" and row.get("role") == listener_role:
+            if listener_role and row.get("role") == listener_role:     # a participant or an agent
                 lst = (_f(row["pos_x"]), _f(row["pos_y"]), _f(row["pos_z"]) + 0.8, _f(row["rot_yaw"]))
             b = body_of_row(row, cfg.get("electric", "auto"))
             if own_role and row.get("role") == own_role:
