@@ -212,6 +212,9 @@ class Station:
         hz = self.camera_hz()
         if hz > 0:
             bp.set_attribute("sensor_tick", str(1.0 / hz))
+        for k, v in (self.welcome.get("camera_attributes") or {}).items():     # the experiment's film.attributes
+            if bp.has_attribute(k):
+                bp.set_attribute(k, str(v))
         if not self.every_tick and args.headless and 0 < hz <= 5:
             # few frames: auto exposure would never adapt
             set_manual_exposure(bp, {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220))
@@ -474,8 +477,19 @@ class Station:
         self.count.image()
         self.got_image.set()
         if self.screen is None:
-            if self.args.frames_every and image.timestamp - self.last_saved >= 0.95 * self.args.frames_every:
-                self.last_saved = image.timestamp
+            # a camera that renders at least twice per kept frame keeps its frames on a grid of simulation time
+            # (multiples of --frames-every), so several stations' frames (and the host's film cameras, film.py)
+            # line up image for image (tools/make_videos.py); a slower camera keeps every image after the interval
+            every = self.args.frames_every
+            hz = self.camera_hz()
+            if every and (hz == 0 or hz * every >= 2.0):
+                k = round(image.timestamp / every)
+                keep = k != self.last_saved and abs(image.timestamp - k * every) < max(0.011, 0.05 * every)
+            else:
+                k = image.timestamp
+                keep = bool(every) and image.timestamp - self.last_saved >= 0.95 * every
+            if keep:
+                self.last_saved = k
                 out = Path(self.args.out) / "stations" / f"{self.args.role}_trial{self.trial}_frames"
                 out.mkdir(parents=True, exist_ok=True)
                 if self.ux is not None and self.ux.wants_frames():     # with the in-car displays drawn over it
