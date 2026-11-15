@@ -197,6 +197,17 @@ DEFAULTS = {
             "crossings_per_km": 2.0, # crossings per km walked where CROWD's crossing share is the median city's
             "speed_mps": "auto",     # median walking speed, or "auto": the place's CROWD crossing speed
             "jaywalk_share": "auto", # share of crossings mid-block, or "auto": the country's in CROWD
+            "perception": {          # how walkers judge gaps at the kerb (coupledcarla/embodiedped.py)
+                "model": "off",      # "off": every car's true position and speed (HCM critical gap); "embodied":
+                                     # only what each walker has seen, with embodied-human's eyes (saccades),
+                                     # peripheral vision and reaction times (needs embodied-human installed)
+                "seed": 1,
+                "distance_weber": 0.10, "tta_weber": 0.15,   # foveal SD of a seen distance and time to arrival
+                "looming_threshold": 0.003,  # rad/s: a car's time to arrival is seen only above this expansion
+                "prior_speed_kmh": 30.0,     # speed assumed for a car whose approach is not seen yet
+                "prior_sd": 0.2, "max_rel_sd": 0.35, "recheck_s": 1.5, "fixation_s": 0.3, "side_gaze_deg": 85.0, "reach_m": 150.0,
+                "log_gaze": True,    # <trial>/crowd_gaze.csv: gaze, believed and true gap of walkers at the kerb
+            },
             "ai": {"count": 0,       # CARLA's AI walkers (WalkerAIController) on the level's navigation mesh: CARLA
                    "radius_m": 150,  # towns and baked levels only (towns.NavWalkers); spawned within radius_m of the
                    "speed_mps": 1.35, "run_share": 0.05,   # participants, walking to random destinations,

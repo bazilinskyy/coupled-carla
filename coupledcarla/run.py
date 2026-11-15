@@ -331,6 +331,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     from . import look
     look.DEBUG_COMPRESS = compat.server_major(client) == 0     # debug colours (traffic lights, eHMIs): look.py
     sync = view = recorder = world = logger = drone_world = film = host_audio = photo = navw = None
+    own_logs = []
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
     try:
@@ -544,6 +545,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         if tc["logging"]["carla_recorder"]:
             recorder = client.start_recorder(f"coupledcarla_{tc['name']}_{stamp}_trial{trial_idx}.log", True)
         logger = TrialLogger(out, geo, tc["logging"], step)
+        own_logs = [x for x in [p.input for p in parts] + [crowd] if hasattr(x, "open_log")]
+        for x in own_logs:      # inputs and the crowd with logs of their own (myodriver.py, embodiedped.py)
+            x.open_log(out)
         logger.velocities = sync.velocity        # SUMO vehicles' speeds in frames.csv (see above)
         fc = tc.get("film") or {}
         if fc.get("camera") or fc.get("cameras"):       # demo-video cameras on a sim-time grid (tools/make_videos.py)
@@ -908,6 +912,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             navw.destroy()
         if logger is not None:
             logger.close()
+        for x in own_logs:
+            try:
+                x.close()
+            except Exception as err:  # noqa: BLE001 - the trial's own logs are written
+                log(f"{type(x).__name__} log: {err}")
         if recorder is not None:
             client.stop_recorder()
         if view:

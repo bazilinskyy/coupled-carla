@@ -785,23 +785,31 @@ def gap_ok(a, b, vehicles, t_c, marked=False, decel=3.0, react=1.0):
     return True
 
 
-def replay(segments, walkers, frames, duration_s, dt=0.5):
+def replay(segments, walkers, frames, duration_s, dt=0.5, decider=None):
     """Walks the planned walkers through recorded traffic without CARLA: frames = sorted [(t, [(x, y, vx, vy)])] in
     CARLA coordinates (e.g. SUMO's FCD). Returns one dict per crossing started within duration_s: kind, the wait at
     the kerb (s), whether the walker gave up waiting before the trial ended (then wait is censored), the gap that
-    was accepted (time until the nearest approaching vehicle reached the crossing line, s; None: no vehicle came)."""
+    was accepted (time until the nearest approaching vehicle reached the crossing line, s; None: no vehicle came).
+    decider: a perception model (embodiedped.EmbodiedCrossing) in place of gap_ok; its frames are (t, vehicles,
+    vehicle ids)."""
     times = [f[0] for f in frames]
 
     def at(t):
         k = max(0, min(len(frames) - 1, _bisect.bisect_right(times, t) - 1))
         return frames[k][1] if frames else []
 
+    def ok(n, t, a, b, t_c, marked):
+        if decider is None:
+            return gap_ok(a, b, at(t), t_c, marked)
+        k = max(0, min(len(frames) - 1, _bisect.bisect_right(times, t) - 1))
+        return decider.decide(n, t, a, b, t_c, frames[k][1], frames[k][2], marked)
+
     def xy(seg, side, i):
         x, y = segments[seg].sides[side][i]
         return x, -y
 
     out = []
-    for w in walkers:
+    for n, w in enumerate(walkers):
         t, v = 0.0, w["speed"]
         for leg in w["legs"]:
             if t > duration_s:
@@ -813,19 +821,22 @@ def replay(segments, walkers, frames, duration_s, dt=0.5):
             a, b = xy(leg[1], leg[2], leg[3]), xy(leg[1], 1 - leg[2], leg[3])
             marked = leg[4] in ("crosswalk", "junction")
             t0 = t
-            while t <= duration_s and not gap_ok(a, b, at(t), critical_gap(s.width(leg[3]), v, t - t0), marked):
+            while t <= duration_s and not ok(n, t, a, b, critical_gap(s.width(leg[3]), v, t - t0), marked):
                 t += dt
             if t > duration_s:
                 out.append({"kind": leg[4], "wait": t - t0, "censored": True, "gap": None})
                 break
             out.append({"kind": leg[4], "wait": round(t - t0, 2), "censored": False,
-                        "gap": _next_arrival(a, b, at(t))})
+                        "gap": _next_arrival(a, b, at(t)), "gap_speed": _next_arrival(a, b, at(t), speed=True),
+                        "t": round(t, 2), "t_c": round(critical_gap(s.width(leg[3]), v, t - t0), 2),
+                        "cross_s": round(s.width(leg[3]) / v, 2)})
             t += s.width(leg[3]) / v
     return out
 
 
-def _next_arrival(a, b, vehicles):
-    """Seconds until the first vehicle heading for the crossing line a-b reaches it (None: none within 120 m)."""
+def _next_arrival(a, b, vehicles, speed=False):
+    """Seconds until the first vehicle heading for the crossing line a-b reaches it (None: none within 120 m); with
+    speed, that vehicle's speed (m/s) instead."""
     ax, ay = a
     ux, uy = b[0] - ax, b[1] - ay
     L = math.hypot(ux, uy) or 1.0
@@ -839,8 +850,10 @@ def _next_arrival(a, b, vehicles):
         tta = abs(off) / closing
         hit = (x - ax) * ux + (y - ay) * uy + (vx * ux + vy * uy) * tta
         if -3.0 <= hit <= L + 3.0 and (best is None or tta < best):
-            best = tta
-    return round(best, 2) if best is not None else None
+            best, v_best = tta, math.hypot(vx, vy)
+    if best is None:
+        return None
+    return round(v_best, 2) if speed else round(best, 2)
 
 
 # --- set-up for a trial ---------------------------------------------------------------------------------------------
@@ -909,6 +922,8 @@ class CrowdSim:
         self.velocities = None   # {actor id: (vx, vy)}: SUMO vehicles' speeds (CARLA reads 0 m/s for them)
         self.signals = None      # pedsignals.PedSignals: at a signal, cross only when the cars crossing it have red
         self.poses = None        # the bridge's SUMO vehicle poses: walkers on the road wait for a car in their way
+        self.decider = None      # embodiedped.EmbodiedCrossing: crossing decisions from what each walker sees
+        self._ids = []           # actor ids of the vehicles of the last _vehicles()
         import carla
         self.carla, self.world = carla, world
         self.params, self.events = params, []
@@ -951,7 +966,7 @@ class CrowdSim:
         return [a for a, st in zip(self.walkers, self.state) if st["crossing"]]
 
     def _vehicles(self):
-        out = []
+        out, self._ids = [], []
         for v in self.world.get_actors().filter("vehicle.*"):
             try:
                 loc = v.get_location()
@@ -960,7 +975,16 @@ class CrowdSim:
             except RuntimeError:
                 continue
             out.append((loc.x, loc.y, vx, vy))
+            self._ids.append(v.id)
         return out
+
+    def open_log(self, out):
+        if self.decider is not None:
+            self.decider.open_log(out)
+
+    def close(self):
+        if self.decider is not None:
+            self.decider.close()
 
     def step(self, t):
         carla = self.carla
@@ -981,12 +1005,18 @@ class CrowdSim:
                         vehicles = self._vehicles()
                     t_c = critical_gap(width, st["speed"], t - st["wait_from"])
                     light = self.signals.may_cross(pts[0], pts[1]) if self.signals is not None else None
-                    if light is False or not gap_ok(pts[0], pts[1], vehicles, t_c, marked):
+                    if light is False or not (gap_ok(pts[0], pts[1], vehicles, t_c, marked) if self.decider is None
+                                              else self.decider.decide(actor.id, t, pts[0], pts[1], t_c, vehicles,
+                                                                       self._ids, marked)):
                         send(actor, carla.WalkerControl(speed=0.0))
                         continue
+                    seen = self.decider.last if self.decider is not None else {}
                     self.events.append(("crowd_crosses", f"{actor.id} {'marked' if marked else 'mid-block'} "
                                         f"{width:.1f} m after {t - st['wait_from']:.1f} s"
-                                        f"{' on its light' if light else ''}"))
+                                        f"{' on its light' if light else ''}" + (
+                                            f"; believed gap {_fmt(seen.get('believed_gap'))} s, true "
+                                            f"{_fmt(seen.get('true_gap'))} s, {seen.get('looks', 0)} looks"
+                                            if seen else "")))
                     st["pt"], st["crossing"], st["wait_from"] = 1, True, None
                 tx, ty = pts[st["pt"]]
                 dx, dy = tx - loc.x, ty - loc.y
@@ -1003,6 +1033,10 @@ class CrowdSim:
                                                         speed=st["speed"]))
             except RuntimeError:
                 pass
+
+
+def _fmt(x):
+    return "-" if x is None else f"{x:.1f}"
 
 
 def blocked(x, y, poses, margin=0.3):
@@ -1051,4 +1085,8 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):
         towns.snap_kerbs(world.get_map(), segs, log)
     sim = CrowdSim(world, geo, segs, walkers, params, int(wc.get("seed", 1)), log)
     sim.stats = stats
+    from . import embodiedped      # traffic.walkers.perception: crossings from what each walker sees (embodied-human)
+    sim.decider = embodiedped.make(tc, sim.events, log)
+    if sim.decider is not None:
+        log("crowd: crossing decisions from what each walker sees (embodied-human eyes, vision, response)")
     return sim

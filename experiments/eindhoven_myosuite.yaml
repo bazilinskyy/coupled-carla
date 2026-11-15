@@ -1,0 +1,40 @@
+# Simulated humans from Mark Colley's projects in an Eindhoven trial:
+#   - a musculoskeletal driver (input: myosuite, coupledcarla/myodriver.py): MyoSuite muscles press the pedals and
+#     turn the wheel of a car in SUMO traffic, through myosuite-carla (github.com/M-Colley/myosuite-carla);
+#   - a pedestrian crowd that crosses on what each walker sees (traffic.walkers.perception: embodied,
+#     coupledcarla/embodiedped.py): eyes, peripheral vision and reaction times from embodied-human
+#     (github.com/M-Colley/embodied-human).
+# Both need their packages on the host (a separate venv is best; see the README); without them the driver falls
+# back to CARLA's BasicAgent and the crowd to its own gap check, each with one log line.
+#
+#   python -m coupledcarla.run experiments/eindhoven_myosuite.yaml --headless
+name: eindhoven_myosuite
+
+map:
+  name: eindhoven_centre
+  bbox: [51.4360, 5.4700, 51.4500, 5.4930]
+
+simulation:
+  step: 0.02                # 50 Hz: myosuite-carla's control period (a whole number of 2 ms physics steps)
+  weather: CloudyNoon
+  profile: true             # ms per tick of each part of the loop (inputs: the muscles)
+
+traffic:
+  cars_per_hour: 1800
+  bikes_per_hour: 600
+  buses_per_hour: 6
+  walkers: {count: auto, radius_m: 150, perception: {model: embodied}}
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: myosuite
+    myosuite: {preset: fast, target_speed_kmh: 30}
+    # the straight street east of the station (OSM way 7157413, no lights), then on through the centre
+    spawn: {lat: 51.4431683, lon: 5.4913458, heading: 255}
+
+logging:
+  radius_m: 150
+
+trials:
+  - {duration_s: 120}
