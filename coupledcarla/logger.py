@@ -36,6 +36,22 @@ def blinkers_from_sumo(sig):
     return 1 if sig & SUMO_LEFT else 2 if sig & SUMO_RIGHT else 0
 
 
+class _State:
+    """A snapshot-like pose for rows not read from CARLA."""
+
+    def __init__(self, tf, v, a):
+        self.tf, self.v, self.a = tf, v, a
+
+    def get_transform(self):
+        return self.tf
+
+    def get_velocity(self):
+        return self.v
+
+    def get_acceleration(self):
+        return self.a
+
+
 class TrialLogger:
     def __init__(self, out_dir, geo, lc, step):
         self.out = out_dir
@@ -136,6 +152,13 @@ class TrialLogger:
                 *((f"{ctl.throttle:.3f}", f"{ctl.steer:.3f}", f"{ctl.brake:.3f}", int(ctl.reverse),
                    int(ctl.hand_brake)) if ctl is not None else ("", "", "", "", "")),
                 *((light[0], f"{light[1]:.1f}", light[2]) if light else ("", "", "")), ehmi or ""]
+
+    def drone_rows(self, ts, frame, records):
+        """Drones (drones.py), whose state comes from the flight model rather than CARLA's snapshot: records of
+        (role, kind, type_id, actor_id, transform, velocity, acceleration); vehicle columns empty."""
+        for role, kind, type_id, aid, tf, v, a in records:
+            self.w.writerow(self._row(ts, frame, aid, kind, role, type_id, _State(tf, v, a), 0, False, False,
+                                      None, None, ""))
 
     @staticmethod
     def _udp_entry(row):

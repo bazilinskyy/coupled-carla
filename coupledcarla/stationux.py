@@ -82,6 +82,8 @@ class StationUX:
         self.ehmi_draw = {}         # actor id -> DesignedEhmi (station-side drawing)
         self.extents = {}
         self._actors = {}
+        self.drones = []
+        self.ears = None
         self._tor_prev = None
         self.t = 0.0
         self.trial = None
@@ -133,6 +135,12 @@ class StationUX:
                                                                                spec.get("offset"))
 
     def on_message(self, msg):
+        if msg.get("type") == "drones":       # the drones' sound sources (drones.py, 10 a second)
+            self.drones = msg.get("d") or []
+            return
+        if msg.get("type") == "drone_hud":    # a drone pilot hears from where they stand, not at the drone
+            self.ears = msg.get("ears")
+            return
         if msg.get("type") != "ehmi_state":
             return
         if "all" in msg:
@@ -225,8 +233,11 @@ class StationUX:
         if self.scape is not None:
             loc = tf.location
             yaw = heading if heading is not None else tf.rotation.yaw
+            if self.ears:
+                import carla
+                loc = carla.Location(*self.ears[:3])
             bodies = self.bodies(snap, (loc.x, loc.y))
-            self.scape.update(t, (loc.x, loc.y, loc.z, yaw), bodies, own=own, own_control=ctl)
+            self.scape.update(t, (loc.x, loc.y, loc.z, yaw), bodies, own=own, own_control=ctl, drones=self.drones)
         if self.incar is not None:
             kmh = 3.6 * math.hypot(own.vx, own.vy) if own is not None else 0.0
             limit = self.limits.update(t, self.actor.get_location()) if self.limits is not None else None

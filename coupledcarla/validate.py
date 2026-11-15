@@ -30,18 +30,18 @@ from pathlib import Path
 
 import yaml
 
-from . import config, multigpu, responses, study, takeover
+from . import config, drones, multigpu, responses, study, takeover
 
 OVERRIDES = ("simulation", "traffic", "participants", "agents", "logging", "coupling", "ehmi", "eye_contact",
-             "sound", "displays", "haptics")
+             "sound", "displays", "haptics", "drones")
 TRIAL_KEYS = set(OVERRIDES) | {"duration_s", "name", "block", "condition", "conditions", "patch"}
 TOP_EXTRA = {"city", "pois", "eye_contact"}
 PART_KEYS = {"role", "kind", "station", "vehicle", "spawn", "input", "view", "window", "bot", "agent", "blueprint",
-             "seed", "color", "response", "automation", "sound", "displays", "haptics"}
-KINDS = {"driver", "pedestrian", "av_passenger"}
-INPUTS = {"keyboard", "wheel", "autopilot", "bot"}
+             "seed", "color", "response", "automation", "sound", "displays", "haptics"} | drones.PILOT_KEYS
+KINDS = {"driver", "pedestrian", "av_passenger", "drone"}
+INPUTS = {"keyboard", "wheel", "autopilot", "bot", "gamepad", "rc"}
 SPAWN_KEYS = {"lat", "lon", "heading"}
-BOT_KEYS = {"path", "start_s", "speed", "look", "ehmi", "response"}
+BOT_KEYS = {"path", "start_s", "speed", "look", "ehmi", "response", "sticks", "land", "absolute", "after_crash"}
 AGENT_KEYS = {"id", "kind", "vehicle", "color", "route", "speed_kmh", "accel", "yield_to_pedestrians", "ehmi",
               "ehmi_slots", "triggers", "at_end", "path", "speed", "start_s", "loop", "ehmi_design", "ehmi_placement",
               "ehmi_offset"}
@@ -49,7 +49,7 @@ TRIGGER_KEYS = {"at", "at_m", "speed_kmh", "accel", "yield_s", "blinker", "ehmi"
 RESPONSE_KEYS = {"button", "slider", "slider_start", "slider_speed", "hidden", "press_threshold", "joystick"}
 EHMI_KEYS = {"states", "slots", "design", "placement", "render", "offset"}
 POI_KEYS = {"name", "lat", "lon", "heading", "radius_m", "radius"}
-FREE = {("traffic", "car_types"), ("traffic", "bike_types"), ("conditions",), ("design", "factors"),
+FREE = {("traffic", "car_types"), ("traffic", "bike_types"), ("conditions",), ("design", "factors"), ("drones", "centre"),
         ("design", "trial"), ("design", "practice"), ("design", "after"), ("ehmi",), ("eye_contact",)}
 VEHICLE_GAP_M = 4.0
 TRIAL_PREFIX = re.compile(r"^trial \d+( \([^)]*\))? ?")
@@ -238,7 +238,8 @@ def check_trial_config(rep, tc, where, duration, geo_checks):
                     rep.error(f"{pw} spawn", "needs both lat and lon")
                 elif "lat" in sp:
                     geo_checks.append((f"{pw} spawn", _points(rep, f"{pw} spawn", [[sp["lat"], sp["lon"]]]),
-                                       "car" if kind == "driver" else "walk", p.get("role") if kind == "driver"
+                                       "car" if kind == "driver" else "any" if kind == "drone" else "walk",
+                                       p.get("role") if kind == "driver"
                                        else None))
         if kind == "pedestrian" and not (isinstance(sp, dict) and "lat" in sp):
             rep.error(pw, "a pedestrian needs spawn: {lat, lon}")
@@ -254,7 +255,7 @@ def check_trial_config(rep, tc, where, duration, geo_checks):
                 rep.error(f"{pw} bot", "needs a mapping")
             else:
                 _unknown(rep, f"{pw} bot", bot, BOT_KEYS)
-                if "path" in bot:
+                if "path" in bot and kind != "drone":       # a drone's: drones.check_config
                     geo_checks.append((f"{pw} bot path", _points(rep, f"{pw} bot path", bot["path"]), "walk", None))
                 if "ehmi" in bot:
                     _schedule(rep, f"{pw} bot ehmi", bot["ehmi"], duration, states)
@@ -279,6 +280,9 @@ def check_trial_config(rep, tc, where, duration, geo_checks):
                 rep.warn(f"{pw} response", "asks for neither a button nor a slider")
         if p.get("automation"):
             check_automation(rep, pw, p, duration, geo_checks)
+    # drones: missions, observer cameras, drone participants (drones.check_config)
+    drones.check_config(tc, where, duration, rep.error, rep.warn,
+                        lambda w, pts, kind: geo_checks.append((w, _points(rep, w, pts), kind, None)))
 
 
 def check_automation(rep, pw, p, duration, geo_checks):

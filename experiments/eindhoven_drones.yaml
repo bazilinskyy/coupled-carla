@@ -1,0 +1,59 @@
+# Drones over Eindhoven city centre on the digital twin (CARLA 1.0, level EhvCentre; see eindhoven_twin.yaml):
+# a participant flies a consumer camera drone from an open square by the Demer (here its bot: up over the roofs,
+# a loop north and back), three industrial delivery drones take parcels from a depot to homes and back cruising 20 m
+# above the roofs under their routes, a swarm of eight flocks round the centre (Vasarhelyi et al. 2018), a patrol
+# drone circles and an inspection drone holds over the Catharinakerk. A camera at a pedestrian's eye height on the
+# square watches the nearest drone. The drone models are coupled-sim's (drones.py, dronemodel.py).
+#   python -m coupledcarla.run experiments/eindhoven_drones.yaml --headless --frames-every 0.5
+# With a gamepad at the host instead of the bot: remove `bot` (or set input: gamepad) and run without --headless.
+name: eindhoven_drones
+
+map:
+  name: eindhoven_twin
+  opendrive: twins/EhvCentre.xodr
+  carla_level: EhvCentre
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: ClearNoon
+
+traffic:
+  cars_per_hour: 1200
+  bikes_per_hour: 600
+
+participants:
+  - role: pilot
+    kind: drone
+    input: gamepad            # keyboard | gamepad | rc | bot (headless runs fly the bot)
+    airframe: consumer
+    mode: position
+    view: fpv                 # fpv (gimbal camera) | los (from the pilot's eyes) | chase; C cycles
+    gimbal_pitch_deg: -15
+    spawn: {lat: 51.43898, lon: 5.47870, heading: 0}       # open ground: nothing within 12 m (3DBAG footprints)
+    geofence: {radius_m: 600, max_altitude_m: 120}
+    bot:
+      path: [[51.43898, 5.47870, 30], [51.44000, 5.47950, 45], [51.44110, 5.47820, 50], [51.44010, 5.47700, 45],
+             [51.43900, 5.47872, 40], [51.43898, 5.47870, 3]]      # metres above the street; roofs here: 16-25 m
+      speed: 7
+      start_s: 4
+      land: true
+
+drones:
+  missions:
+    - {kind: delivery, id: parcels, count: 3, airframe: industrial, addresses_per_drone: 2, radius_m: 450,
+       depot: {lat: 51.44270, lon: 5.48240}, drop: winch, start_s: 2}
+    - {kind: swarm, id: flock, count: 8, centre: {lat: 51.43950, lon: 5.47900}, radius_m: 220, start_s: 6}
+    - {kind: patrol, id: patrol, centre: {lat: 51.43950, lon: 5.47850}, radius_m: 500}
+    - {kind: hover, id: inspect, point: {lat: 51.43725, lon: 5.47790, height_m: 50},
+       look: {lat: 51.43738, lon: 5.47790}, orbit_speed: 2.5, start_s: 1}
+  cameras:
+    - {name: square, lat: 51.43890, lon: 5.47850, height_m: 1.7, look: nearest, every_s: 0.5}
+
+logging:
+  frames_every_s: 0.5
+
+trials:
+  - {duration_s: 120}

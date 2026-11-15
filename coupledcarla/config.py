@@ -165,6 +165,23 @@ DEFAULTS = {
     },
     "participants": [],
     "agents": [],                    # scripted AI cars and walkers (coupledcarla/ai.py)
+    "drones": {                      # AI drones and the look of all drones (coupledcarla/drones.py); a participant
+                                     # of kind `drone` flies one (input keyboard | gamepad | rc | bot)
+        "missions": [],              # {kind: delivery | patrol | swarm | hover, id, count, airframe (consumer |
+                                     # industrial), start_s, speed, clearance_m, ...}; see drones.py and the README
+        "visual": "auto",            # auto | blueprint (CARLA 1.0 content pack) | mesh | shapes (0.9.16) | none
+        "wireframe": False,          # also draw arms, rotor discs and lights with debug lines (on with shapes)
+        "wireframe_radius_m": 120.0, # ... for drones within this distance of a pilot or observer camera
+        "wind_mps": "auto",          # mean wind at 10 m: "auto" = Open-Meteo's with weather real, else CARLA's
+                                     # wind_intensity / 10; Dryden gusts (MIL-F-8785C) on top
+        "wind_from_deg": 270,        # compass direction the wind comes from (Open-Meteo's with weather real)
+        "separation_m": 10.0,        # AI drones keep this far from each other and from the pilots' drones
+        "log_every_s": 0.1,          # AI drones in drones.csv (pilots every frame; frames.csv has all every frame)
+        "cameras": [],               # observer cameras saving frames: {name, lat, lon, height_m, look: drone name |
+                                     # {lat, lon, height_m} | nearest, every_s, fov, size}
+        "centre": None,              # {lat, lon} missions plan round (default: the first pilot, participant, box)
+        "seed": 1,
+    },
     "coupling": {"port": 2100, "wait_for_stations_s": 600, "visual_sync_at_s": []},
     "ehmi": {},                      # {states: {name: {text, color}}, slots}; default in coupledcarla/ai.py; design:
                                      # a designed eHMI (data/ehmi/<name>, a path or a dict; ehmi_design.py) with
@@ -267,7 +284,7 @@ def trial_config(cfg, trial):
     """The experiment config with one trial's overrides merged in."""
     over = {k: v for k, v in trial.items() if k in ("simulation", "traffic", "participants", "agents", "logging",
                                                       "coupling", "ehmi", "eye_contact", "sound", "displays",
-                                                      "haptics")}
+                                                      "haptics", "drones")}
     out = _merge(cfg, over)
     # patch: {agents: {id: {...}}, participants: {role: {...}}} changes one agent or participant (a condition can
     # switch av1's eHMI without repeating the whole agents list)
