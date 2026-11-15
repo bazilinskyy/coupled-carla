@@ -246,3 +246,13 @@ def test_offline_render(tmp_path):
     y = filmaudio.normalise(x, -20.0)
     assert 20 * math.log10(float(np.sqrt((y.astype(float) ** 2).mean()))) == pytest.approx(-20.0, abs=1.0)
     assert np.abs(y).max() <= 1.0
+
+
+def test_hears_first_participant():
+    h = mv.hears_first_participant
+    assert h({"kind": "stations"})
+    assert h({"kind": "film", "camera": {"kind": "drone", "view": "fpv"}})
+    assert not h({"kind": "film", "camera": {"kind": "drone", "view": "chase"}})
+    assert h({"kind": "film", "camera": {"kind": "follow", "offset": [0.22, 0, 0.72]}})
+    assert not h({"kind": "film", "camera": {"kind": "follow", "offset": [-8.5, 0, 3.4]}})
+    assert not h({"kind": "film", "camera": {"kind": "orbit"}})

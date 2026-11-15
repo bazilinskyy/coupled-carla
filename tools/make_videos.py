@@ -477,6 +477,24 @@ def run_clip(ctx, clip, attempts=3):
     return rec
 
 
+def hears_first_participant(clip):
+    """Whether the clip's sound is what the first participant hears (the runner's --record-audio): first-person
+    cameras (a drone's FPV, an attached camera, a follow camera within 1.5 m of its target: a pedestrian's eyes) and
+    station grids (the first station's ears). Chase, orbit, tripod and crane cameras hear the street where the
+    camera is instead (filmaudio.py offline from frames.csv): a recording from inside the car would sound wrong under
+    an outside view."""
+    if clip.get("kind") == "stations":
+        return True
+    cam = clip.get("camera") or {}
+    kind = cam.get("kind")
+    if kind in ("attach", "drone"):
+        return kind != "drone" or cam.get("view", "fpv") == "fpv"
+    if kind == "follow":
+        off = cam.get("offset") or [0, 0, 0]
+        return sum(float(v) ** 2 for v in off) ** 0.5 <= 1.5
+    return False
+
+
 def _run_clip(ctx, clip):
     wd = ctx.work / clip["name"]
     if wd.exists():
@@ -488,7 +506,7 @@ def _run_clip(ctx, clip):
     argv = [ctx.python, "-m", "coupledcarla.run", str(exp_path), "--trial", "0", "--headless"]
     if clip["local"]:
         argv.append("--local")
-    want_audio = clip["audio"] == "auto" and clip["kind"] == "film" and ctx.record_audio()
+    want_audio = clip["audio"] == "auto" and hears_first_participant(clip) and ctx.record_audio()
     if want_audio:
         argv.append("--record-audio")
     dog = None

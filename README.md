@@ -1076,13 +1076,43 @@ Tools for running studies with participants, ported from coupled-sim (#80, #88, 
 Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off unless an experiment turns them on
 ([`experiments/eindhoven_station_ux.yaml`](experiments/eindhoven_station_ux.yaml) is a demo).
 
-- **Sound** (`sound`, `coupledcarla/soundscape.py`): each station plays the vehicles around it in calibrated dB SPL
-  after coupled-sim (tyre-road noise rising 30 log10 v, 68 dB at 50 km/h and 7.5 m; engines for combustion vehicles;
-  -6 dB per doubling of distance; panning and Doppler), a driver's or passenger's own car from inside, `ambience`,
-  `avas` on electric cars (56 dB at 2 m, faded out by 20 km/h as UN R138 asks) and `auditory_ehmi` cues: a sound or
-  a spoken message from the station's own speech synthesiser when an eHMI changes state, a car brakes, stops or
-  drives off. F3 plays a 1 kHz tone to calibrate. Every sound is synthesised in code (no audio files; coupled-sim's
-  own audio could not be redistributed, see [sound credits](coupledcarla/data/sound_credits.md)).
+- **Sound** (`sound`, `coupledcarla/soundscape.py`, models in `acoustics.py`, sources in `synth.py`): what a
+  participant hears, in calibrated dB SPL, from published acoustic models. Each vehicle has the CNOSSOS-EU sound
+  power per octave band (63 Hz-8 kHz; Directive (EU) 2015/996 as amended in 2021) for its category (car, van,
+  bus/truck, moped, motorbike): rolling noise with the road surface (`road_surface`, e.g. Dutch paving blocks), air
+  temperature and, on wet roads, IMAGINE's wet-road increase, and propulsion noise with the acceleration and the
+  engine speed of a gearbox model (idling when stopped). The engine is synthesised from its firing frequency and
+  orders, load-dependent harmonics, intake and exhaust resonances and cycle-to-cycle jitter (after Pieren et al.
+  2016 and Baldan et al. 2015), carrying CNOSSOS's band levels: a car at 50 km/h measures 72.9 dB(A) at 7.5 m
+  (measured pass-bys 70-73). Electric cars have tyres and an AVAS (on by default: UN R138, 56 dB(A) at 2 m up to 20
+  km/h); bicycles a freewheel and now and then a bell; emergency vehicles a siren with their special lights; buses
+  an air hiss at stops; `horn: true` makes a car braking hard before a pedestrian sound its horn.
+  Every source reaches the ears by a direct path and two first-order reflections off the nearest facades, each
+  attenuated per band by spherical spreading, ISO 9613-1 air absorption at the trial's temperature and humidity,
+  the ISO 9613-2 ground effect and, with the map's real buildings, the ISO 9613-2 barrier over the roofs and round
+  the sides; a reverberant tail is sized by the street canyon around the listener. Output is panned stereo, or
+  binaural for headphones (`spatial: binaural`: MIT KEMAR HRTFs, fetched once; else a spherical head model). A
+  limiter keeps the sum from clipping.
+  Inside a car (driver, AV passenger) the own tyres and engine come through the cabin's insertion loss (41 dB(A) at
+  idle, 60 at 50 km/h, 70 at 100 km/h), with wind noise, the indicator relay and rain on the roof. Pedestrians hear
+  footsteps and accessible pedestrian signals at signalised crossings (ticking once a second while red, eight a
+  second while green, as Dutch and German signals do). The ambience follows the trial's real conditions (`weather:
+  real`, `time`): birds by dawn, season and the trees around, wind in the leaves, rain from the rain rate, the far
+  traffic as a distant hum. Bird, rain and bicycle-bell recordings come from Wikimedia Commons (CC0, public domain,
+  CC BY, CC BY-SA; fetched at run time and cached, never in the repository, credited in `audio_credits.txt`);
+  offline everything is synthesised. Drones: blade-passing tones over broadband noise at their EU 2019/945 sound
+  power. Auditory eHMIs, the 1 kHz calibration tone (F3, `reference_db`) and spoken messages are as before. On
+  lin4080 the sound costs 5-7 ms per 50 ms tick. Models, recordings and licences: [sound
+  credits](coupledcarla/data/sound_credits.md).
+
+  ![What a pedestrian waiting at the Fellenoord crossing in Eindhoven hears: pass-bys, idling queues and the crossing signal (spectrogram and A-weighted level)](docs/img/sound_ped_crossing.jpg)
+- **Audio for videos** (`run --record-audio`, or `sound.record: true`): the host renders the first participant's
+  soundscape (the driver in the car, the AV passenger, the pedestrian's head, the drone pilot's camera) in
+  simulation time and writes `audio.wav` (44.1 kHz stereo) to the trial's folder. Sample 0 is simulation time 0 and
+  each tick renders exactly its own step, so sound and saved frames stay together however slowly the run goes
+  (`audio.json` has the frame rule). `python -m coupledcarla.soundrec <trial>` renders a finished trial's sound
+  again from its `frames.csv` without CARLA; `python tools/sound_check.py <wav>` draws the spectrogram and the
+  A-weighted level over time.
 - **In-car displays** (`displays`, `coupledcarla/incar.py`): an instrument cluster (speed, revs, gear, the speed limit
   from the map's OpenDRIVE, turn signals), a HUD and a centre screen over a driver's or AV passenger's view, from
   design files in coupled-sim's format (`data/incar/`), timed messages, and the take-over state of `takeover.py`.
