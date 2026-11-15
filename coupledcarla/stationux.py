@@ -68,8 +68,9 @@ def wanted(welcome):
 
 
 class StationUX:
-    def __init__(self, welcome, role, out_stem, size, headless=False, log=None):
+    def __init__(self, welcome, role, out_stem, size, headless=False, log=None, audio_device=None):
         self.w = welcome or {}
+        self.audio_device = audio_device      # an output name (station --audio-device), else the default
         self.role, self.size, self.headless = role, size, headless
         self.log = log or (lambda m: print(f"[station {role}] {m}", flush=True))
         self.kind = self.w.get("kind")
@@ -106,7 +107,8 @@ class StationUX:
             self.scape = Soundscape(snd, self.kind, log=self.log, on_cue=self.cue)
             record = f"{self.cues_path.parent / self.cues_path.stem.replace('_cues', '')}_trial{trial}.wav" \
                 if (snd.get("record") or self.headless) else None
-            self.output = audio.Output(self.scape.mixer, device=not self.headless, record=record, log=self.log)
+            self.output = audio.Output(self.scape.mixer, device=(self.audio_device or True) if not self.headless
+                                       else False, record=record, log=self.log)
             self.output.start()
             self.bodies = WorldBodies(world, snd.get("electric", "auto"), float(snd.get("max_distance_m", 150.0)))
             self.bodies.automated = set(self.agents.values())
