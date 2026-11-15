@@ -240,3 +240,30 @@ def test_guessed_lamps_stand_at_the_kerb_on_both_traffic_sides():
     assert scenery.kerb_lamp(lanes[-2], True, carla) is None
     edge, x, y, yaw = scenery.kerb_lamp(lanes[-1], True, carla)
     assert edge.lane_id == -1 and y == pytest.approx(-1.0) and yaw % 360 == pytest.approx(90.0)    # arm to +y
+
+
+def test_overpass_partial_answers_are_not_cached(tmp_path, monkeypatch):
+    # Overpass answers a query that runs out of time or memory with HTTP 200, the elements found so far and a
+    # "runtime error" remark: that was cached as the box's OSM extract or scenery data for good
+    from coupledcarla import mapbuild
+
+    class R:
+        def __init__(self, body):
+            self.content = body
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return json.loads(self.content)
+    answers = []
+    monkeypatch.setattr(rw.time, "sleep", lambda s: None)
+    monkeypatch.setattr(mapbuild.time, "sleep", lambda s: None)
+    monkeypatch.setattr(rw.requests, "post", lambda url, **kw: answers.pop(0))
+    answers += [R(b'{"elements": [{"type": "node"}], "remark": "runtime error: Query timed out in \\"query\\" at '
+                  b'line 1 after 101 seconds."}'), R(b'{"elements": [{"type": "node"}, {"type": "way"}]}')]
+    assert len(rw.overpass_json("q")["elements"]) == 2          # the second mirror's full answer
+    answers += [R(b'<?xml version="1.0"?><osm><way id="1"/><remark> runtime error: Query run out of memory '
+                  b'using about 2048 MB of RAM. </remark></osm>'), R(b'<osm><way id="1"/><way id="2"/></osm>')]
+    mapbuild.fetch_osm([0, 0, 1, 1], tmp_path / "map.osm")
+    assert b'id="2"' in (tmp_path / "map.osm").read_bytes()

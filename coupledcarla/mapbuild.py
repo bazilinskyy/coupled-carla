@@ -23,6 +23,7 @@ grade between their ends (the terrain model would drop a bridge into the river),
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -52,7 +53,9 @@ def fetch_osm(bbox, path):
             try:
                 r = requests.post(url, data={"data": query}, headers=realworld.UA, timeout=120)
                 r.raise_for_status()
-                if b"<way" in r.content:
+                if re.search(rb"<remark>\s*runtime error", r.content[:4000] + r.content[-4000:]):
+                    log(f"Overpass {url}: a partial answer (runtime error: out of time or memory)")
+                elif b"<way" in r.content:
                     path.write_bytes(r.content)
                     log(f"OSM from {url}: {len(r.content) / 1e6:.1f} MB")
                     return
@@ -81,6 +84,8 @@ def fetch_buildings(bbox, geo_net, path):
                 r = requests.post(url, data={"data": query}, headers=realworld.UA, timeout=120)
                 r.raise_for_status()
                 data = r.json()
+                if "runtime error" in str(data.get("remark", "")):      # a partial answer
+                    raise ValueError(data["remark"])
                 break
             except (requests.RequestException, ValueError) as err:
                 log(f"Overpass buildings {url} failed: {err}")

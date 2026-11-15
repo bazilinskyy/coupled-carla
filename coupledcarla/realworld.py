@@ -76,7 +76,12 @@ def overpass_json(query, timeout=100):
             try:
                 r = requests.post(url, data={"data": query}, headers=UA, timeout=timeout)
                 r.raise_for_status()
-                return r.json()
+                data = r.json()
+                # a query that ran out of time or memory answers 200 with what it had so far and a remark: never
+                # cache that as the box's data
+                if "runtime error" in str(data.get("remark", "")):
+                    raise ValueError(data["remark"])
+                return data
             except (requests.RequestException, ValueError) as err:
                 log(f"Overpass {url} failed: {err}")
         time.sleep(15)
