@@ -49,6 +49,8 @@ maps = [
     "imagecodecs",             # AHN tiles use the floating-point predictor
     "gtfs-realtime-bindings",  # live bus positions (GTFS-Realtime)
 ]
+# VR stations (vr.py, vrxr.py): OpenXR through pyopenxr (Apache-2.0), an OpenGL context from glfw (zlib), PyOpenGL (BSD)
+vr = ["pyopenxr>=1.1.5301", "glfw>=2.7", "PyOpenGL>=3.1.7"]
 # tools/: figures and viewer screenshots (then: python -m playwright install chromium)
 tools = ["playwright"]
 dev = ["pytest"]
