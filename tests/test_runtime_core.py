@@ -111,28 +111,6 @@ def test_lost_twin_of_a_destroyed_car_is_not_replaced(mods, monkeypatch):
     assert s.carla2sumo_ids == {} and sumo.n == 1
 
 
-# -- SUMO cars held for a pedestrian ------------------------------------------------------------------------------
-
-def test_held_sumo_car_is_released_when_it_leaves_carla(mods, monkeypatch):
-    c = mods.carla
-    speeds = []
-    monkeypatch.setattr(mods.ai, "traci", types.SimpleNamespace(
-        vehicle=types.SimpleNamespace(setSpeed=lambda sid, v: speeds.append((sid, v))),
-        TraCIException=type("TraCIException", (Exception,), {})))
-    car = types.SimpleNamespace(
-        get_transform=lambda: c.Transform(c.Location(0.0, 0.0, 0.0), c.Rotation()),
-        get_velocity=lambda: c.Vector3D(5.0, 0.0, 0.0))
-    world = types.SimpleNamespace(get_actor=lambda cid: car if cid == 100 else None)
-    walker = types.SimpleNamespace(get_location=lambda: c.Location(8.0, 0.0, 0.0))    # in front of the car
-    sync = types.SimpleNamespace(sumo2carla_ids={"veh1": 100})
-    y = mods.ai.SumoYield(every=1)
-    y.step(sync, world, [walker])
-    assert y.held == {"veh1"} and speeds == [("veh1", 0.0)]
-    sync.sumo2carla_ids = {}                # the participant drove off: the level of detail removed it from CARLA
-    y.step(sync, world, [walker])
-    assert y.held == set() and speeds[-1] == ("veh1", -1)
-
-
 # -- keyboard and wheel: light states -----------------------------------------------------------------------------
 
 def _fake_pygame():

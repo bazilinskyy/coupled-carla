@@ -291,7 +291,7 @@ def poi_tables(tracks, pois, frames_poi=False):
         lat0, lon0 = float(poi["lat"]), float(poi["lon"])
         h = math.radians(float(poi.get("heading", 0.0)))           # compass degrees: 0 north, 90 east
         fwd, left = (math.sin(h), math.cos(h)), (-math.cos(h), math.sin(h))
-        radius = float(poi.get("radius_m", 10.0))
+        radius = float(poi.get("radius_m", poi.get("radius", 10.0)))     # radius: the short form the README shows
         for tr in actors:
             e, n = enu(tr.lat, tr.lon, lat0, lon0)
             d = np.hypot(e, n)

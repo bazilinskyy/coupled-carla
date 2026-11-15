@@ -143,3 +143,13 @@ def test_experiment_folder(trial, capsys):
     table = list(csv.DictReader(open(trial.parent / "analysis.csv"), delimiter=";"))
     assert [r["trial"] for r in table] == ["3", "4"]
     assert "pedestrian / av1" in capsys.readouterr().out
+
+
+def test_poi_radius_short_form(trial):
+    """`radius` (the README's short form, accepted by the validator) sets the POI's radius like radius_m."""
+    tracks = analysis.load_tracks(trial)
+    analysis.retime([], tracks)
+    lat, lon = latlon(0.0, 0.0)                 # the middle of the crossing: the pedestrian is there from t=7
+    rows, _ = analysis.poi_tables(tracks, [{"name": "mid", "lat": lat, "lon": lon, "radius": 1.0}])
+    ped = next(r for r in rows if r["actor"] == "pedestrian")
+    assert 6.2 < ped["t_within"] < 7.0          # within 1 m from y=-1 (t=6.33), not 10 m (y=-6, t=0)

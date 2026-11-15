@@ -106,3 +106,37 @@ def test_no_dashboard_means_no_gate(tmp_path):
     tools.hold()                 # not paused: returns at once
     assert tools.status()["state"] == "ready"
     assert types.SimpleNamespace(**tools.status()).collisions == 0
+
+
+def test_token_check_survives_odd_tokens_and_ipv6_loopback():
+    """A non-ASCII token is refused (403), not an exception in the handler; ::1 (in LOCAL) can be bound."""
+    import socket
+    import pytest
+    d = Dashboard("0.0.0.0", 0, log=lambda *a: None, token="s3cret")
+    try:
+        assert request(d.port, "GET", "/status.json?token=%C3%A9t%C3%A9")[0] == 403
+        assert request(d.port, "GET", "/status.json", headers={"X-Token": "s3cret"})[0] == 200
+    finally:
+        d.close()
+    try:
+        s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        s.bind(("::1", 0))
+        s.close()
+    except OSError as err:        # no IPv6 loopback here
+        pytest.skip(f"no ::1 ({err})")
+    d = Dashboard("::1", 0, log=lambda *a: None)
+    try:
+        assert d.local and d.token is None and d.url == f"http://[::1]:{d.port}/"
+        c = http.client.HTTPConnection("::1", d.port, timeout=5)
+        c.request("GET", "/status.json", headers={"Host": f"[::1]:{d.port}"})
+        assert c.getresponse().status == 200
+        c.close()
+    finally:
+        d.close()
+
+
+def test_page_escapes_what_stations_send():
+    """Response values come from the stations over the LAN: the page escapes them like every other field."""
+    from coupledcarla.dashboard import PAGE
+    assert "${r.presses" not in PAGE and "${r.slider" not in PAGE
+    assert "${esc(r.presses)}" in PAGE and "${esc(r.slider)}" in PAGE

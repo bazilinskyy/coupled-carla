@@ -25,7 +25,7 @@ import yaml
 
 from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, realworld, season, study, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, stationux
+from . import ehmi_design, multigpu, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -247,6 +247,7 @@ def welcome_for(part, geo, tc):
     # sound, in-car displays, haptics and designed eHMIs (stationux.py), when the experiment sets them
     out.update(stationux.welcome_extras(tc, part.cfg, part.kind, Path(tc["_path"]).parent,
                                         default_states=list(DEFAULT_EHMI)))
+    out.update(multigpu.welcome(tc["server"], part.role))     # secondaries: relay and camera placement
     return out
 
 
@@ -464,6 +465,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if missing:
                 log(f"starting without stations: {', '.join(sorted(missing))}")
                 logger.event(0.0, 0, "stations_missing", "", ",".join(sorted(missing)))
+        # a secondary that connected after the world settings switched the primary to 1/20 s (multigpu.py)
+        guard = multigpu.guard_settings(tc["server"], step, log)
+        if guard is not None:
+            guard(world, force=True)
         state["agents"] = {ag.id: ag.vehicle.id for ag in agents if isinstance(ag, ScriptedCar)}
         if not tools.ready():          # the dashboard ended the trial (or the session) before it started
             duration = 0.0
@@ -493,6 +498,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         while True:
             tools.hold()                  # paused on the dashboard
             t_tick = time.time()
+            if guard is not None:
+                guard(world)              # every 5 s
             laps.start()
             events = view.events() if view else []
             for part in parts:            # host-local participants

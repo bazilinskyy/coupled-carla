@@ -185,6 +185,7 @@ class StationTakeOver:
         self.state = AUTOMATED
         self.stopping = False
         self.shown_at = None           # station time of the first frame showing the warning
+        self.drawn = False             # draw() runs: a window shows the warning (else headless: a bot)
         self.sound = None
         self.sound_on = False
 
@@ -211,7 +212,10 @@ class StationTakeOver:
                 return False
             return True
         if self.state == REQUESTED:
-            self.frame_shown(now)
+            if self.shown_at is None:
+                if self.drawn:       # input read before the frame that shows the warning is no reaction to it
+                    return False
+                self.shown_at = now  # nothing drawn (headless): from the frame the request arrived
             if self.bot:
                 how = "bot" if now - self.shown_at >= float(self.sp["takeover"].get("bot_reaction_s", 1.5)) else None
             else:
@@ -244,6 +248,7 @@ class StationTakeOver:
 
     def draw(self, screen, big, font, now):
         import pygame
+        self.drawn = True
         w, h = screen.get_size()
         label = {AUTOMATED: ("AUTOMATED", (0, 170, 255)), MANUAL: ("MANUAL", (200, 200, 200)),
                  REQUESTED: ("TAKE OVER", (255, 40, 30))}[self.state]

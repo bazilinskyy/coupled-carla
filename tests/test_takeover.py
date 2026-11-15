@@ -231,3 +231,57 @@ def test_warning_and_beep_draw_headless(monkeypatch):
         assert not st.sound_on
     finally:
         pygame.quit()
+
+
+def test_reaction_counts_from_the_frame_that_showed_the_warning(monkeypatch):
+    """A windowed station reads its input before it draws the frame: steering on the frame the request arrives
+    on (before the participant could see the warning) is no take-over, and the reaction time starts when the
+    warning is first drawn."""
+    pygame = pytest.importorskip("pygame")
+    monkeypatch.setenv("SDL_VIDEODRIVER", "dummy")
+    monkeypatch.setenv("SDL_AUDIODRIVER", "dummy")
+    pygame.init()
+    try:
+        sent = []
+        st = takeover.StationTakeOver(takeover.spec({"route": ROUTE, "takeover": {"beep": False}}), sent.append)
+        screen = pygame.Surface((800, 450))
+        font, big = pygame.font.SysFont("sans", 18), pygame.font.SysFont("sans", 40)
+        st.draw(screen, big, font, 99.0)                                  # a frame of automated driving
+        st.on_message({"type": "takeover", "state": "requested"})
+        assert st.may_drive(ctl(steer=0.5), False, 100.0) is False        # warning not on screen yet
+        assert st.state == REQUESTED and not sent
+        st.draw(screen, big, font, 100.02)                                # the frame that shows it
+        assert st.may_drive(ctl(steer=0.5), False, 100.5) is True
+        assert sent == [{"type": "takeover", "how": "steer", "reaction_s": 0.48}]
+    finally:
+        pygame.quit()
+
+
+def test_engaging_past_a_takeover_trigger_does_not_request_again(tmp_path, fake_carla):
+    """The driver took over before the trigger point and hands back after driving past it: the automation
+    continues from there without an immediate take-over request for the point already passed."""
+    class Autopilot:
+        pass
+
+    class TriggerCar(FakeCar):
+        def step(self, t, dt, walkers=()):
+            for trg in self.triggers:               # as ai.ScriptedCar: fires once the progress reaches it
+                if not trg[2] and self.progress >= trg[0]:
+                    trg[2] = True
+            return super().step(t, dt, walkers)
+
+    drv = part("driver", "driver", station=False, automation={"route": ROUTE, "takeover": {"at_s": 1.0}})
+    drv.input = Autopilot()
+    tools = HostStudy({"name": "demo"}, {"duration_s": 20}, [drv], tmp_path, log=lambda *a: None)
+    car = tools.cars["driver"] = TriggerCar()
+    car.steps = 100                                  # FakeCar's own trigger at its 50th step is past
+    car.triggers = [[2, {"at_m": 20, "takeover": True}, False]]
+    drv.actor = car.vehicle                          # at x 12 m: nearest route point 1 (x 10 m)
+    tools.bind(FakeLogger(), queue=lambda c: None)
+    tools.step(1.0, 0.02)                            # at_s request
+    assert tools.intercept(drv, ctl(), 3.0) is False and tools.tor["driver"].state == MANUAL
+    car.vehicle.get_location = lambda: Loc(x=31.0, y=0.0)    # drove on by hand past the trigger (point 2)
+    assert tools.on_message({"type": "engage", "role": "driver"}, 4.0, 200)          # the automation button
+    assert tools.tor["driver"].state == AUTOMATED and car.progress == 3
+    tools.step(4.02, 0.02)
+    assert tools.tor["driver"].state == AUTOMATED and len(tools.tor["driver"].records) == 1

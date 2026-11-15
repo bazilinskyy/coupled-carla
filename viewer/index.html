@@ -100,7 +100,7 @@ let data = null, actors = [], tEnd = 1, t = 0, playing = false, participant = nu
 const world = new THREE.Group(); scene.add(world);
 
 function build(d) {
-  data = d; world.clear(); actors = [];
+  data = d; world.clear(); actors = []; participant = null;   // a second file: follow its participant
   const city = d.city ? `${d.city.name}, ${d.city.country} · ${d.city.continent}` : "";
   document.getElementById("title").textContent = d.experiment || d.map || "map";
   document.getElementById("sub").innerHTML = `${city ? city + "<br>" : ""}${d.lanes.length} lanes · ${d.buildings.length} buildings` +

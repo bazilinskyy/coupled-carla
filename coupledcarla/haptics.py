@@ -54,6 +54,10 @@ class Haptics:
         self.sock = None
         self.fired = set()
         self.cues = [dict(c) for c in self.cfg.get("cues") or []]
+        for c in self.cues:         # YAML reads an unquoted `on:` key as true (and the welcome's JSON as "true")
+            for k in (True, "true"):
+                if "on" not in c and k in c:
+                    c["on"] = c.pop(k)
         self._last = 0.0
         self._pad_on = False
         if self.cfg.get("gamepad", True):

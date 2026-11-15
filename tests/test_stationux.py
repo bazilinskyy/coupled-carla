@@ -171,3 +171,32 @@ def test_takeover_request_of_the_automation_vibrates_and_sounds(tmp_path):
     ux.stop()
     kinds = [(r[3], r[4]) for r in csv.reader(open(tmp_path / "d_cues.csv"), delimiter=";")]
     assert ("haptic", "takeover") in kinds and ("sound_cue", "takeover") in kinds
+
+
+def test_demo_cues_written_with_on_fire(tmp_path):
+    """YAML reads an unquoted `on:` key as true (and the welcome's JSON makes it "true"): the demo's
+    {on: driving_off} sound cue and {on: over_limit} haptic cue must still fire at the station."""
+    from coupledcarla import soundscape as ss
+    from coupledcarla.haptics import Haptics
+    cfg = config.load(ROOT / "experiments" / "eindhoven_station_ux.yaml")
+    tc = config.trial_config(cfg, cfg["trials"][0])
+    drv = next(p for p in tc["participants"] if p["role"] == "driver")
+    w = json.loads(json.dumps(stationux.welcome_extras(tc, drv, "driver", ROOT / "experiments",
+                                                       default_states=STATES)))
+    cues = []
+    sc = ss.Soundscape(w["sound"], log=lambda s: None, on_cue=lambda *a: cues.append(a))
+    assert any(c.get("on") == "driving_off" for c in sc.cues)
+    t = 0.0
+
+    def av(kmh):
+        return ss.Body(5, "vehicle.tesla.model3", "car", 10.0, 0.0, 0.0, -kmh / 3.6, 0.0, 0.0, 180.0, True, True)
+
+    for kmh in [0.0] * 30 + [25.0] * 30:                      # stands, then drives off
+        t += 0.05
+        sc.update(t, (0, 0, 0, 0), [av(kmh)])
+    assert sum("driving_off" in c[2] for c in cues) == 1
+    hap = Haptics(dict(w["haptics"], gamepad=False), log=lambda s: None,
+                  on_cue=lambda *a: cues.append(("haptic",) + a))
+    hap.events(1.0, {"over_limit": False})
+    hap.events(1.1, {"over_limit": True})
+    assert [c[2] for c in cues if c[0] == "haptic"] == ["over_limit"]

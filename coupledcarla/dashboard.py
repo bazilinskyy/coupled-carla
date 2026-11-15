@@ -19,6 +19,7 @@ dashboard only answers requests addressed to localhost (no DNS rebinding).
 import json
 import queue
 import secrets
+import socket
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -47,7 +48,7 @@ class Dashboard:
                     return hostname in LOCAL
                 q = parse_qs(urlparse(self.path).query)
                 given = self.headers.get("X-Token") or (q.get("token") or [""])[0]
-                return secrets.compare_digest(given, dash.token)
+                return secrets.compare_digest(given.encode("utf-8", "replace"), dash.token.encode())
 
             def _send(self, code, body, ctype="application/json"):
                 data = body if isinstance(body, bytes) else body.encode()
@@ -87,10 +88,15 @@ class Dashboard:
                 dash.log(f"dashboard: {cmd}" + (f" {item['role']}" if "role" in item else ""))
                 return self._send(200, '{"ok": true}')
 
-        self.httpd = ThreadingHTTPServer((host, port), Handler)
+        server = ThreadingHTTPServer
+        if ":" in host:                      # an IPv6 address (::1, ::)
+            server = type("ThreadingHTTPServer6", (ThreadingHTTPServer,), {"address_family": socket.AF_INET6})
+        self.httpd = server((host, port), Handler)
         self.httpd.daemon_threads = True
         self.port = self.httpd.server_address[1]
-        shown = "127.0.0.1" if self.local else (host if host not in ("0.0.0.0", "::") else _lan_ip())
+        shown = "127.0.0.1" if self.local and host != "::1" else (
+            host if host not in ("0.0.0.0", "::") else _lan_ip())
+        shown = f"[{shown}]" if ":" in shown else shown
         self.url = f"http://{shown}:{self.port}/" + (f"?token={self.token}" if self.token else "")
         threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
         log(f"experimenter dashboard: {self.url}")
@@ -230,8 +236,8 @@ function render(s) {
       return `<tr><td>${esc(p.role)}</td><td>${esc(p.kind)}</td>` +
         `<td>${p.station ? (p.connected ? "connected" : "<b>missing</b>") : "host"}</td>` +
         `<td>${fmt(p.speed_kmh)}</td><td>${fmt(p.rtt_ms)}</td><td>${fmt(p.fps, 0)}</td><td>${fmt(p.image_lag_ms)}</td>` +
-        `<td>${p.response ? `<span class="lamp ${r.button ? "on" : ""}"></span> ${r.presses ?? ""}` : ""}</td>` +
-        `<td>${r.slider ?? ""}</td><td>${esc(p.automation || "")}</td><td>${tk}</td></tr>`;
+        `<td>${p.response ? `<span class="lamp ${r.button ? "on" : ""}"></span> ${esc(r.presses)}` : ""}</td>` +
+        `<td>${esc(r.slider)}</td><td>${esc(p.automation || "")}</td><td>${tk}</td></tr>`;
     }).join("");
   $("events").innerHTML = (s.events || []).slice().reverse().map(e =>
     `<tr><td>${fmt(e[0], 2)}</td><td>${esc(e[1])}</td><td>${esc(e[2])}</td></tr>`).join("");

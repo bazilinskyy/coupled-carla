@@ -432,9 +432,10 @@ def write_wav(path, stereo, rate=RATE):
 
 
 class Output:
-    """Plays a Mixer. With a device (pygame.mixer) a thread keeps one block queued on a reserved channel, so the
-    sound runs on while the station waits for CARLA; without one (headless) a thread renders in real time to the
-    recording only. `record` writes every block played to a WAV file."""
+    """Plays a Mixer. With a device (pygame.mixer; True: the default output, a string: that output's name) a thread
+    keeps one block queued on a reserved channel, so the sound runs on while the station waits for CARLA; without
+    one (headless) a thread renders in real time to the recording only. `record` writes every block played to a
+    WAV file."""
 
     def __init__(self, mixer, device=True, record=None, block=BLOCK, log=print):
         self.mixer, self.block, self.log = mixer, block, log
@@ -447,7 +448,10 @@ class Output:
             try:
                 import pygame
                 if not pygame.mixer.get_init():
-                    pygame.mixer.pre_init(mixer.rate, -16, 2, 1024)
+                    if isinstance(device, str):      # a named output (two stations on one PC, two headsets)
+                        pygame.mixer.pre_init(mixer.rate, -16, 2, 1024, devicename=device)
+                    else:
+                        pygame.mixer.pre_init(mixer.rate, -16, 2, 1024)
                     pygame.mixer.init()
                 freq, _size, chans = pygame.mixer.get_init()
                 if chans != 2:
