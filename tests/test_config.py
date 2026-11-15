@@ -27,3 +27,14 @@ def test_load_and_trial(tmp_path):
     assert t1["eye_contact"] == {"angle_deg": 15}
     assert t1["name"] == "demo"                        # only the listed sections can be overridden
     assert cfg["traffic"]["cars_per_hour"] == 100
+
+
+def test_scenery_false_means_off(tmp_path):
+    from coupledcarla import config
+    f = tmp_path / "e.yaml"
+    f.write_text("name: e\nmap: {bbox: [51.43, 5.47, 51.45, 5.49], scenery: false}\nsimulation: {scenery: false}\n")
+    cfg = config.load(f)
+    assert cfg["map"]["scenery"]["enabled"] is False and cfg["map"]["scenery"]["trees"] is True
+    assert cfg["simulation"]["scenery"]["kinds"] == []
+    t = config.trial_config(cfg, {"duration_s": 10, "simulation": {"scenery": False}})
+    assert t["simulation"]["scenery"]["kinds"] == []

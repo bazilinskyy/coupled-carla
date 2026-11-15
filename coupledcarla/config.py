@@ -24,6 +24,7 @@ DEFAULTS = {
         "transit": True,             # the real bus lines and stops of OSM, with GTFS frequencies (transit.py)
         "scenery": {                 # CARLA meshes placed from real-world data (coupledcarla/scenery.py)
             "enabled": True, "buildings": True, "trees": True, "furniture": True, "guess_lamps": True, "signs": True,
+            "municipal": True,       # city tree and street-light registers (realworld.MUNICIPAL) where they exist
             "ground": True,
             "catalog": "auto",       # mesh catalogue (data/meshes_<v>.json): "auto" = the CARLA version in use
                                      # (0.9.16 or 1.0; at run time a scenery built for the other one is rebuilt)
@@ -244,9 +245,18 @@ def _merge(base, over):
     return out
 
 
+def _scenery_switches(cfg):
+    """`map.scenery: false` (or `simulation.scenery: false`) means no scenery: the merge keeps the bare false, and
+    code reading `.get("scenery") or {}` took it as an empty dict, i.e. everything on."""
+    for sect, off in (("map", {"enabled": False}), ("simulation", {"kinds": []})):
+        if cfg.get(sect, {}).get("scenery") in (False, None):
+            cfg[sect]["scenery"] = dict(DEFAULTS[sect]["scenery"], **off)
+    return cfg
+
+
 def load(path):
     path = Path(path)
-    cfg = _merge(DEFAULTS, yaml.safe_load(path.read_text()) or {})
+    cfg = _scenery_switches(_merge(DEFAULTS, yaml.safe_load(path.read_text()) or {}))
     cfg["map"]["name"] = cfg["map"]["name"] or cfg["name"]
     cfg["_path"] = str(path.resolve())
     cfg["_root"] = str(Path(__file__).resolve().parent.parent)   # the project folder (maps/, logs/)
@@ -264,7 +274,7 @@ def trial_config(cfg, trial):
     for section, key in (("agents", "id"), ("participants", "role")):
         for name, fields in ((trial.get("patch") or {}).get(section) or {}).items():
             out[section] = [_merge(item, fields) if item.get(key) == name else item for item in out.get(section) or []]
-    return out
+    return _scenery_switches(out)
 
 
 def map_dir(cfg):

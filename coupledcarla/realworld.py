@@ -698,7 +698,7 @@ def weather_at(lat, lon, when, cache_dir=None):
     stamp = local.replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M")
     i = times.index(stamp) if stamp in times else len(times) - 1
     rec = {k: v[i] for k, v in data["hourly"].items() if k != "time"}
-    rec["precipitation_3h"] = sum(x or 0 for x in data["hourly"]["precipitation"][max(0, i - 3):i + 1])
+    rec["precipitation_3h"] = sum(x or 0 for x in data["hourly"]["precipitation"][max(0, i - 2):i + 1])   # 3 h
     rec["time"] = times[i]
     rec["timezone"] = data.get("timezone")
     return rec, local, off
