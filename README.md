@@ -80,6 +80,7 @@ under CC0, CC BY 4.0, Licence Ouverte, ODbL or their open data terms). See
 | **Experiment files** | YAML: map, server, simulation, traffic, participants, points of interest, logging, a trial sequence with per-trial overrides. |
 | **Coupled experiments** | Stations for a driver, a pedestrian and an AV passenger on any machine of the LAN; scripted AI cars (routes, coupled-sim-style triggers, eHMI on the front, rear, roof, road or as "eyes") and walkers; a pedestrian crowd; SUMO traffic yields to pedestrians; eye-contact events; visual sync; round trips and frame latency logged. |
 | **Two CARLA generations** | The same experiment files for CARLA 0.9.16 (UE 4.26) and CARLA 1.0 (UE 5.8): renamed blueprints are mapped to their closest stand-ins, and the scenery has a mesh catalogue per version. |
+| **Study tools** | Counterbalanced trial plans per participant, an experiment validator, continuous responses (hold button, slider), take-over requests in automated driving, an experimenter dashboard, station sound (vehicles, AVAS, spoken eHMIs), in-car displays, haptic cues and eHMIs from design files: coupled-sim's study tools on CARLA ([Study tools](#study-tools)). |
 | **Eindhoven digital twin** | Central Eindhoven baked into a CARLA 1.0 level from Dutch open data (AHN terrain, 3DBAG buildings, OSM roads with lane markings, kerbs and sidewalks), driven with SUMO traffic on its own OpenDRIVE ([The Eindhoven digital twin](#the-eindhoven-digital-twin)). |
 
 ## Screenshots
@@ -299,7 +300,7 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | Ground cover | OSM landuse, leisure, natural, water | grass, water or paving tiles |
 | Ground cover (NL) | [BGT](https://www.pdok.nl/introductie/-/article/basisregistratie-grootschalige-topografie-bgt-) via PDOK's OGC API (CC0) | what covers the ground beside the roads: grass, bricks or tiles, asphalt or concrete, gravel or sand, water; mixed 40 m tiles split in four |
 | Street furniture (NL) | BGT plus objects (IMGeo, from the municipalities) | benches, bicycle racks, bins, waste containers, bollards, cabinets, parking meters, boards, play equipment, and lamps and trees where the city has no register; they replace OSM objects of the same kind within 3-8 m |
-| Road signs (NL) | [NDW Verkeersborden](https://docs.ndw.nu/en/data-uitwisseling/interface-beschrijvingen/verkeersborden-api/), the national traffic sign register (CC0) | every official sign at its position, facing the traffic it governs, plates stacked on posts: CARLA's own mesh where it has one (stop, give way, the posted speed, no entry on 1.0), else on CARLA 1.0 a blank plate of the sign's shape; OSM signs of the same kind within 8 m are dropped |
+| Road signs (NL) | [NDW Verkeersborden](https://docs.ndw.nu/en/data-uitwisseling/interface-beschrijvingen/verkeersborden-api/), the national traffic sign register (CC0); sign faces: the RVV drawings on [Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:Diagrams_of_road_signs_of_the_Netherlands) (public domain / CC0, 13 CC BY-SA 4.0) | every official sign at its position, facing the traffic it governs, plates stacked on posts: CARLA's own stop, give-way and no-entry meshes; on CARLA 1.0 every other sign with its Dutch face on a plate of its shape (248 designs; Eindhoven: 779 of 955 plates), else a blank plate; OSM signs of the same kind within 8 m are dropped |
 | Shared bikes and scooters | [GBFS](https://gbfs.org) feeds from [MobilityData's systems catalogue](https://github.com/MobilityData/gbfs/blob/master/systems.csv) (CC BY 3.0), TfL BikePoint, Taipei's YouBike | the bikes at each dock and free-floating bikes, scooters and mopeds where they stand (CARLA's road bike and Vespa meshes); a trial at `time: now` takes a fresh snapshot (9 maps have a system) |
 | Tree heights | [Meta/WRI 1 m canopy height map](https://registry.opendata.aws/dataforgood-fb-forests/) (Tolan et al. 2024) | the size of trees without a mapped height (OSM nodes and rows, park planting), corrected against Eindhoven's register |
 | City registers | Eindhoven's open data ([bomen](https://data.eindhoven.nl/explore/dataset/bomen/): 127,911 trees with species and height class; [openbare verlichting](https://data.eindhoven.nl/explore/dataset/data-openbare-verlichting/): 58,430 lamps with mast height); NYC's [2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) | every public tree and street light where the city lists them (OSM trees within 3 m of one are dropped; register lamps replace OSM and guessed ones) |
@@ -386,9 +387,14 @@ street-light blueprints in the blueprint library (coupled-carla adds `-carla-pac
 at night the scenery lamps within `lights_radius_m` (200 m) of a participant are spawned as those blueprints and
 the server lights them when the sun sets. Headless: 225 lit lamps add 0.2 ms per tick, 781 add 0.7 ms (the cost to
 rendering is not measured). CARLA 1.0's OpenDRIVE worlds also bring generic lamps of their own along every road.
-On the packaged server at the twin, 198 lamps spawn with their light blueprints at night (spawned 100 m up and moved
-into place, as their collision touches the level's ground), but the rendered frames stay dark apart from car
-lights, even after switching the street lights on through the light manager: not working yet.
+The lamps are spawned where they stand: the blueprints' root mesh is Static, so CARLA cannot move them after the
+spawn (spawned 100 m up and moved down, they stayed up there with their lights and the street stayed dark). Each
+gives 27,000 lm with a 70 m reach (CARLA's light defaults). On the packaged server at the twin, 198 lamps light up
+at night, and a lamp lit in front of the camera makes the lower half of the picture 8.8 times brighter.
+`tools/lamp_check.py` checks this on a running server: it spawns lamps at night, prints the light manager's view of
+each and saves camera frames with the street lights off and on.
+
+![A street lamp of the scenery lighting the Eindhoven twin at night (CARLA 1.0, packaged server)](docs/img/twin_night_lamp.jpg)
 
 ### Parked cars
 
@@ -405,7 +411,15 @@ overrides it). The cars are CARLA's static car meshes (23 in 0.9.16), streamed w
 0.8 ms per tick, against 11 ms as vehicle actors. A static mesh keeps its paint, so the register sets the body types
 and favours the meshes whose paint is common in it. Eindhoven centre: 5,307 stalls (1,460 at the kerb, 929 of
 those from the BGT), 3,180 taken at 03:00 and 3,541 at 14:00 on a weekday; every car off the lanes, RTF 0.991 ->
-0.988. Not yet on CARLA 1.0 (its parked meshes are unmeasured) or on baked levels.
+0.988. CARLA 1.0 has its own measured set (`data/parked_cars.json` "1.0", made by `tools/parked_catalog.py` on a
+running server): 23 parked-car meshes, their paint read from each mesh's car-paint material, and the window glass
+that 13 of them keep in a second mesh, placed with the car. On a baked level (`map.carla_level`) the level's
+OpenDRIVE reaches the real kerbs and has its pavements as sidewalk lanes, so kerb cars stand only in its parking
+lanes (the Eindhoven twin has 10.7 km of them), with its crosswalks and traffic signals as no-parking zones.
+`python tools/snap_scenery.py <experiment>` stands them on the level's ground with the rest of the scenery and takes
+out cars on uneven or obstructed ground; `python tools/parked_check.py <experiment>` checks them on a headless
+server. Eindhoven twin: 4,541 stalls (1,275 in parking lanes), none on a driving, cycle or sidewalk lane, bottoms
+within 7 mm of the ground for 90% of cars; RTF 1.31 with parked cars and 1.30 without (60 s, headless).
 
 ![Parked cars at both kerbs of an Eindhoven street, facing along the road](docs/img/parked_eindhoven.jpg)
 
@@ -799,14 +813,20 @@ bridge needs profiling on 1.0.
 light, snapped scenery, SUMO's bus, 3DBAG buildings with CARLA's plain facade material (the twin's facades are
 slabs; `--buildings procedural` would use the modular facade generator).*
 
-**Styled buildings (2026-11-14).** `EhvCentreFacades` is the same twin with every 3DBAG building styled by its BAG
-construction year and use (brick of three periods, render, concrete and glass offices, industrial cladding, shopfront
-ground floors, plain party walls) and roofs textured with the PDOK aerial photo: 791 building and roof meshes, 85
-materials, 113 textures, 239 MB, baked in 6 minutes ([`experiments/eindhoven_twin_facades.yaml`](experiments/eindhoven_twin_facades.yaml)).
-The facade textures and styles are made by the carla-digitaltwins NL branch (`twinmodel/export/facades.py`,
-`threedbag_buildings.py`). A packaged server needs the scenery's folders in the cook
-(`+DirectoriesToAlwaysCook` for `/Game/Carla/Static/Vegetation`, `StreetLight`, `Static`, `TrafficSign`, `Pole`,
-`Bicycle`, `Motorcycle`): without them trees render as black leaf cards and the lamp blueprints do not exist.
+**Styled buildings and the photo ground (2026-11-15).** `EhvCentre` is the styled twin: every 3DBAG building has a
+facade style from its BAG construction year and use (brick of three periods, render, concrete and glass offices,
+industrial cladding, shopfront ground floors, plain party walls) and a roof from the PDOK aerial photo. The ground
+(open lots, courtyards, gardens, block interiors) carries the 8 cm photo too, one 2048 px texture per 250 m tile,
+while roads, sidewalks and markings keep CARLA's materials. Trees and other objects standing more than 2 m above
+the AHN terrain are replaced by the ground around them (the scenery places the trees in 3D), and cast shadows are
+brightened (carla-digitaltwins `tools/ground_photo.py`, reusing coupled-sim's PDOK aerial-photo code). Baked in 5
+minutes (peak 18 GB) with `bake_level.py --no-nav-build` and the two navigation builders run separately afterwards:
+1,348 actors, 143 textured materials, 230 MB of content; [`experiments/eindhoven_twin.yaml`](experiments/eindhoven_twin.yaml)
+drives it. A packaged server needs the scenery's folders in the cook (`+DirectoriesToAlwaysCook` for
+`/Game/Carla/Static/Vegetation`, `StreetLight`, `Static`, `TrafficSign`, `Pole`, `Bicycle`, `Motorcycle`, and
+`/Game/CoupledCarla` for the Dutch sign faces): without them trees render as black leaf cards and the lamp
+blueprints do not exist. The procedural-facade variant (`--buildings procedural`) also bakes, but needs the
+digitaltwins content (8.8 GB) in the tree that cooks it.
 
 ![The styled Eindhoven twin rendered by the packaged CARLA 1.0 server: brick and office facades, real trees, a zebra crossing and a yield sign](docs/img/twin_facades_trees.jpg)
 
@@ -824,8 +844,67 @@ rendering, client in WSL) a fire-and-forget batch before the tick still waited f
 against the server's 17 ms), so the bridge sends its batch with `apply_batch_sync`: the Eindhoven twin with
 styled buildings and a 1280x720 camera then runs in real time, 13-14 ms per tick (the server 6-7 ms of it).
 
-**Still to do in phase 3:** stations on the rendering server, facade textures for the 3DBAG buildings, VR; the
-rpclib fix upstream.
+The rpclib stall is reported upstream as carla-simulator/carla#10305, with the two-line fix in
+carla-simulator/rpclib#2 (tested in a CARLA ue58-dev build: 41 ms -> 0.2-0.4 ms; the server side alone is enough).
+
+**Stations on the rendering server (2026-11-15).** The crossing study (`eindhoven_crossing_study.yaml`) with the host
+in WSL and three bot stations (pedestrian, AV passenger, driver) against the packaged server on win5090: all three
+joined within a second, ran the practice trial with responses and left cleanly.
+
+**Still to do in phase 3:** camera exposure on CARLA 1.0 (day frames are washed out, so the ground photo and sign
+faces are hard to judge in them), human stations at the rendering server, VR.
+
+## Study tools
+
+Tools for running studies with participants, ported from coupled-sim (#80, #88, #92, #94, #130); the example
+[`experiments/eindhoven_crossing_study.yaml`](experiments/eindhoven_crossing_study.yaml) uses all of them.
+
+- **Trial plans and counterbalancing** (`coupledcarla/study.py`). Conditions are named once and used by trials
+  (`condition:` / `conditions:`), or crossed into a full factorial by `design.factors`; `design.order` is `latin`
+  (a balanced Williams Latin square with the same rows as coupled-sim, so participant N gets the same order in both
+  simulators), `full`, `random` (repeatable per participant) or `none`, with practice trials first and `after:` trials
+  last. `python -m coupledcarla.run exp.yaml --participant 7` runs participant 7's order; logs go to
+  `logs/<experiment>/<time>_P07_trial<i>`, each `config.yaml` gets a `study:` block, and `session_P07_<time>.csv`
+  lists the order.
+- **Validator** (`python -m coupledcarla.validate exp.yaml [--participants 1-12]`): unknown keys (with the nearest
+  known one), whether the map is built, spawn, route and POI points inside the map and near a lane, cars starting
+  within 4 m of each other, roles, agents, eHMI states used but undefined, durations and schedules, the design; it
+  prints every participant's plan and exits 1 on errors. `run` prints the same problems at its start.
+- **Continuous responses** (`response:` on a participant, `coupledcarla/responses.py`): a hold-to-respond button and
+  a 0-100 slider sampled every frame (keys B and N/M, a gamepad's shoulder button and d-pad, a wheel's buttons and
+  paddles), shown as a small panel; `<trial>/responses.csv` has coupled-sim's columns
+  (`utc;time;frame;button;button_value;presses;slider`) plus role, station frame and sample age.
+- **Automated driving and take-over requests** (`automation:` on a driver, `coupledcarla/takeover.py`): the car
+  drives itself along a route; a take-over request (at a time, on a route trigger, from T at the station or the
+  dashboard) shows a flashing TAKE OVER with beeps; the driver takes over by steering, braking, throttle or Enter,
+  or the car brakes to a stop without a reaction. `<trial>/takeover.csv` uses coupled-sim's TakeOver columns.
+- **Experimenter dashboard** (`--dashboard`, `coupledcarla/dashboard.py`): a dependency-free page at
+  http://127.0.0.1:8780/ with the plan, the trial's state and real-time factor, every participant (station, speed,
+  round trip, responses, automation), collisions and events; buttons Start trial, Pause, End trial, Stop session,
+  Visual sync and Take-over request. Localhost only unless `--dashboard-host` (then with a token in the link).
+- **Analysis**: `python -m coupledcarla.analysis` also summarises responses and take-overs per trial and writes
+  `study_responses.csv` and `study_takeovers.csv` per experiment; the viewer shows the responses.
+
+## Sound, in-car displays and designed eHMIs
+
+Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off unless an experiment turns them on
+([`experiments/eindhoven_station_ux.yaml`](experiments/eindhoven_station_ux.yaml) is a demo).
+
+- **Sound** (`sound`, `coupledcarla/soundscape.py`): each station plays the vehicles around it in calibrated dB SPL
+  after coupled-sim (tyre-road noise rising 30 log10 v, 68 dB at 50 km/h and 7.5 m; engines for combustion vehicles;
+  -6 dB per doubling of distance; panning and Doppler), a driver's or passenger's own car from inside, `ambience`,
+  `avas` on electric cars (56 dB at 2 m, faded out by 20 km/h as UN R138 asks) and `auditory_ehmi` cues: a sound or
+  a spoken message from the station's own speech synthesiser when an eHMI changes state, a car brakes, stops or
+  drives off. F3 plays a 1 kHz tone to calibrate. Every sound is synthesised in code (no audio files; coupled-sim's
+  own audio could not be redistributed, see [sound credits](coupledcarla/data/sound_credits.md)).
+- **In-car displays** (`displays`, `coupledcarla/incar.py`): an instrument cluster (speed, revs, gear, the speed limit
+  from the map's OpenDRIVE, turn signals), a HUD and a centre screen over a driver's or AV passenger's view, from
+  design files in coupled-sim's format (`data/incar/`), timed messages, and the take-over state of `takeover.py`.
+- **Haptic cues** (`haptics`, `coupledcarla/haptics.py`): take-over requests, messages and configured cues as wheel
+  vibration (G25), gamepad rumble or a UDP datagram to an external device.
+- **Designed eHMIs** (`ehmi.design`, `coupledcarla/ehmi_design.py`): eHMIs from design files (coupled-sim's format:
+  light bars, shapes, arrows, text, pulse/blink/sweep animations) on the front, rear, roof, windshield, bumper or
+  projected on the road, drawn in the world or over each station's camera image; examples in `data/ehmi/`.
 
 ## Traffic
 
@@ -886,10 +965,15 @@ rpclib fix upstream.
   | Sydney | 8 | 13% -> 45% | 13 (City of Sydney) | 1503 |
   | Leuven | 9 (5 knooppunten) | 22% -> 27% | 2 nearby (AWV), outside the net | 1200 (as set) |
 
-- **Speed limits and driving style** (`coupledcarla/speeds.py`). Where OSM gives a road no `maxspeed`,
-  netconvert uses its rural defaults (100 km/h on primary and secondary roads: 109 edges of Midtown Manhattan,
-  204 around Taipei Main Station); in a trial these roads get the country's urban limit through a variable speed
-  sign (`traffic.speed_limits: auto`; CARLA's OpenDRIVE still carries the netconvert value). Where open speed
+- **Speed limits and driving style** (`coupledcarla/urbanspeeds.py`, `coupledcarla/speeds.py`). Where OSM gives a
+  road no `maxspeed`, netconvert would use its rural defaults (100 km/h on trunk, primary and secondary roads, 80 on
+  tertiary: 61 edges of Midtown Manhattan, 218 around Taipei Main Station, 189 in Cairo). The map build gives these
+  roads the country's legal urban default instead, in SUMO's net and CARLA's OpenDRIVE alike (`map.urban_speeds:
+  auto`; `urban.typ.xml` in the map folder): 50 km/h in NL, BE, FR, NC, AU, NZ and elsewhere, 30 mph in the UK,
+  25 mph in US cities, 60 in ZA and EG, 40 in RW, 45 in UY, Brazil and Argentina by road function, Japan 60 and
+  Taiwan 50 with 30 on residential streets. Mapped limits stay as tagged; speeds are only lowered. Maps built
+  before get the same limits per trial through variable speed signs (`traffic.speed_limits: auto`). CARLA's own
+  drivers read limits only from speed-limit signals, which netconvert does not write. Where open speed
   measurements cover the map (`traffic.speed_factor: auto`), the cars' speed factor is fitted in SUMO-only runs so
   that simulated spot speeds match them (`tools/speeds_check.py --calibrate`, `data/speed_calibration.json`):
   Portland (PBOT speed counts, factor 0.91, MAPE 36.6 -> 32.7%), Taipei (live detectors, 1.06, 44.2 -> 30.1%),
@@ -1054,12 +1138,20 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 | Visual sync (red bar) | red bar on every station, scheduled or on F, logged with the frame | done |
 | Video recording | CARLA recorder + re-render from any viewpoint | recorder done |
 | A small fictional US town | any place on Earth, 19 cities ready | done |
+| Trial files, counterbalancing, validator (#80, #92) | conditions, factorial designs, Latin-square orders per participant, `coupledcarla.validate` | done |
+| Experimenter dashboard (#88) | local web page with live state and trial controls | done |
+| Take-over requests (#94) | automated driving with scheduled or triggered take-over requests, reaction times | done |
+| Continuous responses (#130) | hold button and slider per frame, coupled-sim's CSV columns | done |
+| Soundscape, AVAS, auditory eHMIs (#95, #135) | station soundscape from the CARLA world, synthesised sounds, spoken cues | done |
+| In-car displays, timed messages, haptics (#133, #157) | cluster / HUD / centre screen, messages, wheel/gamepad/UDP cues | done |
+| eHMI designer (#131) | design files drawn on the car or the road (world or station overlay) | done |
+| Real 3D buildings, facades by building age, aerial photos (#108, #120, #152) | the Eindhoven twin: 3DBAG with facade styles, photo roofs and ground | done (Eindhoven) |
 
 ## Known limits
 
 - **Looks:** the scenery uses CARLA 0.9.16's own meshes: real positions, footprints and heights, but CARLA's
   facades, tree models and props, and flat or tilted ground tiles (steps between tiles on steep maps). No road
-  markings or crossings on OSM maps, and lamps give no light. Exact buildings, aerial-photo ground and markings
+  markings or crossings on OSM maps, and lamps give no light on 0.9.16 (on CARLA 1.0 they do). Exact buildings, aerial-photo ground and markings
   need the UE 5.8 digital twin (phase 3).
 - **Pedestrians:** human pedestrians, scripted AI walkers and the crowd walk by direct control (no navigation
   mesh). Crowd walkers keep to one street, cross at OSM crossings, junctions or mid-block, and ignore pedestrian lights. Walkers off the road walk on the ground plane,
@@ -1095,8 +1187,9 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8: coupled-carla runs on it with scenery (its own mesh
    catalogue), the Eindhoven digital twin (AHN terrain, PDOK aerial photos, 3DBAG buildings) is baked into a
    CARLA 1.0 level and driven with the SUMO bridge on its own OpenDRIVE, and CARLA 1.0 builds and renders on
-   Windows (win5090), where a packaged server rendered a coupled trial on the twin. Next: real time on 1.0
-   (profile the bridge), stations on the rendering server, facade textures, VR.
+   Windows (win5090), where a packaged server renders the styled twin (facades, photo ground, Dutch sign faces,
+   lit lamps at night) in real time with SUMO traffic and bot stations. Next: camera exposure on 1.0, human
+   stations at the rendering server, VR.
 4. **Phase 4, more real data:** done: real bus lines at timetable frequencies, live bus positions (GTFS-RT),
    register fleets (NL, NYC, NZ, Brazil), municipal trees and lights, BGT ground and street furniture (NL), PLATEAU
    buildings (Tokyo), canopy tree heights, cyclists on the real cycle network with counted volumes, car demand
@@ -1194,6 +1287,12 @@ What cost time while building phases 1 and 2, so it does not again:
 - An OSM road without `maxspeed` gets netconvert's rural default (100 km/h on a city primary road).
 - CARLA's `get_waypoint` with driving and bike lane types together picks the nearest bike lane: a point on a
   driving lane beside a cycle lane then counts as free. Ask for each lane type separately.
+- Shortening OpenDRIVE signal ids must rename the `<control signalId>` and `<signalReference id>` entries that point
+  at them too, or the CARLA 0.9.16 server aborts while loading the map (`unordered_map::at`).
+- A package cook can treat newly copied uassets as missing ("depends on a package which does not exist") when their
+  file times are older than the cook's cached asset registry (tar keeps the source's times): delete
+  `Intermediate/CachedAssetRegistry*.bin` and touch the files.
+- Light blueprints spawned with CARLA cannot be moved afterwards (their root mesh is Static): spawn them in place.
 - A CARLA 1.0 editor server (`-game`) grows with every world it loads: one reached 40.9 GB and was OOM-killed.
   Restart it between maps, or watch it.
 
@@ -1220,6 +1319,15 @@ coupledcarla/
   gbfs.py            shared bikes and scooters (GBFS)
   side.py            a second CARLA connection for drawings (CARLA 1.0's rpclib stalls)
   lanesnap.py        SUMO lane snapping without convertRoad
+  urbanspeeds.py     urban default speeds per country for netconvert (urban.typ.xml)
+  study.py           trial plans: conditions, factorial designs, Latin-square/full/random orders per participant
+  validate.py        experiment validator (python -m coupledcarla.validate)
+  responses.py       continuous participant responses (hold button, slider)
+  takeover.py        automated driving with take-over requests
+  dashboard.py       experimenter dashboard (local web page)
+  soundscape.py      station sound: vehicles, own car, ambience, AVAS, auditory eHMIs (audio.py synthesises)
+  incar.py           cluster, HUD, centre screen, timed messages; haptics.py: wheel/gamepad/UDP cues
+  ehmi_design.py     eHMIs from design files (designs.py loads coupled-sim's format)
   data/              meshes_0.9.16.json, meshes_1.0.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
   traffic.py         SUMO vehicle types and demand per trial
