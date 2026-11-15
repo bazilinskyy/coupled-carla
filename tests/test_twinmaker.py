@@ -212,3 +212,10 @@ def test_web_twin_status_and_plan(tmp_path, proj, monkeypatch):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_twin_env_drops_sumo_proj(monkeypatch):
+    monkeypatch.setenv("PROJ_LIB", "/sumo/data/proj")
+    monkeypatch.setenv("GDAL_DATA", "/x")
+    env = tm.twin_env()
+    assert "PROJ_LIB" not in env and "GDAL_DATA" not in env and env["PYTHONUNBUFFERED"] == "1"

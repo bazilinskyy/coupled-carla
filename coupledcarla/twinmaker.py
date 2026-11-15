@@ -261,6 +261,14 @@ def make_twin(p, emit, force=False, cfg=None, runner=None):
     return path
 
 
+def twin_env():
+    """The environment for the twin pipeline: ours without PROJ_LIB/PROJ_DATA/GDAL_DATA, which point at SUMO's own
+    (older) PROJ database for the map builder and break the twin's pyproj and rasterio."""
+    env = {k: v for k, v in os.environ.items() if k not in ("PROJ_LIB", "PROJ_DATA", "GDAL_DATA")}
+    env["PYTHONUNBUFFERED"] = "1"
+    return env
+
+
 def _run(cmd, cfg, log_path, on_line):
     """Run twinmodel twin from the TwinModel folder, its output to the log and each line to on_line."""
     cwd = Path(cfg["digitaltwins"]) / "TwinModel"
@@ -268,8 +276,7 @@ def _run(cmd, cfg, log_path, on_line):
         logf.write(f"\n=== {time.strftime('%Y-%m-%d %H:%M:%S')} {' '.join(cmd)}\n")
         try:
             proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                                    encoding="utf-8", errors="replace", bufsize=1,
-                                    env=dict(os.environ, PYTHONUNBUFFERED="1"))
+                                    encoding="utf-8", errors="replace", bufsize=1, env=twin_env())
         except OSError as err:
             raise TwinError("The twin pipeline could not start.", f"Check \"python\" in {config_path()} ({err}).")
         for line in proc.stdout:

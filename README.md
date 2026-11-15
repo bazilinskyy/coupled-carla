@@ -197,7 +197,16 @@ exp = make_map("Shibuya crossing", size="small")   # -> experiments/places/<name
 
 Options: `--size small|medium|large|<km>` (above 2.5 km it warns that it gets slow; 4 km at most), `--name`,
 `--pedestrians` (a crowd on the pavements, `traffic.walkers.count: auto`), `--open`, `--drive`, `--force`,
-`--no-build`, `--build <experiment>`. Without arguments in a terminal it asks for the place.
+`--no-build`, `--build <experiment>`, `--twin` (a baked CARLA 1.0 digital twin instead, below). Without arguments in
+a terminal it asks for the place.
+
+**A digital twin instead (`--twin`).** Where a digital-twin toolchain is set up (a CARLA 1.0 source build with the
+editor and carla-digitaltwins, named in `~/.config/coupled-carla/twin.json`; [docs/make_a_map.md](docs/make_a_map.md#a-digital-twin-carla-10)),
+the map maker makes a CARLA 1.0 twin of the same square: real building shapes with facade styles, the aerial photo
+on the ground and roofs, the national terrain, CARLA's road materials with lane markings, from the best open data
+of the country ([A twin of any place](#a-twin-of-any-place)). The page shows a checkbox for it only where the
+toolchain is configured. It writes `experiments/places/<name>_twin.yaml` (`map.opendrive`, `map.carla_level`) and
+the level `/Game/Carla/Maps/Twins/<Name>/<Name>` in the CARLA 1.0 tree (`coupledcarla/twinmaker.py`).
 
 ## Videos
 
@@ -1064,6 +1073,43 @@ views score best (coarse IoU 0.50), Commons photos worst (0.28; often taken from
 their PLUTO construction year and use, USGS 3DEP ground under the NYS orthophoto, and OSM roads with US lane
 markings, kerbs and sidewalks; SUMO drives on the twin's own OpenDRIVE. A 40 s trial on the Windows package ran at
 RTF 0.75 with 707 parked cars and 1,004 scenery meshes around the participant.
+
+#### A twin of any place
+
+The same pipeline now makes a twin of any place, with the best open data of its country (carla-digitaltwins
+`twinmodel/regions.py`): national aerial photos, terrain models and building registers where they are open and need
+no key (PDOK/AHN/3DBAG in the Netherlands; PNOA, MDT05 and the Catastro's buildings with their floors, year and use in
+Spain; BD ORTHO, RGE ALTI and BD TOPO in France; the Flemish orthophoto; SWISSIMAGE and swissALTI3D; NAIP and 3DEP in
+the US; GSI's photo and DEM and PLATEAU in Japan), Overture Maps' buildings and the AWS Terrain Tiles elsewhere (there
+is no open global aerial photo at street scale, so there the ground keeps CARLA's materials). Footprint buildings get
+roof shapes where the data has them and facade styles by region (sandstone and warm render in southern Europe).
+Left-hand countries get left-hand twins: the lane graph is built in the mirror image of the place and mirrored back,
+and the OpenDRIVE says `rule="LHT"`, which CARLA 1.0 reads. One command makes the twin and, on a machine with the CARLA
+1.0 editor, bakes it; the map maker's `--twin` runs it and writes the experiment
+([Make a map of any place](#make-a-map-of-any-place)):
+
+```bash
+python -m twinmodel twin "Plaza Mayor, Salamanca" --name SalamancaPlaza --bake \
+    --carla-root ~/carla58/carla --engine ~/carla58/UnrealEngine5_carla --carla-python ~/carla58/venv/bin/python
+python -m coupledcarla.mapmaker "Plaza Mayor, Salamanca" --twin --size small     # the same from the map maker
+```
+
+Tested on two places (2026-11-15, lin5080, 1 km and 0.9 km squares, baked headless with `-nullrhi`):
+
+| Twin | Data | Roads | Buildings | Textures | Python stages | Bake (peak RAM) | Content | 60 s trial (`--local`, headless) |
+|---|---|---|---|---|---|---|---|---|
+| `SalamancaPlaza` (Plaza Mayor, Salamanca) | IGN PNOA 25 cm photo, IGN MDT05 terrain, Catastro buildings | 568 | 1,221 (5,615 parts; 1,215 with their year: 252 sandstone, 830 render, ...) | 82 (50 MB) | 9 min | 5 min, 7.8 GB | 90 MB | RTF 1.16, 0 collisions, 33 SUMO vehicles, 371 spawn points |
+| `ShibuyaCrossing` (the scramble crossing, Tokyo) | GSI photo and 5 m DEM, PLATEAU LoD 2 with its photo textures, left-hand | 1,399 | 1,648 (54,501 photo-textured surfaces in 18 atlases) | 54 (72 MB) | 38 min (5 with the downloads cached) | 3 min, 7.5 GB | 117 MB | RTF 1.18, 0 collisions, 46 SUMO vehicles, 400 spawn points; the driver kept left for 34 s, then left the lanes on the stacked roads by the station |
+
+The levels load in a CARLA 1.0 server and drive with SUMO traffic; what they look like must still be checked on a
+rendering server (`-nullrhi` renders nothing): the PLATEAU photo facades (taken from oblique aerial photos: right in
+colour and layout, soft at street level), the scramble's zebras (drawn along OSM's crossing ways: the five legs and
+one diagonal), Shibuya's stacked roads and plazas (the autopilot left the lanes there and circled on a paved area),
+and the scenery, which stands at the AWS Terrain Tiles' heights until `tools/snap_scenery.py` puts it on the level's
+ground. The map maker ran the whole chain with `--twin` for a third place (Grote Markt, Leuven, 0.5 km, without the
+bake): the Flemish orthophoto, 849 Overture buildings, the experiment and its SUMO net in 29 minutes. Shibuya's large video screens and billboards (Q-Front, the 109 tower's signs) are not in any
+open data: PLATEAU models them as part of the facade photo at best; screens playing video would need emissive
+media-texture materials placed by hand or from a sign inventory.
 
 **Download the Eindhoven twin.** The release
 [twin-eindhoven-2026-11-15](https://github.com/bazilinskyy/coupled-carla/releases/tag/twin-eindhoven-2026-11-15)
