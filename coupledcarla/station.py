@@ -79,9 +79,9 @@ class Station:
         self.running = False
         self.control = ControlClient(args.control_host or args.host, args.control_port, args.role,
                                      on_message=self._on_message,
-                                     hello={"station": args.station_id, "info": {"machine": args.name or
-                                                                                 socket.gethostname(),
-                                                                                 "input": args.input}})
+                                     hello={"station": getattr(args, "station_id", None),
+                                            "info": {"machine": getattr(args, "name", None) or socket.gethostname(),
+                                                     "input": args.input}})
         self.welcome = None
         self.client = self.world = self.actor = self.camera = None
         self.image = None

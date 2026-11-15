@@ -205,7 +205,10 @@ class Hub(ControlServer):
             with self._hlock:
                 old, self.host = self.host, (conn, lock)
             if old is not None:
-                old[0].close()
+                try:
+                    old[0].shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
             attached = True
             self.log("trial host attached")
             _send(conn, lock, {"type": "connected", "roles": sorted(self.connected())})
@@ -256,7 +259,14 @@ class Hub(ControlServer):
                 _send(e["conn"], e["lock"], {"type": "state", "state": "closed"})
             except OSError:
                 pass
-        try:
-            self.link.close()
-        except OSError:
-            pass
+        with self._hlock:
+            h = self.host
+        for sock in ([h[0]] if h else []) + [self.link]:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                sock.close()
+            except OSError:
+                pass

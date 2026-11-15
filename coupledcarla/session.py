@@ -282,7 +282,7 @@ class TrialRun:
 
 
 class Session:
-    def __init__(self, root=ROOT, stations_port=2100, log=print, carla_root=None, python=None):
+    def __init__(self, root=ROOT, stations_port=2100, log=None, carla_root=None, python=None):
         self.root = Path(root)
         self.logs = self.root / "logs"
         self.python = python or sys.executable
@@ -291,7 +291,7 @@ class Session:
         (self.logs / "sessions").mkdir(parents=True, exist_ok=True)
         self.stamp = time.strftime("%Y%m%d-%H%M%S")
         self.logf = open(self.logs / "sessions" / f"session_{self.stamp}.log", "a", encoding="utf-8")
-        self._print = log
+        self._print = log or (lambda m: print(m, flush=True))
         self.options = dict(DEFAULT_OPTIONS)
         self.hub = Hub(stations_port, log=self.say, carla=self._carla_info(), on_host=self._from_host)
         self.experiments = list_experiments(self.root)
@@ -323,9 +323,12 @@ class Session:
     def say(self, text):
         line = f"{time.strftime('%H:%M:%S')} {text}"
         self.messages.append([time.strftime("%H:%M:%S"), str(text)])
-        self.logf.write(line + "\n")
-        self.logf.flush()
-        self._print(f"[session] {text}")
+        try:
+            self.logf.write(line + "\n")
+            self.logf.flush()
+            self._print(f"[session] {text}")
+        except (OSError, ValueError):       # the terminal is gone (closed window): keep going, clean up
+            pass
 
     def _carla_info(self):
         o = self.options
@@ -855,13 +858,14 @@ class Session:
             run = self.run
         if run is not None and run.alive():
             self.hub.command({"cmd": "stop"})
+        for sid in list(self.bots):
+            self._kill_bot(sid)
+        if run is not None and run.alive():
             try:
                 run.proc.wait(timeout=60)
             except subprocess.TimeoutExpired:
                 pass
             run.terminate()
-        for sid in list(self.bots):
-            self._kill_bot(sid)
         self.hub.close()
         self.logf.close()
 
@@ -1030,7 +1034,11 @@ def main(argv=None):
                 + "   (no --role: give each its role on the page)")
     if not args.no_browser and args.host in LOCAL:
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
-    signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+    def stop(*_):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, stop)          # a plain kill, or the terminal closing, also cleans up: the bot
+    if hasattr(signal, "SIGHUP"):                 # stations run in their own process groups and would stay
+        signal.signal(signal.SIGHUP, stop)
     try:
         while True:
             time.sleep(1)

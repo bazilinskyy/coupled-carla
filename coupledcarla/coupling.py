@@ -417,6 +417,10 @@ class RelayControl(_HostSide):
     def close(self):
         self.gone = True
         try:
+            self.sock.shutdown(socket.SHUT_RDWR)     # a plain close keeps the fd open while the reader's file has it
+        except OSError:
+            pass
+        try:
             self.sock.close()
         except OSError:
             pass

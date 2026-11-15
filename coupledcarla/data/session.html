@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>Session dashboard</title>
+<title>Coupled CARLA session</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -61,6 +61,7 @@ button.small { padding: 2px 7px; font-size: 12px; }
 select, input[type=text], input[type=number], input[type=time] { font: inherit; padding: 4px 7px; border-radius: 7px;
   border: 1px solid var(--line); background: var(--panel2); color: var(--text); min-width: 0; }
 select:disabled, input:disabled { opacity: .55; }
+input[type=radio], input[type=checkbox] { accent-color: var(--accent); }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 td, th { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; font-size: 12.5px; vertical-align: middle; }
@@ -84,9 +85,9 @@ tr.cur td { color: var(--accent); font-weight: 600; }
 #map { height: min(72vh, 820px); min-height: 420px; background: var(--mapbg); }
 #live { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 450; }
 .leaflet-container { font: inherit; }
-.leaflet-tile-pane { filter: saturate(.75) brightness(.86); }
+.leaflet-tile-pane { filter: saturate(.6) brightness(.68); }
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .leaflet-tile-pane { filter: saturate(.8); } }
-.mapnote { position: absolute; left: 12px; top: 12px; z-index: 500; background: var(--panel); border: 1px solid var(--line);
+.mapnote { position: absolute; left: 56px; top: 12px; z-index: 500; background: var(--panel); border: 1px solid var(--line);
   border-radius: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--muted); }
 .legend { display: flex; gap: 6px 14px; flex-wrap: wrap; padding: 8px 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
@@ -121,7 +122,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12px; margin-
 </head>
 <body>
 <header>
-  <h1>coupled-carla <span>session</span></h1>
+  <h1>Coupled CARLA <span>session</span></h1>
   <span class="chip" id="cState"><span class="dot"></span><b id="cStateT">connecting…</b></span>
   <span class="chip" id="cExp">no experiment</span>
   <span class="chip" id="cMap">map –</span>
@@ -147,11 +148,11 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12px; margin-
       <button id="pset">Set</button>
     </div>
     <div class="sub">CARLA server</div>
+    <div class="row"><label><input type="radio" name="srv" value="launch"> start one here, fresh for every trial</label></div>
     <div class="row">
-      <label><input type="radio" name="srv" value="launch"> start it here</label>
-      <label><input type="radio" name="srv" value="attach"> running at</label>
-      <input type="text" id="srvHost" style="width:110px" aria-label="Server host">
-      <span class="muted">:</span><input type="number" id="srvPort" style="width:72px" aria-label="Server port">
+      <label><input type="radio" name="srv" value="attach"> use the one running at</label>
+      <input type="text" id="srvHost" style="width:104px" aria-label="Server host">
+      <span class="muted">:</span><input type="number" id="srvPort" style="width:70px" aria-label="Server port">
     </div>
     <div class="small muted" id="carlaRoot"></div>
     <div class="row">
@@ -254,7 +255,7 @@ const fmt = (v, d = 1) => (v === null || v === undefined || v === "" || Number.i
 const KIND_COL = { participant: "#3b82f6", av: "#f59e0b", agent: "#cbd5e1", sumo: "#a855f7", bike: "#14b8a6",
   bus: "#ec4899", walker: "#fb923c", crowd: "#ef4444", drone: "#22d3ee" };
 const KIND_NAME = { participant: "participant", av: "AV (eHMI)", agent: "scripted car", sumo: "SUMO car", bike: "bicycle",
-  bus: "bus", walker: "AI walker", crowd: "crowd", drone: "AI drone" };
+  bus: "bus", walker: "AI walker", crowd: "crowd pedestrian", drone: "AI drone" };
 const LIGHT_COL = { g: "#22c55e", y: "#eab308", r: "#ef4444", o: "#6b7280" };
 const PART_KIND = { driver: "driver", pedestrian: "pedestrian", av_passenger: "AV passenger", drone: "drone pilot",
   cyclist: "cyclist" };
@@ -313,8 +314,8 @@ async function loadLayers(name) {
     if (!r.ok) { layersFor = null; return; }
     const L_ = await r.json();
     roadsLayer.clearLayers(); bldLayer.clearLayers();
-    for (const b of L_.buildings) L.polygon(b, { renderer: canvasR, stroke: true, weight: 0.6, color: "#c9ced6", opacity: .35, fillColor: "#aab2bd", fillOpacity: .28, interactive: false }).addTo(bldLayer);
-    for (const [k, w, pts] of L_.roads) L.polyline(pts, { renderer: canvasR, color: k === "bike" ? "#c0605a" : "#8f99a6", opacity: k === "bike" ? .55 : .5, weight: 3, interactive: false, lineCap: "butt" }).addTo(roadsLayer);
+    for (const b of L_.buildings) L.polygon(b, { renderer: canvasR, stroke: true, weight: 0.8, color: "#e2e8f0", opacity: .75, fillColor: "#cbd5e1", fillOpacity: .42, interactive: false }).addTo(bldLayer);
+    for (const [k, w, pts] of L_.roads) L.polyline(pts, { renderer: canvasR, color: k === "bike" ? "#d9534f" : "#cfd4da", opacity: k === "bike" ? .8 : .62, weight: 3, interactive: false, lineCap: "butt" }).addTo(roadsLayer);
     const [s, w, n, e] = L_.bbox;
     if (aerial) { control.removeLayer(aerial); map.removeLayer(aerial); aerial = null; }
     if (L_.aerial) {
@@ -400,8 +401,13 @@ function drawLive() {
     g.restore();
   }
   g.font = "600 12px -apple-system, Segoe UI, Roboto, sans-serif"; g.textBaseline = "middle";
-  for (const [x, y, t, strong] of labels) {
+  const boxes = [];
+  labels.sort((a, b) => (b[3] - a[3]) || (a[1] - b[1]));
+  for (const lab of labels) {          // participants first; a label that would cover another moves down
+    let [x, y, t, strong] = lab;
     const w = g.measureText(t).width + 10;
+    for (let k = 0; k < 8 && boxes.some((b) => x < b[0] + b[2] && b[0] < x + w && Math.abs(y - b[1]) < 19); k++) y += 19;
+    boxes.push([x, y, w]);
     g.fillStyle = strong ? "rgba(17,20,24,.88)" : "rgba(17,20,24,.7)";
     g.beginPath(); if (g.roundRect) g.roundRect(x, y - 9, w, 18, 5); else g.rect(x, y - 9, w, 18); g.fill();
     g.fillStyle = strong ? "#fff" : "#e5e7eb"; g.fillText(t, x + 5, y + 0.5);
@@ -477,7 +483,7 @@ function render() {
   setVal($("bots"), o.bots_for_missing); setVal($("auto"), o.auto_next); setVal($("dur"), o.duration);
   for (const el of ["srvPort", "quality", "rt", "win", "bots", "dur"]) $(el).disabled = alive;
   $("carlaRoot").textContent = o.server === "attach" ? `uses the server at ${o.server_host}:${o.server_port}; it is not stopped between trials` :
-    (s.carla_root ? `CARLA from ${s.carla_root} on port ${o.server_port}, a fresh server for every trial` : "CARLA_ROOT is not set: give --carla-root, or use a running server");
+    (s.carla_root ? `CARLA from ${s.carla_root}, port ${o.server_port}` : "CARLA_ROOT is not set: give --carla-root, or use a running server");
   const job = s.mapjob;
   $("job").hidden = !job;
   if (job) {
@@ -509,7 +515,8 @@ function render() {
     const info = st.info || {};
     tr_.cells[0].textContent = i + 1;
     tr_.cells[1].innerHTML = `${esc(st.name)} ${st.bot ? '<span class="tag bot">bot</span>' : ""}${st.fixed ? '<span class="tag fixed">--role</span>' : ""}<span class="st">${esc(st.ip)}${info.platform ? " · " + esc(info.platform) : ""}</span>`;
-    tr_.cells[2].innerHTML = `${esc((info.inputs || [info.input || ""]).join(", "))}<span class="st">${esc(info.gpu || "")}</span>`;
+    const ins = info.bot ? ["bot"] : (info.inputs && info.inputs.length ? info.inputs : [info.input || ""]);
+    tr_.cells[2].innerHTML = `${esc(ins.join(", "))}<span class="st">${esc((info.gpu || "").replace(/^NVIDIA (GeForce )?/, ""))}</span>`;
     tr_.cells[3].textContent = st.rtt_ms !== null && st.rtt_ms !== undefined ? fmt(st.rtt_ms, 1) + " ms" : "–";
     const sel = tr_.cells[4].querySelector("select");
     fillSelect(sel, st.fixed ? [[st.role, st.role]] : roleOpts, st.role || "");
@@ -548,7 +555,7 @@ function render() {
   const done = new Map(s.finished.filter((f) => f.participant === s.participant).map((f) => [f.position, f]));
   $("plan").innerHTML = s.plan.length ? "<tr><th>#</th><th>trial</th><th>condition</th><th class='num'>s</th><th></th></tr>" + s.plan.map((p) => {
     const f = done.get(p.position), isCur = p.position === s.position && (alive || ph !== "done");
-    return `<tr class="${isCur ? "cur" : ""}"><td>${p.position + 1}</td><td>${p.index}</td><td>${esc(p.condition)}${p.block !== null && p.block !== undefined && p.block !== p.condition ? ` <span class="muted">${esc(p.block)}</span>` : ""}</td><td class="num">${fmt(p.duration_s, 0)}</td>` +
+    return `<tr class="${isCur ? "cur" : ""}"><td>${p.position + 1}</td><td>${p.index}</td><td>${esc(p.condition)}${p.block !== null && p.block !== undefined && p.block !== p.condition ? ` <span class="muted">${esc(p.block)}</span>` : ""}</td><td class="num">${fmt(o.duration || p.duration_s, 0)}</td>` +
       `<td>${f ? (f.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>') : (isCur && alive ? "▶" : "")}</td></tr>`;
   }).join("") : "";
 
