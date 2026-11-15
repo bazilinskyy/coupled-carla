@@ -82,7 +82,10 @@ class Log:
 def load_world(client, xodr, mc, slab=False):
     if mc.get("carla_level"):   # a baked level (its own roads, buildings and ground): load it by name
         client.set_timeout(600.0)
-        world = client.load_world(mc["carla_level"])
+        try:
+            world = client.load_world(mc["carla_level"])
+        except RuntimeError as err:     # say which levels this server has (a CARLA town may need AdditionalMaps)
+            raise RuntimeError(towns.missing_level(client, mc["carla_level"], err)) from err
         client.set_timeout(60.0)
         return world
     p = mc["carla"]

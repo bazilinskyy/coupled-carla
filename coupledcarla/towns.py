@@ -178,6 +178,20 @@ def opendrive_file(cfg, out, log=print):
     return dest
 
 
+def missing_level(client, level, err):
+    """The message for a level the server does not have: its levels, and where CARLA's other towns come from."""
+    try:
+        have = sorted(m.rsplit("/", 1)[-1] for m in client.get_available_maps())
+    except RuntimeError:
+        have = []
+    hint = ""
+    if base_name(level) in ("Town06", "Town07"):
+        hint = " Town06 and Town07 come with CARLA 0.9.16's AdditionalMaps package (import it into the release)."
+    elif is_town(level) and not level.endswith("_Opt"):
+        hint = " CARLA 1.0 ships only the _Opt towns."
+    return f"{err}: this server has {', '.join(have) or 'no levels listed'}.{hint}"
+
+
 def georeference(text):
     """The <geoReference> projection string of an OpenDRIVE text, or None."""
     m = re.search(r"<geoReference>\s*(?:<!\[CDATA\[)?\s*([^<\]]*?)\s*(?:\]\]>)?\s*</geoReference>", text)

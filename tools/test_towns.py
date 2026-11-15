@@ -125,8 +125,7 @@ def main():
         if not ok:
             print(out[-2500:], file=sys.stderr)
     print(f"Smoke test of the CARLA towns, {time.strftime('%Y-%m-%d')}: {args.duration:.0f} s headless autopilot "
-          "trial per town, CARLA 0.9.16 at Epic, 50 Hz, on lin4080 (RTX 4080 SUPER, shared with three other CARLA "
-          "servers), with SUMO traffic, the town's traffic lights run by SUMO, parked cars, a crowd of 20 and 20 "
+          "trial per town, CARLA 0.9.16 at Epic, 50 Hz, with SUMO traffic, the town's traffic lights run by SUMO, parked cars, a crowd of 20 and 20 "
           "CARLA AI walkers.\n")
     print("| Town | Lane links | Traffic lights run by SUMO | Parking stalls | Parked cars shown | Buildings (sound, "
           "drones) | AI walkers | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane "

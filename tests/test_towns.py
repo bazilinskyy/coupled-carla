@@ -202,3 +202,10 @@ def test_town_experiments_and_clips_load():
         exp = mv.derive_experiment(c, {"host": "127.0.0.1", "port": 2800, "launch": True})
         assert exp["map"].get("name") in (None, exp["map"]["carla_town"])     # the town's map folder, not a copy
         assert json.dumps(exp)
+
+
+def test_missing_level_message():
+    client = NS(get_available_maps=lambda: ["/Game/Carla/Maps/Town01", "/Game/Carla/Maps/Town10HD_Opt"])
+    msg = towns.missing_level(client, "Town06_Opt", RuntimeError("Map 'Town06_Opt' not found"))
+    assert "Town01, Town10HD_Opt" in msg and "AdditionalMaps" in msg
+    assert "only the _Opt towns" in towns.missing_level(client, "Town03", "not found")
