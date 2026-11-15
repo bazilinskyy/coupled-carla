@@ -554,6 +554,16 @@ texture API. SUMO's traffic lights show as signal heads on kerb poles (CARLA's o
 per approach, with the lit lamp in SUMO's colour (`simulation.traffic_lights.style: head`; `marker` for the old
 glowing points). On CARLA 1.0 use the `CoupledClean` post-process profile (`coupledcarla/data/postprocess`).
 
+**Placement audit.** `python tools/placement_audit.py <experiment> --port <p> [--radius 300] [--frames 12]` checks
+placement on a running server: it spawns the map's scenery, parked stalls and SUMO's signal heads around a point and
+flags objects that float or are sunk (box bottom against the ground under it), tilted, duplicated, standing on a lane
+or in a junction, inside a building, parked cars in each other, and signs facing away from their traffic; rays down
+onto every driving lane find what stands on the road, and it measures how far the ground falls beside the roads.
+Output: counts per kind and problem, the worst examples and camera frames in `logs/placement_audit/<map>/`. Within
+300 m of the centre it found and the fixes removed, in Eindhoven: 168 of CARLA's own traffic lights hanging at 5 m
+(0 left), 45 duplicate signal heads (0), 867 floating objects (20), 35 signs, lamps or poles on a lane or in a
+junction (7); New York and Tokyo alike.
+
 ### Parked cars
 
 Streets have parked cars (`coupledcarla/parking.py`), placed when the scenery is built (`parked.json`) and filled at
@@ -1738,6 +1748,16 @@ What cost time while building phases 1 and 2, so it does not again:
   `ground_projection`, which stops on tree canopies; on a World Partition level both find nothing in unloaded cells.
 - Unreal's glTF import turns glTF (x, y, z) into Unreal (x, z, y): write the model's (x forward, y left, z up) as
   glTF (x, z, -y). Interchange also makes placeholder material assets for glTF slots even with materials off.
+- CARLA 0.9.16 builds its own traffic-light actors from an OpenDRIVE's dynamic signals: hung at the signal's zOffset
+  (netconvert writes 5 m), a pole only for the first head of a group, red forever. `run.load_world` leaves them out
+  of the xodr CARLA gets.
+- `debug.draw_point` keeps its size on screen: a lamp 100 m away is a glowing block. Draw world-sized things with a
+  short thick `draw_line`.
+- On 0.9.16 a static mesh's `bounding_box` is not its own box turned with it; use the catalogue's boxes.
+- A generated map paves its junctions all over: objects mapped on real islands stand in the cars' path. The scenery
+  counts a junction's paved area as road.
+- Ground tiles lie under the roads, so objects must stand on the tiles (`ground_planes` in `scenery.json`), not on
+  the terrain model.
 
 ## Project layout
 
