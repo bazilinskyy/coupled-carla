@@ -22,6 +22,13 @@ def welcome_extras(tc, pcfg, kind=None, base=None, log=print, default_states=())
     the agents' designed eHMIs, and for an AV passenger the design's states as eHMI keys."""
     from . import config
     out = {"sim_time": (tc.get("simulation") or {}).get("time")}
+    if kind in ("driver", "av_passenger"):        # the in-car view (cockpit.py): seat side, field of view, wheel
+        disp = config._merge(tc.get("displays") or {}, (pcfg or {}).get("displays") or {})
+        out["cockpit"] = {"lefthand": bool((tc.get("map") or {}).get("lefthand")),
+                          "fov": (pcfg or {}).get("fov"), "screens": (pcfg or {}).get("screens"),
+                          "wheel": {True: True, False: False}.get(disp.get("wheel", "auto"), "auto"),
+                          "ev_bias": float(disp.get("cabin_ev_bias", -1.0)),
+                          "hud": {k: disp[k] for k in ("hud_distance_m", "hud_fov_deg", "hud_down_deg") if k in disp}}
     for k in ("sound", "displays", "haptics"):
         merged = config._merge(tc.get(k) or {}, (pcfg or {}).get(k) or {})
         if k == "displays" and merged:
@@ -67,6 +74,7 @@ def wanted(welcome):
     w = welcome or {}
     disp = w.get("displays") or {}
     return bool((w.get("sound") or {}).get("enabled") or (w.get("haptics") or {}).get("enabled")
+                or (w.get("cockpit") or {}).get("wheel") is True
                 or any(disp.get(k) for k in ("cluster", "hud", "centre", "messages", "messages_file"))
                 or (w.get("ehmi_designs") and w.get("ehmi_render", "world") in ("station", "both")))
 
@@ -92,6 +100,8 @@ class StationUX:
         self.t = 0.0
         self.trial = None
         self.world = self.actor = self.camera = None
+        self.cabin = None           # cockpit.CabinView of a driver's or AV passenger's view
+        self._depth_cam = self._depth = None
 
     # -- life cycle -----------------------------------------------------------------------------------------------
     def cue(self, kind, name, detail=""):
@@ -103,7 +113,9 @@ class StationUX:
                 self.cues_w.writerow(["wall_time", "sim_time", "trial", "kind", "name", "detail"])
         self.cues_w.writerow([f"{time.time():.4f}", f"{self.t:.3f}", self.trial, kind, name, detail])
 
-    def start(self, world, actor, camera, trial, agents=None, input_=None):
+    def start(self, world, actor, camera, trial, agents=None, input_=None, view=None, fov=90.0, version="0.9"):
+        """view: (x, y, z, pitch) of the camera in the vehicle's frame for a driver's or AV passenger's view
+        (cockpit.actor_eye): the displays then go onto the car's own panels and the steering wheel turns."""
         from . import audio
         self.world, self.actor, self.camera, self.trial = world, actor, camera, trial
         self.agents = dict(agents or {})
@@ -129,11 +141,16 @@ class StationUX:
                      f"{', recording ' + str(record) if record else ''}; F3 calibration tone)")
         disp = w.get("displays") or {}
         hap = w.get("haptics") or {}
-        if self.kind in ("driver", "av_passenger") and (any(disp.get(k) for k in disp) or hap.get("enabled")):
+        shows = any(disp.get(k) for k in ("cluster", "hud", "centre", "messages", "messages_file"))
+        spin = bool((w.get("cockpit") or {}).get("wheel")) and view is not None
+        if self.kind in ("driver", "av_passenger") and (shows or hap.get("enabled") or spin):
             from .incar import InCar, LimitWatcher
             self.incar = InCar(disp, self.kind, self.size, log=self.log, on_event=self._incar_event,
                                sim_time=w.get("sim_time"))
-            self.limits = LimitWatcher(world.get_map(), log=self.log)
+            if shows or hap.get("enabled"):
+                self.limits = LimitWatcher(world.get_map(), log=self.log)
+            if view is not None:
+                self._cabin_start(world, actor, view, fov, version)
         if hap.get("enabled"):
             from .haptics import Haptics
             self.haptics = Haptics(hap, wheel=getattr(input_, "wheel", None), role=self.role, log=self.log,
@@ -144,6 +161,54 @@ class StationUX:
                     d = designs.normalise(spec["design"])
                     self.ehmi_draw[self.agents[aid]] = ehmi_design.DesignedEhmi(d, spec.get("placement"),
                                                                                spec.get("offset"))
+
+    def _cabin_start(self, world, actor, view, fov, version):
+        """The CabinView of this seat, and one depth image of the rigid cabin view (a depth camera on the same
+        mount, destroyed after its first image) for hiding panels behind the wheel and turning the wheel."""
+        import carla
+        from . import cockpit
+        ck = self.w.get("cockpit") or {}
+        entry = cockpit.entry_for(actor.type_id, version)
+        try:
+            self.incar.max_steer = max(wh.max_steer_angle for wh in actor.get_physics_control().wheels) or 70.0
+        except (RuntimeError, AttributeError, ValueError):
+            pass
+        hud = {k[4:]: v for k, v in (ck.get("hud") or {}).items()}
+        self.cabin = cockpit.CabinView(entry, view[:3], view[3], self.size, fov, ck.get("lefthand", False), hud=hud)
+        self.incar.set_cabin(self.cabin)
+        try:
+            bp = world.get_blueprint_library().find("sensor.camera.depth")
+            bp.set_attribute("image_size_x", str(self.size[0]))
+            bp.set_attribute("image_size_y", str(self.size[1]))
+            bp.set_attribute("fov", str(fov))
+            tf = carla.Transform(carla.Location(x=view[0], y=view[1], z=view[2]), carla.Rotation(pitch=view[3]))
+            self._depth_cam = world.spawn_actor(bp, tf, attach_to=actor, attachment_type=carla.AttachmentType.Rigid)
+            self._depth_cam.listen(self._on_depth)
+        except RuntimeError as e:
+            self.log(f"cockpit: no depth image of the cabin ({e}); panels hidden only behind the wheel's rim")
+        self.log(f"cockpit: {actor.type_id} {'measured' if entry else 'default'} seat at "
+                 f"({view[0]:.2f}, {view[1]:.2f}, {view[2]:.2f}), fov {fov:.0f}, "
+                 f"{'left' if ck.get('lefthand') else 'right'}-hand traffic, style {self.incar.style}")
+
+    def _on_depth(self, image):
+        if self._depth is not None:
+            return
+        import numpy as np
+        a = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(image.height, image.width, 4).astype(np.float32)
+        self._depth = (a[..., 2] + a[..., 1] * 256.0 + a[..., 0] * 65536.0) / (256 ** 3 - 1) * 1000.0
+
+    def _cabin_tick(self):
+        if self._depth is None or self._depth_cam is None:
+            return
+        try:
+            self._depth_cam.stop()
+            self._depth_cam.destroy()
+        except RuntimeError:
+            pass
+        self._depth_cam = None
+        self.cabin.set_depth(self._depth)
+        self.log(f"cockpit: cabin depth image in; steering wheel {'found' if self.cabin.spin else 'not found'} "
+                 f"in the view")
 
     def on_message(self, msg):
         if msg.get("type") == "drones":       # the drones' sound sources (drones.py, 10 a second)
@@ -162,6 +227,12 @@ class StationUX:
             self.bodies.ehmi = self.ehmi
 
     def stop(self):
+        if self._depth_cam is not None:
+            try:
+                self._depth_cam.destroy()
+            except RuntimeError:
+                pass
+            self._depth_cam = None
         if self.output is not None:
             self.output.stop()
         if self.haptics is not None:
@@ -225,6 +296,8 @@ class StationUX:
         self.t = t
         if self.actor is None:
             return
+        if self._depth_cam is not None:
+            self._cabin_tick()
         self.keys(events)
         try:
             tf = self.camera.get_transform() if self.camera is not None else self.actor.get_transform()
@@ -318,7 +391,7 @@ class StationUX:
             self.incar.draw(surface)
 
     def wants_frames(self):
-        return bool((self.incar is not None and self.incar.displays) or self.ehmi_draw)
+        return bool((self.incar is not None and (self.incar.displays or self.cabin is not None)) or self.ehmi_draw)
 
     def save_frame(self, rgb, path, fov=90.0):
         """Headless: the camera image (H x W x 3 RGB) with the displays drawn over it, saved as a JPEG."""

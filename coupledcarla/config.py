@@ -284,6 +284,18 @@ DEFAULTS = {
         "messages": [],              # {at | at_m | on_state, seconds, display, text, color, takeover, sound, say,
                                      # haptic}
         "messages_file": None,       # the same as coupled-sim's CSV (at;seconds;display;text;color;atDistance;...)
+        "style": "dashboard",        # dashboard: cluster and centre screen on the car's own panels, perspective-correct
+                                     # and behind the wheel, the HUD as light on the windscreen (cockpit.py); overlay:
+                                     # flat panels at the screen's edges (as before). A display with a rect is flat.
+        "wheel": "auto",             # turn the steering wheel in driver and AV-passenger views (the meshes' does not):
+                                     # auto when the station draws anything else (displays, sound, haptics), true
+                                     # always (a per-frame image step), false never
+        "hud_distance_m": 2.5,       # the HUD's virtual image: distance, width (deg) and centre below the line of sight
+        "hud_fov_deg": 20.0,
+        "hud_down_deg": 5.0,
+        "cabin_ev_bias": -1.0,       # CARLA 0.9.x cabin views: exposure this many EV off the street's (look.py)
+                                     # The seat comes from data/driver_eyes.json; a participant's `fov` (deg) or
+                                     # `screens` (1: 90 deg, 3: 180) sets the view's width unless --fov is given.
     },
     "haptics": {                     # haptics.py: take-over requests and cues on the wheel, gamepads, UDP devices
         "enabled": False, "wheel": True, "gamepad": True,

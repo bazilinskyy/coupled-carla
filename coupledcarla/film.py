@@ -234,6 +234,10 @@ class Rig:
         if self.kind == "attach":
             m = c.get("mount", "driver")
             x, y, z, pitch, yaw = (list(m) + [0.0, 0.0])[:5] if isinstance(m, (list, tuple)) else MOUNTS[m]
+            if m in ("driver", "passenger") and self.target.type_id.startswith("vehicle."):
+                from . import cockpit       # the car's measured seat (data/driver_eyes.json)
+                x, y, z, pitch = cockpit.actor_eye(self.target, m, bool(c.get("lefthand", False)))
+                yaw = 0.0
             kind = carla.AttachmentType.SpringArmGhost if c.get("spring") else carla.AttachmentType.Rigid
             self.camera = world.spawn_actor(bp, carla.Transform(carla.Location(x=x, y=y, z=z),
                                                                 carla.Rotation(pitch=pitch, yaw=yaw)),
