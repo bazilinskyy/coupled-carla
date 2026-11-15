@@ -624,6 +624,14 @@ def audit(args, cfg, mdir, client, world, out, cx, cy, t0):
                                  "z": round(loc.z, 2), "bottom": round(loc.z, 2), "top": round(loc.z + 3.0, 2),
                                  "yaw": round(yaw, 1), "tilt": 0.0, "foot": [], "problems": [], "detail": {}})
         recs += [r for r in carla_own(world) if math.hypot(r["x"] - cx, r["y"] - cy) <= args.radius]
+    # a taller sign post is a second post standing on the first (ndwsigns.place): it does not stand on the ground
+    posts = {}
+    for r in recs:
+        if r["kind"] == "sign_post":
+            posts.setdefault((round(r["x"], 1), round(r["y"], 1)), []).append(r)
+    for group in posts.values():
+        for r in sorted(group, key=lambda r: r["bottom"])[1:]:
+            r["kind"] = "sign_post_upper"
     # signal pole meshes: told apart by height (the pole is 3 m tall, the backboard under 1 m)
     for r in recs:
         if r["kind"] == "signal_part":

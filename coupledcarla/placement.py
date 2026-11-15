@@ -168,6 +168,13 @@ def ground_surface(scenery_json):
     return GroundSurface(planes) if planes else None
 
 
+def paved(carla):
+    """The lane types CARLA 0.9.16 builds a road surface for in a world from OpenDRIVE (a Restricted lane, a
+    pedestrian street in the OSM maps, has none: the ground tiles show there), as one get_waypoint mask."""
+    lt = carla.LaneType
+    return lt.Driving | lt.Biking | lt.Sidewalk | lt.Parking | lt.Bidirectional
+
+
 SETTLE_KINDS = {"tree", "bush", "lamp", "furniture", "sign", "shared"}
 
 

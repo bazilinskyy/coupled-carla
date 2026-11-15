@@ -1140,10 +1140,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface, {deep} split "
             f"where they would have sunk more than {LOWER_MAX} m)")
         # everything standing beside the roads onto the tiles' top (they are lowered under the roads)
-        any_lane = carla.LaneType.Any
+        road = placement.paved(carla)
         pl.surface = surface
         moved, total = placement.settle(pl.items, pl.bases, surface, lambda x, y, z: cmap.get_waypoint(
-            carla.Location(x=x, y=y, z=z), project_to_road=False, lane_type=any_lane) is not None)
+            carla.Location(x=x, y=y, z=z), project_to_road=False, lane_type=road) is not None)
         pl.counts["settled"] = moved
         log(f"scenery: {moved} objects stood on the ground tiles (mean shift {total / max(1, moved):.2f} m)")
 

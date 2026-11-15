@@ -733,6 +733,8 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     n_stalls = [0]
 
     surface = getattr(placer, "surface", None)     # the ground tiles' top (placement.GroundSurface)
+    from .placement import paved
+    road = paved(carla)
 
     def on_ground(cx, cy, L, W, yaw, z):
         """The height a car off the lanes stands at: the highest of the ground tiles' top and the road's surface under
@@ -743,7 +745,7 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
         best = None
         for px, py in list(_rect(cx, cy, L * 0.9, W * 0.9, yaw).exterior.coords)[:4] + [(cx, cy)]:
             loc = carla.Location(x=px, y=py, z=z)
-            wp = cmap.get_waypoint(loc, project_to_road=False, lane_type=carla.LaneType.Any)
+            wp = cmap.get_waypoint(loc, project_to_road=False, lane_type=road)
             v = wp.transform.location.z if wp is not None else surface.z(px, py)
             if v is not None:
                 best = v if best is None else max(best, v)

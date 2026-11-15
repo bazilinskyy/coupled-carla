@@ -78,3 +78,11 @@ def test_head_spots_stay_off_the_lanes():
     # no median (the other direction's lane is there): beside the kerb head, further out
     spots = [signals.head_spot(k, groups, lanes, place, lambda loc: not loc[1])[0] for k in range(3)]
     assert spots == [("L0", True, 0.0), ("L0", True, signals.SIDE_BY_SIDE), ("L0", True, 2 * signals.SIDE_BY_SIDE)]
+
+
+def test_head_candidates_go_out_then_back():
+    c = signals.head_candidates(True)
+    assert c[0] == (0.0, 0.0) and c[1] == (0.0, 0.5) and (5.0, 2.0) in c
+    assert [b for b, _ in c] == sorted(b for b, _ in c)                 # nearer the stop line first
+    assert signals.head_candidates(False) == [(b, 0.0) for b in (0.0, 1.0, 2.0, 3.5, 5.0)]
+    assert signals.head_candidates(True, 1.5)[-1] == (1.0, 2.0)          # a short lane: not further back than it

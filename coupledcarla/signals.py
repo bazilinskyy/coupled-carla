@@ -106,6 +106,14 @@ def group_links(lanes, phases):
     return sorted(groups.values())
 
 
+def head_candidates(kerb, max_back=5.0):
+    """(metres back from the stop line, metres further out) to try for a head's pole, nearest first: at the stop
+    line, then out (kerb side only) and back."""
+    outs = (0.0, 0.5, 1.0, 1.5, 2.0) if kerb else (0.0,)
+    backs = [b for b in (0.0, 1.0, 2.0, 3.5, 5.0) if b <= max(0.0, max_back)]
+    return [(b, o) for b in backs for o in outs]
+
+
 SIDE_BY_SIDE = 0.7       # a second head at the same kerb stands this much further out (backboards 0.5 m wide)
 
 
@@ -139,8 +147,10 @@ class Signals:
         self.debug = world.debug if debug is None else debug
         cmap = world.get_map()
         self.surface = surface
+        from .placement import paved
+        surfaced = paved(carla)
         self._on_road_any = lambda loc: cmap.get_waypoint(loc, project_to_road=False,
-                                                          lane_type=carla.LaneType.Any) is not None
+                                                          lane_type=surfaced) is not None
         self.radius, self.every = radius, every
         self.life = every * step * 1.6
         self.style = style if style in ("head", "marker") else "head"
@@ -172,18 +182,24 @@ class Signals:
 
         def place(lane, kerb, out=0.0):
             """The stop line's end on the lane's kerb side (kerb True) or its other side, 0.6 m (+ out) beyond the
-            lane; on the kerb side pushed further out while it is on a lane of CARLA's map (a cycle lane beyond)."""
+            lane; where that is on a lane of CARLA's map (a cycle lane beyond, or a junction's turning lanes,
+            which flare out past the stop line), further out and up to 5 m back from the stop line."""
             shape = lane.getShape()
             (x0, y0), (x1, y1) = shape[-2], shape[-1]
             d = math.hypot(x1 - x0, y1 - y0) or 1.0
-            rx, ry = (y1 - y0) / d, -(x1 - x0) / d          # unit vector to the right of travel (SUMO)
+            ux, uy = (x1 - x0) / d, (y1 - y0) / d
+            rx, ry = uy, -ux                                # unit vector to the right of travel (SUMO)
             sign = 1 if kerb != lefthand else -1
-            for extra in ((0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0) if kerb else (0.0,)):
+            first = None
+            for back, extra in head_candidates(kerb, min(5.0, lane.getLength() - 1.0)):
                 side = (lane.getWidth() / 2 + 0.6 + out + extra) * sign
-                sx, sy = x1 + rx * side, y1 + ry * side
+                sx, sy = x1 - ux * back + rx * side, y1 - uy * back + ry * side
                 loc = carla.Location(x=sx - offset[0], y=-(sy - offset[1]))
+                first = first or loc
                 if not on_road(loc):
                     break
+            else:
+                loc = first
             wp = cmap.get_waypoint(loc, project_to_road=True, lane_type=carla.LaneType.Any)
             loc.z = wp.transform.location.z if wp is not None else 0.0      # the road's height (elevation)
             yaw = math.degrees(math.atan2(-(y1 - y0), x1 - x0))           # CARLA yaw of travel (y flipped)
