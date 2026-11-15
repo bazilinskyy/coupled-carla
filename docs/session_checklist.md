@@ -7,7 +7,7 @@ Details and fixes: [lab_guide.md](lab_guide.md).
 ## Before the participant arrives (30 min)
 
 - [ ] GPU window on: `ssh wsl5090 'tmux new -d -s gpuwin ~/cc58/gpu_window.sh'` (lead only)
-- [ ] win5090's yield scripts leave coupled-carla alone (lab guide, "Before the first session")
+- [ ] win5090's yield scripts leave Coupled CARLA alone (lab guide, "Before the first session")
 - [ ] CARLA server up: `schtasks /run /tn cc58-pkgserver` (or at the desk); port 2000 answers
 - [ ] Host: `cd ~/cc58/coupled-carla && source ~/cc58/env58.sh`
       `python -m coupledcarla.run experiments/<study>.yaml --participant <N> --dashboard`
