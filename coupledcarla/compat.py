@@ -126,6 +126,27 @@ def server_major(client):
         return 0
 
 
+def setup_camera(bp, every_s=0.0, profile="Dashcam", shutter=400):
+    """Exposure of an RGB camera; returns the interval at which the caller should keep frames itself (0: all).
+
+    CARLA 0.9.x: a camera that keeps a frame only every few seconds renders only then (sensor_tick) with a fixed
+    manual exposure, as auto exposure never adapts between such far-apart frames.
+    CARLA 1.0 has no exposure attributes on the RGB camera; exposure comes from a post-process profile
+    (Content/Carla/Config/PostProcess), all with histogram auto exposure. Rendered every few seconds it never adapts
+    (a cloudy day clipped 25 % of the frame to white, night was 99.7 % black), so it renders every tick and the
+    caller keeps every every_s seconds; "Dashcam" was the best of CARLA's profiles at the Eindhoven twin (day mean
+    brightness 105-116 of 255 with nothing clipped, night 30 with 1 % crushed; the default profile: 101 and 5)."""
+    if bp.has_attribute("post_process_profile"):
+        if profile:
+            bp.set_attribute("post_process_profile", str(profile))
+        return float(every_s or 0.0)
+    if every_s and every_s > 0:
+        if bp.has_attribute("sensor_tick"):
+            bp.set_attribute("sensor_tick", str(every_s))
+        set_manual_exposure(bp, shutter)
+    return 0.0
+
+
 def set_manual_exposure(bp, shutter):
     """Fixed exposure for cameras that save few frames (auto exposure would never adapt between them)."""
     if bp.has_attribute("exposure_mode"):

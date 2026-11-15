@@ -40,7 +40,7 @@ from pathlib import Path
 import carla
 import numpy as np
 
-from .compat import set_manual_exposure
+from .compat import setup_camera
 from .coupling import ControlClient
 from .studytools import CSV_COLUMNS, StationStudy
 
@@ -170,10 +170,12 @@ class Station:
         bp.set_attribute("image_size_x", str(self.size[0]))
         bp.set_attribute("image_size_y", str(self.size[1]))
         bp.set_attribute("fov", str(args.fov))
-        if args.headless:
-            bp.set_attribute("sensor_tick", str(args.frames_every or 1.0))
-            # few frames: auto exposure would never adapt
-            set_manual_exposure(bp, {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220))
+        self.keep_every, self._kept_at = 0.0, None
+        if args.headless:     # few frames kept: see compat.setup_camera (0.9.x renders only those, 1.0 all of them)
+            self.keep_every = setup_camera(bp, args.frames_every or 1.0, self.welcome.get("camera_profile", "Dashcam"),
+                                           {"pedestrian": 400, "av_passenger": 500}.get(self.welcome.get("kind"), 220))
+        elif bp.has_attribute("post_process_profile") and self.welcome.get("camera_profile", "Dashcam"):
+            bp.set_attribute("post_process_profile", str(self.welcome.get("camera_profile", "Dashcam")))
         if kind == "pedestrian":
             self.heading = self.actor.get_transform().rotation.yaw
             self.camera = self.world.spawn_actor(bp, self._eye_transform())       # moved every tick
@@ -373,6 +375,10 @@ class Station:
             self.image_lag = (self.image_lag + [lag])[-500:]
         if self.screen is None:
             if self.args.frames_every:
+                if self.keep_every:
+                    if self._kept_at is not None and image.timestamp - self._kept_at < self.keep_every - 1e-6:
+                        return
+                    self._kept_at = image.timestamp
                 out = Path(self.args.out) / "stations" / f"{self.args.role}_trial{self.trial}_frames"
                 out.mkdir(parents=True, exist_ok=True)
                 if self.ux is not None and self.ux.wants_frames():     # with the in-car displays drawn over it

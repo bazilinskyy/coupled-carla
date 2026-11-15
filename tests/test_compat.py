@@ -92,3 +92,27 @@ def test_lanes():
 
     assert (compat.left_lane(WP09()), compat.right_lane(WP09())) == ("left09", "right09")
     assert (compat.left_lane(WP10()), compat.right_lane(WP10())) == ("left10", "right10")
+
+
+class _BP:
+    def __init__(self, attrs):
+        self.attrs = {a: None for a in attrs}
+
+    def has_attribute(self, a):
+        return a in self.attrs
+
+    def set_attribute(self, a, v):
+        assert a in self.attrs, a
+        self.attrs[a] = v
+
+
+def test_setup_camera_versions():
+    from coupledcarla.compat import setup_camera
+    old = _BP(["sensor_tick", "exposure_mode", "shutter_speed"])          # CARLA 0.9.x
+    assert setup_camera(old, 2.0, "Dashcam", 400) == 0.0
+    assert old.attrs == {"sensor_tick": "2.0", "exposure_mode": "manual", "shutter_speed": "400"}
+    new = _BP(["sensor_tick", "post_process_profile"])                     # CARLA 1.0: render every tick, keep 2 s
+    assert setup_camera(new, 2.0, "Dashcam", 400) == 2.0
+    assert new.attrs == {"sensor_tick": None, "post_process_profile": "Dashcam"}
+    live = _BP(["sensor_tick", "post_process_profile"])
+    assert setup_camera(live, 0.0, "", 400) == 0.0 and live.attrs["post_process_profile"] is None

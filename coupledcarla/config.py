@@ -70,6 +70,9 @@ DEFAULTS = {
         "tls_manager": "sumo",       # who runs the traffic lights: sumo | carla | none
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
         "traffic_manager": False,    # start CARLA's Traffic Manager (only for CARLA-driven autopilot cars)
+        "camera_profile": "Dashcam", # CARLA 1.0: the post-process profile of every camera (exposure; CARLA's
+                                     # Content/Carla/Config/PostProcess: Dashcam, AutomotiveHDR, Cinematic, ...;
+                                     # "" for the server's default). CARLA 0.9.x ignores it
         "time": None,                # local time at the place, "YYYY-MM-DD HH:MM", "HH:MM" (today) or "now":
                                      # the sun stands where it did; with weather: real, Open-Meteo's weather
         "scenery": {"radius_m": 400.0,   # scenery cells within this distance of participants (0: all at once)

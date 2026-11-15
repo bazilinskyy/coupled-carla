@@ -4,7 +4,7 @@ import queue
 import carla
 import numpy as np
 
-from .compat import set_manual_exposure
+from .compat import setup_camera
 
 VIEWS = {  # camera mounts relative to the vehicle centre
     "chase": carla.Transform(carla.Location(x=-6.5, z=2.8), carla.Rotation(pitch=-10)),
@@ -15,7 +15,7 @@ VIEWS = {  # camera mounts relative to the vehicle centre
 
 class View:
     def __init__(self, world, vehicle, view="driver", size=(1280, 720), fov=90, window=True,
-                 save_dir=None, save_every_s=0.0):
+                 save_dir=None, save_every_s=0.0, profile="Dashcam"):
         self.window = window
         self.latest = None
         self.save_dir = save_dir
@@ -23,11 +23,11 @@ class View:
         bp.set_attribute("image_size_x", str(size[0]))
         bp.set_attribute("image_size_y", str(size[1]))
         bp.set_attribute("fov", str(fov))
-        if not window and save_every_s > 0:
-            bp.set_attribute("sensor_tick", str(save_every_s))   # render only the frames that are kept
-            # Auto exposure adapts over consecutive frames; a camera rendering once every few seconds never
-            # adapts and its frames come out dark, so headless snapshots use a fixed daylight exposure.
-            set_manual_exposure(bp, 400)   # default shutter 200 overexposes the pale ground
+        # headless snapshots: on CARLA 0.9.x only the kept frames are rendered, with a fixed daylight exposure
+        # (shutter 400: the default 200 overexposes the pale ground); on 1.0 every frame is rendered so its auto
+        # exposure adapts, and every save_every_s-th second is kept here (compat.setup_camera)
+        self.keep_every = setup_camera(bp, save_every_s if (not window and save_every_s > 0) else 0.0, profile, 400)
+        self._kept_at = None
         self.camera = None
         if window or save_every_s > 0:
             self.camera = world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=vehicle,
@@ -47,6 +47,10 @@ class View:
             arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(image.height, image.width, 4)
             self.latest = arr[:, :, 2::-1]   # BGRA -> RGB
         elif self.save_dir:
+            if self.keep_every:
+                if self._kept_at is not None and image.timestamp - self._kept_at < self.keep_every - 1e-6:
+                    return
+                self._kept_at = image.timestamp
             image.save_to_disk(str(self.save_dir / f"view_{image.frame:08d}.jpg"))
 
     def events(self):

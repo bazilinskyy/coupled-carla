@@ -242,7 +242,8 @@ def welcome_for(part, geo, tc):
         bot["path"] = to_carla_path(geo, bot["path"])
     out = {"kind": part.kind, "view": part.cfg.get("view"), "bot": bot,
            "ehmi_states": list((tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)),
-           "step": tc["simulation"]["step"], "experiment": tc["name"]}
+           "step": tc["simulation"]["step"], "experiment": tc["name"],
+           "camera_profile": tc["simulation"].get("camera_profile", "Dashcam")}
     # sound, in-car displays, haptics and designed eHMIs (stationux.py), when the experiment sets them
     out.update(stationux.welcome_extras(tc, part.cfg, part.kind, Path(tc["_path"]).parent,
                                         default_states=list(DEFAULT_EHMI)))
@@ -387,7 +388,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 window = p.get("window", part.input.needs_display)
                 if window or tc["logging"]["frames_every_s"] > 0:
                     view = View(world, part.actor, p.get("view", "driver"), window=window, save_dir=out,
-                                save_every_s=tc["logging"]["frames_every_s"])
+                                save_every_s=tc["logging"]["frames_every_s"],
+                                profile=tc["simulation"].get("camera_profile", "Dashcam"))
             log(f"{part.role}: {part.kind} {part.actor.type_id} "
                 f"{'at a station' if part.station else 'on the host (' + str(p.get('input', 'bot')) + ')'}")
         for ag in agents:
