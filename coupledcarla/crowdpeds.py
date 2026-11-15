@@ -901,6 +901,8 @@ class CrowdSim:
 
     def __init__(self, world, geo, segments, walkers, params, seed=1, log=_log):
         self.send = None   # (actor, WalkerControl) -> None; the runner sends them with the tick's batch
+        self.velocities = None   # {actor id: (vx, vy)}: SUMO vehicles' speeds (CARLA reads 0 m/s for them)
+        self.signals = None      # pedsignals.PedSignals: at a signal, cross only when the cars crossing it have red
         import carla
         self.carla, self.world = carla, world
         self.params, self.events = params, []
@@ -946,10 +948,12 @@ class CrowdSim:
         out = []
         for v in self.world.get_actors().filter("vehicle.*"):
             try:
-                loc, vel = v.get_location(), v.get_velocity()
+                loc = v.get_location()
+                sumo_v = self.velocities.get(v.id) if self.velocities else None
+                vx, vy = sumo_v if sumo_v is not None else (lambda u: (u.x, u.y))(v.get_velocity())
             except RuntimeError:
                 continue
-            out.append((loc.x, loc.y, vel.x, vel.y))
+            out.append((loc.x, loc.y, vx, vy))
         return out
 
     def step(self, t):
@@ -970,11 +974,13 @@ class CrowdSim:
                     if vehicles is None:
                         vehicles = self._vehicles()
                     t_c = critical_gap(width, st["speed"], t - st["wait_from"])
-                    if not gap_ok(pts[0], pts[1], vehicles, t_c, marked):
+                    light = self.signals.may_cross(pts[0], pts[1]) if self.signals is not None else None
+                    if light is False or not gap_ok(pts[0], pts[1], vehicles, t_c, marked):
                         send(actor, carla.WalkerControl(speed=0.0))
                         continue
                     self.events.append(("crowd_crosses", f"{actor.id} {'marked' if marked else 'mid-block'} "
-                                        f"{width:.1f} m after {t - st['wait_from']:.1f} s"))
+                                        f"{width:.1f} m after {t - st['wait_from']:.1f} s"
+                                        f"{' on its light' if light else ''}"))
                     st["pt"], st["crossing"], st["wait_from"] = 1, True, None
                 tx, ty = pts[st["pt"]]
                 dx, dy = tx - loc.x, ty - loc.y

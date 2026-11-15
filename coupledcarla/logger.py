@@ -58,6 +58,7 @@ class TrialLogger:
         self.geo = geo
         self.radius = lc["radius_m"]
         self.f = open(out_dir / "frames.csv", "w", newline="")
+        self.velocities = None     # {actor id: (vx, vy)} of SUMO vehicles (the bridge's), used for their rows
         self.w = csv.writer(self.f, delimiter=";")
         self.w.writerow(COLUMNS)
         self.ef = open(out_dir / "events.csv", "w", newline="", buffering=1)   # line-buffered: survives a crash
@@ -112,6 +113,9 @@ class TrialLogger:
             s = snap.find(aid)
             if s is None:
                 continue
+            vel = self.velocities.get(aid) if self.velocities else None
+            if vel is not None:     # SUMO's speed (a SUMO vehicle placed with physics off reads 0 m/s in CARLA)
+                s = _State(s.get_transform(), carla.Vector3D(vel[0], vel[1], 0.0), s.get_acceleration())
             loc = s.get_transform().location
             if not any(math.hypot(loc.x - c.x, loc.y - c.y) <= self.radius for c in centres):
                 continue

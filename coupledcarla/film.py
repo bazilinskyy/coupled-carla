@@ -412,6 +412,10 @@ class Film:
             until = (self.fc.get("hold") or {}).get(p.role)
             if until is None or p.input is None:
                 continue
+            if hasattr(p.input, "hold"):     # the SUMO driver: enters SUMO when the hold ends (sumodriver.py)
+                p.input.hold(until)
+                self.log(f"film: {p.role} waits until t = {float(until):g} s")
+                continue
             orig = p.input.control
 
             def control(actor, events=(), orig=orig, until=float(until)):

@@ -83,6 +83,12 @@ DEFAULTS = {
                                      # head on a kerb pole per approach, CARLA's meshes, the lit lamp drawn) or
                                      # "marker" (a line pole and a big glowing point per lane, as before)
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
+        "animate_radius_m": 60.0,    # ... and within this distance move with physics on (bridge/animate.py): wheels
+                                     # roll and steer, cyclists pedal; 0: all placed with physics off as before
+        "autopilot": "sumo",         # input autopilot: "sumo" (SUMO drives the car with the traffic's rules,
+                                     # sumodriver.py; route: [[lat, lon], ...] or destination: {lat, lon} on the
+                                     # participant) or "carla" (CARLA's BasicAgent on random lanes); a participant's
+                                     # own autopilot: wins
         "traffic_manager": False,    # start CARLA's Traffic Manager (only for CARLA-driven autopilot cars)
         "camera_profile": "Dashcam", # CARLA 1.0: the post-process profile of every camera (exposure; CARLA's
                                      # Content/Carla/Config/PostProcess: Dashcam, AutomotiveHDR, Cinematic, ...;

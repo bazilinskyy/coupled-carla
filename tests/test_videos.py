@@ -57,7 +57,8 @@ def test_derived_experiment():
     f = exp["film"]
     assert f["start_s"] == c["start_s"] and f["duration_s"] == c["duration_s"] and f["fps"] == 25
     assert f["hold"] == c["hold"] and f["camera"] == c["camera"]
-    assert exp["trials"] == [{"duration_s": c["start_s"] + c["duration_s"] + c["tail_s"]}]
+    assert exp["trials"][0]["duration_s"] == c["start_s"] + c["duration_s"] + c["tail_s"]
+    assert exp["trials"][0]["patch"]["participants"]["driver"]["route"]      # a planned route (SUMO driver)
 
 
 def test_derived_experiment_folds_trial_and_stations():
