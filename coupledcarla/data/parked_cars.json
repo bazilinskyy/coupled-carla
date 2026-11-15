@@ -300,5 +300,621 @@
 ]
 }
 },
+"1.0": {
+"/Game/Carla/Static/Car/4Wheeled/AudiA2/Parked/SM_AudiA2.SM_AudiA2": {
+"cat": "car",
+"ext": [
+1.86,
+0.9,
+0.78
+],
+"from": "MI_CarPaint_Metallic_Blue01",
+"off": [
+-0.0,
+0.0,
+0.79
+],
+"paint": "blue",
+"rgb": [
+43,
+101,
+112
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/AudiETron/Parked/SM_EtronParked.SM_EtronParked": {
+"cat": "car",
+"ext": [
+2.43,
+1.02,
+0.82
+],
+"from": "MI_AudiEtron_CarExterior",
+"off": [
+-0.0,
+0.02,
+0.82
+],
+"paint": "blue",
+"rgb": [
+68,
+117,
+146
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/AudiTT/Parked/SM_AudiTT_Parked.SM_AudiTT_Parked": {
+"cat": "car",
+"ext": [
+2.09,
+1.0,
+0.7
+],
+"from": "MI_CarPaint_Metallic_Orange01",
+"off": [
+-0.0,
+0.0,
+0.7
+],
+"paint": "brown",
+"rgb": [
+71,
+41,
+0
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/BmwGranTourer/Parked/SM_BMWGranTourer_parked.SM_BMWGranTourer_parked": {
+"cat": "car",
+"ext": [
+2.34,
+1.12,
+0.85
+],
+"from": "MI_CarPaint_Metallic_Blue01",
+"off": [
+-0.0,
+0.0,
+0.75
+],
+"paint": "blue",
+"rgb": [
+43,
+101,
+112
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ChevroletImpala/Parked/SM_ChevroletImpala_Parked.SM_ChevroletImpala_Parked": {
+"cat": "car",
+"ext": [
+2.69,
+1.02,
+0.72
+],
+"from": "MI_CarPaint_Metallic_Orange01",
+"off": [
+-0.0,
+0.01,
+0.69
+],
+"paint": "brown",
+"rgb": [
+71,
+41,
+0
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/CitroenC3/Parked/SM_CitroenC3_Parked.SM_CitroenC3_Parked": {
+"cat": "car",
+"ext": [
+1.99,
+0.94,
+0.82
+],
+"from": "MI_CarPaint_Gloss_Blue01",
+"off": [
+-0.0,
+-0.0,
+0.77
+],
+"paint": "blue",
+"rgb": [
+0,
+45,
+120
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Cybertruck/Parked/SM_Cybertruck_Parked.SM_Cybertruck_Parked": {
+"cat": "car",
+"ext": [
+3.14,
+1.27,
+1.06
+],
+"from": "M_Bodywork_Cybertruck: T_CyberTruck_bodywork_d",
+"off": [
+-0.0,
+0.0,
+1.04
+],
+"paint": "black",
+"rgb": [
+26,
+26,
+26
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/DodgeCharger/Parked/SM_DodgeCharger_Parked.SM_DodgeCharger_Parked": {
+"cat": "car",
+"ext": [
+2.5,
+1.05,
+0.77
+],
+"from": "MI_DodgeCharger_BodyWork",
+"glass": "/Game/Carla/Static/Car/4Wheeled/DodgeCharger/Parked/SM_DodgeCharger_Parked_Glass.SM_DodgeCharger_Parked_Glass",
+"glass_box": {
+"ext": [
+2.38,
+0.86,
+0.57
+],
+"off": [
+-0.03,
+0.0,
+0.88
+]
+},
+"off": [
+-0.01,
+0.0,
+0.76
+],
+"paint": "red",
+"rgb": [
+182,
+0,
+0
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/FordCrown01/Parked/SM_FordCrown01_Parked.SM_FordCrown01_Parked": {
+"cat": "car",
+"ext": [
+2.68,
+0.97,
+0.79
+],
+"from": "MI_FordCrown01_Bodywork",
+"glass": "/Game/Carla/Static/Car/4Wheeled/FordCrown01/Parked/SM_FordCrown01_Glass_Parked.SM_FordCrown01_Glass_Parked",
+"glass_box": {
+"ext": [
+2.57,
+0.82,
+0.62
+],
+"off": [
+0.18,
+0.0,
+0.93
+]
+},
+"off": [
+0.19,
+0.0,
+0.77
+],
+"paint": "gold",
+"rgb": [
+159,
+127,
+0
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/FordCrown02/Parked/SM_FordCrown02_Parked.SM_FordCrown02_Parked": {
+"cat": "car",
+"ext": [
+2.68,
+0.97,
+0.79
+],
+"from": "MI_FordCrown02_Bodywork",
+"glass": "/Game/Carla/Static/Car/4Wheeled/FordCrown02/Parked/SM_FordCrown02_Parked_Glass.SM_FordCrown02_Parked_Glass",
+"glass_box": {
+"ext": [
+2.57,
+0.82,
+0.62
+],
+"off": [
+0.17,
+0.0,
+0.93
+]
+},
+"off": [
+0.18,
+0.0,
+0.77
+],
+"paint": "yellow",
+"rgb": [
+232,
+192,
+0
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/JeepWranglerRubicon/Parked/SM_JeepWranglerRubicon_Parked.SM_JeepWranglerRubicon_Parked": {
+"cat": "car",
+"ext": [
+1.95,
+0.98,
+1.01
+],
+"from": "M_JeepWranglerRubicon_Bodywork: T_JeepWranglerRubicon_MatteGrey_d (its name)",
+"off": [
+-0.01,
+0.01,
+0.89
+],
+"paint": "grey",
+"paints": [
+[
+[
+128,
+128,
+128
+],
+"M_JeepWranglerRubicon_Bodywork: T_JeepWranglerRubicon_MatteGrey_d (its name)"
+],
+[
+[
+68,
+45,
+0
+],
+"MI_CarPaint_Gloss_Brown01"
+]
+],
+"rgb": [
+128,
+128,
+128
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/LincolnMKZ/Parked/SM_LincolnMKZ_Parked.SM_LincolnMKZ_Parked": {
+"cat": "car",
+"ext": [
+2.45,
+1.11,
+0.76
+],
+"from": "MI_LincolnMKZ_Bodywork",
+"glass": "/Game/Carla/Static/Car/4Wheeled/LincolnMKZ/Parked/SM_LincolnMKZ_Glass_Parked.SM_LincolnMKZ_Glass_Parked",
+"glass_box": {
+"ext": [
+2.39,
+0.9,
+0.53
+],
+"off": [
+-0.03,
+0.0,
+1.02
+]
+},
+"off": [
+-0.01,
+0.0,
+0.76
+],
+"paint": "black",
+"rgb": [
+0,
+0,
+0
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/MercedesCCC/Parked/SM_MercedesCCC_Parked.SM_MercedesCCC_Parked": {
+"cat": "car",
+"ext": [
+2.34,
+1.01,
+0.72
+],
+"from": "MI_MercedesCCC_bodywork",
+"glass": "/Game/Carla/Static/Car/4Wheeled/MercedesCCC/Parked/SM_MercedesCCC_Glass_Parked.SM_MercedesCCC_Glass_Parked",
+"glass_box": {
+"ext": [
+2.21,
+0.83,
+0.45
+],
+"off": [
+-0.0,
+0.0,
+1.0
+]
+},
+"off": [
+-0.0,
+0.0,
+0.72
+],
+"paint": "maroon",
+"rgb": [
+113,
+30,
+30
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/MiniCooper/Parked/SM_MiniCooper_Old_Parked.SM_MiniCooper_Old_Parked": {
+"cat": "car",
+"ext": [
+1.91,
+0.99,
+0.74
+],
+"from": "MI_MiniCooper_Bodywork",
+"off": [
+0.01,
+0.0,
+0.69
+],
+"paint": "red",
+"rgb": [
+161,
+7,
+10
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/MiniCooper/Parked/SM_MiniCooper_Parked.SM_MiniCooper_Parked": {
+"cat": "car",
+"ext": [
+2.28,
+1.13,
+0.89
+],
+"from": "MI_MiniCooper_Bodywork",
+"glass": "/Game/Carla/Static/Car/4Wheeled/MiniCooper/Parked/SM_MiniCooper_Glass_Parked.SM_MiniCooper_Glass_Parked",
+"glass_box": {
+"ext": [
+2.18,
+1.01,
+0.6
+],
+"off": [
+-0.11,
+0.0,
+0.97
+]
+},
+"off": [
+-0.03,
+-0.0,
+0.89
+],
+"paint": "red",
+"rgb": [
+161,
+7,
+10
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Mustang/Parked/SM_Mustang_Parked.SM_Mustang_Parked": {
+"cat": "car",
+"ext": [
+2.36,
+0.95,
+0.65
+],
+"from": "MI_CarPaint_Metallic_Black",
+"glass": "/Game/Carla/Static/Car/4Wheeled/Mustang/Parked/SM_Mustang_Parked_glass.SM_Mustang_Parked_glass",
+"glass_box": {
+"ext": [
+0.99,
+0.86,
+0.19
+],
+"off": [
+-0.33,
+0.0,
+1.05
+]
+},
+"off": [
+0.03,
+-0.0,
+0.65
+],
+"paint": "black",
+"rgb": [
+0,
+0,
+0
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/NissanPatrol/Parked/SM_NissanPatrol_Old_Parked.SM_NissanPatrol_Old_Parked": {
+"cat": "car",
+"ext": [
+2.3,
+0.97,
+0.93
+],
+"from": "MI_BodyWork_NissanPatrol2024",
+"off": [
+-0.06,
+0.0,
+0.94
+],
+"paint": "red",
+"rgb": [
+182,
+0,
+0
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/NissanPatrol/Parked/SM_NissanPatrol_Parked.SM_NissanPatrol_Parked": {
+"cat": "car",
+"ext": [
+2.8,
+1.21,
+1.03
+],
+"from": "MI_carPaint_02",
+"glass": "/Game/Carla/Static/Car/4Wheeled/NissanPatrol/Parked/SM_NissanPatrol_Glass.SM_NissanPatrol_Glass",
+"glass_box": {
+"ext": [
+2.64,
+1.21,
+0.75
+],
+"off": [
+0.01,
+0.0,
+1.26
+]
+},
+"off": [
+0.04,
+0.0,
+1.01
+],
+"paint": "black",
+"rgb": [
+24,
+24,
+24
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/SeatLeon/Parked/SM_SeatLeon_Parked.SM_SeatLeon_Parked": {
+"cat": "car",
+"ext": [
+2.1,
+0.93,
+0.75
+],
+"from": "MI_CarPaint_Metallic_White01",
+"off": [
+0.0,
+-0.01,
+0.74
+],
+"paint": "silver",
+"rgb": [
+188,
+188,
+188
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/Tesla/Parked/SM_TeslaM3_parked.SM_TeslaM3_parked": {
+"cat": "car",
+"ext": [
+2.4,
+1.08,
+0.74
+],
+"from": "MI_TeslaM3_Bodywork",
+"glass": "/Game/Carla/Static/Car/4Wheeled/Tesla/Parked/SM_TeslaM3_parked_glass.SM_TeslaM3_parked_glass",
+"glass_box": {
+"ext": [
+2.28,
+0.86,
+0.52
+],
+"off": [
+0.01,
+-0.0,
+0.95
+]
+},
+"off": [
+0.03,
+0.0,
+0.74
+],
+"paint": "black",
+"rgb": [
+0,
+0,
+0
+]
+},
+"/Game/Carla/Static/Car/4Wheeled/ToyotaPrius/Parked/SM_ToyotaPrius_Parked.SM_ToyotaPrius_Parked": {
+"cat": "car",
+"ext": [
+2.26,
+1.01,
+0.77
+],
+"from": "MI_ToyotaPrius_Bodywork_Parked",
+"off": [
+-0.03,
+-0.0,
+0.73
+],
+"paint": "black",
+"rgb": [
+34,
+34,
+34
+]
+},
+"/Game/Carla/Static/Truck/MercedesSprinter/Parked/SM_MercedesSprinter_Parked.SM_MercedesSprinter_Parked": {
+"cat": "car",
+"ext": [
+2.96,
+1.16,
+1.36
+],
+"glass": "/Game/Carla/Static/Truck/MercedesSprinter/Parked/SM_MercedesSprinter_Glass_Parked.SM_MercedesSprinter_Glass_Parked",
+"glass_box": {
+"ext": [
+2.89,
+1.0,
+0.95
+],
+"off": [
+-0.05,
+0.0,
+1.37
+]
+},
+"off": [
+-0.01,
+0.0,
+1.37
+]
+},
+"/Game/Carla/Static/Truck/VolkswagenT2/Parked/SM_VolkswagenT2_Parked.SM_VolkswagenT2_Parked": {
+"cat": "car",
+"ext": [
+2.22,
+0.94,
+1.0
+],
+"from": "MI_VolkswagenT2_Bodywork",
+"glass": "/Game/Carla/Static/Truck/VolkswagenT2/Parked/SM_VolkswagenT2_Glass_Parked.SM_VolkswagenT2_Glass_Parked",
+"glass_box": {
+"ext": [
+2.12,
+0.83,
+0.58
+],
+"off": [
+0.04,
+0.0,
+1.2
+]
+},
+"off": [
+0.12,
+-0.0,
+0.99
+],
+"paint": "blue",
+"rgb": [
+0,
+131,
+239
+]
+}
+},
 "about": "Static car meshes measured on a CARLA server with scratch probes (static.prop.mesh bounding box, pivot offset and half extents in metres), per CARLA release; parking.py places them as parked cars."
 }
