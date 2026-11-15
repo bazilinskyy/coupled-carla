@@ -93,6 +93,12 @@ DEFAULTS = {
                                      # head on a kerb pole per approach, CARLA's meshes, the lit lamp drawn) or
                                      # "marker" (a line pole and a big glowing point per lane, as before)
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
+        "animate_radius_m": 60.0,    # ... and within this distance move with physics on (bridge/animate.py): wheels
+                                     # roll and steer, cyclists pedal; 0: all placed with physics off as before
+        "autopilot": "sumo",         # input autopilot: "sumo" (SUMO drives the car with the traffic's rules,
+                                     # sumodriver.py; route: [[lat, lon], ...] or destination: {lat, lon} on the
+                                     # participant) or "carla" (CARLA's BasicAgent on random lanes); a participant's
+                                     # own autopilot: wins
         "traffic_manager": False,    # start CARLA's Traffic Manager (only for CARLA-driven autopilot cars)
         "camera_profile": "Dashcam", # CARLA 1.0: the post-process profile of every camera (exposure; CARLA's
                                      # Content/Carla/Config/PostProcess: Dashcam, AutomotiveHDR, Cinematic, ...;
@@ -304,6 +310,18 @@ DEFAULTS = {
         "messages": [],              # {at | at_m | on_state, seconds, display, text, color, takeover, sound, say,
                                      # haptic}
         "messages_file": None,       # the same as coupled-sim's CSV (at;seconds;display;text;color;atDistance;...)
+        "style": "dashboard",        # dashboard: cluster and centre screen on the car's own panels, perspective-correct
+                                     # and behind the wheel, the HUD as light on the windscreen (cockpit.py); overlay:
+                                     # flat panels at the screen's edges (as before). A display with a rect is flat.
+        "wheel": "auto",             # turn the steering wheel in driver and AV-passenger views (the meshes' does not):
+                                     # auto when the station draws anything else (displays, sound, haptics), true
+                                     # always (a per-frame image step), false never
+        "hud_distance_m": 2.5,       # the HUD's virtual image: distance, width (deg) and centre below the line of sight
+        "hud_fov_deg": 20.0,
+        "hud_down_deg": 5.0,
+        "cabin_ev_bias": -1.0,       # CARLA 0.9.x cabin views: exposure this many EV off the street's (look.py)
+                                     # The seat comes from data/driver_eyes.json; a participant's `fov` (deg) or
+                                     # `screens` (1: 90 deg, 3: 180) sets the view's width unless --fov is given.
     },
     "haptics": {                     # haptics.py: take-over requests and cues on the wheel, gamepads, UDP devices
         "enabled": False, "wheel": True, "gamepad": True,

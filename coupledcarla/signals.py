@@ -153,7 +153,8 @@ class Signals:
                                                           lane_type=surfaced) is not None
         self.radius, self.every = radius, every
         self.life = every * step * 1.6
-        # "none": nothing drawn, the level's own traffic-light actors show SUMO's states (a CARLA town, towns.py)
+        # "none": nothing drawn or spawned, the level's own traffic-light actors show SUMO's states (a CARLA town,
+        # towns.py); the heads are still placed (the dashboard's live map shows them)
         self.style = style if style in ("head", "marker", "none") else "head"
         self.heads = []   # (tls_id, [link indices], carla Location at the stop line, travel yaw): the first light
         self.head_links = []    # per head every (tls_id, [link indices]) it shows (several lights per approach)
@@ -230,8 +231,6 @@ class Signals:
             for k, group in enumerate(groups):
                 links = [lk for index in group for lk in lanes[index][1]]
                 add(links, *head_spot(k, groups, by_index, place, on_road))
-        if self.style == "none":
-            self.heads, self.head_links = [], []
         self.meshes = self.style == "head" and self._spawn_heads(world, log)
         self._tick = 0
 
@@ -279,6 +278,8 @@ class Signals:
         return out
 
     def draw(self, centres):
+        if self.style == "none":        # the level's own light actors show SUMO's states (heads kept: livemap)
+            return
         self._tick += 1
         if self._tick % self.every or not centres:
             return

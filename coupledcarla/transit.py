@@ -839,7 +839,10 @@ def routes(map_dir, work, end_s, vtype, vtype_xml, when, pc, seed, net, live=Fal
             f"({', '.join(live_feeds)}); {len(covered)} lines covered")
     vehicles.sort(key=lambda v: v[0])
     for depart, vid, edges, st_ids, pos, line in vehicles:
+        # departSpeed 0: a bus starting its line in the box pulls out (SUMO inserted it at the lane's speed, 60 km/h
+        # out of nowhere in the middle of the Shibuya junction, too fast to stop for a walker on the crossing)
         attrs = (f'id="{vid}" type="{vtype}" depart="{depart:.1f}" departLane="best" departPos="{pos:.1f}" '
+                 f'departSpeed="0" '
                  f'color="{_line_rgb(line)}"')
         line_attr = _x(line["ref"] or line["name"])
         rou.append(f'  <vehicle {attrs} line="{line_attr}">')

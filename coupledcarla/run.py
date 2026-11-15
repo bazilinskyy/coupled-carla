@@ -368,6 +368,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             sync_vehicle_color=True,     # each SUMO car's colour (traffic.py: from the vehicle register) on its CARLA car
             tm_port=tc["server"]["tm_port"] if tc["simulation"].get("traffic_manager") else None,
             radius=tc["simulation"]["lod_radius_m"],
+            animate_radius=tc["simulation"].get("animate_radius_m", 0.0),   # wheels roll, cyclists pedal (animate.py)
             focus=lambda: [a.get_location() for a in focus_actors] or None)
         if town:      # the town's traffic-light actors, run by SUMO through the bridge
             both = sync.sumo.traffic_light_ids & sync.carla.traffic_light_ids
@@ -384,8 +385,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                           style=(tc["simulation"].get("traffic_lights") or {}).get("style", "head"),
                           lefthand=bool(tc["map"].get("lefthand")), log=log,
                           surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None)
-        log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
-            f"{', meshes' if signals.meshes else ''}) drawn near participants")
+        if signals.style != "none":
+            log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
+                f"{', meshes' if signals.meshes else ''}) drawn near participants")
         carla_sim._kinds.update({a.id: False for a in signals.actors})     # static: never looked up per tick
         world.tick()
 
@@ -415,7 +417,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if part.kind == "driver":   # an automated driver's car starts on its route
                 part.actor = tools.spawn(world, geo, part, planner) or spawn_vehicle(world, geo, p, log)
                 if not part.station:
-                    part.input = inputs.make(p.get("input", "keyboard"), part.actor)
+                    kind = p.get("input", "keyboard")
+                    if kind == "autopilot" and (p.get("autopilot") or tc["simulation"].get("autopilot")) == "sumo" \
+                            and not (getattr(tools, "aspec", None) or {}).get(part.role):   # take-over bots: BasicAgent
+                        kind = "sumo"           # SUMO drives it, with the traffic's rules (sumodriver.py)
+                    part.input = inputs.make(kind, part.actor)
             elif part.kind == "pedestrian":
                 part.actor = spawn_pedestrian(world, geo, p)
                 if not part.station and (p.get("input") == "bot" or p.get("bot")):
@@ -442,7 +448,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     view = View(world, part.actor, p.get("view", "driver"), window=window, save_dir=out,
                                 save_every_s=tc["logging"]["frames_every_s"],
                                 profile=tc["simulation"].get("camera_profile", "Dashcam"),
-                                capture=tc["simulation"].get("capture"))
+                                capture=tc["simulation"].get("capture"),
+                                lefthand=bool((tc.get("map") or {}).get("lefthand")))
             if not part.station and part.kind == "drone":
                 window = p.get("window", p.get("input", "keyboard") in ("keyboard", "gamepad", "rc"))
                 drone_world.local_input(part.drone, window and (i == 0))
@@ -483,6 +490,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 parked.update([a.get_location() for a in focus_actors])
                 log(f"parked: {parked.n} cars within {parked.radius:.0f} m of the participants")
         for part in parts:   # BasicAgent planned from (0, 0, 0) before the first tick: plan from the spawn lane
+            if hasattr(part.input, "attach"):     # the SUMO driver: its route from the spawn lane (sumodriver.py)
+                part.input.attach(sync, sumo.net, geo, part.cfg, BridgeHelper.offset, log)
             if hasattr(part.input, "restart"):
                 part.input.restart(world.get_map().get_waypoint(part.actor.get_location()))
         walkers_all = [p.actor for p in parts if p.kind == "pedestrian"] + \
@@ -500,6 +509,12 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             navw.go()
         cmap = world.get_map()
         sumo_yield = SumoYield()
+        if crowd is not None:     # SUMO's speeds: CARLA reads 0 m/s for a SUMO vehicle placed with physics off
+            crowd.velocities = sync.velocity
+            crowd.poses = sync.poses
+            if hasattr(crowd, "signals"):     # cross at signals with the light (pedsignals.py)
+                from .pedsignals import PedSignals
+                crowd.signals = PedSignals.from_sumo(sumo.net, BridgeHelper.offset)
         # Controls and light states of the host's participants, agents and crowd go with the tick's batch (one
         # call per tick; on CARLA 1.0 several separate ones stall the tick, see side.py).
         queue = carla_sim.queue
@@ -525,6 +540,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         if tc["logging"]["carla_recorder"]:
             recorder = client.start_recorder(f"coupledcarla_{tc['name']}_{stamp}_trial{trial_idx}.log", True)
         logger = TrialLogger(out, geo, tc["logging"], step)
+        logger.velocities = sync.velocity        # SUMO vehicles' speeds in frames.csv (see above)
         fc = tc.get("film") or {}
         if fc.get("camera") or fc.get("cameras"):       # demo-video cameras on a sim-time grid (tools/make_videos.py)
             from .film import Film
@@ -630,7 +646,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             t_b = time.time()
             prof["sync"] += t_b - t_a
             laps.start()      # sync.tick() timed its own parts
-            sumo_yield.step(sync, world, walkers_now)
+            # every walker near a SUMO vehicle, on the road or about to step onto it (yielding.py predicts them)
+            sumo_yield.step(sync, world, walkers_all + list(getattr(crowd, "walkers", None) or
+                                                            (crowd.on_road() if crowd is not None else [])), step)
             laps("yield")
             signals.draw([a.get_location() for a in focus_actors])
             laps("signals")
@@ -645,9 +663,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 side.spectator.set_transform(carla.Transform(carla.Location(x=loc.x, y=loc.y, z=loc.z + 60.0),
                                                              carla.Rotation(pitch=90.0)))
             laps("scenery")
+            adopted_ids = {c: s_ for s_, c in sync.adopted.items() if s_ in sync.sumo2carla_ids}   # in SUMO now
             for part in parts:
                 if part.actor.type_id.startswith("vehicle."):
-                    sid = sync.carla2sumo_ids.get(part.actor.id)
+                    sid = sync.carla2sumo_ids.get(part.actor.id) or adopted_ids.get(part.actor.id)
                     part.light = signals.next_light(sid) if sid else None
                     if hasattr(part.input, "light"):
                         part.input.light = part.light
@@ -716,6 +735,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             ai = {}
             sumo_signals = {}
             for sid, cid in sync.sumo2carla_ids.items():
+                if sid in sync.adopted:      # a participant's car driven by SUMO: logged as the participant
+                    continue
                 sa = sync.sumo.get_actor(sid)
                 if cid not in types:
                     a = world.get_actor(cid)
@@ -751,6 +772,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if control is not None and summary["ticks"] % 100 == 1:
                 control.broadcast({"type": "ehmi_state", "all": {str(ag.vehicle.id): ag.ehmi for ag in agents
                                                                  if isinstance(ag, ScriptedCar)}})
+            for part in parts:
+                for name, detail in getattr(part.input, "events", ()):
+                    logger.event(t, snap.frame, name, part.actor.id, detail)
+                if getattr(part.input, "events", None):
+                    part.input.events.clear()
             for name, detail in sumo_yield.events:
                 logger.event(t, snap.frame, name, "", detail)
             sumo_yield.events.clear()
@@ -803,6 +829,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 if part.kind != "driver" or ctl_in is None or tools.drives(part):
                     continue
                 veh = part.actor
+                if getattr(ctl_in, "inserted", True) is False:  # the SUMO driver waiting below the road (hold)
+                    continue
                 # down on the ground plane; a town has kerbs and real heights: off every driving lane
                 off_road = towns.off_road(cmap, veh.get_location()) if town else veh.get_location().z < -0.25
                 if off_road and not was_off.get(veh.id):

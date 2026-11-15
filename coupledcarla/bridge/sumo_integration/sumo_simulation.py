@@ -101,7 +101,9 @@ class SumoActorClass(enum.Enum):
     CUSTOM2 = "custom2"
 
 
-SumoActor = collections.namedtuple('SumoActor', 'type_id vclass transform signals extent color')
+# coupled-carla: speed (m/s) too, for the CARLA side (a SUMO vehicle in CARLA has physics off and reads 0 m/s there)
+SumoActor = collections.namedtuple('SumoActor', 'type_id vclass transform signals extent color speed',
+                                   defaults=(0.0,))
 
 # ==================================================================================================
 # -- sumo traffic lights ---------------------------------------------------------------------------
@@ -317,6 +319,11 @@ def _get_sumo_net(cfg_file):
     sumo_net = sumolib.net.readNet(net_file)
     return sumo_net
 
+def _sumo_args():
+    from coupledcarla.drivers import SUMO_ARGS  # pylint: disable=import-outside-toplevel
+    return SUMO_ARGS
+
+
 LANE_SNAP_M = 0.6   # coupled-carla: farthest a CARLA-driven vehicle may sit from its SUMO lane's centre (see below)
 
 
@@ -338,8 +345,7 @@ class SumoSimulation(object):
             traci.start([sumo_binary,
                 '--configuration-file', cfg_file,
                 '--step-length', str(step_length),
-                '--lateral-resolution', '0.25',
-                '--collision.check-junctions',
+                *_sumo_args(),          # coupled-carla: sublane, collisions, impatience (drivers.SUMO_ARGS)
                 # coupled-carla: keep SUMO's own messages next to the trial's SUMO files
                 '--log', os.path.join(os.path.dirname(os.path.abspath(cfg_file)), 'sumo.log')
             ],
@@ -407,7 +413,7 @@ class SumoSimulation(object):
     # coupled-carla: a SUMO vehicle that is not (yet) in CARLA is only needed for where it is (the level-of-detail
     # check); all twelve variables of every vehicle in the network cost 3 ms of parsing per tick in the twin.
     POSE_VARS = [traci.constants.VAR_POSITION3D, traci.constants.VAR_ANGLE, traci.constants.VAR_SLOPE,
-                 traci.constants.VAR_LENGTH]
+                 traci.constants.VAR_LENGTH, traci.constants.VAR_SPEED]
 
     @staticmethod
     def subscribe_pose(actor_id):
@@ -432,6 +438,11 @@ class SumoSimulation(object):
             return transform, carla.Vector3D(results[traci.constants.VAR_LENGTH] / 2.0, 0.0, 0.0)
         except (KeyError, TypeError, ValueError):
             return None
+
+    @staticmethod
+    def get_speed(actor_id):
+        """coupled-carla: the speed (m/s) of a subscribed actor, 0 when SUMO sent none."""
+        return traci.vehicle.getSubscriptionResults(actor_id).get(traci.constants.VAR_SPEED, 0.0)
 
     @staticmethod
     def unsubscribe(actor_id):
@@ -471,7 +482,8 @@ class SumoSimulation(object):
         signals = results[traci.constants.VAR_SIGNALS]
         extent = carla.Vector3D(length / 2.0, width / 2.0, height / 2.0)
 
-        return SumoActor(type_id, vclass, transform, signals, extent, color)
+        return SumoActor(type_id, vclass, transform, signals, extent, color,
+                         results.get(traci.constants.VAR_SPEED, 0.0))
 
     def spawn_actor(self, type_id, color=None):
         """

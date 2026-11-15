@@ -321,7 +321,7 @@ class InCar:
                 log(f"displays: {name}: {e}")
                 continue
             rect = spec.get("rect") if isinstance(spec, dict) else None
-            self.displays[name] = {"design": d, "rect": self._rect(name, d, rect)}
+            self.displays[name] = {"design": d, "rect": self._rect(name, d, rect), "own_rect": bool(rect)}
         try:
             self.messages = designs.load_messages(self.cfg, base)
         except (OSError, ValueError) as e:
@@ -345,8 +345,19 @@ class InCar:
         self.clock0 = _clock_start(sim_time)
         self.painter = None
         self._prev_state = None
+        # displays.style (cockpit.py): "dashboard" draws into the car's own panels once a CabinView is set
+        # (set_cabin, by stationux), "overlay" keeps flat panels at the screen's edges
+        self.style = str(self.cfg.get("style") or "dashboard").lower()
+        self.cabin = None
+        self.wheel_deg = 0.0
+        self.max_steer = 70.0        # the car's front wheels' steering lock (deg; stationux reads the physics)
+        self.screen_gain, self.hud_gain = 0.92, 0.9
         if self.displays or self.messages:
             log(f"displays: {', '.join(self.displays) or 'none'}; {len(self.messages)} timed messages")
+
+    def set_cabin(self, cabin):
+        """The station's cockpit.CabinView (dashboard style), or None for flat panels."""
+        self.cabin = cabin if self.style != "overlay" else None
 
     def _rect(self, name, design, rect):
         sw, sh = self.size
@@ -380,6 +391,9 @@ class InCar:
         throttle = float(getattr(control, "throttle", 0.0) or 0.0) if control is not None else 0.0
         steer = float(getattr(control, "steer", 0.0) or 0.0) if control is not None else 0.0
         reverse = bool(getattr(control, "reverse", False)) if control is not None else False
+        if control is not None:      # the steering wheel's angle in the image (cockpit.WheelSpin)
+            from .cockpit import wheel_degrees
+            self.wheel_deg = wheel_degrees(steer, self.max_steer)
         # take-over request: over at its end; a response is the first brake, throttle or steering after it
         if self.takeover is not None:
             start, until = self.takeover
@@ -453,20 +467,57 @@ class InCar:
             els += [back, txt]
         return els
 
+    def _panel_for(self, name, disp, size):
+        mine = [m for m, _u, target in self.shown if target in ("all", name)]
+        values = dict(self.values, message=mine[-1]["text"] if mine else "")    # {message}: this display's
+        conds = dict(self.conds, message=bool(mine))
+        return self.painter.panel(disp["design"], size, self.state, self.tt, values, conds,
+                                  self._message_elements(name), self.limit)
+
     def draw(self, surface):
-        if not self.displays or self.t0 is None:
+        if self.t0 is None:
             return
         import pygame
         if self.painter is None:
             self.painter = Painter(pygame)
-        for name, disp in self.displays.items():
+        flat = dict(self.displays)
+        if self.cabin is not None:          # displays.style dashboard (cockpit.py): on the car's own panels
+            flat = self._draw_dashboard(surface, pygame)
+        for name, disp in flat.items():
             x, y, w, h = disp["rect"]
-            mine = [m for m, _u, target in self.shown if target in ("all", name)]
-            values = dict(self.values, message=mine[-1]["text"] if mine else "")    # {message}: this display's
-            conds = dict(self.conds, message=bool(mine))
-            panel = self.painter.panel(disp["design"], (w, h), self.state, self.tt, values, conds,
-                                       self._message_elements(name), self.limit)
-            surface.blit(panel, (x, y))
+            surface.blit(self._panel_for(name, disp, (w, h)), (x, y))
+
+    def _draw_dashboard(self, surface, pygame):
+        """Draws the displays into the car's cluster, centre-screen and HUD panels (cockpit.CabinView) and turns
+        the steering wheel; returns the displays still to draw flat (those with their own `rect`)."""
+        import numpy as np
+        cab = self.cabin
+        left = {}
+        arr = pygame.surfarray.pixels3d(surface)
+        try:
+            img = arr.swapaxes(0, 1)
+            spinning = cab.spin is not None and cab.spin.lift(img, self.wheel_deg)
+            for name, disp in self.displays.items():
+                if disp.get("own_rect"):
+                    left[name] = disp
+                    continue
+                d = disp["design"]
+                aspect = d["height"] / max(1e-6, d["width"])
+                tex = cab.tex_size(name, aspect)
+                if tex is None:
+                    continue
+                panel = self._panel_for(name, disp, tex)
+                rgba = np.dstack([pygame.surfarray.array3d(panel), pygame.surfarray.array_alpha(panel)])
+                rgba = np.ascontiguousarray(rgba.swapaxes(0, 1))
+                if name == "hud":
+                    cab.draw(img, name, rgba, additive=True, gain=self.hud_gain)
+                else:
+                    cab.draw(img, name, rgba, gain=self.screen_gain, spinning=spinning)
+            if spinning:
+                cab.spin.put_back(img)
+        finally:
+            del arr
+        return left
 
 
 def _truthy(v):

@@ -4,19 +4,19 @@ import queue
 import carla
 import numpy as np
 
-from . import look
+from . import cockpit, look
 from .compat import listen, setup_camera
 
 VIEWS = {  # camera mounts relative to the vehicle centre
     "chase": carla.Transform(carla.Location(x=-6.5, z=2.8), carla.Rotation(pitch=-10)),
-    "driver": carla.Transform(carla.Location(x=-0.05, y=-0.38, z=1.22)),   # left-hand drive, eye height
+    "driver": carla.Transform(carla.Location(x=-0.05, y=-0.38, z=1.22)),   # unmeasured fallback (cockpit.py)
     "hood": carla.Transform(carla.Location(x=1.6, z=1.6)),
 }
 
 
 class View:
     def __init__(self, world, vehicle, view="driver", size=(1280, 720), fov=90, window=True,
-                 save_dir=None, save_every_s=0.0, profile="Dashcam", capture=None):
+                 save_dir=None, save_every_s=0.0, profile="Dashcam", capture=None, lefthand=False):
         self.window = window
         self.latest = None
         self.save_dir = save_dir
@@ -35,9 +35,15 @@ class View:
         self.keep_every = setup_camera(bp, save_every_s if saving else 0.0, profile, 400, world=world, capture=cap)
         self._kept_at = None
         self.camera = None
+        mount = VIEWS.get(view, VIEWS["driver"])
+        if view == "driver" or view not in VIEWS:       # the car's measured driver's seat (cockpit.py)
+            x, y, z, pitch = cockpit.actor_eye(vehicle, "driver", lefthand)
+            mount = carla.Transform(carla.Location(x=x, y=y, z=z), carla.Rotation(pitch=pitch))
         if window or save_every_s > 0:
-            self.camera = world.spawn_actor(bp, VIEWS.get(view, VIEWS["driver"]), attach_to=vehicle,
-                                            attachment_type=carla.AttachmentType.Rigid)
+            # chase: CARLA's spring arm, which pulls the camera in front of a bus or a wall behind the car
+            self.camera = world.spawn_actor(bp, mount, attach_to=vehicle,
+                                            attachment_type=carla.AttachmentType.SpringArm if view == "chase" else
+                                            carla.AttachmentType.Rigid)
             listen(self.camera, self._on_image, lambda m: print(f"[view] {m}", flush=True), "view")
         self.screen = None
         self.font = None

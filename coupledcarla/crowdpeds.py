@@ -906,6 +906,9 @@ class CrowdSim:
 
     def __init__(self, world, geo, segments, walkers, params, seed=1, log=_log):
         self.send = None   # (actor, WalkerControl) -> None; the runner sends them with the tick's batch
+        self.velocities = None   # {actor id: (vx, vy)}: SUMO vehicles' speeds (CARLA reads 0 m/s for them)
+        self.signals = None      # pedsignals.PedSignals: at a signal, cross only when the cars crossing it have red
+        self.poses = None        # the bridge's SUMO vehicle poses: walkers on the road wait for a car in their way
         import carla
         self.carla, self.world = carla, world
         self.params, self.events = params, []
@@ -951,10 +954,12 @@ class CrowdSim:
         out = []
         for v in self.world.get_actors().filter("vehicle.*"):
             try:
-                loc, vel = v.get_location(), v.get_velocity()
+                loc = v.get_location()
+                sumo_v = self.velocities.get(v.id) if self.velocities else None
+                vx, vy = sumo_v if sumo_v is not None else (lambda u: (u.x, u.y))(v.get_velocity())
             except RuntimeError:
                 continue
-            out.append((loc.x, loc.y, vel.x, vel.y))
+            out.append((loc.x, loc.y, vx, vy))
         return out
 
     def step(self, t):
@@ -975,11 +980,13 @@ class CrowdSim:
                     if vehicles is None:
                         vehicles = self._vehicles()
                     t_c = critical_gap(width, st["speed"], t - st["wait_from"])
-                    if not gap_ok(pts[0], pts[1], vehicles, t_c, marked):
+                    light = self.signals.may_cross(pts[0], pts[1]) if self.signals is not None else None
+                    if light is False or not gap_ok(pts[0], pts[1], vehicles, t_c, marked):
                         send(actor, carla.WalkerControl(speed=0.0))
                         continue
                     self.events.append(("crowd_crosses", f"{actor.id} {'marked' if marked else 'mid-block'} "
-                                        f"{width:.1f} m after {t - st['wait_from']:.1f} s"))
+                                        f"{width:.1f} m after {t - st['wait_from']:.1f} s"
+                                        f"{' on its light' if light else ''}"))
                     st["pt"], st["crossing"], st["wait_from"] = 1, True, None
                 tx, ty = pts[st["pt"]]
                 dx, dy = tx - loc.x, ty - loc.y
@@ -989,10 +996,26 @@ class CrowdSim:
                     if st["pt"] >= len(pts):
                         st["leg"], st["pt"], st["crossing"] = st["leg"] + 1, 0, False
                     continue
+                if blocked(loc.x + 0.7 * dx / d, loc.y + 0.7 * dy / d, self.poses):
+                    send(actor, carla.WalkerControl(speed=0.0))     # a vehicle stands in the way: wait for it
+                    continue
                 send(actor, carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0),
                                                         speed=st["speed"]))
             except RuntimeError:
                 pass
+
+
+def blocked(x, y, poses, margin=0.3):
+    """Whether (x, y) lies within a SUMO vehicle's box (poses: the bridge's {id: (x, y, yaw, speed, half length,
+    half width)}) grown by margin: a walker on the road does not walk into a car standing on its crossing."""
+    for vx, vy, yaw, _sp, hl, hw in (poses or {}).values():
+        if (x - vx) ** 2 + (y - vy) ** 2 > (hl + margin + 1.0) ** 2:
+            continue
+        c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+        f, l = (x - vx) * c + (y - vy) * s, -(x - vx) * s + (y - vy) * c
+        if abs(f) <= hl + margin and abs(l) <= hw + margin:
+            return True
+    return False
 
 
 def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):

@@ -1,6 +1,7 @@
 """Driver inputs. Each returns a carla.VehicleControl (or None to leave the car alone) once per tick.
 
-autopilot  CARLA's BasicAgent, following random lanes and stopping for cars and red lights (headless tests).
+autopilot  SUMO drives the car (sumodriver.py; simulation.autopilot: sumo, the default), or with autopilot: carla
+           CARLA's BasicAgent, following random lanes and stopping for cars and red lights.
 keyboard   W/S or arrows to drive, A/D to steer, Q reverse, Space hand brake, Z/X blinkers, R back onto the
            nearest lane, Esc ends the trial.
 wheel      a Logitech G25 (or similar) with force feedback, through steering_wheel.py.
@@ -157,4 +158,7 @@ class Wheel(Keyboard):
 
 
 def make(kind, vehicle, **kw):
+    if kind == "sumo":       # the SUMO driver (sumodriver.py): SUMO drives, the bridge moves the car
+        from ..sumodriver import SumoDriver
+        return SumoDriver(vehicle, **kw)
     return {"autopilot": Autopilot, "keyboard": Keyboard, "wheel": Wheel}[kind](vehicle, **kw)

@@ -146,7 +146,7 @@ def test_traffic_light_index_matches_the_old_scan(mods, monkeypatch):
 
 class _FakeSumo:
     def __init__(self, carla):
-        self.carla, self.pos, self.subs = carla, {}, {}
+        self.carla, self.pos, self.subs, self.speed = carla, {}, {}, {}
         self.spawned_actors, self.destroyed_actors = set(), set()
         self.calls = []
 
@@ -175,13 +175,14 @@ class _FakeSumo:
     def get_actor(self, i):
         assert self.subs.get(i) == "full", "get_actor needs the full subscription"
         return types.SimpleNamespace(transform=self._tf(i), extent=self.carla.Vector3D(2.0, 1.0, 0.8), signals=8,
-                                     type_id="car", color=(1, 2, 3))
+                                     type_id="car", color=(1, 2, 3), speed=self.speed.get(i, 0.0))
 
 
 class _FakeCarlaSim:
     def __init__(self):
-        self.next_id, self.alive, self.synced = 100, set(), []
+        self.next_id, self.alive, self.synced, self.followed = 100, set(), [], []
         self.spawned_actors, self.destroyed_actors, self.traffic_light_ids = set(), set(), set()
+        self._physics, self.step_length = set(), 0.02
 
     def spawn_actor(self, bp, tf):
         self.next_id += 1
@@ -197,6 +198,14 @@ class _FakeCarlaSim:
     def synchronize_vehicle(self, i, tf, lights=None):
         self.synced.append((i, lights))
 
+    def place_vehicle(self, i, tf, lights=None):
+        self._physics.discard(i)
+        self.synchronize_vehicle(i, tf, lights)
+
+    def follow_vehicle(self, i, tf, speed, yaw_rate, length, lights=None):
+        self._physics.add(i)
+        self.followed.append((i, speed))
+
     def tick(self):
         pass
 
@@ -208,6 +217,8 @@ def _sync(mods, sumo, carla_sim, centre):
     s.focus, s.radius = (lambda: [centre]), 100.0
     s._sumo_live, s._lod_tick, s._common_landmarks = set(), 0, None
     s.sumo2carla_ids, s.carla2sumo_ids = {}, {}
+    s.animate_radius, s.velocity, s.poses, s._prev_yaw = 0.0, {}, {}, {}
+    s.adopted, s.arrived_adopted = {}, set()
     s.laps = lambda name: None
     return s
 
@@ -230,6 +241,65 @@ def test_vehicles_far_away_are_subscribed_to_their_pose_only(mods, monkeypatch):
     assert set(s.sumo2carla_ids) == {"far"}
     assert sumo.subs == {"near": "pose", "far": "full"}
     assert len(carla_sim.alive) == 1
+
+
+def test_near_vehicles_follow_with_physics_and_speeds_reach_carla(mods, monkeypatch):
+    """Within animate_radius a SUMO vehicle is moved with physics on (wheels, pedalling; bridge/animate.py), farther
+    away placed as before; every vehicle's SUMO speed is in sync.velocity (CARLA reads 0 m/s for a placed one)."""
+    c = mods.carla
+    monkeypatch.setattr(mods.sync.BridgeHelper, "offset", (0.0, 0.0))
+    monkeypatch.setattr(mods.sync.BridgeHelper, "get_carla_blueprint", staticmethod(lambda a, color=False: "bp"))
+    sumo, carla_sim = _FakeSumo(c), _FakeCarlaSim()
+    s = _sync(mods, sumo, carla_sim, c.Location(0.0, 0.0, 0.0))
+    s.animate_radius = 40.0
+    sumo.pos = {"near": (20.0, 0.0), "mid": (80.0, 0.0)}
+    sumo.speed = {"near": 5.0, "mid": 10.0}
+    sumo.spawned_actors = {"near", "mid"}
+    s.tick()
+    ids = s.sumo2carla_ids
+    assert [i for i, _ in carla_sim.followed] == [ids["near"]] and [i for i, _ in carla_sim.synced] == [ids["mid"]]
+    assert math.hypot(*s.velocity[ids["mid"]]) == pytest.approx(10.0)
+    assert s.poses[ids["near"]][3] == 5.0
+
+
+def test_vehicles_touching_in_sumo_are_placed_not_pushed(mods, monkeypatch):
+    """Two SUMO vehicles whose bodies overlap (a SUMO collision) would push each other round with physics on."""
+    c = mods.carla
+    monkeypatch.setattr(mods.sync.BridgeHelper, "offset", (0.0, 0.0))
+    monkeypatch.setattr(mods.sync.BridgeHelper, "get_carla_blueprint", staticmethod(lambda a, color=False: "bp"))
+    sumo, carla_sim = _FakeSumo(c), _FakeCarlaSim()
+    s = _sync(mods, sumo, carla_sim, c.Location(0.0, 0.0, 0.0))
+    s.animate_radius = 40.0
+    sumo.pos = {"a": (10.0, 0.0), "b": (10.0, 1.0), "c": (25.0, 0.0)}     # a and b side by side, 1 m apart
+    sumo.spawned_actors = {"a", "b", "c"}
+    s.tick()                                   # no poses yet: all followed
+    carla_sim.followed, carla_sim.synced = [], []
+    sumo.spawned_actors = set()
+    s.tick()
+    ids = s.sumo2carla_ids
+    assert {i for i, _ in carla_sim.followed} == {ids["c"]}
+    assert {i for i, _ in carla_sim.synced} == {ids["a"], ids["b"]}
+
+
+def test_adopted_car_is_driven_by_sumo_never_twinned_or_destroyed(mods, monkeypatch):
+    c = mods.carla
+    monkeypatch.setattr(mods.sync.BridgeHelper, "offset", (0.0, 0.0))
+    sumo, carla_sim = _FakeSumo(c), _FakeCarlaSim()
+    s = _sync(mods, sumo, carla_sim, c.Location(0.0, 0.0, 0.0))
+    s.animate_radius = 40.0
+    s.adopt("ego_driver", 7)
+    carla_sim.spawned_actors = {7}                   # the participant's car appears in CARLA: no SUMO twin
+    sumo.spawn_actor = lambda *a: pytest.fail("a SUMO twin for an adopted car")
+    s.tick()
+    assert s.carla2sumo_ids == {} and "ego_driver" not in s.sumo2carla_ids     # not inserted in SUMO yet
+    carla_sim.spawned_actors = set()
+    sumo.pos, sumo.spawned_actors = {"ego_driver": (300.0, 0.0)}, {"ego_driver"}     # far from the focus
+    s.tick()
+    assert s.sumo2carla_ids == {"ego_driver": 7} and carla_sim.followed[-1][0] == 7   # always followed
+    sumo.spawned_actors, sumo.destroyed_actors = set(), {"ego_driver"}             # its route ended
+    carla_sim.destroy_actor = lambda i: pytest.fail("the participant's car destroyed")
+    s.tick()
+    assert s.arrived_adopted == {"ego_driver"} and "ego_driver" not in s.sumo2carla_ids
 
 
 # -- CARLA side: light cache and the command queue ----------------------------------------------------------------
