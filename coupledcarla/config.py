@@ -121,8 +121,9 @@ DEFAULTS = {
         "parked": {"enabled": True,  # parked cars (map.scenery.parked) in the stalls taken at the trial's hour
                    "radius_m": 250.0,     # streamed within this distance of the participants
                    "occupancy": "auto",   # "auto": by zone and local hour (parking.PRESENCE), or a share 0-1
-                   "town_layer": "auto"},  # CARLA _Opt towns' own parked cars (ParkedVehicles layer): "auto" keeps
-                                          # them unless coupled-carla parks cars there; true keeps, false unloads
+                   "town_layer": "auto"},  # CARLA towns' own parked cars: "auto" places Coupled CARLA's where the
+                                          # map has stalls (unloading an _Opt town's ParkedVehicles layer; a full
+                                          # level with cars of its own keeps them); true: the level's only; false: ours
         "town_lights": "auto",       # CARLA towns: street and building lights on at night (LightManager); "on",
                                      # "off", or false (left to the server)
     },

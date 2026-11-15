@@ -326,22 +326,31 @@ def environment(world, mdir, server_version, log=print):
     return got
 
 
-def parked_layer(world, tc, has_ours, log=print):
-    """The level's own static parked cars (the ParkedVehicles layer of the _Opt towns): kept unless coupled-carla
-    places parked cars here (then unloaded, so they do not stand in each other), or simulation.parked.town_layer
-    says so (true: keep, false: unload)."""
+def own_parked(world, tc, mdir, log=print):
+    """Whether Coupled CARLA places its parked cars in this town (True) or the level keeps its own static ones
+    (False). simulation.parked.town_layer: "auto" places ours where the map has stalls and then unloads the _Opt
+    towns' ParkedVehicles layer (so cars do not stand in each other); a full (non-_Opt) level, whose parked cars
+    cannot be unloaded, keeps them when it has any; true keeps the level's cars and places none of ours; false
+    unloads the layer and places ours."""
     import carla
     pc = (tc.get("simulation") or {}).get("parked") or {}
     want = pc.get("town_layer", "auto")
-    keep = (not has_ours) if want in (None, "auto") else bool(want)
-    if keep or not str(tc["map"].get("carla_level", "")).endswith("_Opt"):
-        return keep
-    try:
-        world.unload_map_layer(carla.MapLayer.ParkedVehicles)
-        log("town: the level's own parked cars unloaded (coupled-carla's parked cars stand in their place)")
-    except (RuntimeError, AttributeError) as err:
-        log(f"town: parked-car layer not unloaded ({err})")
-    return False
+    pj, objs = Path(mdir) / "parked.json", Path(mdir) / "town_objects.json"
+    stalls = bool(json.loads(pj.read_text()).get("slots")) if pj.exists() else False
+    level_cars = json.loads(objs.read_text()).get("parked_layer", 0) if objs.exists() else 0
+    layered = str(tc["map"].get("carla_level", "")).endswith("_Opt")
+    if want is True:
+        return False
+    ours = stalls and (want is False or layered or not level_cars)
+    if ours and layered:
+        try:
+            world.unload_map_layer(carla.MapLayer.ParkedVehicles)
+            log("town: the level's own parked cars unloaded (Coupled CARLA's parked cars stand in their place)")
+        except (RuntimeError, AttributeError) as err:
+            log(f"town: parked-car layer not unloaded ({err})")
+    elif not ours and level_cars:
+        log(f"town: the level's own {level_cars} parked cars")
+    return ours
 
 
 def lights(world, night, mode="auto", log=print):

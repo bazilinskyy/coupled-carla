@@ -209,3 +209,22 @@ def test_missing_level_message():
     msg = towns.missing_level(client, "Town06_Opt", RuntimeError("Map 'Town06_Opt' not found"))
     assert "Town01, Town10HD_Opt" in msg and "AdditionalMaps" in msg
     assert "only the _Opt towns" in towns.missing_level(client, "Town03", "not found")
+
+
+@pytest.mark.parametrize("level,stalls,level_cars,want,ours,unloaded", [
+    ("Town10HD_Opt", True, 29, "auto", True, True),      # ours, and the layer of the level's cars unloaded
+    ("Town10HD", True, 29, "auto", False, False),        # a full level's cars cannot be unloaded: keep them
+    ("Town10HD", True, 0, "auto", True, False),
+    ("Town01_Opt", False, 9, "auto", False, False),      # no stalls (0.3 m shoulders): the level's cars
+    ("Town03_Opt", True, 43, True, False, False),        # town_layer true: the level's cars only
+    ("Town03", True, 43, False, True, False),            # false: ours
+])
+def test_own_parked(tmp_path, monkeypatch, level, stalls, level_cars, want, ours, unloaded):
+    monkeypatch.setitem(sys.modules, "carla", NS(MapLayer=NS(ParkedVehicles=16)))
+    (tmp_path / "parked.json").write_text(json.dumps({"slots": [[0] * 8] if stalls else []}))
+    (tmp_path / "town_objects.json").write_text(json.dumps({"parked_layer": level_cars}))
+    calls = []
+    world = NS(unload_map_layer=lambda layer: calls.append(layer))
+    tc = {"map": {"carla_level": level}, "simulation": {"parked": {"town_layer": want}}}
+    assert towns.own_parked(world, tc, tmp_path, log=lambda m: None) is ours
+    assert bool(calls) is unloaded

@@ -465,13 +465,12 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
                                                   f"{scenery.lights_radius:.0f} m" if scenery.light_bp else ""))
-            parked = parking.scenery(client, world, mdir, tc, log,
-                                     on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
+            if not town or towns.own_parked(world, tc, mdir, log):     # a town may keep its own parked cars
+                parked = parking.scenery(client, world, mdir, tc, log,
+                                         on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
             if parked is not None:
                 parked.update([a.get_location() for a in focus_actors])
                 log(f"parked: {parked.n} cars within {parked.radius:.0f} m of the participants")
-            if town:
-                towns.parked_layer(world, tc, parked is not None, log)
         for part in parts:   # BasicAgent planned from (0, 0, 0) before the first tick: plan from the spawn lane
             if hasattr(part.input, "restart"):
                 part.input.restart(world.get_map().get_waypoint(part.actor.get_location()))
