@@ -629,7 +629,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 side.spectator.set_transform(carla.Transform(carla.Location(x=loc.x, y=loc.y, z=loc.z + 60.0),
                                                              carla.Rotation(pitch=90.0)))
             laps("scenery")
-            adopted_ids = {c: s_ for s_, c in sync.adopted.items()}
+            adopted_ids = {c: s_ for s_, c in sync.adopted.items() if s_ in sync.sumo2carla_ids}   # in SUMO now
             for part in parts:
                 if part.actor.type_id.startswith("vehicle."):
                     sid = sync.carla2sumo_ids.get(part.actor.id) or adopted_ids.get(part.actor.id)
