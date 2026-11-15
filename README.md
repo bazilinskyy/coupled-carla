@@ -732,7 +732,7 @@ back to the exact settings it ran with.
 |---|---|
 | `keyboard` | W/S or arrows to drive, A/D to steer (rate-limited), Q reverse, Space hand brake, Z/X blinkers, R puts the car back on the nearest lane, Esc ends the trial. |
 | `wheel` | Logitech G25 (or a similar wheel) via [`steering_wheel.py`](coupledcarla/inputs/steering_wheel.py): steering with a 7:1 ratio, pedals, shifter, and force feedback modelled on a real car (aligning torque from tyre slip, speed-dependent power steering, road rumble, collision jolts). The keyboard keys above still work. |
-| `autopilot` | CARLA's BasicAgent following random lanes, stopping for vehicles and for red/yellow lights from SUMO. For tests and as an AI driver. |
+| `autopilot` | SUMO drives the car (`simulation.autopilot: sumo`, the default; `sumodriver.py`) with the traffic's rules, along `route: [[lat, lon], ...]` or to `destination: {lat, lon}`, else to random destinations; the bridge moves the CARLA car. `autopilot: carla` keeps CARLA's BasicAgent on random lanes (take-over bots always use it). |
 
 Views: `driver` (left-hand-drive seat, eye height), `hood`, `chase`. With a window (keyboard, wheel) the view is
 shown in a pygame window with a HUD (speed, time, next light).
@@ -1447,6 +1447,22 @@ a 0.9.16 server.
 
 ## Traffic
 
+- **Driving behaviour** (`coupledcarla/drivers.py`): EIDM (Salles et al. 2020) for cars, buses and bikes (Krauss's
+  random dawdling at the 0.02 s step gave bikes a new acceleration 50 times a second: jerk p95 6.8 → 1.0 m/s³);
+  planned deceleration 3.4 m/s² for cars (AASHTO), 2.0 for buses (standing passengers), 2.5 for bikes; tau 1.2 s,
+  minGap 2 m (Treiber & Kesting); no pushing into junctions (impatience 0). Vehicle sizes are the CARLA bodies'. A
+  SUMO collision is logged, not teleported; buses start their line from standstill. `python tools/traffic_check.py`
+  measures teleports, collisions, emergency braking, red-light entries, accelerations, jerk, time gaps and speeds per
+  vehicle class; `tools/drive_check.py <trial>` measures a CARLA trial (the ego's events, jerk, overlapping vehicles,
+  walker contacts, heading jumps). With SUMO driving the autopilot, the ego got stuck 0 times in 8 runs of 150 s
+  (before: 3-31 times per run).
+- **Animation**: within `simulation.animate_radius_m` (60 m) of a participant, SUMO vehicles move with physics on,
+  following their SUMO pose by velocity, so wheels roll and steer and cyclists pedal (+0.1 ms per tick).
+- **Pedestrians**: SUMO vehicles brake for every walker in or entering their path, using SUMO's own speeds (CARLA
+  reads 0 m/s for a vehicle placed with physics off), comfortably when possible and as an emergency stop otherwise
+  (`yielding.py`). Crowd walkers cross at signals only when the cars crossing them have red; OSM scramble crossings get
+  an all-pedestrian phase (`pedsignals.py`). Tokyo, 2 runs: vehicle-walker contacts 25 → 0.
+
 - **Models.** SUMO's Extended IDM (EIDM) for car following (human-like reaction and drive-off) with
   `tau = 1.2 s`, `minGap = 2 m`, speed factor N(1.0, 0.1); the sublane model (`--lateral-resolution 0.25`)
   for lane changing, which lets cyclists ride at the right edge and cars overtake them.
@@ -1708,9 +1724,9 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
   default program per approach (green 42 s, yellow 3 s, red 3 s). Real programs are a follow-up.
 - **Public transport** is buses only (no trams or trains), with frequencies per hour rather than the exact
   departures; cities without a free GTFS feed (London, Taipei, Kigali, ...) use OSM intervals or a default.
-- **Autopilot:** the test autopilot follows random lanes; on a few lane drops it leaves the road and is put back
-  (logged). Scripted agents use routes (CARLA's route planner with a bounded topology walk, see Lessons
-  learned); on some maps (New York) a route between two given points is not found and the agent follows lanes.
+- **Traffic:** SUMO still logs junction collisions at a few junctions with faulty internal lanes from netconvert's
+  OpenDRIVE import; vehicles that SUMO inserts at speed inside the level-of-detail radius can come too close to a
+  walker to stop.
 - **CARLA 0.9.16 only:** the UE 5 line (0.10 / ue58-dev) has no SUMO co-simulation; porting the vendored
   bridge is part of phase 3.
 
@@ -1848,6 +1864,9 @@ What cost time while building phases 1 and 2, so it does not again:
   counts a junction's paved area as road.
 - Ground tiles lie under the roads, so objects must stand on the tiles (`ground_planes` in `scenery.json`), not on
   the terrain model.
+- CARLA 0.9.16 reports 0 m/s for a vehicle placed with physics off, and its wheels and a bike's pedals do not move;
+  take speeds from SUMO, and to animate a vehicle drive it with physics on (a target velocity plus throttle).
+- Without `departSpeed`, SUMO inserts a vehicle at the lane's speed, also in the middle of the map.
 
 ## Project layout
 
