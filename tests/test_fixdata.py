@@ -218,3 +218,25 @@ def test_map_counts_older_than_their_age_are_kept_offline(tmp_path, monkeypatch)
     os.utime(real / "bike_counters.json", (old, old))
     monkeypatch.setattr(cycling, "FETCHERS", [("nyc", (40.0, -75.0, 41.0, -73.0), down)])
     assert cycling.counters([40.75, -73.99, 40.76, -73.97], real) == [{"id": "a"}]
+
+
+def test_guessed_lamps_stand_at_the_kerb_on_both_traffic_sides():
+    # a road along +x with two lanes right of its reference line (y = 0): lane -1 at y = 1.6, lane -2 at y = 4.8
+    # (CARLA's y points right of +x). Right-hand traffic: the kerb is beyond lane -2; left-hand: beyond the
+    # reference line, left of lane -1 (London's guessed lamps once stood along the centre line instead)
+    from types import SimpleNamespace as NS
+    from coupledcarla import scenery
+    carla = NS(LaneType=NS(Driving=1, NONE=0))
+    lanes = {}
+
+    def lane(lid, y):
+        tf = NS(location=NS(x=10.0, y=y), rotation=NS(yaw=0.0), get_right_vector=lambda: NS(x=0.0, y=1.0))
+        return NS(lane_id=lid, lane_type=1, lane_width=3.2, transform=tf, road_id=1, section_id=0, s=10.0,
+                  get_right_lane=lambda: lanes.get(lid - 1), get_left_lane=lambda: lanes.get(lid + 1))
+    lanes.update({-1: lane(-1, 1.6), -2: lane(-2, 4.8)})
+    assert scenery.kerb_lamp(lanes[-1], False, carla) is None
+    edge, x, y, yaw = scenery.kerb_lamp(lanes[-2], False, carla)
+    assert edge.lane_id == -2 and y == pytest.approx(7.4) and yaw % 360 == pytest.approx(270.0)   # arm to -y
+    assert scenery.kerb_lamp(lanes[-2], True, carla) is None
+    edge, x, y, yaw = scenery.kerb_lamp(lanes[-1], True, carla)
+    assert edge.lane_id == -1 and y == pytest.approx(-1.0) and yaw % 360 == pytest.approx(90.0)    # arm to +y
