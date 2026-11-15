@@ -104,3 +104,20 @@ def test_transit_rebuild_of_an_opendrive_map_uses_its_built_box(tmp_path, monkey
                         {"lines": 0, "refs": 0, "stops": 0, "with_timetable": 0, "feeds": []})
     mapbuild.build(cfg, transit_only=True)
     assert got["bbox"] == box
+
+
+def test_overture_down_falls_back_to_osm_buildings(tmp_path, monkeypatch):
+    # an S3/network error in the DuckDB query raised out of scenery.build: no scenery at all (Noumea with the query
+    # failing: the traceback; fixed: 2452 OSM footprints)
+    import sys
+    import types
+
+    class Con:
+        def execute(self, q):
+            if "read_parquet" in q:
+                raise OSError("IO Error: Could not establish connection")
+            return self
+    monkeypatch.setitem(sys.modules, "duckdb", types.SimpleNamespace(connect=lambda: Con()))
+    f = tmp_path / "overture_buildings.json"
+    assert rw.overture_buildings([-22.28, 166.45, -22.27, 166.46], f) is None
+    assert not f.exists()          # not cached: the next build tries again

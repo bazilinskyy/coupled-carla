@@ -244,13 +244,18 @@ def overture_buildings(bbox, path, release=OVERTURE_RELEASE):
         log("Overture skipped: pip install duckdb")
         return None
     s, w, n, e = bbox
-    con = duckdb.connect()
-    con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial; SET s3_region='us-west-2';")
     q = f"""SELECT height, num_floors, class, subtype, sources[1].dataset AS src, ST_AsGeoJSON(geometry) AS g
             FROM read_parquet('{OVERTURE.format(rel=release)}', hive_partitioning=1)
             WHERE bbox.xmin < {e} AND bbox.xmax > {w} AND bbox.ymin < {n} AND bbox.ymax > {s}"""
+    try:
+        con = duckdb.connect()
+        con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial; SET s3_region='us-west-2';")
+        rows = con.execute(q).fetchall()
+    except Exception as err:  # noqa: BLE001 - offline or S3 down: OSM's buildings (not cached: tried again next build)
+        log(f"Overture failed ({type(err).__name__}: {err}); OSM buildings")
+        return None
     out = []
-    for height, floors, cls, sub, src, g in con.execute(q).fetchall():
+    for height, floors, cls, sub, src, g in rows:
         geom = json.loads(g)
         polys = [geom["coordinates"]] if geom["type"] == "Polygon" else geom["coordinates"]
         for poly in polys:
