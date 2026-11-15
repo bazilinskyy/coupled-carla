@@ -573,14 +573,17 @@ class CabinView:
         self._wheel_px = sp.full_mask(self.size) if sp.ok else None
 
     def _settle(self, pnl):
-        """A derived panel moved along its up axis (at most 15 cm down or 10 cm up, the smallest move first) until
-        it lies on the dashboard: under 5 % of it floating in front of what is far behind it (the windscreen, the
-        street) and under 20 % hidden inside the dashboard (the wheel's pixels do not count)."""
+        """A derived panel moved along its up axis (at most 15 cm down or 10 cm up) and towards the viewer (at most
+        10 cm: a cluster in a shallow binnacle), the smallest move first, until it lies on the dashboard: under 5 % of
+        it floating in front of what is far behind it (the windscreen, the street) and under 20 % hidden inside the
+        dashboard (the wheel's pixels do not count)."""
         import numpy as np
         c, n, (w, h) = pnl
         right, up = panel_axes(n)
-        for off in sorted([k / 100.0 for k in range(-15, 11)], key=lambda v: (abs(v), v > 0)):
-            cc = tuple(c[i] + up[i] * off for i in range(3))
+        moves = sorted(((k / 100.0, j / 100.0) for k in range(-15, 11) for j in range(0, 11, 2)),
+                       key=lambda m: (abs(m[0]) + m[1], m[1], m[0] > 0))
+        for off, fwd in moves:
+            cc = tuple(c[i] + up[i] * off + n[i] * fwd for i in range(3))
             corners = panel_corners_px((cc, n, (w, h)), self.eye, self.pitch, self.size, self.fov)
             if corners is None:
                 continue
