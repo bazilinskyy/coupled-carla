@@ -737,8 +737,8 @@ class DroneWorld:
             state["kept"] = img.timestamp
             look.save_frame(img, d / f"{img.frame:08d}.jpg", size)
         cam.listen(on_image)
-        look = c.get("look", "nearest")
-        self.cameras.append({"cam": cam, "pos": (x, y, z), "look": look, "name": name})
+        target = c.get("look", "nearest")      # (not `look`: on_image uses the look module from this scope)
+        self.cameras.append({"cam": cam, "pos": (x, y, z), "look": target, "name": name})
 
     # -- per tick -------------------------------------------------------------------------------------------------
     def on_message(self, msg):

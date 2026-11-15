@@ -25,7 +25,8 @@ participants:
     spawn: {x: -113.8, y: -75.0, heading: 0}                # the pavement at a junction of the grid
     geofence: {radius_m: 500, max_altitude_m: 120}
     bot:
-      path_xy: [[-113.8, -75.0, 25], [-60, -40, 45], [-10, -80, 50], [-60, -120, 45], [-113.8, -75.0, 3]]
+      path_xy: [[-113.8, -75.0, 40], [-30, -80, 50], [40, -80, 55], [40, -140, 50], [-113.8, -130, 45],
+                [-113.8, -75.0, 3]]      # along the streets, clear of the 77 m towers north of y = 25
       speed: 7
       start_s: 4
       land: true

@@ -1,4 +1,4 @@
-# Town03: a pedestrian crosses at the crosswalk of the T-junction below the hill (CARLA x 77, y -14) while an
+# Town03: a pedestrian crosses at the crosswalk of the T-junction below the hill (CARLA x 79, y -14) while an
 # automated vehicle (AV) comes down the hill; it yields, and its passenger sets the eHMI (front bar, roof ring,
 # text on the road, eyes that follow the pedestrian). SUMO traffic, CARLA's AI walkers and the town's own traffic
 # lights around. Two humans at two stations, or bots:
@@ -36,13 +36,13 @@ participants:
   - role: pedestrian
     kind: pedestrian
     station: true
-    spawn: {x: 68.4, y: -14.6, heading: 90}               # west kerb of the crosswalk, facing across (east)
-    bot: {path_xy: [[90.3, -14.4]], start_s: 9, speed: 1.4, look: av1}
+    spawn: {x: 90.0, y: -14.4, heading: 270}              # east kerb of the crosswalk, facing across (west)
+    bot: {path_xy: [[68.6, -14.6]], start_s: 5, speed: 1.4, look: av1}
   - role: av_passenger
     kind: av_passenger
     station: true
     agent: av1
-    bot: {ehmi: [[9, yielding], [14, go], [21, driving]]}
+    bot: {ehmi: [[10, yielding], [13, go], [18, driving]]}
 
 agents:
   - id: av1

@@ -265,3 +265,14 @@ def test_realism_ignores_blind_semantic_samples(tmp_path):
     assert film.realism(Rig, 10) == []
     Rig.sem_tags = [np.full((18, 32), 1, np.uint8)] * 10    # all road: an empty world
     assert film.realism(Rig, 10)
+
+
+def test_realism_ignores_a_drone_cameras_frozen_semantic_samples(tmp_path):
+    # on 0.9.16 the drone's semantic camera stays at the take-off spot; in a town it sees that street, not the clip
+    class Rig:
+        kind = "drone"
+        sem_tags = [np.full((18, 32), 1, np.uint8)] * 10
+        dir = tmp_path
+    assert film.realism(Rig, 10) == []
+    Rig.kind = "tripod"                                    # a fixed camera's samples count
+    assert film.realism(Rig, 10)
