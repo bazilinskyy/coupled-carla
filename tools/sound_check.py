@@ -24,6 +24,7 @@ def main():
     ap.add_argument("--reference-db", type=float)
     ap.add_argument("--title")
     ap.add_argument("--max-hz", type=float, default=12000.0)
+    ap.add_argument("--dpi", type=int, default=80)
     args = ap.parse_args()
     wav = Path(args.wav)
     meta = {}
@@ -58,7 +59,8 @@ def main():
     a2.legend(loc="lower right", fontsize=8)
     fig.tight_layout()
     out = Path(args.out) if args.out else wav.with_name("audio_check.png")
-    fig.savefig(out, dpi=80)
+    fig.savefig(out, dpi=args.dpi, **({"pil_kwargs": {"quality": 82}} if out.suffix.lower() in (".jpg", ".jpeg")
+                                      else {}))
     print(out)
 
 

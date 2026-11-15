@@ -82,9 +82,9 @@ def read_wav(path):
 class PedSignals:
     """Where a pedestrian hears accessible pedestrian signals: the signal poles (Signals.heads: the lamp beside each
     signalled lane's stop line) within `radius` m, one per spot, and whether crossing that lane is allowed: its light
-    is red and a signalled lane within 50 m roughly at right angles to it has green, or none has (SUMO's programmes
-    rarely have pedestrian phases of their own, so the crossing goes with the parallel traffic; on maps from
-    OpenDRIVE each signal is a programme of its own, hence the search by distance rather than by junction)."""
+    and those of the lanes parallel to it within 50 m (the rest of the road being crossed, both directions) are red
+    (SUMO's programmes rarely have pedestrian phases of their own; on maps from OpenDRIVE each signal is a programme
+    of its own, hence the search by distance rather than by junction)."""
 
     def __init__(self, signals, net, radius=30.0):
         import traci
@@ -126,10 +126,11 @@ class PedSignals:
             if not st:
                 continue
             red = all(st[i] in "rRs" for i in idxs if i < len(st))
-            perp = [q for q in self.poles if math.hypot(q[2][0] - loc[0], q[2][1] - loc[1]) < 50.0
-                    and abs(u[0] * q[3][0] + u[1] * q[3][1]) < 0.5]
-            cross_green = any(any(state(q[0])[i] in "gG" for i in q[1] if i < len(state(q[0]))) for q in perp)
-            out.append((loc[0], loc[1], loc[2], bool(red and (cross_green or not perp))))
+            # the lanes this crossing crosses: this one and those parallel to it (both directions) within 50 m
+            par = [q for q in self.poles if math.hypot(q[2][0] - loc[0], q[2][1] - loc[1]) < 50.0
+                   and abs(u[0] * q[3][0] + u[1] * q[3][1]) > 0.85]
+            par_stopped = all(all(state(q[0])[i] in "rRs" for i in q[1] if i < len(state(q[0]))) for q in par)
+            out.append((loc[0], loc[1], loc[2], bool(red and par_stopped)))
         self._cache = (t, out)
         return out
 

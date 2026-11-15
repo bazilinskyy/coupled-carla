@@ -184,5 +184,6 @@ def recording(role, log=print, max_mb=40):
 
 def credit_line(info):
     """One attribution line: title, author, licence, source page."""
+    url = f" ({info['licence_url']})" if info.get("licence_url") else ""
     return (f"{info['title'].replace('File:', '')} by {info.get('artist') or 'unknown author'}, "
-            f"{info['licence']} ({info.get('licence_url') or ''}), {info.get('page') or ''}")
+            f"{info['licence']}{url}, {info.get('page') or ''}")

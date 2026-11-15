@@ -51,8 +51,9 @@ more, but its API needs a key, so it is not used.
 ## HRTFs (binaural output, `sound.spatial: binaural`)
 
 [MIT KEMAR compact set](https://sound.media.mit.edu/resources/KEMAR.html), Bill Gardner and Keith Martin, MIT Media
-Lab (1994): "provided free with no restrictions on use, provided the authors are cited". Fetched once (226 kB).
-Without it, the spherical-head model of Brown & Duda (1998), IEEE Trans. Speech Audio Process. 6(5).
+Lab (1994): "provided free with no restrictions on use, provided the authors are cited". Fetched once (226 kB) and
+diffuse-field equalised (so binaural and stereo output have the same level within ~1.5 dB). Without it, the
+spherical-head model of Brown & Duda (1998), IEEE Trans. Speech Audio Process. 6(5).
 
 ## Speech, experimenters' files
 

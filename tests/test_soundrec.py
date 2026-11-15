@@ -148,20 +148,24 @@ def test_level_helpers():
 
 def test_pedestrian_signals_walk_with_the_crossing_traffic(monkeypatch):
     import sys
-    states = {"a": "r", "b": "G"}
+    states = {"a": "r", "b": "G", "c": "r"}
     fake = types.SimpleNamespace(trafficlight=types.SimpleNamespace(
         getControlledLinks=lambda tls: [[("lane_" + tls, "out", "via")]],
         getRedYellowGreenState=lambda tls: states[tls]))
     monkeypatch.setitem(sys.modules, "traci", fake)
-    shapes = {"lane_a": [(0.0, -20.0), (0.0, 0.0)], "lane_b": [(-20.0, 5.0), (0.0, 5.0)]}   # a north, b east
+    shapes = {"lane_a": [(0.0, -20.0), (0.0, 0.0)], "lane_b": [(-20.0, 5.0), (0.0, 5.0)],      # a north, b east,
+              "lane_c": [(-6.0, 20.0), (-6.0, 8.0)]}                                         # c south (opposite a)
     net = types.SimpleNamespace(getLane=lambda lid: types.SimpleNamespace(getShape=lambda: shapes[lid]))
-    signals = types.SimpleNamespace(heads=[("a", [0], Loc(3.0, 0.0)), ("b", [0], Loc(0.0, -8.0))])
+    signals = types.SimpleNamespace(heads=[("a", [0], Loc(3.0, 0.0)), ("b", [0], Loc(0.0, -8.0)),
+                                           ("c", [0], Loc(-9.0, -10.0))])
     ps = soundrec.PedSignals(signals, net)
     near = ps.near(5.0, 0.0, 0.0)
-    assert near[0][:2] == (3.0, 0.0) and near[0][3] is True      # lane a red, crossing lane b green: walk
+    assert near[0][:2] == (3.0, 0.0) and near[0][3] is True      # lane a and the opposite lane c red: walk
     states.update(a="G", b="r")
     assert ps.near(5.0, 0.0, 0.1)[0][3] is True                  # cached for 0.25 s
     assert ps.near(5.0, 0.0, 1.0)[0][3] is False                 # lane a green: wait
+    states.update(a="r", c="G")
+    assert ps.near(5.0, 0.0, 2.0)[0][3] is False                 # the opposite direction still has green: wait
 
 
 def test_replay_from_frames_csv(tmp_path, monkeypatch):

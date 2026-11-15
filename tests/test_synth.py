@@ -223,3 +223,17 @@ def test_no_clicks_at_block_edges():
         d = np.abs(np.diff(x))
         seg = d[:len(d) // 110 * 110].reshape(-1, 110).max(axis=1)
         assert np.sum(seg > 8 * np.median(seg)) == 0
+
+
+def test_binaural_level_matches_stereo():
+    """Diffuse-field equalised HRIRs: noise from all around is as loud binaurally as panned."""
+    s = hrtf.HRTFSet.sphere(30)
+    b = hrtf.Binaural(s)
+    rng = np.random.default_rng(0)
+    tot = []
+    for az in np.radians(np.arange(-180, 180, 30)):
+        p = synth.Path("direct")
+        p.az = az
+        y = b.render(rng.standard_normal(20000).astype(np.float32), p)
+        tot.append(np.mean(np.sum(y[1000:] ** 2, axis=1)))
+    assert 10 * math.log10(np.mean(tot)) == pytest.approx(0.0, abs=1.5)

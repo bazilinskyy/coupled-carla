@@ -47,12 +47,33 @@ def _sphere_hrir(az, el, rate=audio.RATE, a=0.0875, c=343.0, n=TAPS):
 class HRTFSet:
     """A set of HRIR pairs on directions; ir(az, el) gives the nearest one (and its index)."""
 
-    def __init__(self, dirs, irs, name):
+    def __init__(self, dirs, irs, name, equalise=True):
         self.dirs = np.asarray(dirs, float)        # (m, 2): az, el in rad
-        self.irs = np.asarray(irs, np.float32)     # (m, 2, taps)
+        irs = np.asarray(irs, np.float64)          # (m, 2, taps)
+        if equalise:
+            irs = self._diffuse_eq(irs)
+        self.irs = irs.astype(np.float32)
+        self.taps = self.irs.shape[2]
         self.name = name
         el, az = self.dirs[:, 1], self.dirs[:, 0]
         self.vec = np.column_stack([np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)])
+
+    @staticmethod
+    def _diffuse_eq(irs, n=256):
+        """Diffuse-field equalisation: every HRIR divided by the direction-averaged response (smoothed over a third
+        of an octave), scaled so that the two ears together carry the power of the source on average, as constant-
+        power panning does: the levels of the stereo and binaural outputs agree, and the measurement's own
+        loudspeaker and low-frequency roll-off (128-tap compact set) drop out."""
+        H = np.fft.rfft(irs, n=n, axis=2)
+        P = np.mean(np.abs(H) ** 2, axis=(0, 1))                       # per frequency
+        f = np.arange(len(P))
+        Ps = np.array([P[max(0, int(k / 1.12)):int(k * 1.12) + 2].mean() for k in f])
+        Ps[0] = Ps[1]
+        eq = 1.0 / np.sqrt(np.maximum(Ps, Ps.max() * 1e-4))
+        out = np.fft.irfft(H * eq, n=n, axis=2)
+        out *= np.hanning(2 * n)[n:] ** 0.5                            # taper the circular tail
+        e = np.mean(np.sum(out ** 2, axis=(1, 2)))
+        return out / math.sqrt(e)
 
     def index(self, az, el):
         v = np.array([math.cos(el) * math.cos(az), math.cos(el) * math.sin(az), math.sin(el)])
@@ -118,7 +139,7 @@ class Binaural:
         idx = self.h.index(p.az, p.el)
         st = p._conv
         if st is None:
-            st = p._conv = {"idx": idx, "tail": np.zeros((2, TAPS - 1), np.float32)}
+            st = p._conv = {"idx": idx, "tail": np.zeros((2, self.h.taps - 1), np.float32)}
         n = len(y)
         ir = self.h.irs[idx]
         yy = np.concatenate([np.zeros(0, np.float32), y])
@@ -130,6 +151,6 @@ class Binaural:
             fade[:n] = np.linspace(0.0, 1.0, n, endpoint=False)
             new = old * (1 - fade) + new * fade
             st["idx"] = idx
-        new[:, :TAPS - 1] += st["tail"]
+        new[:, :self.h.taps - 1] += st["tail"]
         st["tail"] = new[:, n:].copy()
         return new[:, :n].T
