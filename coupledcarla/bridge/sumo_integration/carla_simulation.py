@@ -50,6 +50,7 @@ class CarlaSimulation(object):
         self.destroyed_actors = set()
         self.snapshot = None     # coupled-carla: the world snapshot after the last tick (poses of physics actors)
         self._physics = set()    # coupled-carla: SUMO vehicles moved with physics on (bridge/animate.py)
+        self._teleports, self._unstable = {}, {}     # coupled-carla: recent follow teleports; placed-until frame
 
         # Set traffic lights.
         self._tls = {}  # {landmark_id: traffic_ligth_actor}
@@ -199,6 +200,9 @@ class CarlaSimulation(object):
         """
         from .. import animate  # pylint: disable=import-outside-toplevel
         cmd = carla.command
+        frame = getattr(self, 'tick_frame', 0) or 0
+        if self._unstable.get(vehicle_id, -1) > frame:      # it kept leaving its pose: placed for a while
+            return self.place_vehicle(vehicle_id, transform, lights)
         snap = self.snapshot.find(vehicle_id) if self.snapshot is not None else None
         if vehicle_id not in self._physics or snap is None:
             self._physics.add(vehicle_id)
@@ -213,6 +217,14 @@ class CarlaSimulation(object):
                                animate.wheelbase(length), snap.get_velocity().z)
             if f["teleport"]:
                 self._pending.append(cmd.ApplyTransform(vehicle_id, _lifted(transform)))
+                recent = [t for t in self._teleports.get(vehicle_id, []) if frame - t < animate.UNSTABLE_TICKS]
+                self._teleports[vehicle_id] = recent + [frame]
+                if len(recent) + 1 >= animate.UNSTABLE_TELEPORTS:
+                    # two bikes side by side in SUMO push each other round with physics on (they spun on the spot):
+                    # placed with physics off for a while instead
+                    self._unstable[vehicle_id] = frame + animate.UNSTABLE_PAUSE_TICKS
+                    self._teleports.pop(vehicle_id, None)
+                    return self.place_vehicle(vehicle_id, transform, lights)
             self._pending.append(cmd.ApplyTargetVelocity(vehicle_id, carla.Vector3D(*f["velocity"])))
             self._pending.append(cmd.ApplyTargetAngularVelocity(vehicle_id, carla.Vector3D(0.0, 0.0, f["angular_z"])))
             self._pending.append(cmd.ApplyVehicleControl(vehicle_id, carla.VehicleControl(
@@ -273,6 +285,8 @@ class CarlaSimulation(object):
             del self._kinds[gone]
             self._lights.pop(gone, None)
             self._physics.discard(gone)
+            self._teleports.pop(gone, None)
+            self._unstable.pop(gone, None)
         current_actors = {i for i in ids if self._kinds.get(i)}
         self.spawned_actors = current_actors.difference(self._active_actors)
         self.destroyed_actors = self._active_actors.difference(current_actors)

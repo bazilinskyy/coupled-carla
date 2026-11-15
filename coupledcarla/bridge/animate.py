@@ -22,6 +22,10 @@ TELEPORT_M = 1.2      # farther off than this: put back with a transform
 TELEPORT_DEG = 25.0
 THROTTLE = 0.3        # while moving: the bike's pedalling (and a car's drive wheels)
 MAX_STEER_DEG = 60.0  # steer 1.0 as a front-wheel angle (CARLA cars: 60-70 deg)
+UNSTABLE_TELEPORTS = 3        # this many put-backs within UNSTABLE_TICKS: placed with physics off instead ...
+UNSTABLE_TICKS = 100
+UNSTABLE_PAUSE_TICKS = 500    # ... for this many ticks (10 s at 50 Hz)
+FLIP_DEG = 60.0               # a SUMO heading that jumps more than this in one tick is a flip, not a turn
 
 
 def wrap_deg(a):
@@ -55,6 +59,14 @@ def follow(target, current, speed, yaw_rate_deg, wheelbase, vz=0.0):
     steer = max(-1.0, min(1.0, delta / MAX_STEER_DEG))
     return {"teleport": teleport, "velocity": (vx, vy, vz), "angular_z": wz,
             "throttle": THROTTLE if moving else 0.0, "steer": steer, "brake": 0.0 if moving else 1.0}
+
+
+def steady_yaw(prev, yaw, speed):
+    """The heading to show: SUMO's, unless it jumped by more than FLIP_DEG since the last tick while moving (SUMO
+    turns a vehicle round on some short junction lanes for a second: a bus pointed backwards at 30 km/h)."""
+    if prev is not None and speed > 0.5 and abs(wrap_deg(yaw - prev)) > FLIP_DEG:
+        return prev
+    return yaw
 
 
 def wheelbase(length):

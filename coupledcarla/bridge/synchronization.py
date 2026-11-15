@@ -207,7 +207,15 @@ class SimulationSynchronization(object):
 
             carla_transform = BridgeHelper.get_carla_transform(sumo_actor.transform,
                                                                sumo_actor.extent)
-            loc, yaw = carla_transform.location, carla_transform.rotation.yaw
+            loc = carla_transform.location
+            yaw = animate.steady_yaw(self._prev_yaw.get(carla_actor_id), carla_transform.rotation.yaw,
+                                     sumo_actor.speed)
+            if yaw != carla_transform.rotation.yaw:  # a SUMO heading flip is not shown (animate.steady_yaw): the
+                # centre was put half a length behind SUMO's front bumper along the flipped heading; along this one
+                (ox, oy), (nx, ny) = (animate.velocity(sumo_actor.extent.x, carla_transform.rotation.yaw),
+                                      animate.velocity(sumo_actor.extent.x, yaw))
+                loc.x, loc.y = loc.x + ox - nx, loc.y + oy - ny
+                carla_transform.rotation.yaw = yaw
             yaw_rate = animate.yaw_rate(self._prev_yaw.get(carla_actor_id, yaw), yaw, self.carla.step_length)
             self._prev_yaw[carla_actor_id] = yaw
             self.velocity[carla_actor_id] = animate.velocity(sumo_actor.speed, yaw)

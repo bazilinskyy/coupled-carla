@@ -327,3 +327,11 @@ def test_boom_share_pulls_in_at_once_and_out_smoothly():
     assert film.boom_share(k, [0.5], full, 0.02, 0.6) == pytest.approx(film.BOOM_MIN / full)   # never shorter
     k2 = film.boom_share(k, [], full, 0.02, 0.6)                        # clear again: lets out gradually
     assert k < k2 < 1.0
+
+
+def test_steady_yaw_hides_flips():
+    from coupledcarla.bridge import animate
+    assert animate.steady_yaw(None, 90.0, 5.0) == 90.0
+    assert animate.steady_yaw(57.0, -144.0, 8.0) == 57.0        # flipped round: keep the heading
+    assert animate.steady_yaw(57.0, 60.0, 8.0) == 60.0          # a turn
+    assert animate.steady_yaw(57.0, -144.0, 0.0) == -144.0      # standing: SUMO's (it may just have been placed)
