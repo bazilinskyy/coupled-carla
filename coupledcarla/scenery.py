@@ -165,6 +165,7 @@ CONCRETE, DIRT = "SM_Square_61", "SM_Square_131"     # M_Concrete_04; M_Ground01
 # ground kind (OSM fallback or bgt.surface_kind) -> mesh; bricks and tiles get CARLA's sidewalk paving (no
 # brick ground mesh in the 0.9.16 catalogue)
 GROUND_MESH = {"green": GRASS, "open": PAVING, "closed": CONCRETE, "unpaved": DIRT, "water": WATER}
+LOWER_MAX, TILE_MIN = 0.3, 10.0    # a ground square sinks at most this under the terrain for a road, else it splits
 SPLIT_SHARE = 0.6     # a BGT tile whose main kind covers less than this of its ground is split in four
 GREEN_LANDUSE = {"grass", "forest", "meadow", "village_green", "recreation_ground", "cemetery", "allotments",
                  "farmland", "orchard", "flowerbed"}
@@ -432,6 +433,8 @@ class Placer:
         self.cat, self.cmap, self.ground, self.carla = cat, cmap, ground, carla
         self.junctions = junctions      # placement.JunctionAreas: a generated map's paved junctions count as lanes
         self.items, self.counts = [], defaultdict(int)
+        self.bases = []          # per item (x, y, z) of the ground it was placed on (placement.settle)
+        self.surface = None      # placement.GroundSurface once the ground tiles are laid
         self.mesh_index = {}
         lt = carla.LaneType
         self.blocking = lt.Driving | lt.Parking | lt.Bidirectional
@@ -457,7 +460,10 @@ class Placer:
                     return False
         return True
 
-    def add(self, kind, mesh, cx, cy, yaw, scale, sink=0.0, tilt=None, z=None, anchor="bottom", centre=False):
+    def add(self, kind, mesh, cx, cy, yaw, scale, sink=0.0, tilt=None, z=None, anchor="bottom", centre=False,
+            base=None):
+        """base: (x, y, z) of the ground this item stands on when that is not (cx, cy, z) (a sign's plate: its
+        post's), so placement.settle moves it with what it stands on."""
         g = self.ground(cx, cy) if z is None else z
         x, y, zz, yaw = self.cat.place(mesh, cx, cy, g, yaw, scale, sink, *(tilt or (0.0, 0.0)), anchor=anchor)
         idx = self.mesh_index.setdefault(mesh, len(self.mesh_index))
@@ -467,6 +473,7 @@ class Placer:
         if centre:      # where the mesh is (Town03 ground meshes have their pivot 100-400 m away): its cell
             item.append([round(cx, 1), round(cy, 1)])
         self.items.append(item)
+        self.bases.append(base or (cx, cy, g))
         self.counts[kind] += 1
         return item
 
@@ -474,6 +481,8 @@ class Placer:
         """The same transform with another mesh (a building's separate window glass on CARLA 1.0)."""
         idx = self.mesh_index.setdefault(mesh, len(self.mesh_index))
         self.items.append([idx] + item[1:])
+        k = next((i for i in range(len(self.items) - 2, -1, -1) if self.items[i] is item), None)
+        self.bases.append(self.bases[k] if k is not None else None)
 
 
 def tile_cover(size, T):
@@ -1028,7 +1037,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             pl.add("sign", ms.POST, px, py, face, 1.0, z=gz)
             L, W, H = cat.size(sign)
             pl.add("sign", sign, px, py, face + ms.SIGN_YAW, 1.0,
-                   z=gz + cat.size(ms.POST)[2] - H - 0.05)
+                   z=gz + cat.size(ms.POST)[2] - H - 0.05, base=(px, py, gz))
             pl.counts["sign_osm"] += 1
         if pl.counts["sign_osm_wrong_country"]:
             log(f"scenery: {pl.counts['sign_osm_wrong_country']} OSM stop/give-way signs left out: CARLA has them only "
@@ -1058,12 +1067,16 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         pad = 160.0
         gx0, gy0 = math.floor((min(xs) - pad) / TILE) * TILE, math.floor((min(ys) - pad) / TILE) * TILE
         gx1, gy1 = max(xs) + pad, max(ys) + pad
-        tiles = lowered = 0
+        tiles = lowered = deep = 0
+        surface = placement.GroundSurface()
         bgt_tiles, changed, split, kinds, moves = 0, 0, 0, defaultdict(int), defaultdict(int)
 
         def lay(kind, x, y, T):
-            """One square of ground: tilted to the terrain, under the road surface, covered by its mesh."""
-            nonlocal lowered
+            """One square of ground: tilted to the terrain, under the road surface, covered by its mesh. A square
+            that would have to sink more than LOWER_MAX under the terrain for a road crossing it is split in four
+            (down to TILE_MIN): a whole 40 m tile lowered for one low road left pits beside the other roads on it,
+            up to 1.4 m deep in Eindhoven, and everything standing in them."""
+            nonlocal lowered, deep
             z = ground(x, y) - 0.05
             zx = (ground(x + T / 2, y) - ground(x - T / 2, y)) / T if dem is not None else 0.0
             zy = (ground(x, y + T / 2) - ground(x, y - T / 2)) / T if dem is not None else 0.0
@@ -1073,6 +1086,12 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             if near:
                 gap = min(q[2] - (z + zx * (q[0] - x) + zy * (q[1] - y)) for q in near)
                 if gap < 0.15:
+                    if 0.15 - gap > LOWER_MAX and T / 2 >= TILE_MIN:
+                        deep += 1
+                        for a in (-T / 4, T / 4):
+                            for b in (-T / 4, T / 4):
+                                lay(kind, x + a, y + b, T / 2)
+                        return
                     z += gap - 0.15
                     lowered += 1
             tilt = (math.degrees(math.atan(zx)), -math.degrees(math.atan(zy)))
@@ -1080,6 +1099,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             if mesh not in cat:
                 mesh, kind = ms.PAVING, "open"
             dz = {"water": -0.5, "open": -0.02}.get(kind, 0.0)
+            surface.add(x, y, T, z + dz, zx, zy)
             for i, ((dx, dy), s) in enumerate(tile_cover(cat.size(mesh), T)):
                 pl.add("water" if kind == "water" else "ground", mesh, x + dx, y + dy, 0.0, s,
                        z=z + zx * dx + zy * dy + dz - 0.01 * i, tilt=tilt, anchor="top", centre=True)
@@ -1117,7 +1137,15 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 f": {', '.join(f'{k} {v}' for k, v in sorted(kinds.items()))}; squares changed "
                 f"{', '.join(f'{k} {v}' for k, v in sorted(moves.items(), key=lambda kv: -kv[1]))}")
             pl.counts["ground_bgt"], pl.counts["ground_changed"], pl.counts["ground_split"] = bgt_tiles, changed, split
-        log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface)")
+        log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface, {deep} split "
+            f"where they would have sunk more than {LOWER_MAX} m)")
+        # everything standing beside the roads onto the tiles' top (they are lowered under the roads)
+        any_lane = carla.LaneType.Any
+        pl.surface = surface
+        moved, total = placement.settle(pl.items, pl.bases, surface, lambda x, y, z: cmap.get_waypoint(
+            carla.Location(x=x, y=y, z=z), project_to_road=False, lane_type=any_lane) is not None)
+        pl.counts["settled"] = moved
+        log(f"scenery: {moved} objects stood on the ground tiles (mean shift {total / max(1, moved):.2f} m)")
 
     if sc.get("parked", True):      # parked cars at the kerbs and on car parks (parking.py, parked.json)
         from . import parking
@@ -1129,6 +1157,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
     out = {"version": 1, "catalog": cat.version, "cell_m": CELL, "meshes": [cat.path(m) for m in meshes],
            "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources), "leaf": leaf}
+    if pl.surface is not None and len(pl.surface):      # the ground's top, for signals.py's poles
+        out["ground_planes"] = pl.surface.to_list()
     from .ndwsigns import fallbacks
     if fallbacks(meshes, cat):      # Dutch sign faces: the blank plate where the server lacks our content
         out["fallbacks"] = fallbacks(meshes, cat)

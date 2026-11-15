@@ -363,7 +363,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         BridgeHelper.offset = (mo[0] - go[0], mo[1] - go[1])
         signals = Signals(world, sumo.net, BridgeHelper.offset, step=step, debug=side.debug,
                           style=(tc["simulation"].get("traffic_lights") or {}).get("style", "head"),
-                          lefthand=bool(tc["map"].get("lefthand")), log=log)
+                          lefthand=bool(tc["map"].get("lefthand")), log=log,
+                          surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None)
         log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
             f"{', meshes' if signals.meshes else ''}) drawn near participants")
         carla_sim._kinds.update({a.id: False for a in signals.actors})     # static: never looked up per tick
