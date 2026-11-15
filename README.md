@@ -1,4 +1,4 @@
-<h1 align="center"><img src="docs/logo.svg" width="48" alt="" align="top">&nbsp;coupled-carla</h1>
+<h1 align="center"><img src="docs/logo.svg" width="48" alt="" align="top">&nbsp;Coupled CARLA</h1>
 
 <p align="center">
   <b>A human-factors driving simulator for real places.</b><br>
@@ -31,7 +31,7 @@
   <a href="#support-coupled-carla">Support</a>
 </p>
 
-coupled-carla builds a drivable [CARLA](https://carla.org)
+Coupled CARLA builds a drivable [CARLA](https://carla.org)
 world for any bounding box on Earth from OpenStreetMap, fills it with traffic from [SUMO](https://eclipse.dev/sumo/)
 (cars, cyclists, buses with proper car-following and lane-change models), puts a participant at the wheel
 (keyboard, Logitech G25 with force feedback, or an autopilot for tests) and logs every trial at 50 Hz in the
@@ -77,19 +77,19 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Analysis](#analysis)
 - [Trial viewer](#trial-viewer)
 - [Performance](#performance)
-- [coupled-sim features in coupled-carla](#coupled-sim-features-in-coupled-carla)
+- [coupled-sim features in Coupled CARLA](#coupled-sim-features-in-coupled-carla)
 - [Known limits](#known-limits)
 - [Roadmap](#roadmap)
 - [Lessons learned (gotchas)](#lessons-learned-gotchas)
 - [Project layout](#project-layout)
-- [Support coupled-carla](#support-coupled-carla)
+- [Support Coupled CARLA](#support-coupled-carla)
 - [Credits, data and licences](#credits-data-and-licences)
 
 ---
 
 ## License
 
-The source code of coupled-carla is released under the [MIT License](LICENSE). Third-party code and data used by
+The source code of Coupled CARLA is released under the [MIT License](LICENSE). Third-party code and data used by
 it are not covered by this license and remain under the licenses of their developers: the SUMO bridge vendored in
 `coupledcarla/bridge` (CARLA, MIT, © CVC), CARLA and Eclipse SUMO themselves (MIT, EPL-2.0), and the map and
 city data (OpenStreetMap under the ODbL, so built maps are derived databases under the ODbL; the other sources
@@ -123,7 +123,7 @@ traffic by hand used to keep a team of 3D artists busy for months. Today most of
 download: OpenStreetMap's streets, lanes, signs and trees, mapped by volunteers; building footprints and heights
 from national registers (3DBAG, BD TOPO, PLATEAU, NYC) and Overture Maps; terrain from lidar and global elevation
 models; the weather and the sun of a real day; bus timetables; open traffic counts. Free, open simulators, CARLA
-for the 3D world and SUMO for the traffic, turn it into a world you can drive. coupled-carla puts these together,
+for the 3D world and SUMO for the traffic, turn it into a world you can drive. Coupled CARLA puts these together,
 and the map maker reduces it to typing a place and pressing a button. It is meant for people who do not program:
 researchers in psychology and human factors, designers, students, city planners.
 
@@ -132,11 +132,11 @@ researchers in psychology and human factors, designers, students, city planners.
 **Set up once** (a computer with an internet connection; to drive, a Windows or Linux PC with a gaming graphics
 card):
 
-1. Download coupled-carla (the green Code button, Download ZIP) and unpack it.
-2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then, in the coupled-carla folder:
+1. Download Coupled CARLA (the green Code button, Download ZIP) and unpack it.
+2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then, in the `coupled-carla` folder:
    `uv venv --python 3.12 .venv` and `uv pip install -r requirements.txt`.
 3. To drive: unpack [CARLA 0.9.16](https://github.com/carla-simulator/carla/releases/tag/0.9.16) as a folder
-   `CARLA_0.9.16` next to the coupled-carla folder.
+   `CARLA_0.9.16` next to the `coupled-carla` folder.
 
 **Every day:** double-click `make_map.bat` (Windows), `Make a map.command` (macOS) or `make_map.sh` (Linux). The
 browser opens a world map. Type a place (a town, a square, an address, coordinates; any language) or click on the
@@ -428,7 +428,7 @@ real-time factors of 0.55-0.99; see [Performance](#performance) for what changed
 
 ## Real-world scenery, terrain and weather
 
-CARLA builds only the roads of an OpenDRIVE map. coupled-carla fills every map with CARLA's own meshes, placed
+CARLA builds only the roads of an OpenDRIVE map. Coupled CARLA fills every map with CARLA's own meshes, placed
 from real-world data that free services give without an account or key, and runs a trial at the weather and
 sun of a real place and time. Everything is fetched once at map build time and cached in `maps/<name>/real/`;
 `meta.json` lists the sources a map was built from.
@@ -537,7 +537,7 @@ modis` uses MODIS MCD12Q2 dates (keyless) where they agree with the model; in ci
 lawns. CARLA cannot show snow; Open-Meteo's snow depth is logged.
 
 **Street lamps at night (CARLA 1.0).** A small content pack (`coupledcarla/data/carla_packs`) puts CARLA's
-street-light blueprints in the blueprint library (coupled-carla adds `-carla-packs=` when it starts the server);
+street-light blueprints in the blueprint library (Coupled CARLA adds `-carla-packs=` when it starts the server);
 at night the scenery lamps within `lights_radius_m` (200 m) of a participant are spawned as those blueprints and
 the server lights them when the sun sets. Headless: 225 lit lamps add 0.2 ms per tick, 781 add 0.7 ms (the cost to
 rendering is not measured). CARLA 1.0's OpenDRIVE worlds also bring generic lamps of their own along every road.
@@ -877,7 +877,7 @@ and Eindhoven built from Dutch national open data instead of OSM alone.
 
 ### Running on CARLA 1.0
 
-coupled-carla takes the same experiment files on CARLA 0.9.16 and CARLA 1.0. CARLA 1.0 renamed or dropped
+Coupled CARLA takes the same experiment files on CARLA 0.9.16 and CARLA 1.0. CARLA 1.0 renamed or dropped
 most vehicle blueprints; [`compat.py`](coupledcarla/compat.py) maps every 0.9 name used here to the closest 1.0
 blueprint (by body type and size, then by `base_type`, then by wheel count) and logs each substitution once.
 The SUMO conversion script that CARLA 1.0 no longer ships is vendored in `bridge/util/`. Set up a second
@@ -900,7 +900,7 @@ visible; lin5080 (driver 595, RTX 5080) is the 1.0 machine.
 about 15 minutes once the UE 5.8 engine fork is built (`cmake --preset Release`, then the `carla-server`,
 `carla-client`, `carla-python-api-install`, `carla-unreal` and `carla-unreal-editor` targets; the venv needs
 `build` installed). The server is the editor binary in `-game` mode; the first start spends a few minutes building
-derived data. The first coupled-carla run on it: `eindhoven_centre.yaml`, 40 s, autopilot driver with SUMO traffic,
+derived data. The first Coupled CARLA run on it: `eindhoven_centre.yaml`, 40 s, autopilot driver with SUMO traffic,
 RTF 0.82, 0 collisions, every 0.9 blueprint mapped to a 1.0 stand-in. That run used `-nullrhi` (no rendering, so no
 cameras or stations), because the RTX 5080 was full with other jobs. The real-world scenery has its own 1.0 mesh
 catalogue ([Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). Install the 1.0 wheel after
@@ -953,7 +953,7 @@ The baked level's folders (`Content/Carla/Maps/Twins/EhvCentre`, `Content/Carla/
 level's `__ExternalActors__`) are plain uasset files: copied into another CARLA 1.0 tree (win5090) the level loads
 there too, and `-DCARLA_MAPS_TO_COOK=.../Twins/EhvCentre/EhvCentre` cooks it into a package.
 
-coupled-carla drives it with [`experiments/eindhoven_twin.yaml`](experiments/eindhoven_twin.yaml):
+Coupled CARLA drives it with [`experiments/eindhoven_twin.yaml`](experiments/eindhoven_twin.yaml):
 `map.opendrive` names the twin's OpenDRIVE (copy `build/ehv_centre/EhvCentre.xodr` to `twins/`) and
 `map.carla_level` the level. `mapbuild` then makes the SUMO net from that same OpenDRIVE (so SUMO and the level
 share their roads; the real bus lines and GTFS timetables are matched onto it as on any map), and the trial
@@ -1018,7 +1018,7 @@ joined within a second, ran the practice trial with responses and left cleanly.
 **Camera exposure on CARLA 1.0 (2026-11-15).** CARLA 1.0's RGB camera has no exposure attributes: exposure comes
 from a post-process profile (`Content/Carla/Config/PostProcess`), and every profile uses histogram auto exposure,
 which adapts over consecutive frames. Cameras that rendered only every few seconds never adapted (a cloudy day
-clipped 25 % of the frame to white, night was 99.7 % black). On 1.0 coupled-carla's cameras now render every tick
+clipped 25 % of the frame to white, night was 99.7 % black). On 1.0 Coupled CARLA's cameras now render every tick
 and keep frames at the requested interval, with `simulation.camera_profile` (default `Dashcam`, the best of CARLA's
 profiles at the twin: day mean brightness 105-116 of 255 with nothing clipped, night 30 with 1 % crushed).
 
@@ -1462,9 +1462,9 @@ cyclist** (the bike carries an animated rider), which is why the level of detail
 Epic is about 20 ms, which is the whole budget at 50 Hz; on an unshared GPU (or at `--quality Low`) the trial
 runs in real time. Map building takes 2-4 s per city plus the Overpass downloads.
 
-## coupled-sim features in coupled-carla
+## coupled-sim features in Coupled CARLA
 
-| coupled-sim | coupled-carla | Status |
+| coupled-sim | Coupled CARLA | Status |
 |---|---|---|
 | Roles: manual driver, AV passenger, pedestrian | `participants` with kind driver / av_passenger / pedestrian, each host-local or at a station | done |
 | Experiment definitions, trial sequence, run automatically | YAML experiment, `trials` with overrides, run in order | done |
@@ -1533,7 +1533,7 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
    events, tick-to-station and tick-to-image latency, a pedestrian crowd. **Still open from phase 2:** CARLA
    multi-GPU secondaries for station rendering, Xsens suit, SUMO persons, head tracking for the driver's gaze,
    a human (not bot) pilot study.
-3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8: coupled-carla runs on it with scenery (its own mesh
+3. **Phase 3, looks (in progress):** CARLA 1.0 on UE 5.8: Coupled CARLA runs on it with scenery (its own mesh
    catalogue), the Eindhoven digital twin (AHN terrain, PDOK aerial photos, 3DBAG buildings) is baked into a
    CARLA 1.0 level and driven with the SUMO bridge on its own OpenDRIVE, and CARLA 1.0 builds and renders on
    Windows (win5090), where a packaged server renders the styled twin (facades, photo ground, Dutch sign faces,
@@ -1720,9 +1720,9 @@ tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
 ```
 
-## Support coupled-carla
+## Support Coupled CARLA
 
-coupled-carla is free and stays free. If it is useful to you and you would like to give something back, you can
+Coupled CARLA is free and stays free. If it is useful to you and you would like to give something back, you can
 [sponsor it on GitHub](https://github.com/sponsors/bazilinskyy) (monthly or once) or
 [buy me a coffee on Ko-fi](https://ko-fi.com/bazilinskyy). Bug reports, ideas, new cities and pull requests help
 just as much. If you use it in research, please cite it (the "Cite this repository" button on GitHub, from
@@ -1730,7 +1730,7 @@ just as much. If you use it in research, please cite it (the "Cite this reposito
 
 ## Credits, data and licences
 
-- coupled-carla's own code is released under the [MIT License](LICENSE).
+- Coupled CARLA's own code is released under the [MIT License](LICENSE).
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL. Built maps and
   `buildings.json` are derived databases under the ODbL.
