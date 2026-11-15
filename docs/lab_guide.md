@@ -350,9 +350,9 @@ camera transform). So:
 - **Latency**: the eye images arrive 30-70 ms after the head pose they were rendered for in this empty town, and
   100-200 ms in a coupled session (CARLA renders and reads a camera back 4-6 ticks after its tick). The station
   predicts the head that far ahead (`vr.predict_ms: auto`, at most `vr.max_predict_ms` 80) and the runtime's
-  reprojection corrects the head *rotation* that is left: with the prediction, the reprojection had to turn the
-  images by 0.2 deg (median; 0.6 deg at the 95th percentile) for the scripted head and 0.0 deg for Monado's steady
-  14 deg/s turn. Head *translation* (leaning) and the world itself keep CARLA's latency.
+  reprojection corrects the head *rotation* that is left. For the scripted head at 1440x1584 the images were off by
+  0.2 deg (median; 0.6 deg at the 95th percentile) with the prediction and 1.7 deg (3.2 deg) without it, which is
+  what the reprojection then turns away. Head *translation* (leaning) and the world itself keep CARLA's latency.
 - Simulator sickness is the risk to plan for: seated participants, short trials, the sickness question between
   trials (checklist), and a static reference (the car's cabin) in view.
 

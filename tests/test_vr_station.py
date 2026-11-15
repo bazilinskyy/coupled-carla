@@ -99,7 +99,7 @@ def fake_carla():
             return []
 
     world = World()
-    m.batches = []
+    m.batches, m.async_batches = [], []
 
     class Client:
         def __init__(self, host, port):
@@ -116,6 +116,9 @@ def fake_carla():
 
         def apply_batch_sync(self, cmds, due=False):
             m.batches.append(list(cmds))
+
+        def apply_batch(self, cmds):
+            m.async_batches.append(list(cmds))
 
     m.Location, m.Vector3D, m.Rotation, m.Transform, m.Client = V, V, Rotation, Transform, Client
     m.AttachmentType = types.SimpleNamespace(Rigid=0, SpringArm=1)
@@ -182,7 +185,10 @@ def test_vr_station_moves_both_eyes_and_submits(station_mod, tmp_path):
         welcome = {"kind": "av_passenger", "bot": {}, "ehmi_states": [],
                    "vr": {"size": [64, 72], "ipd_mm": 64, "sim_hz": 200}}
         st.welcome = welcome
-        st._start_headset(welcome)
+        st._start_headset({"role": "av_passenger"})       # the first welcome can be empty (host not ready yet)
+        assert st.vr_cfg["size"] is None and st.vr_cfg["runtime"] == "sim"
+        st._vr_settings(welcome)                  # the full welcome later: its settings count at the trial start
+        assert st.vr_cfg["size"] == [64, 72] and st.vr_cfg["runtime"] == "sim"
         st.start({"state": "running", "actor_id": 7, "trial": 0})
         left, right = st.vr.cams
         assert st.camera is left and left.parent is not None and right.parent is not None      # attached to the car
@@ -191,7 +197,10 @@ def test_vr_station_moves_both_eyes_and_submits(station_mod, tmp_path):
         assert left.tf.location.y > 0                             # the passenger's seat (right)
         for _ in range(3):
             assert st.tick()
-        moves = [c for c in carla.batches[-1] if c[0] == "transform"]
+        # CARLA 0.9.x: the VR station's batch goes without waiting (apply_batch_sync would hold the GIL the eye
+        # cameras' callbacks need)
+        assert carla.batches == [] and carla.async_batches
+        moves = [c for c in carla.async_batches[-1] if c[0] == "transform"]
         assert {c[1] for c in moves} == {left.id, right.id}
         lt, rt = (next(c[2] for c in moves if c[1] == cam.id) for cam in (left, right))
         # poses in the car (relative: CARLA 0.9.16), the IPD apart, at the passenger's seat
@@ -209,6 +218,9 @@ def test_vr_station_moves_both_eyes_and_submits(station_mod, tmp_path):
             tf = carla.Transform(carla.Location(x=x, y=y, z=z), carla.Rotation(pitch=p, yaw=yw, roll=r))
             cam.cb(types.SimpleNamespace(frame=frame + 1, raw_data=bytes(64 * 72 * 4), width=64, height=72,
                                          transform=tf))
+        deadline = time.time() + 2                                # drawn and submitted by the VR worker thread
+        while (st.headset.latest is None or frame + 1 not in st.vr.records) and time.time() < deadline:
+            time.sleep(0.01)
         assert st.headset.latest is not None and st.headset.latest[0] == frame + 1
         assert st.count.images == 1                               # one pair = one image for the station's stats
         check = st.vr.records[frame + 1][7]

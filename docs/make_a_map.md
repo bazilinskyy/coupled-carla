@@ -174,7 +174,7 @@ Run non-interactively on 15 Nov 2026 from a fresh clone, the page fetched from 1
 
 | Desktop | Before the one-time setup | After it (`uv venv --python 3.12 .venv`, `uv pip install -r requirements.txt`) |
 |---|---|---|
-| Windows 11 (win5090, `make_map.bat`, in a folder of its own with a portable Python 3.12 from uv) | `py -3` is Python 3.13 without packages: "needs its Python packages first", exit 1, no pause with `MAPMAKER_NO_PAUSE` | page answers in 0.6 s; `/api/maps` empty; `/api/carla` finds CARLA 0.9.16; a foreign `Host` header gets 403; stopped cleanly |
+| Windows 11 (win5090, `make_map.bat`, in a folder of its own with a portable Python 3.12 from uv) | `py -3` is Python 3.13 without packages: "needs its Python packages first", exit 1, no pause with `MAPMAKER_NO_PAUSE` | page answers in 0.6 s; `/api/maps` empty; `/api/carla` finds CARLA 0.9.16; a foreign `Host` header gets 403; also from a folder with spaces (`with space\coupled carla`) started from `C:\`; stopped cleanly |
 | Linux (lin4080, Ubuntu 22.04, `make_map.sh`) | picks `python3.12` (3.10 is also there): "needs its Python packages first" | page answers in 1 s; "CARLA is not set up" until `CARLA_ROOT` points at CARLA 0.9.16, then found; 403 for a foreign `Host` |
 | macOS 15 (mini, `Make a map.command`) | picks `/usr/local/bin/python3.13`: "needs its Python packages first" | page answers in 1 s; "CARLA does not run on a Mac" with the command for a PC; stopped cleanly |
 

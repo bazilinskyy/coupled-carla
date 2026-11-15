@@ -165,8 +165,11 @@ class Station:
                     self.ehmi_states = msg.get("ehmi_states", [])
                     self.study = StationStudy(msg, self.args, self.control.send)
                     print(f"[station {self.args.role}] {msg.get('kind')} in {msg.get('experiment')}", flush=True)
-                    if vr.wanted(self.args.display, msg) and self.headset is None:
-                        self._start_headset(msg)
+                    if vr.wanted(self.args.display, msg):
+                        if self.headset is None:
+                            self._start_headset(msg)
+                        else:       # a later welcome (the first can come before the host's trial is set up)
+                            self._vr_settings(msg)
                 elif kind == "state":
                     if msg["state"] == "running" and state != "running" and msg.get("actor_id"):
                         self.start(msg)
@@ -529,9 +532,7 @@ class Station:
     def _start_headset(self, welcome):
         """VR: the settings (experiment's and participant's `vr`) and the headset session, started at the welcome so
         it is up when the trial starts. No headset (no runtime, nothing installed): the station says why and quits."""
-        self.vr_cfg = vr.settings(welcome.get("vr"))
-        if self.args.vr_runtime:
-            self.vr_cfg["runtime"] = self.args.vr_runtime
+        self._vr_settings(welcome)
         say = lambda m: print(f"[station {self.args.role}] {m}", flush=True)  # noqa: E731
         try:
             self.headset = vr.make_headset(self.vr_cfg, log=say)
@@ -543,6 +544,13 @@ class Station:
         info = getattr(self.headset, "info", {})
         say(f"vr: headset ready ({info.get('headset', self.vr_cfg['runtime'])}"
             f"{', ' + info['runtime'] if info.get('runtime') else ''})")
+
+    def _vr_settings(self, welcome):
+        """The VR settings of a welcome (vr.settings over the experiment's and the participant's `vr`), read when the
+        trial starts; --vr-runtime overrides the runtime."""
+        self.vr_cfg = vr.settings(welcome.get("vr"))
+        if getattr(self.args, "vr_runtime", None):
+            self.vr_cfg["runtime"] = self.args.vr_runtime
 
     def _vr_images(self, frame):
         """Both eye images of a frame arrived (vr.VRView): the station's image counts and lag, as _on_image."""
@@ -622,7 +630,13 @@ class Station:
         if self.pending:
             cmds = list(self.pending)
             self.pending.clear()      # in place: the input's send is this list's append
-            self.client.apply_batch_sync(cmds, False)
+            if self.vr is not None and cockpit.major_key(self.version) == "0.9":
+                # VR on CARLA 0.9.x: apply_batch_sync holds the GIL while it waits for the server, the eye cameras'
+                # callbacks need it to read their streams, and an unread stream stalls the server: a deadlock with
+                # two big eye images per tick (measured; CARLA's ue58-dev releases the GIL there since 2a41cbd7b)
+                self.client.apply_batch(cmds)
+            else:
+                self.client.apply_batch_sync(cmds, False)
 
     def _ehmi_keys(self, events, t):
         new = None
@@ -827,6 +841,10 @@ def main():
     if args.port is None:
         args.port = 2000
     if args.child:
+        import faulthandler
+        import signal
+        if hasattr(signal, "SIGUSR1"):      # kill -USR1 <pid> prints every thread's stack (a hung station)
+            faulthandler.register(signal.SIGUSR1, all_threads=True)
         raise SystemExit(Station(args).run())
     # Supervisor: every trial runs in a fresh child process. CARLA's client library can abort a process whose
     # server goes away (the host restarts the server for every trial); a child that dies that way after its

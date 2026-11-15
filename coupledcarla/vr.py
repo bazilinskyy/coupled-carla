@@ -551,13 +551,37 @@ def warp_into(img, tex_rgba, corners, additive=False, gain=1.0):
          c[5] + 2 * c[8], c[6], c[7], c[8]]
     h = [v / h[8] for v in h]
     warped = np.asarray(Image.fromarray(pad, "RGBA").transform((x1 - x0, y1 - y0), Image.PERSPECTIVE, h[:8],
-                                                               Image.BILINEAR), dtype=np.float32)
-    rgb = warped[..., :3] if img.shape[2] == 3 else warped[..., 2::-1]       # BGRA eye images
-    a = warped[..., 3:4] / 255.0
-    roi = img[y0:y1, x0:x1, :3].astype(np.float32)
-    out = roi + rgb * a * gain if additive else roi * (1 - a) + rgb * gain * a
-    img[y0:y1, x0:x1, :3] = np.clip(out, 0, 255).astype(np.uint8)
+                                                               Image.BILINEAR))
+    on = warped[..., 3] > 0                  # only the drawn pixels (a panel of text is mostly transparent)
+    if not on.any():
+        return True
+    w = warped[on].astype(np.float32)
+    rgb = w[:, :3] if img.shape[2] == 3 else w[:, 2::-1]       # BGRA eye images
+    a = w[:, 3:4] / 255.0
+    roi = img[y0:y1, x0:x1, :3]
+    px = roi[on].astype(np.float32)
+    out = px + rgb * a * gain if additive else px * (1 - a) + rgb * gain * a
+    roi[on] = np.clip(out, 0, 255).astype(np.uint8)
     return True
+
+
+def crop_panel(tex, quad):
+    """The visible part of a panel texture (alpha > 0) and its quad: (sub texture, sub quad), or (None, None) when
+    nothing is drawn. quad: 3D corners (top-left, top-right, bottom-right, bottom-left) of a flat rectangle, so the
+    sub quad is interpolated exactly."""
+    import numpy as np
+    on = tex[..., 3] > 0
+    rows, cols = np.flatnonzero(on.any(axis=1)), np.flatnonzero(on.any(axis=0))
+    if not len(rows):
+        return None, None
+    h, w = on.shape
+    r0, r1, c0, c1 = rows[0], rows[-1] + 1, cols[0], cols[-1] + 1
+    tl, tr, _br, bl = quad
+
+    def at(u, v):
+        return tuple(tl[i] + u * (tr[i] - tl[i]) + v * (bl[i] - tl[i]) for i in range(3))
+    u0, u1, v0, v1 = c0 / w, c1 / w, r0 / h, r1 / h
+    return tex[r0:r1, c0:c1], [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)]
 
 
 def quad_in_eye(corners3d, eye_pose, size, layer_fov):
@@ -592,7 +616,11 @@ class VRView:
         self.parents = {}           # frame -> the car's (or gimbal's) pose in that frame's snapshot
         self.relative = True        # ApplyTransform on an attached camera is relative to the car (CARLA 0.9.16)
         self.errors = []            # the first rendered-pose errors (cm), to check that
-        self.draw_eye = None        # the station's latest drawer (compose_and_submit), used in the image callback
+        self.draw_eye = None        # the station's latest drawer (compose_and_submit), used by the worker
+        self._cv = threading.Condition()
+        self._pending = None        # the newest complete pair, for the worker (_work)
+        self._stop = False
+        self.worker = None
         self.last_left = None       # the newest left eye drawn, for the station's mirror window
         self.pair = EyePair()
         self.ipd = None if cfg.get("ipd_mm") is None else float(cfg["ipd_mm"]) / 1000.0
@@ -634,6 +662,8 @@ class VRView:
             else:
                 self.cams[i] = world.spawn_actor(bp, (self.anchor or actor).get_transform())
             self.cams[i].listen(lambda image, i=i: self._on_image(i, image))
+        self.worker = threading.Thread(target=self._work, name="vr-eyes", daemon=True)
+        self.worker.start()
         self.log(f"vr: two eye cameras {self.cam['width']}x{self.cam['height']} at {self.cam['hfov_deg']:.1f} deg "
                  f"(IPD {'runtime' if self.ipd is None else f'{1000 * self.ipd:.1f} mm'}, overscan "
                  f"{100 * float(self.cfg.get('overscan', 0.1)):.0f}%, prediction "
@@ -721,13 +751,28 @@ class VRView:
         hook = getattr(self.st, "_vr_images", None)
         if hook is not None:
             hook(image.frame)
-        self._submit(image.frame, [both[0][0], both[1][0]], rec, now, both[0][1])
+        # the callback only hands the pair over: CARLA's stream thread must get back to reading at once (on 0.9.16 a
+        # stream the client does not read stalls the server, and with it every tick)
+        with self._cv:
+            self._pending = (image.frame, [both[0][0], both[1][0]], rec, now, both[0][1])
+            self._cv.notify()
+
+    def _work(self):
+        """Draws and submits the newest pair of eye images (an older one waiting is dropped)."""
+        while True:
+            with self._cv:
+                while self._pending is None and not self._stop:
+                    self._cv.wait(0.5)
+                if self._stop:
+                    return
+                job, self._pending = self._pending, None
+            self._submit(*job)
 
     def compose_and_submit(self, draw_eye=None):
         """In the station's loop: sets the drawer for the next eye images (draw_eye(i, img, rec, size, fov), rec the
         poses they were rendered at: "eyes" in the seat's parent frame, "world_eyes") and returns the newest left eye
-        drawn since the last call (BGRA), or None. The images themselves are drawn and handed to the headset in the
-        camera callback as soon as both eyes of a frame are in (_submit), a tick earlier than this loop would."""
+        drawn since the last call (BGRA), or None. The images themselves are drawn and handed to the headset by a
+        worker thread as soon as both eyes of a frame are in (_submit), a tick earlier than this loop would."""
         self.draw_eye = draw_eye
         with self.lock:
             left, self.last_left = self.last_left, None
@@ -853,6 +898,8 @@ class VRView:
         ipd = self.ipd if self.ipd is not None else getattr(self.hs, "ipd_m", None) or 0.063
         quad = head_locked_quad(float(self.cfg.get("panel_distance_m", 1.5)), float(self.cfg.get("panel_width_deg", 50)),
                                 tex.shape[0] / tex.shape[1]) if tex is not None else None
+        if tex is not None:
+            tex, quad = crop_panel(tex, quad)
         hfov = self.cam["hfov_deg"]
 
         def draw(i, img, rec, size, fov):
@@ -870,6 +917,9 @@ class VRView:
         return draw
 
     def stop(self):
+        with self._cv:
+            self._stop = True
+            self._cv.notify()
         for cam in self.cams:
             if cam is not None:
                 try:

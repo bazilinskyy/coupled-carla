@@ -102,13 +102,10 @@ Gpu "primary + secondary"
 
 Step "3. protocol: synchronous 1/20 s after the secondary connects, guard_settings, a camera rendered by the secondary"
 Wsl "python tools/multigpu_check.py settings --primary 127.0.0.1 --port 2000 --step 0.02 --ticks 40" "check_settings.txt"
-Wsl ("python tools/multigpu_check.py station --primary 127.0.0.1 --port 2000 --role pedestrian --timeout 10 " +
-     "--plan '[{""name"": ""gpu0"", ""host"": ""server"", ""streaming_port"": 3001, ""roles"": [""pedestrian""]}]'") "check_station.txt"
+Wsl "python tools/multigpu_check.py station --primary 127.0.0.1 --port 2000 --role pedestrian --timeout 10 --plan gpu0@server:3001/pedestrian" "check_station.txt"
 
 Step "4. the dry run with server.multigpu (experiments/_mgpu_test.yaml)"
-Wsl ("python -c ""import yaml,sys; c=yaml.safe_load(open('$Study')); s=c.setdefault('server',{}); " +
-     "s['launch']=False; s['multigpu']={'secondaries':[{'name':'gpu0','host':'127.0.0.1','rpc_port':3000,'launch':False}]}; " +
-     "yaml.safe_dump(c, open('experiments/_mgpu_test.yaml','w'), sort_keys=False)"" && " +
+Wsl ("python tools/multigpu_check.py experiment --base $Study --out experiments/_mgpu_test.yaml --secondary gpu0@127.0.0.1:3000 && " +
      "python -m coupledcarla.multigpu experiments/_mgpu_test.yaml; " +
      "python tools/station_dryrun.py experiments/_mgpu_test.yaml --duration $Duration --out logs/mgpu-$stamp/multigpu") "dryrun_multigpu.txt"
 Gpu "after the multi-GPU dry run"
@@ -117,8 +114,14 @@ Step "6. back to the single server; the comparison"
 StopCarla
 if (-not $Plan) { & schtasks /run /tn cc58-pkgserver | Out-Null }
 WaitPort 2000 180
-Wsl "rm -f experiments/_mgpu_test.yaml; for f in logs/mgpu-$stamp/single logs/mgpu-$stamp/multigpu; do echo == `$f; tail -n 25 `$f/*.txt 2>/dev/null || ls `$f; done" "comparison.txt"
-if (-not $Plan) { Stop-Transcript | Out-Null }
+Wsl "rm -f experiments/_mgpu_test.yaml" "cleanup.txt"
+if (-not $Plan) {
+  foreach ($f in @("dryrun_single.txt", "dryrun_multigpu.txt")) {
+    Write-Host "== $f"
+    Get-Content (Join-Path $out $f) -Tail 25
+  }
+  Stop-Transcript | Out-Null
+}
 Write-Host ""
 Write-Host "Compare in $out : dryrun_single.txt vs dryrun_multigpu.txt (RTF, station fps, tick-to-image p95), gpu.txt,"
 Write-Host "check_settings.txt (expect synchronous 0.05 then 0.02), check_station.txt (expect images > 0), vr_bench.txt."

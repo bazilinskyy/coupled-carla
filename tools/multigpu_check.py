@@ -16,8 +16,9 @@ against them with a real carla client, so these hold or fail on a real server:
     python tools/multigpu_check.py fake --primary 131.155.229.241 --secondary-port 2101 --stream-port 4001 --images
     python tools/multigpu_check.py settings --primary 131.155.229.241 --port 2099 [--step 0.02]
     python tools/multigpu_check.py station --primary 131.155.229.241 --port 2099 --role pedestrian \\
-        --plan '[{"name": "gpu0", "host": "server", "streaming_port": 3001},
-                 {"name": "ped", "host": "100.80.227.26", "streaming_port": 4001, "roles": ["pedestrian"]}]'
+        --plan gpu0@server:3001,ped@100.80.227.26:4001/pedestrian       # (or the welcome's JSON list)
+    python tools/multigpu_check.py experiment --base experiments/x.yaml --out experiments/_mgpu_test.yaml \\
+        --secondary gpu0@127.0.0.1:3000                                  # the experiment with server.multigpu
 
 Every subcommand prints JSON lines. No GPU is used anywhere (the primary needs -nullrhi).
 """
@@ -165,6 +166,39 @@ class Fake:
                 say(fake=self.name, event="unknown_command", id=cid, size=size)
 
 
+def parse_plan(text):
+    """Secondaries as the welcome lists them: a JSON list, or name@host:streaming_port[/role+role] items separated by
+    commas (no quotes needed in any shell)."""
+    text = text.strip()
+    if text.startswith("["):
+        return json.loads(text)
+    out = []
+    for item in filter(None, text.split(",")):
+        head, _, roles = item.partition("/")
+        name, _, where = head.partition("@")
+        host, _, port = where.rpartition(":")
+        out.append({"name": name, "host": host, "streaming_port": int(port),
+                    "roles": [r for r in roles.split("+") if r]})
+    return out
+
+
+def cmd_experiment(a):
+    """Writes the base experiment with server.multigpu.secondaries (name@host:rpc_port, launch false) and the server
+    not launched (it runs already)."""
+    import yaml
+    cfg = yaml.safe_load(Path(a.base).read_text())
+    secs = []
+    for item in a.secondary:
+        name, _, where = item.partition("@")
+        host, _, port = where.rpartition(":")
+        secs.append({"name": name, "host": host, "rpc_port": int(port), "launch": False})
+    server = cfg.setdefault("server", {})
+    server["launch"] = False
+    server["multigpu"] = {"secondaries": secs}
+    Path(a.out).write_text(yaml.safe_dump(cfg, sort_keys=False))
+    say(check="experiment", out=a.out, secondaries=secs)
+
+
 def cmd_settings(a):
     import carla
     from coupledcarla import multigpu
@@ -191,7 +225,7 @@ def cmd_settings(a):
 def cmd_station(a):
     import carla
     from coupledcarla import compat, multigpu
-    plan = {"multigpu": {"secondaries": json.loads(a.plan), "own": None, "rpc_port": a.port,
+    plan = {"multigpu": {"secondaries": parse_plan(a.plan), "own": None, "rpc_port": a.port,
                          "streaming_port": a.port + 1, "relay": "auto", "placement": True}}
     for x in plan["multigpu"]["secondaries"]:
         if a.role in (x.get("roles") or []):
@@ -273,11 +307,17 @@ def main(argv=None):
     t.add_argument("--primary", required=True)
     t.add_argument("--port", type=int, default=2000)
     t.add_argument("--role", default="pedestrian")
-    t.add_argument("--plan", required=True, help="JSON list of secondaries as in the welcome (name, host, "
-                                                 "streaming_port, roles)")
+    t.add_argument("--plan", required=True, help="secondaries as in the welcome: name@host:streaming_port[/role+role],"
+                                                 "... or a JSON list (name, host, streaming_port, roles)")
     t.add_argument("--timeout", type=float, default=4.0)
+    e = sub.add_parser("experiment", help="an experiment with server.multigpu, for the dry run")
+    e.add_argument("--base", required=True)
+    e.add_argument("--out", required=True)
+    e.add_argument("--secondary", action="append", required=True, help="name@host:rpc_port")
     a = ap.parse_args(argv)
-    if a.cmd == "fake":
+    if a.cmd == "experiment":
+        cmd_experiment(a)
+    elif a.cmd == "fake":
         Fake(a.primary, a.secondary_port, a.stream_port, a.name, a.images, a.token_address).run()
     elif a.cmd == "settings":
         cmd_settings(a)

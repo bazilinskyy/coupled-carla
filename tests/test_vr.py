@@ -290,3 +290,15 @@ def test_warp_into_draws_a_panel_where_it_projects():
     assert 160 <= rgb[75, 150, 0] <= 170 and rgb[75, 150, 1] == 100      # light added, not painted
     assert not vr.warp_into(img, tex, [(500, 500), (600, 500), (600, 600), (500, 600)])      # off the image
     assert not vr.warp_into(img, tex, [(float("nan"), 0)] * 4)
+
+
+def test_crop_panel_keeps_the_visible_part_in_place():
+    tex = np.zeros((100, 200, 4), np.uint8)
+    tex[60:80, 20:120, :] = 255
+    quad = vr.head_locked_quad(1.5, 50, 0.5)
+    sub, q = vr.crop_panel(tex, quad)
+    assert sub.shape == (20, 100, 4)
+    tl, tr, br, bl = quad
+    assert close(q[0], tuple(tl[i] + 0.1 * (tr[i] - tl[i]) + 0.6 * (bl[i] - tl[i]) for i in range(3)))
+    assert close(q[2], tuple(tl[i] + 0.6 * (tr[i] - tl[i]) + 0.8 * (bl[i] - tl[i]) for i in range(3)))
+    assert vr.crop_panel(np.zeros((10, 10, 4), np.uint8), quad) == (None, None)
