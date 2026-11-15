@@ -208,21 +208,23 @@ def municipal_scenery(bbox, path):
         # caches written when the tree census was listed as "nyc", the key of NYC's building footprints
         data["sources"] = ["nyc_trees" if s == "nyc" else s for s in data.get("sources", [])]
         return data
-    els, used = [], []
+    els, used, failed = [], [], False
     for name, area, fetch, what in MUNICIPAL:
         if _in_box(bbox, *area):
             try:
                 got = fetch(bbox)
-            except Exception as err:  # noqa: BLE001 - the register is down: OSM alone
+            except Exception as err:  # noqa: BLE001 - the register is down: OSM alone (and asked again next build)
                 log(f"{name} register failed ({err})")
+                failed = True
                 continue
             els += got
             used.append(name)
             log(f"{what}: {sum(1 for x in got if x['tags'].get('natural') == 'tree')} trees, "
                 f"{sum(1 for x in got if x['tags'].get('highway') == 'street_lamp')} street lights")
     data = {"elements": els, "sources": used}
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data))
+    if not failed:      # a register that was down is not cached as "no register here"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data))
     return data
 
 

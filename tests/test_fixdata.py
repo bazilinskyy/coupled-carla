@@ -267,3 +267,17 @@ def test_overpass_partial_answers_are_not_cached(tmp_path, monkeypatch):
                   b'using about 2048 MB of RAM. </remark></osm>'), R(b'<osm><way id="1"/><way id="2"/></osm>')]
     mapbuild.fetch_osm([0, 0, 1, 1], tmp_path / "map.osm")
     assert b'id="2"' in (tmp_path / "map.osm").read_bytes()
+
+
+def test_a_register_that_is_down_is_not_cached_as_none(tmp_path, monkeypatch):
+    # Eindhoven's tree and lamp register failing once wrote municipal.json without them: every later build had
+    # OSM's trees and guessed lamps only
+    def down(bbox):
+        raise OSError("503")
+    monkeypatch.setattr(rw, "MUNICIPAL", [("eindhoven", (51.38, 5.38, 51.50, 5.57), down, "registers")])
+    f = tmp_path / "municipal.json"
+    assert rw.municipal_scenery([51.436, 5.47, 51.45, 5.493], f) == {"elements": [], "sources": []}
+    assert not f.exists()
+    monkeypatch.setattr(rw, "MUNICIPAL", [("eindhoven", (51.38, 5.38, 51.50, 5.57), lambda b: [], "registers")])
+    rw.municipal_scenery([51.436, 5.47, 51.45, 5.493], f)
+    assert f.exists()
