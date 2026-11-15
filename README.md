@@ -96,7 +96,7 @@ under CC0, CC BY 4.0, Licence Ouverte, ODbL or their open data terms). See
 | **Any place** | `map.bbox: [south, west, north, east]` -> OSM download -> pruned road graph -> OpenDRIVE for CARLA + matching SUMO network, in seconds (2.6 s for 1.6 km of central Eindhoven, plus the download). Left- and right-hand traffic. |
 | **Real-world scenery** | Every map is filled from free open data: real terrain on the roads (AHN lidar in the Netherlands, AWS Terrain Tiles elsewhere), buildings at their real footprints and heights (3DBAG, IGN BD TOPO, NYC Open Data, PLATEAU, Overture Maps), OSM street trees by species and height (sized from Meta/WRI canopy heights where OSM has none), the Dutch BGT's ground surfaces and street furniture, parks, water, lamps, benches, bus shelters, bollards and road signs, and the weather and sun of a real place and time (Open-Meteo) ([Real-world scenery](#real-world-scenery-terrain-and-weather)). |
 | **19 cities** | Eindhoven plus 18 cities on six continents, from Tokyo and Cairo to Luang Prabang and Ushuaia ([Cities](#cities)). |
-| **CARLA's towns** | Town01-Town07 and Town10HD (CARLA 0.9.16 and 1.0) with every feature: SUMO traffic that runs the towns' own traffic lights, parked cars, crowds and CARLA's AI walkers, stations, eHMIs, drones, sound, night lights (`map: {carla_town: Town10HD_Opt}`; [Standard CARLA maps](#standard-carla-maps)). |
+| **CARLA's towns** | Town01-Town07 and Town10HD (CARLA 0.9.16; the 1.0 towns are not tested yet) with every feature: SUMO traffic that runs the towns' own traffic lights, parked cars, crowds and CARLA's AI walkers, stations, eHMIs, drones, sound, night lights (`map: {carla_town: Town10HD_Opt}`; [Standard CARLA maps](#standard-carla-maps)). |
 | **Traffic models** | SUMO drives everything that is not a participant: EIDM car following, the sublane lane-change model (cyclists and cars share and overtake), a Dutch-flavoured fleet with Gazelle bikes and buses, car demand fitted to open traffic counts where cities publish them (7 maps, SUMO's routeSampler), cyclists on the real cycle network at counted volumes. The participant's car is mirrored into SUMO, so traffic reacts to them. |
 | **Real public transport** | The bus lines of OpenStreetMap run on their real streets and stop at their real stops (16 of the 19 maps have OSM bus lines); where the city publishes a GTFS timetable (10 maps) they come as often as that timetable says for the trial's hour and day; at `time: now` the real buses start where they are at that moment (GTFS-Realtime, e.g. all of the Netherlands) ([Public transport](#public-transport)). |
 | **Real car fleet** | Car body types and colours from open vehicle registers (RDW for the Netherlands, NY DMV for Manhattan with its yellow cabs, Waka Kotahi for New Zealand, Senatran for Brazil), mapped onto CARLA's models; each SUMO car's colour is the CARLA car's ([Traffic](#traffic)). |
@@ -716,7 +716,7 @@ the experiment sets itself wins):
 python -m coupledcarla.run experiments/towns/town10_driver.yaml               # Town10HD at rush hour, keyboard
 python -m coupledcarla.run experiments/towns/town03_crossing.yaml --local --headless
 python -m coupledcarla.towns list                                             # the towns
-python -m coupledcarla.towns latlon Town03_Opt 79.5 -14.4                     # CARLA x, y -> lat, lon
+python -m coupledcarla.towns latlon Town03_Opt 150.5 -13.3                    # CARLA x, y -> lat, lon
 python -m coupledcarla.towns crosswalks Town10HD_Opt                          # crosswalks, for scenarios
 python tools/test_towns.py --duration 40 > docs/town_tests.md                 # the smoke test
 ```
@@ -733,15 +733,15 @@ traffic, the town's lights run by SUMO, parked cars, a crowd of 20 and 20 CARLA 
 
 | Town | Lane links | Traffic lights run by SUMO | Parking stalls | Parked cars shown | Buildings (sound, drones) | SUMO vehicles shown | Real-time factor | Collisions | Result |
 |---|---|---|---|---|---|---|---|---|---|
-| Town01_Opt | 160 | 36 of 36 | 0 (the level's own) | 0 | 373 | 8 | 0.959 | 0 | ok |
-| Town02_Opt | 112 | 24 of 24 | 0 (the level's own) | 0 | 445 | 7 | 0.981 | 0 | ok |
-| Town03_Opt | 503 | 38 of 38 | 335 | 163 | 726 | 19 | 0.991 | 0 | ok |
+| Town01_Opt | 160 | 36 of 36 | 0 (the level's own) | 0 | 373 | 7 | 0.995 | 0 | ok |
+| Town02_Opt | 112 | 24 of 24 | 0 (the level's own) | 0 | 445 | 7 | 0.995 | 0 | ok |
+| Town03_Opt | 503 | 38 of 38 | 335 | 163 | 726 | 19 | 0.994 | 0 | ok |
 | Town04_Opt | 559 | 43 of 43 | 77 | 22 | 118 | 21 | 0.995 | 0 | ok |
-| Town05_Opt | 604 | 54 of 54 | 107 | 48 | 719 | 16 | 0.914 | 0 | ok |
-| Town10HD_Opt | 200 | 15 of 15 | 120 | 61 | 324 | 14 | 0.228 (0.70 alone) | 0 | ok |
+| Town05_Opt | 604 | 54 of 54 | 107 | 48 | 719 | 16 | 0.995 | 0 | ok |
+| Town10HD_Opt | 200 | 15 of 15 | 120 | 61 | 324 | 14 | 0.971 | 0 | ok |
 
-Every town drove its 40 s with no collision, no car leaving the road and no recovery, all 20 AI walkers walking. The
-GPU was shared with two or three other CARLA servers, so the real-time factors measure that more than the towns.
+Every town drove its 40 s in real time with no collision, no car leaving the road and no recovery, all 20 AI walkers
+walking (with the GPU to itself; an earlier run beside three other CARLA servers gave the same counts at 0.23-0.995).
 Town06 and Town07 come with CARLA's AdditionalMaps package, which the test machine does not have: their maps build
 and their SUMO traffic runs (167 and 35 vehicles in 300 s SUMO-only runs), and the run says which levels a server
 has. CARLA 1.0 is not tested yet: its towns' OpenDRIVE comes from the server, as the package keeps it in the pak.
