@@ -35,8 +35,10 @@ def fake_carla():
         def set_attribute(self, k, v):
             self.attrs[k] = v
 
+        missing = {"post_process_profile"}       # a CARLA 0.9.x camera; a test sets CARLA 1.0's
+
         def has_attribute(self, k):
-            return True
+            return k not in self.missing
 
     class Camera:
         def __init__(self, bp):
@@ -195,5 +197,18 @@ def test_station_camera_rate_headless_default(station_mod, tmp_path):
         st2.start({"state": "running", "actor_id": 7, "trial": 0})
         attrs = carla.world.spawned[-1].bp.attrs
         assert attrs["sensor_tick"] == "0.04" and "exposure_mode" not in attrs
+        # CARLA 1.0 (no exposure attributes, post-process profiles): headless renders every tick so its auto
+        # exposure adapts, with the welcome's profile (compat.setup_camera)
+        bp_class = type(carla.world.spawned[-1].bp)
+        bp_class.missing = {"exposure_mode", "shutter_speed"}
+        try:
+            st3 = mod.Station(args(tmp_path, srv.getsockname()[1], camera_hz=None, frames_every=0.5))
+            st3.welcome = {"kind": "av_passenger", "camera_profile": "Dashcam"}
+            st3.start({"state": "running", "actor_id": 7, "trial": 0})
+            attrs = carla.world.spawned[-1].bp.attrs
+            assert "sensor_tick" not in attrs and attrs["post_process_profile"] == "Dashcam"
+            assert st3.camera_hz() == 0.0
+        finally:
+            bp_class.missing = {"post_process_profile"}
     finally:
         srv.close()
