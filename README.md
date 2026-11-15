@@ -1440,6 +1440,12 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   design files in coupled-sim's format (`data/incar/`), timed messages, and the take-over state of `takeover.py`.
 - **Haptic cues** (`haptics`, `coupledcarla/haptics.py`): take-over requests, messages and configured cues as wheel
   vibration (G25), gamepad rumble or a UDP datagram to an external device.
+- **The AV's own eHMI from inside** (`ehmi.inside`, `coupledcarla/ehmi_inside.py`): debug lines have no back face, so
+  an AV passenger used to read the car's own message mirrored over the hood. Panels the front seats see from behind
+  (designed front, hood, windshield and roof panels; the plain eHMI's front and roof text) are now drawn by the
+  stations: everyone outside sees them as before, the passenger by `inside: hide` (default, the back of an opaque
+  display), `dim` (a see-through display at a quarter of the light) or `mirror` (as before). `ehmi.indicator`
+  (default on) shows the passenger the eHMI the right way round on a strip at the top of the view.
 - **Designed eHMIs** (`ehmi.design`, `coupledcarla/ehmi_design.py`): eHMIs from design files (coupled-sim's format:
   light bars, shapes, arrows, text, pulse/blink/sweep animations) on the front, rear, roof, windshield, bumper or
   projected on the road, drawn in the world or over each station's camera image; examples in `data/ehmi/`.
@@ -1459,6 +1465,14 @@ windscreen keeps its detail. `displays.style: overlay` keeps the old flat panels
 renders before/after frames.
 
 <img src="docs/img/cockpit_before_after.jpg" width="100%" alt="The driver's view before (a flat cluster rectangle over the dashboard, no steering wheel, dark cabin) and after (the car's own eye point, the steering wheel in view, the cluster in the instrument panel, a light HUD)">
+
+**Right-hand drive** (`displays.rhd: mirror`, `coupledcarla/rhd.py`, left-hand-traffic maps): CARLA's cars are all
+left-hand drive. The station renders a second camera at the mirrored seat and takes its cabin mirrored, and the street
+through the glass from the real seat (which pixels are glass is found once at the start from 25 depth cameras round
+the car); the wheel turns and the cluster sits behind it. It costs a second camera per frame, and the cabin's light
+and the lettering on the mesh's own screens are mirrored too.
+
+<img src="docs/img/rhd_before_after.jpg" width="100%" alt="London: the right seat of CARLA's left-hand-drive Lincoln before, and the mirrored right-hand-drive cabin with the street the right way round after (Lincoln MKZ 2020, Tesla Model 3)">
 
 ## Drones
 
@@ -1793,6 +1807,10 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 
 ## Known limits
 
+- **Stacked roads** (`coupledcarla/levels.py`): a SUMO-driven car is put back when more than 3 m off CARLA's road on
+  its SUMO level or tipped beyond 40 degrees, and lanes and route points are picked by height as well (on when SUMO's
+  heights match CARLA's). On the Shibuya twin the time off the road fell from 19 % to 2 % in a 150 s trial; that
+  level's terrain still rises above some roads.
 - **Looks:** the scenery uses CARLA 0.9.16's own meshes: real positions, footprints and heights, but CARLA's
   facades, tree models and props, and flat or tilted ground tiles (steps between tiles on steep maps). No road
   markings or crossings on OSM maps, and lamps give no light on 0.9.16 (on CARLA 1.0 they do). Exact buildings, aerial-photo ground and markings
