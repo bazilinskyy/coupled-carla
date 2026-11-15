@@ -280,11 +280,11 @@ clips:
     time: "2026-09-20 12:30"
     set:
       traffic: {cars_per_hour: 1800, walkers: {count: 15, radius_m: 100, ai: {count: 40, radius_m: 90}}}
-    start_s: 4
-    duration_s: 17
+    start_s: 3
+    duration_s: 15
     attributes: {bloom_intensity: 0.08}
     camera: {kind: follow, target: pedestrian, offset: [0.22, 0, 0.72], look_ahead_m: 6, look_up_m: 0.7,
-             smooth_s: 0.4, look_at: av1, look_weight: 0.8, look_smooth_s: 0.4, look_max_m: 160, fov: 80}
+             smooth_s: 0.4, look_at: av1, look_weight: 0.6, look_smooth_s: 0.4, look_max_m: 160, fov: 80}
 
   - name: town10_four_views
     title: Four people in Town10
