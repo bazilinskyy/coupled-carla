@@ -168,7 +168,7 @@ answered 502 and 504 several times and the map maker moved on to the next).
 | **Plaza Mayor, Salamanca** | **Hallstatt** |
 | ![Preview of Plaza Mayor, Salamanca](docs/img/mapmaker_salamanca.png) | ![Preview of Hallstatt](docs/img/mapmaker_hallstatt.png) |
 
-![Chase-camera frames of the test drives: Seoul, New Delhi (left-hand), Hallstatt, Salamanca](docs/img/mapmaker_drives.jpg)
+<img src="docs/img/mapmaker_drives.jpg" width="100%" alt="Chase-camera frames of the test drives: Seoul, New Delhi (left-hand), Hallstatt, Salamanca">
 
 *The test drives in CARLA (chase camera): Seoul and New Delhi (left-hand traffic, buses) above, Hallstatt and
 Salamanca below.*
@@ -271,7 +271,7 @@ driver follows. Each view below was rendered by a separate station process (here
 |---|---|
 | ![pedestrian sees I'M STOPPING](docs/img/ehmi_pedestrian_stopping.jpg) | ![pedestrian sees GO AHEAD on the AV's front, roof and the road](docs/img/ehmi_pedestrian_go.jpg) |
 
-![Four stations in one trial at the same moment, east of Eindhoven station: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot](docs/img/stations_four_views.jpg)
+<img src="docs/img/stations_four_views.jpg" width="100%" alt="Four stations in one trial at the same moment, east of Eindhoven station: the pedestrian, the AV passenger with the in-car display, a driver and a drone pilot">
 
 The same moment in the trial viewer: the pedestrian (red) crossing, the AV (dark blue) stopped with its cyan
 eHMI bar, an AI walker further down the street; the event list shows the AV stopping, the passenger's eHMI
@@ -1164,7 +1164,7 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   lin4080 the sound costs 5-7 ms per 50 ms tick. Models, recordings and licences: [sound
   credits](coupledcarla/data/sound_credits.md).
 
-  ![What a pedestrian waiting at the Fellenoord crossing in Eindhoven hears: pass-bys, idling queues and the crossing signal (spectrogram and A-weighted level)](docs/img/sound_ped_crossing.jpg)
+  <img src="docs/img/sound_ped_crossing.jpg" width="100%" alt="What a pedestrian waiting at the Fellenoord crossing in Eindhoven hears: pass-bys, idling queues and the crossing signal (spectrogram and A-weighted level)">
 - **Audio for videos** (`run --record-audio`, or `sound.record: true`): the host renders the first participant's
   soundscape (the driver in the car, the AV passenger, the pedestrian's head, the drone pilot's camera) in
   simulation time and writes `audio.wav` (44.1 kHz stereo) to the trial's folder. Sample 0 is simulation time 0 and
