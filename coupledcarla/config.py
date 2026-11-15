@@ -221,6 +221,14 @@ DEFAULTS = {
         "cues": [],                  # {at | on: over_limit, takeover, message, "ehmi:<state>"; pattern, intensity,
                                      # duration}
     },
+    "film": {                        # demo-video cameras (film.py; tools/make_videos.py writes this section): frames
+                                     # kept on a grid of simulation time from start_s for duration_s at fps
+        "start_s": 30.0, "duration_s": 20.0, "fps": 25.0, "size": [1280, 720], "fov": 90.0, "settle_s": 2.0,
+        "jpeg_quality": 93, "attributes": {},
+        "camera": None,              # {kind: attach | follow | tripod | orbit | path | drone, target, ...} (film.py)
+        "cameras": [],               # more cameras, each {name, kind, ...}
+        "hold": {},                  # {role: until_s}: a host-local driver waits with the hand brake on until then
+    },
     "pois": [],
     "logging": {
         "dir": "logs",
