@@ -3,7 +3,8 @@
     pip install -e ".[vr]"        # pyopenxr (Apache-2.0), glfw (zlib), PyOpenGL (BSD)
 
 The thread owns an OpenGL context (a hidden GLFW window) and the OpenXR session (OpenGL binding: GLX on Linux,
-WGL on Windows; every PC runtime supports it: Meta Quest Link / Air Link, SteamVR, Varjo, WMR, Pico, Monado). At the
+WGL on Windows; Meta Quest Link / Air Link, SteamVR, Varjo and Monado support it; Windows Mixed Reality's own runtime
+does not: run WMR headsets through SteamVR's OpenXR runtime). At the
 headset's rate it waits for the frame, locates the head (VIEW space in LOCAL or STAGE space, with velocities) at the
 predicted display time for the station, uploads the newest pair of eye images the station submitted and ends the
 frame with one projection layer whose views carry the poses the images were rendered at, so the runtime reprojects

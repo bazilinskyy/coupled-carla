@@ -160,11 +160,35 @@ as for any map. Left-hand countries work: the twin's roads say so to CARLA 1.0.
 - **Building needs the internet** and takes minutes; the downloaded data is kept, so a second build is faster.
 - **Driving needs a PC with a good graphics card and CARLA 0.9.16.**
 
+## The launchers, tested
+
+Each launcher starts the page server on 127.0.0.1 (port 8777, or the next free one) and opens the browser. Extra
+arguments go to the map maker, so a launcher also runs without a browser, for a test or on a machine somebody else
+uses: `./make_map.sh --no-browser --port 8790` (Linux), `"./Make a map.command" --no-browser --port 8790` (macOS),
+`make_map.bat --no-browser --port 8790` (Windows). Without a terminal the shell launchers do not wait for Enter at the
+end; on Windows `set MAPMAKER_NO_PAUSE=1` skips the pause. A launcher uses the project's `.venv` when there is one,
+else the first Python 3.10 or newer it finds (`py -3` or `python` on Windows; `python3.13` ... `python3` elsewhere),
+and says what to do when there is none. Its exit code is the map maker's.
+
+Run non-interactively on 15 Nov 2026 from a fresh clone, the page fetched from 127.0.0.1 and the server stopped:
+
+| Desktop | Before the one-time setup | After it (`uv venv --python 3.12 .venv`, `uv pip install -r requirements.txt`) |
+|---|---|---|
+| Windows 11 (win5090, `make_map.bat`, in a folder of its own with a portable Python 3.12 from uv) | `py -3` is Python 3.13 without packages: "needs its Python packages first", exit 1, no pause with `MAPMAKER_NO_PAUSE` | page answers in 0.6 s; `/api/maps` empty; `/api/carla` finds CARLA 0.9.16; a foreign `Host` header gets 403; stopped cleanly |
+| Linux (lin4080, Ubuntu 22.04, `make_map.sh`) | picks `python3.12` (3.10 is also there): "needs its Python packages first" | page answers in 1 s; "CARLA is not set up" until `CARLA_ROOT` points at CARLA 0.9.16, then found; 403 for a foreign `Host` |
+| macOS 15 (mini, `Make a map.command`) | picks `/usr/local/bin/python3.13`: "needs its Python packages first" | page answers in 1 s; "CARLA does not run on a Mac" with the command for a PC; stopped cleanly |
+
+The setup itself took 3 to 18 s with uv's cache filled (minutes the first time, ~1 GB). On Python 3.13
+`pip install -r requirements.txt` fails on Windows and Linux: CARLA 0.9.16's client has wheels for Python 3.10 to 3.12
+only, which is why the setup asks uv for 3.12.
+
 ## Troubleshooting
 
 | What you see | What to do |
 |---|---|
 | The launcher window closes at once, or says "needs its Python packages first" | Do [Set up once](#set-up-once), step 3. Then double-click the launcher again. |
+| "needs Python 3.10 or newer" | Do [Set up once](#set-up-once), steps 2 and 3: uv installs Python 3.12 for the project. |
+| The setup stops with "carla==0.9.16 has no wheels ... cp313" | The project's `.venv` was made with Python 3.13: make it again with `uv venv --python 3.12 .venv` (CARLA 0.9.16's client supports Python 3.10 to 3.12). |
 | "I could not find ..." | Check the spelling, add the town or country ("Markt, Eindhoven"), or click on the map instead. |
 | "No roads found here" ([what it looks like](img/mapmaker_error.jpg)) | The square is in the sea, a desert, a forest or a park. Move it onto streets, or choose a larger size. |
 | "Only 0.8 km of road here connect into a drivable network" | The square holds few streets that form loops (in a valley town the road leaves the square at both ends). Choose a larger size, or move the square to where more streets meet. |

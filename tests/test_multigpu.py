@@ -151,6 +151,35 @@ def test_relay_forwards_and_counts():
         relay.close()
 
 
+def test_relay_process_forwards_while_the_gil_is_held():
+    """The relay runs in a child process: it forwards while this process holds the GIL (as CARLA 1.0's client does
+    while it waits for get_world's answer), counts the connections and ends with close()."""
+    up = Echo()
+    local = free_port()
+    relay = multigpu.Relay({local: ("127.0.0.1", up.port)})
+    try:
+        assert relay.proc is not None and relay.proc.is_alive()
+        c = socket.create_connection(("127.0.0.1", local), timeout=5)
+        c.sendall(b"ping")
+        assert c.recv(100) == f"{up.port}:ping".encode()
+        c.close()
+        deadline = time.time() + 5
+        while relay.counts()[local] < 1 and time.time() < deadline:
+            time.sleep(0.05)
+        assert relay.counts()[local] == 1
+    finally:
+        relay.close()
+    assert relay.proc is None
+    with pytest.raises(OSError):        # the port is taken: the child says so and the parent raises
+        busy = socket.socket()
+        busy.bind(("127.0.0.1", 0))
+        busy.listen(1)
+        try:
+            multigpu.Relay({busy.getsockname()[1]: ("127.0.0.1", up.port)})
+        finally:
+            busy.close()
+
+
 def test_station_routing_direct_without_remote_secondaries():
     sc = cfg_with([{"name": "here"}])["server"]
     r = multigpu.StationRouting(multigpu.welcome(sc, "driver")["multigpu"], "10.9.9.9", 2000, log=lambda m: None)
@@ -169,6 +198,7 @@ def test_station_routing_relays_and_places(monkeypatch):
                             {"name": "mine", "host": "10.0.0.50", "streaming_port": s_own}],
             "own": "mine", "rpc_port": p_rpc, "streaming_port": p_stream, "relay": "auto", "placement": True}
     monkeypatch.setattr(multigpu, "_is_local", lambda h: h in multigpu.LOCAL_HOSTS)
+    monkeypatch.setattr(multigpu, "RELAY_PROCESS", False)       # its counts are bumped by hand below
     r = multigpu.StationRouting(plan, "10.0.0.1", p_rpc, log=lambda m: None)
     try:
         assert r.relay is not None and r.own_local and r.can_place()
