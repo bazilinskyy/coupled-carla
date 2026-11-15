@@ -203,7 +203,11 @@ def test_content_pack():
     assert plugin["ExplicitlyLoaded"] and plugin["CanContainContent"]
     ids = {"blueprint." + b["Name"] for b in bps}
     assert set(season.LAMP_LIGHTS.values()) <= ids
-    assert all(b["Path"].startswith("/Game/Carla/Static/StreetLight/BP_") for b in bps)
+    assert all(b["Path"].startswith("/Game/Carla/Static/StreetLight/BP_") for b in bps
+               if b["Name"].startswith("cc_streetlight"))
+    # and the drones (drones.py): blueprints coupled-carla builds into /Game/CoupledCarla/Drones
+    assert all(b["Path"].startswith("/Game/CoupledCarla/Drones/BP_CCDrone_") for b in bps
+               if b["Name"].startswith("cc_drone"))
     assert season.pack_args("CarlaUnreal.sh") == [f"-carla-packs={season.PACKS}"]
     assert season.pack_args("CarlaUE4.sh") == []
     from coupledcarla import meshes10

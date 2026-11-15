@@ -317,6 +317,46 @@ class Engine(Voice):
         return (x * self.norm).astype(np.float32)
 
 
+class Rotor(Voice):
+    """A multirotor's noise: the tone at the blade-passing frequency (blades x rotor revolutions per second) with its
+    harmonics, the main audible feature of drone noise, from two slightly detuned rotor pairs (the beating of rotors
+    at different speeds), with a little amplitude modulation at the rotor frequency, over broadband rotor noise
+    (`broadband` of the power). `freq` is the blade-passing frequency; rate scales it (Doppler)."""
+
+    def __init__(self, freq=200.0, blades=2, seed=0, broadband=0.4, **kw):
+        super().__init__(**kw)
+        self.freq, self.blades = freq, max(1, int(blades))
+        self.phase = np.array([0.0, (seed * 0.31) % 1.0])
+        self.am = (seed * 0.17) % 1.0
+        self._f_last = freq
+        self.harm = np.array([1.0, 0.55, 0.35, 0.22, 0.14, 0.09])
+        self.ph0 = np.array([0.0, 1.3, 2.6, 0.7, 2.0, 0.4])
+        self.noise = band_noise(150.0, 6000.0, 2.0, seed=17 + seed % 5)
+        self.npos = (seed * 7919) % len(self.noise)
+        self.bb = float(broadband)
+        tone_rms = math.sqrt(0.5 * float(np.sum(self.harm ** 2)) * 2)     # two pairs
+        self.k_tone = FS_RMS * math.sqrt(1.0 - self.bb) / tone_rms
+        self.k_noise = math.sqrt(self.bb)
+
+    def render(self, n):
+        f_new = max(1.0, self.freq * self.rate)
+        f = np.linspace(self._f_last, f_new, n, endpoint=False)
+        self._f_last = f_new
+        x = np.zeros(n)
+        for k, det in enumerate((0.992, 1.008)):
+            ph = self.phase[k] + np.cumsum(f * det) / RATE
+            self.phase[k] = float(ph[-1] % 1.0)
+            w = 2 * np.pi * ph
+            for h, (a, p0) in enumerate(zip(self.harm, self.ph0), start=1):
+                x += a * np.sin(h * w + p0)
+        am = self.am + np.cumsum(f / self.blades) / RATE             # the rotor frequency
+        self.am = float(am[-1] % 1.0)
+        x *= 1.0 + 0.06 * np.sin(2 * np.pi * am)
+        idx = (self.npos + np.arange(n)) % len(self.noise)
+        self.npos = int((self.npos + n) % len(self.noise))
+        return (x * self.k_tone + self.noise[idx] * self.k_noise).astype(np.float32)
+
+
 class Avas(Voice):
     """An AVAS hum (acoustic vehicle alerting system): two tones and an octave with a slow modulation; `rate`
     shifts its pitch with the speed, as UN R138 asks."""

@@ -6,6 +6,9 @@
   panning by direction and Doppler. The nearest `max_vehicles` within `max_distance_m` are heard.
 - The participant's own car (driver, AV passenger), heard inside: tyres and engine quieter and muffled, wind
   rising 60 log10(v), and the ticking of the turn signal.
+- Drones (drones.py, from the host): the rotors' blade-passing tone with harmonics and broadband noise, at the
+  drone's A-weighted sound power in hover (EU 2019/945 class limits, dronemodel.py) spread over the ground
+  (Lp = Lw - 20 lg r - 8) and rising with the thrust; panning, air absorption and Doppler as for vehicles.
 - Ambience: distant city traffic or wind in trees (synthesised), or a sound file, at a level at the listener.
 - AVAS on electric (or automated) cars: a hum whose pitch rises with speed, at `db` at 2 m up to 15 km/h, faded
   out by `until_kmh` (20 km/h, as UN R138 / EU 540/2014 require).
@@ -265,9 +268,10 @@ class Soundscape:
         self.on_cue("sound_cue", name, detail)
         return v
 
-    def update(self, t, listener, bodies, own=None, own_control=None):
+    def update(self, t, listener, bodies, own=None, own_control=None, drones=None):
         """listener: (x, y, z, yaw) of the ears; bodies: Body records around (own vehicle among them or not);
-        own: the Body of the participant's vehicle (None for a pedestrian)."""
+        own: the Body of the participant's vehicle (None for a pedestrian); drones: the host's drone list
+        ([id, x, y, z, vx, vy, vz, blade-passing Hz, thrust ratio, sound power dB(A), blades], drones.py)."""
         dt = 0.05 if self.t_last is None else max(1e-3, t - self.t_last)
         self.t_last = t
         lx, ly, lz, lyaw = listener
@@ -313,6 +317,7 @@ class Soundscape:
                 self.mixer.remove(key)
         if own is not None and cfg.get("own_vehicle", True):
             self._own(own, own_control, t)
+        self._drones(drones or [], lx, ly, lz, fx, fy, lvx, lvy)
         # positional cues follow their car
         live = []
         pos = {b.id: (d, b) for d, b in others}
@@ -409,6 +414,35 @@ class Soundscape:
                 v.freq, v.rate, v.cutoff = rpm / 30.0, dop, cut
             else:
                 v.rate, v.cutoff = (1.0 + 0.01 * kmh) * dop, cut
+
+    def _drones(self, drones, lx, ly, lz, fx, fy, lvx, lvy):
+        """The nearest `max_drones` drones within `drone_distance_m` (300 m) as rotor voices."""
+        from .drones import sound_level
+        cfg = self.cfg
+        maxd = float(cfg.get("drone_distance_m", 300.0))
+        near = sorted(((math.dist((d[1], d[2], d[3]), (lx, ly, lz)), d) for d in drones), key=lambda x: x[0])
+        near = [(dist, d) for dist, d in near if dist <= maxd][:int(cfg.get("max_drones", 12))]
+        keep = set()
+        for dist, d in near:
+            did, x, y, z, vx, vy, vz, bpf, thrust, lwa = d[:10]
+            blades = d[10] if len(d) > 10 else 2
+            key = ("drone", did)
+            keep.add(key)
+            v = self.mixer.get(key)
+            if v is None:
+                v = self.mixer.add(key, audio.Rotor(max(20.0, bpf), blades, seed=abs(int(did)) % 997))
+            body = Body(did, "drone", "drone", x, y, z, vx, vy, vz, 0.0)
+            dx, dy = x - lx, y - ly
+            db = sound_level(lwa, thrust, dist) if bpf > 5.0 else None
+            v.gain = self._g(db) if db is not None else 0.0
+            v.pan = self._pan(dx, dy, fx, fy)
+            v.cutoff = self._air(dist, (dx * fx + dy * fy) < 0)
+            v.freq = max(20.0, bpf)
+            v.rate = self._doppler(body, dx, dy, max(dist, 1e-3), lvx, lvy)
+            self.info[key] = {"kind": "drone", "d": dist, "db": db, "bpf": bpf}
+        for key in self.mixer.keys():
+            if isinstance(key, tuple) and key[0] == "drone" and key not in keep:
+                self.mixer.remove(key)
 
     def _own(self, own, ctl, t):
         cfg = self.cfg

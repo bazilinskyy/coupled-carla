@@ -15,6 +15,9 @@ Controls
                 (or --input wheel: Logitech G25 with force feedback)
   pedestrian    W/S forward/back, A/D sidestep, mouse or left/right arrows to look, Shift to run
   av_passenger  1-9 choose the AV's eHMI message (listed on screen), 0 switches it off
+  drone         mode 2 sticks: W/S forward, A/D sideways, Up/Down climb, Left/Right turn, I/K gimbal, C view,
+                M position/attitude mode, H return home (or --input gamepad / rc: an Xbox pad, an RC transmitter);
+                the host flies the drone (drones.py) and moves this station's camera
   everyone      F visual sync (red bar on every station for 1 s), F3 sound calibration tone (with sound), Esc quit
   responses     B hold-to-respond button, N/M slider down/up (gamepad: right shoulder/trigger, d-pad; wheel: right
                 wheel button, paddles), when the experiment gives the role a `response`
@@ -80,6 +83,7 @@ class Station:
         self.ehmi_states = []
         self.ehmi = "off"
         self.bot = None
+        self.drone_hud = []         # the drone pilot's HUD lines, from the host
         self.ux = None          # sound, in-car displays, haptics, station-drawn eHMIs (stationux.py), when asked for
         self.screen = None
         self.frames = 0
@@ -157,8 +161,12 @@ class Station:
                         return EXIT_HOST_CLOSED
                 elif kind == "flash":
                     self.flash_until = time.time() + 1.0
-                elif kind == "ehmi_state" and self.ux is not None:
+                elif kind in ("ehmi_state", "drones") and self.ux is not None:
                     self.ux.on_message(msg)
+                elif kind == "drone_hud":
+                    self.drone_hud = msg.get("lines") or []
+                    if self.ux is not None:
+                        self.ux.on_message(msg)
                 elif self.study is not None:
                     self.study.on_message(msg)      # take-over state, pause
             if state == "running":
@@ -212,6 +220,9 @@ class Station:
 
             def spawn():
                 return self.world.spawn_actor(bp, self._eye_transform())       # moved every tick
+        elif kind == "drone":
+            def spawn():       # the host moves it with the drone every tick (gimbal, line of sight or chase)
+                return self.world.spawn_actor(bp, self.actor.get_transform())
         else:
             view = self.welcome.get("view") or ("passenger" if kind == "av_passenger" else "driver")
 
@@ -242,6 +253,14 @@ class Station:
                 self.look_at = found[0] if found else None
         elif kind == "av_passenger" and args.input == "bot":
             self.bot = sorted(bot.get("ehmi", []))
+        elif kind == "drone":
+            self.control.send({"type": "drone_camera", "camera_id": self.camera.id})
+            if args.input == "bot":
+                self.control.send({"type": "drone_input", "bot": True})
+            else:
+                from .droneinput import PygameInput
+                self.input = PygameInput(args.input if args.input in ("gamepad", "rc") else "keyboard",
+                                         self.welcome.get("drone_input") or {})
         if self.study is not None:
             self.study.start(self.actor, self.world, self.input, self.client)
         self.t0_sim = None
@@ -344,6 +363,10 @@ class Station:
                 self.pending.append(carla.command.ApplyTransform(self.camera.id, self._eye_transform()))
             elif kind == "av_passenger":
                 self._ehmi_keys(events, t)
+            elif kind == "drone" and self.input is not None:
+                st = self.input.poll(events)
+                self.control.send({"type": "drone_input", "s": st.as_list(), "g": round(st.gimbal, 3),
+                                   "e": [e for e in st.events if e != "quit"]})
             self._flush()
         except RuntimeError:
             self.pending.clear()
@@ -473,6 +496,8 @@ class Station:
         rtt = self.control.rtt()
         lines = [f"{self.args.role}  {3.6 * math.hypot(v.x, v.y):5.1f} km/h  t {t:6.1f} s",
                  f"host {rtt:.1f} ms  {self.fps:.0f} fps" if rtt is not None else ""]
+        if self.welcome.get("kind") == "drone":
+            lines = [lines[1]] + list(self.drone_hud)
         if self.welcome.get("kind") == "av_passenger":
             lines.append(f"eHMI: {self.ehmi}   " + "  ".join(f"{i + 1} {s}" for i, s in enumerate(self.ehmi_states))
                          + "  0 off")
@@ -539,7 +564,7 @@ def main():
     ap.add_argument("--control-host", help="the host process, if not on the CARLA server's machine")
     ap.add_argument("--control-port", type=int, default=2100)
     ap.add_argument("--role")
-    ap.add_argument("--input", default="keyboard", choices=["keyboard", "wheel", "bot"])
+    ap.add_argument("--input", default="keyboard", choices=["keyboard", "wheel", "bot", "gamepad", "rc"])
     ap.add_argument("--size", default="1280x720")
     ap.add_argument("--fov", type=float, default=90)
     ap.add_argument("--headless", action="store_true", help="no window (with --input bot)")

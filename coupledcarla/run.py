@@ -9,8 +9,8 @@ into SUMO, so traffic reacts to them), let SUMO traffic yield to pedestrians, dr
 handle the stations' messages, log the frame and draw the host's view. With simulation.real_time the loop
 sleeps so that one simulated second takes one wall-clock second.
 
-Participants (coupled-sim's roles) are `driver` (a manual car), `pedestrian` (a walker) and `av_passenger`
-(rides in a scripted AV and sets its eHMI). Each is either host-local (input keyboard / wheel / autopilot /
+Participants (coupled-sim's roles) are `driver` (a manual car), `pedestrian` (a walker), `av_passenger`
+(rides in a scripted AV and sets its eHMI) and `drone` (flies a quadrotor; drones.py, with the AI drones). Each is either host-local (input keyboard / wheel / autopilot /
 bot on this machine) or `station: true`: a human at a station (python -m coupledcarla.station) that renders
 its own view and applies its own controls; the host waits for the stations before a trial starts.
 """
@@ -29,6 +29,7 @@ from . import ehmi_design, multigpu, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
+from .drones import DroneView, DroneWorld
 from .geo import Geo, ground, heading_to_yaw
 from .logger import TrialLogger
 from .routing import SafeGlobalRoutePlanner
@@ -238,8 +239,10 @@ class Participant:
 def welcome_for(part, geo, tc):
     """What a station needs to know about its role (sent on hello)."""
     bot = dict(part.cfg.get("bot") or {})
-    if "path" in bot:
+    if "path" in bot and part.kind != "drone":
         bot["path"] = to_carla_path(geo, bot["path"])
+    if "path" in bot and part.kind == "drone":      # [lat, lon, height]: the host flies a station's bot drone
+        bot["path"] = [list(p) for p in bot["path"]]
     out = {"kind": part.kind, "view": part.cfg.get("view"), "bot": bot,
            "ehmi_states": list((tc.get("ehmi") or {}).get("states", DEFAULT_EHMI)),
            "step": tc["simulation"]["step"], "experiment": tc["name"],
@@ -248,6 +251,9 @@ def welcome_for(part, geo, tc):
     out.update(stationux.welcome_extras(tc, part.cfg, part.kind, Path(tc["_path"]).parent,
                                         default_states=list(DEFAULT_EHMI)))
     out.update(multigpu.welcome(tc["server"], part.role))     # secondaries: relay and camera placement
+    if part.kind == "drone":      # gamepad / RC axes and buttons for the station's stick input (droneinput.py)
+        out["drone_input"] = {k: part.cfg[k] for k in ("axes", "joystick", "deadband", "expo", "buttons")
+                              if k in part.cfg}
     return out
 
 
@@ -304,7 +310,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
 
     server = Server(tc["server"], log)
     client = server.start()
-    sync = view = recorder = world = logger = None
+    sync = view = recorder = world = logger = drone_world = None
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
     try:
@@ -356,6 +362,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 log(f"agent {ag.id}: walker, {len(a['path'])} points from t = {a.get('start_s', 0)} s")
             agents.append(ag)
         agent_by_id = {a.id: a for a in agents}
+        # drones: participants of kind drone and the AI drones of `drones.missions` (drones.py)
+        if any(p.kind == "drone" for p in parts) or (tc.get("drones") or {}).get("missions"):
+            drone_world = DroneWorld(world, client, geo, tc, mdir, out, log, side.debug)
 
         def watch_collisions(actor, role):
             col = world.spawn_actor(world.get_blueprint_library().find("sensor.other.collision"),
@@ -375,6 +384,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     bot = p.get("bot") or {}
                     pts = [ground(world.get_map(), x, y) for x, y in to_carla_path(geo, bot.get("path", []))]
                     part.bot = PathWalker(part.actor, pts, float(bot.get("speed", 1.4)), float(bot.get("start_s", 0)))
+            elif part.kind == "drone":
+                part.actor = drone_world.add_pilot(part)
             elif part.kind == "av_passenger":
                 part.agent = agent_by_id[p["agent"]]
                 part.actor = part.agent.vehicle
@@ -385,7 +396,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             else:
                 raise ValueError(f"unknown participant kind {part.kind}")
             focus_actors.append(part.actor)
-            if part.kind != "av_passenger":
+            if part.kind not in ("av_passenger", "drone"):      # a drone's crashes: drones.py
                 watch_collisions(part.actor, part.role)
             if not part.station and i == 0 and part.kind == "driver":
                 window = p.get("window", part.input.needs_display)
@@ -393,6 +404,13 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     view = View(world, part.actor, p.get("view", "driver"), window=window, save_dir=out,
                                 save_every_s=tc["logging"]["frames_every_s"],
                                 profile=tc["simulation"].get("camera_profile", "Dashcam"))
+            if not part.station and part.kind == "drone":
+                window = p.get("window", p.get("input", "keyboard") in ("keyboard", "gamepad", "rc"))
+                drone_world.local_input(part.drone, window and (i == 0))
+                if i == 0 and (window or tc["logging"]["frames_every_s"] > 0):
+                    view = DroneView(drone_world, part.drone, window=window, save_dir=out,
+                                     save_every_s=tc["logging"]["frames_every_s"],
+                                     profile=tc["simulation"].get("camera_profile", "Dashcam"))
             log(f"{part.role}: {part.kind} {part.actor.type_id} "
                 f"{'at a station' if part.station else 'on the host (' + str(p.get('input', 'bot')) + ')'}")
         for ag in agents:
@@ -452,6 +470,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         if crowd is not None and hasattr(crowd, "send"):      # crowdpeds.CrowdSim
             crowd.send = lambda actor, c: queue(walker_cmd(actor.id, c))
 
+        if drone_world is not None:      # obstacles, wind and AI missions once the participants stand
+            drone_world.queue = queue
+            drone_world.start([a.get_location() for a in focus_actors])
         if tc["logging"]["carla_recorder"]:
             recorder = client.start_recorder(f"coupledcarla_{tc['name']}_{stamp}_trial{trial_idx}.log", True)
         logger = TrialLogger(out, geo, tc["logging"], step)
@@ -524,6 +545,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if crowd is not None and summary["ticks"] % 4 == 0:     # a walker keeps its last control
                 crowd.step(t)
             laps("agents")
+            if drone_world is not None:   # the flight model, crash checks, the drones' and cameras' transforms
+                drone_world.step(t, step, events, snap)
+                drone_world.broadcast(control, summary["ticks"])
+                laps("drones")
             t_a = time.time()
             sync.tick()
             t_b = time.time()
@@ -584,6 +609,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if control is not None:
                 for msg in control.poll():
                     kind, role = msg.get("type"), msg.get("role")
+                    if drone_world is not None and drone_world.on_message(msg):    # a pilot's sticks, camera
+                        continue
                     if tools.on_message(msg, t, snap.frame):     # responses, take-over, engage
                         continue
                     if kind == "ehmi" and role in by_role and by_role[role].agent:
@@ -631,7 +658,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                         logger.event(t, snap.frame, "next_light", part.actor.id,
                                      f"{part.role} {key[0]} {key[1]} at {part.light[1]:.1f} m")
                     part.light_key = key
-            records = [p.record() for p in parts if p.kind != "av_passenger"]
+            records = [p.record() for p in parts if p.kind not in ("av_passenger", "drone")]
             for ag in agents:
                 if isinstance(ag, ScriptedCar):
                     records.append({"actor": ag.vehicle, "role": ag.id, "kind": "agent", "ctl": None,
@@ -658,6 +685,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 r["lights"] = carla_sim.frame_lights.get(r["actor"].id)
             laps("stations_events")
             logger.log(snap, records, ai, sumo_signals, [])
+            if drone_world is not None:
+                drone_world.log_frame(logger, t, snap.frame)
             tools.log(t, snap.frame)
             laps("log")
             prof["log"] += time.time() - t_b
@@ -675,6 +704,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 rtf = t / max(1e-6, time.time() - t_wall0)
                 n = max(1, summary["ticks"] - prof["ticks0"])
                 speeds = "  ".join(f"{p.role} {3.6 * (p.actor.get_velocity().x ** 2 + p.actor.get_velocity().y ** 2) ** 0.5:4.1f}"
+                                   if p.kind != "drone" else f"{p.role} {drone_world.speed_kmh(p):4.1f}"
                                    for p in parts) or "-"
                 log(f"t {t:6.1f}s  sumo {len(sync.sumo2carla_ids):3d}  km/h: {speeds}  RTF {rtf:.2f}  "
                     f"rows {logger.rows}  ms/tick sync {1000 * prof['sync'] / n:.1f} log {1000 * prof['log'] / n:.1f}")
@@ -683,7 +713,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 laps.reset()
                 prof.update(sync=0.0, log=0.0, ticks0=summary["ticks"])
                 next_status += 10.0
-            if t >= duration or tools.abort or any(getattr(p.input, "quit", False) for p in parts):
+            if t >= duration or tools.abort or any(getattr(p.input, "quit", False) for p in parts) or \
+                    (drone_world is not None and drone_world.quit):
                 break
             for part in parts:            # recovery for host-local cars (the autopilot, or a human pressing R)
                 ctl_in = part.input
@@ -734,6 +765,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                         "rows": logger.rows, "collisions": len(collisions), "agents": len(agents),
                         "stations": station_roles, "sumo_vehicles_spawned": len(types),
                         "station_stats": station_stats, "parked_cars": parked.n if parked is not None else 0})
+        if drone_world is not None:
+            summary["drones"] = drone_world.summary()
         logger.event(t, snap.frame, "trial_end", "", json.dumps(summary))
         log(f"trial done: {summary}")
     finally:
@@ -749,6 +782,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                         waiting.discard(msg.get("role"))
                 time.sleep(0.05)
             time.sleep(0.5)
+        if drone_world is not None:
+            drone_world.close()
         if logger is not None:
             logger.close()
         if recorder is not None:

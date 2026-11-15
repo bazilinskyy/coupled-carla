@@ -39,6 +39,22 @@
 		{
 			"Name": "cc_streetlight05",
 			"Path": "/Game/Carla/Static/StreetLight/BP_StreetLight05.BP_StreetLight05"
+		},
+		{
+			"Name": "cc_drone_consumer",
+			"Path": "/Game/CoupledCarla/Drones/BP_CCDrone_Consumer.BP_CCDrone_Consumer"
+		},
+		{
+			"Name": "cc_drone_consumer_parked",
+			"Path": "/Game/CoupledCarla/Drones/BP_CCDrone_Consumer_Parked.BP_CCDrone_Consumer_Parked"
+		},
+		{
+			"Name": "cc_drone_industrial",
+			"Path": "/Game/CoupledCarla/Drones/BP_CCDrone_Industrial.BP_CCDrone_Industrial"
+		},
+		{
+			"Name": "cc_drone_industrial_parked",
+			"Path": "/Game/CoupledCarla/Drones/BP_CCDrone_Industrial_Parked.BP_CCDrone_Industrial_Parked"
 		}
 	]
 }
