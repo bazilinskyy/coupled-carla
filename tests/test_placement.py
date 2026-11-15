@@ -158,9 +158,9 @@ def test_ground_surface_and_settle():
     assert gs.z(70.0, 0.0) == pytest.approx(3.0) and gs.z(-5.0, 0.0) is None
     assert placement.GroundSurface(gs.to_list()).z(30.0, 25.0) == pytest.approx(6.0) and len(gs) == 2
     items = [[0, 20.0, 20.0, 5.5, 0, 1, "lamp"], [1, 21.0, 20.0, 7.2, 0, 1, "sign"], [2, 60.0, 20.0, 4.0, 0, 1, "tree"],
-             [3, 60.0, 21.0, 4.0, 0, 1, "building"], [4, 61.0, 21.0, 4.0, 0, 1, "lamp"], [5, 0.0, -30, 1.0, 0, 1, "tree"]]
+             [3, 60.0, 21.0, 4.0, 0, 1, "water"], [4, 61.0, 21.0, 4.0, 0, 1, "lamp"], [5, 0.0, -30, 1.0, 0, 1, "tree"]]
     # the lamp and the sign plate (on its post's base) were placed 0.5 m over the tile; the tree 1 m over; the
-    # building is left alone; the second lamp stands on a lane; the last tree is off the tiles
+    # water tile is left alone; the second lamp stands on a lane; the last tree is off the tiles
     bases = [(20.0, 20.0, 5.5), (20.0, 20.0, 5.5), (60.0, 20.0, 4.0), (60.0, 21.0, 4.0), (61.0, 21.0, 4.0),
              (0.0, -30.0, 1.0)]
     moved, total = placement.settle(items, bases, gs, lambda x, y, z: x == 61.0)
@@ -175,3 +175,28 @@ def test_ground_surface_from_scenery(tmp_path):
     assert placement.ground_surface(f).z(1, 1) == pytest.approx(2.0)
     f.write_text(json.dumps({"items": []}))
     assert placement.ground_surface(f) is None and placement.ground_surface(tmp_path / "none.json") is None
+
+
+def test_lane_points_catch_a_lane_between_sample_points():
+    pytest.importorskip("shapely")
+    # a 3.2 m lane running north-south through the middle of a 40 x 20 m building: the nine sample points of
+    # the old check (corners, edge middles, centre at x = -20, 0, 20) miss it at x = 9
+    lanes = placement.LanePoints([(9.0, y, 1.6) for y in range(-30, 31, 2)])
+    assert lanes.hits(placement.rect(0.0, 0.0, 40.0, 20.0, 0.0))
+    assert not lanes.hits(placement.rect(0.0, 0.0, 14.0, 20.0, 0.0))        # it ends at x = 7, 2 m from the lane
+    assert lanes.hits(placement.rect(0.0, 0.0, 20.0, 14.0, 90.0)) is False      # turned: 14 m along x
+    assert not placement.LanePoints([]).hits(placement.rect(0, 0, 5, 5, 0))
+    r = placement.rect(1.0, 2.0, 4.0, 2.0, 90.0)
+    assert r.area == pytest.approx(8.0) and r.bounds == pytest.approx((0.0, 0.0, 2.0, 4.0))
+
+
+def test_buildings_go_down_to_their_lowest_corner():
+    gs = placement.GroundSurface([(20.0, 20.0, 40.0, 5.0, 0.1, 0.0)])     # 3 m at x = 0, 7 m at x = 40
+    items = [[0, 20.0, 20.0, 6.0, 0, 1, "building"], [1, 20.0, 20.0, 1.0, 0, 1, "building"]]
+    bases = [(20.0, 20.0, 6.0, 20.0, 10.0, 0.0), (20.0, 20.0, 1.0, 20.0, 10.0, 0.0)]
+    moved, _ = placement.settle(items, bases, gs, lambda x, y, z: False)
+    # the first one's west corners stand on 4 m of ground: it goes down 2 m; the second is under the ground already
+    assert moved == 1 and items[0][3] == pytest.approx(4.0) and items[1][3] == 1.0
+    deep = [[0, 20.0, 20.0, 9.0, 0, 1, "landmark"]]
+    placement.settle(deep, [(20.0, 20.0, 9.0, 20.0, 10.0, 0.0)], gs, lambda x, y, z: False)
+    assert deep[0][3] == pytest.approx(9.0 - placement.BUILDING_DROP_MAX)

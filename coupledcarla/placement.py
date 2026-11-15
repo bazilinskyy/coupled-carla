@@ -175,31 +175,82 @@ def paved(carla):
     return lt.Driving | lt.Biking | lt.Sidewalk | lt.Parking | lt.Bidirectional
 
 
-SETTLE_KINDS = {"tree", "bush", "lamp", "furniture", "sign", "shared"}
+SETTLE_KINDS = {"tree", "bush", "lamp", "furniture", "sign", "shared", "building", "landmark"}
+BUILDING_DROP_MAX = 3.0     # a building goes at most this far down to its lowest corner's ground
 
 
 def settle(items, bases, surface, on_lane, kinds=SETTLE_KINDS, tol=0.02):
     """Stands placed items on the ground tiles: items [scenery item, z at index 3, kind at 6], bases [(x, y, z the
     item was placed on)] aligned with them; on_lane(x, y, z): the spot is on one of CARLA's lanes (its surface is
-    the road's: left alone). A sign's plates carry their post's base, so they move with it. Returns (moved, sum of
-    the absolute shifts)."""
+    the road's: left alone). A sign's plates carry their post's base, so they move with it. A building's base is
+    (x, y, z, length, width, yaw), its footprint: it only goes down, to the lowest ground under its corners (its
+    foundation sinks into the slope; no corner hangs over a lowered tile). Returns (moved, sum of the shifts)."""
     moved, total = 0, 0.0
     cache = {}
     for it, base in zip(items, bases):
         if base is None or it[6] not in kinds:
             continue
-        bx, by, bz = base
-        key = (round(bx, 2), round(by, 2), round(bz, 3))
-        if key not in cache:
-            s = surface.z(bx, by)
-            cache[key] = None if s is None or on_lane(bx, by, bz) else s - bz
-        d = cache[key]
+        if len(base) == 6:
+            bx, by, bz, length, width, yaw = base
+            r = math.radians(yaw)
+            ux, uy, vx, vy = math.cos(r), math.sin(r), -math.sin(r), math.cos(r)
+            zs = [surface.z(bx + a * length / 2 * ux + b * width / 2 * vx, by + a * length / 2 * uy + b * width / 2 * vy)
+                  for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1), (0, 0))]
+            zs = [z for z in zs if z is not None]
+            d = max(-BUILDING_DROP_MAX, min(zs) - bz) if zs and min(zs) < bz - tol else None
+        elif len(base) != 3:
+            continue
+        else:
+            bx, by, bz = base
+            key = (round(bx, 2), round(by, 2), round(bz, 3))
+            if key not in cache:
+                s = surface.z(bx, by)
+                cache[key] = None if s is None or on_lane(bx, by, bz) else s - bz
+            d = cache[key]
         if d is None or abs(d) <= tol:
             continue
         it[3] = round(it[3] + d, 2)
         moved += 1
         total += abs(d)
     return moved, total
+
+
+class LanePoints:
+    """Lane centre points (x, y, half width) every 2 m, to test whole footprints against the lanes: a building's
+    nine sample points (corners, edge middles, centre) let a lane through between them, and buildings stood over
+    streets (central Eindhoven: five over a driving lane, a camera on the lane looked into a hotel's underside)."""
+
+    def __init__(self, points):
+        from shapely.geometry import Point
+        from shapely.strtree import STRtree
+        self.points = [(x, y, hw) for x, y, hw in points]
+        self.geoms = [Point(x, y) for x, y, _ in self.points]
+        self.tree = STRtree(self.geoms) if self.geoms else None
+        self.reach = max((hw for _, _, hw in self.points), default=0.0)
+
+    @classmethod
+    def of_map(cls, cmap, types, step=2.0):
+        return cls([(w.transform.location.x, w.transform.location.y, w.lane_width / 2)
+                    for w in cmap.generate_waypoints(step) if w.lane_type in types])
+
+    def hits(self, poly, margin=0.1):
+        """True when a lane reaches into the polygon by more than `margin` metres."""
+        if self.tree is None:
+            return False
+        for i in self.tree.query(poly.buffer(self.reach)):
+            x, y, hw = self.points[int(i)]
+            if poly.distance(self.geoms[int(i)]) < hw - margin:
+                return True
+        return False
+
+
+def rect(cx, cy, length, width, yaw_deg):
+    """A shapely rectangle of length (along yaw) x width centred on (cx, cy)."""
+    from shapely.geometry import Polygon
+    r = math.radians(yaw_deg)
+    ux, uy, vx, vy = math.cos(r), math.sin(r), -math.sin(r), math.cos(r)
+    return Polygon([(cx + a * length / 2 * ux + b * width / 2 * vx, cy + a * length / 2 * uy + b * width / 2 * vy)
+                    for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
 
 
 def approach(wp, step=2.0, reach=60.0):
@@ -317,7 +368,8 @@ def overlaps(records, kinds_a, kinds_b, min_area=0.3, label="overlap"):
     b = [k for k, r in enumerate(records) if r["kind"] in kinds_b and r.get("foot")]
     if not a or not b:
         return 0
-    polys = {k: Polygon(records[k]["foot"]).buffer(0) for k in set(a) | set(b)}
+    # a pole's "base_foot" (a lamp's box is mostly its arm, high over the cars)
+    polys = {k: Polygon(records[k].get("base_foot") or records[k]["foot"]).buffer(0) for k in set(a) | set(b)}
     tree = STRtree([polys[k] for k in b])
     n = 0
     for k in a:

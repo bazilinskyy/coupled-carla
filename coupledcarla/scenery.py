@@ -432,6 +432,7 @@ class Placer:
     def __init__(self, cat, cmap, ground, carla, sidewalks_free=False, lanes=None, junctions=None):
         self.cat, self.cmap, self.ground, self.carla = cat, cmap, ground, carla
         self.junctions = junctions      # placement.JunctionAreas: a generated map's paved junctions count as lanes
+        self.lane_points = None         # placement.LanePoints of the blocking lanes, for footprints
         self.items, self.counts = [], defaultdict(int)
         self.bases = []          # per item (x, y, z) of the ground it was placed on (placement.settle)
         self.surface = None      # placement.GroundSurface once the ground tiles are laid
@@ -452,6 +453,10 @@ class Placer:
         return self.junctions is not None and self.junctions.contains(x, y)
 
     def footprint_clear(self, cx, cy, l, w, yaw, z):
+        if self.lane_points is not None:        # the whole rectangle, not only nine points of it (placement.py)
+            from .placement import rect
+            if self.lane_points.hits(rect(cx, cy, l, w, yaw), margin=0.3):
+                return False
         r = math.radians(yaw)
         ux, uy, vx, vy = math.cos(r), math.sin(r), -math.sin(r), math.cos(r)
         for a in (-0.5, 0.0, 0.5):
@@ -679,6 +684,9 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     pl = Placer(cat, cmap, ground, carla, sidewalks_free=bool(mc.get("carla_level")),
                 lanes=lane_types(mdir / "map.xodr"),
                 junctions=None if mc.get("carla_level") else placement.JunctionAreas.of_map(cmap, carla, log=log))
+    lt_ = carla.LaneType
+    pl.lane_points = placement.LanePoints.of_map(cmap, {lt_.Driving, lt_.Parking, lt_.Bidirectional, lt_.Biking} | (
+        set() if mc.get("carla_level") else {lt_.Sidewalk}))
     rng = random.Random(42)
     sources = {"osm"}
 
@@ -717,7 +725,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                         continue
                     # tall buildings stay loaded all trial (the skyline); others stream with their cell
                     it = pl.add("landmark" if b["h"] > 40 else "building", mesh, px, py, yaw + turn, ss, sink=0.3,
-                                z=b["z"], anchor="ground" if ms.GROUND_PIVOT else "bottom")
+                                z=b["z"], anchor="ground" if ms.GROUND_PIVOT else "bottom",
+                                base=(px, py, b["z"], ss * L, ss * W, yaw))
                     for extra in ms.COMPANIONS.get(mesh, ()):
                         if extra in cat:
                             pl.companion(it, extra)
