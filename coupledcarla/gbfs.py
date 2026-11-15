@@ -104,7 +104,11 @@ def systems_csv():
     path = CACHE / "systems.csv"
     if not path.exists() or time.time() - path.stat().st_mtime > 7 * 86400:
         CACHE.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(_get(SYSTEMS).content)
+        try:
+            path.write_bytes(_get(SYSTEMS).content)
+        except requests.RequestException:
+            if not path.exists():
+                raise           # offline with an old catalogue: that one
     return list(csv.DictReader(io.StringIO(path.read_text(encoding="utf-8"))))
 
 

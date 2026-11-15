@@ -162,3 +162,38 @@ def test_lane_queries_skip_types_the_map_lacks(tmp_path):
     assert scenery.Placer(None, None, None, carla, lanes={"driving"}).masks == (15,)
     assert scenery.Placer(None, None, None, carla, lanes={"driving", "biking"}).masks == (15, 16)
     assert scenery.Placer(None, None, None, carla).masks == (15, 16)
+
+
+def test_expired_caches_are_used_when_the_refresh_fails(tmp_path, monkeypatch):
+    # fleet/counts/speeds caches older than their age limit were fetched again and, offline, the error threw the
+    # old copy away: Eindhoven's trial fell back from the RDW fleet to the configured one
+    import os
+    import time
+    import requests
+    from coupledcarla import counts, fleet, speeds, transit
+
+    def down(*a, **k):
+        raise requests.ConnectionError("offline")
+    old = time.time() - 60 * 86400
+    reg = {"source": "RDW", "body": {"hatchback": 3, "estate": 2}, "colors": {"grey": 1}}
+    for mod in (fleet, counts, speeds):
+        monkeypatch.setattr(mod, "CACHE", tmp_path / mod.__name__)
+        (tmp_path / mod.__name__).mkdir()
+        f = tmp_path / mod.__name__ / "x.json"
+        f.write_text(json.dumps(reg))
+        os.utime(f, (old, old))
+        assert mod._cached("x", down) == reg
+        with pytest.raises(requests.ConnectionError):
+            mod._cached("never_fetched", down)
+    monkeypatch.setattr(fleet, "_rdw", down)
+    (tmp_path / fleet.__name__ / "rdw_nl.json").write_text(json.dumps(reg))
+    os.utime(tmp_path / fleet.__name__ / "rdw_nl.json", (old, old))
+    assert fleet.registry([51.436, 5.47, 51.45, 5.493]) == reg
+    # the GTFS catalogue: a week old and offline
+    csv = tmp_path / "mobilitydatabase_feeds_v2.csv"
+    csv.write_text("id,data_type,status,urls.latest,location.bounding_box.minimum_latitude,"
+                   "location.bounding_box.maximum_latitude,location.bounding_box.minimum_longitude,"
+                   "location.bounding_box.maximum_longitude\nmdb-1,gtfs,active,http://x/1.zip,45,46,4,5\n")
+    os.utime(csv, (old, old))
+    monkeypatch.setattr(transit.requests, "get", down)
+    assert [r["id"] for r in transit.feeds_for([45.75, 4.82, 45.76, 4.84], tmp_path)] == ["mdb-1"]

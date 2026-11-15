@@ -310,9 +310,14 @@ def feeds_for(bbox, cache):
     path = cache / "mobilitydatabase_feeds_v2.csv"
     if not path.exists() or time.time() - path.stat().st_mtime > 7 * 86400:
         cache.mkdir(parents=True, exist_ok=True)
-        r = requests.get(CATALOG, headers=realworld.UA, timeout=120)
-        r.raise_for_status()
-        path.write_bytes(r.content)
+        try:
+            r = requests.get(CATALOG, headers=realworld.UA, timeout=120)
+            r.raise_for_status()
+            path.write_bytes(r.content)
+        except requests.RequestException as err:
+            if not path.exists():
+                raise
+            log(f"GTFS catalogue not refreshed ({err}); the cached one is used")
     lat, lon = (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2
     found = []
     with open(path, newline="", encoding="utf-8") as f:
@@ -344,7 +349,13 @@ def _fetch_feed(row, cache):
     if path.exists() and time.time() - path.stat().st_mtime < 30 * 86400:
         return path
     url = row["urls.latest"]
-    head = requests.head(url, headers=realworld.UA, timeout=60, allow_redirects=True)
+    try:
+        head = requests.head(url, headers=realworld.UA, timeout=60, allow_redirects=True)
+    except requests.RequestException:
+        if path.exists():       # offline: the feed downloaded before
+            log(f"GTFS {row['id']}: not refreshed (offline); the cached feed is used")
+            return path
+        raise
     size = int(head.headers.get("content-length") or 0)
     if size > MAX_FEED_BYTES:
         log(f"GTFS {row['id']}: {size / 1e9:.1f} GB, skipped")

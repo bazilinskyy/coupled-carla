@@ -600,7 +600,14 @@ def _cached(name, fetch, days=30):
     path = CACHE / f"{name}.json"
     if path.exists() and time.time() - path.stat().st_mtime < days * 86400:
         return json.loads(path.read_text())
-    data = fetch()
+    try:
+        data = fetch()
+    except Exception as err:  # noqa: BLE001 - offline or the service is down: an old copy beats none
+        if not path.exists():
+            raise
+        print(f"[cache] {name}: not refreshed ({type(err).__name__}: {err}); the copy of "
+              f"{time.strftime('%Y-%m-%d', time.localtime(path.stat().st_mtime))} is used", flush=True)
+        return json.loads(path.read_text())
     CACHE.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data))
     return data
