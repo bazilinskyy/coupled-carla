@@ -51,6 +51,9 @@ class CarlaSimulation(object):
         self.snapshot = None     # coupled-carla: the world snapshot after the last tick (poses of physics actors)
         self._physics = set()    # coupled-carla: SUMO vehicles moved with physics on (bridge/animate.py)
         self._teleports, self._unstable = {}, {}     # coupled-carla: recent follow teleports; placed-until frame
+        self.check_level = False   # coupled-carla: SUMO's heights match CARLA's roads: keep cars on their level (levels.py)
+        self.level_teleports = 0   # coupled-carla: put back for being off their level or tipped (levels.py)
+        self._road_z = {}          # coupled-carla: vehicle -> (frame, CARLA road height under its SUMO pose)
 
         # Set traffic lights.
         self._tls = {}  # {landmark_id: traffic_ligth_actor}
@@ -193,6 +196,27 @@ class CarlaSimulation(object):
             self._pending.append(carla.command.SetVehicleLightState(vehicle_id, carla.VehicleLightState(lights)))
         return True
 
+    def road_z(self, vehicle_id, transform, frame):
+        """coupled-carla: the height of CARLA's driving lane under a SUMO pose, on SUMO's level (asked at SUMO's
+        height: levels are >= 5 m apart, netconvert's heights are off by up to ~3 m at junctions), refreshed every
+        levels.CHECK_TICKS ticks per vehicle; None without the height check or off every lane."""
+        from coupledcarla import levels  # pylint: disable=import-outside-toplevel
+        if not self.check_level:
+            return None
+        got = self._road_z.get(vehicle_id)
+        if got is not None and frame - got[0] < levels.CHECK_TICKS:
+            return got[1]
+        loc = transform.location
+        try:
+            if getattr(self, '_cmap', None) is None:       # once: get_map() fetches the whole OpenDRIVE
+                self._cmap = self.world.get_map()
+            wp = self._cmap.get_waypoint(loc, project_to_road=True, lane_type=carla.LaneType.Driving)
+        except RuntimeError:
+            wp = None
+        z = levels.road_height(wp, loc)
+        self._road_z[vehicle_id] = (frame, z)
+        return z
+
     def follow_vehicle(self, vehicle_id, transform, speed, yaw_rate, length, lights=None):
         """
         coupled-carla: moves a SUMO vehicle with physics on along its SUMO pose (bridge/animate.py), so its wheels
@@ -201,6 +225,10 @@ class CarlaSimulation(object):
         from .. import animate  # pylint: disable=import-outside-toplevel
         cmd = carla.command
         frame = getattr(self, 'tick_frame', 0) or 0
+        road_z = self.road_z(vehicle_id, transform, frame)
+        if road_z is not None:      # put down on CARLA's road of SUMO's level, not at netconvert's height
+            transform = carla.Transform(carla.Location(transform.location.x, transform.location.y, road_z),
+                                        transform.rotation)
         if self._unstable.get(vehicle_id, -1) > frame:      # it kept leaving its pose: placed for a while
             return self.place_vehicle(vehicle_id, transform, lights)
         snap = self.snapshot.find(vehicle_id) if self.snapshot is not None else None
@@ -214,7 +242,11 @@ class CarlaSimulation(object):
             now = snap.get_transform()
             f = animate.follow((transform.location.x, transform.location.y, transform.rotation.yaw),
                                (now.location.x, now.location.y, now.rotation.yaw), speed, yaw_rate,
-                               animate.wheelbase(length), snap.get_velocity().z)
+                               animate.wheelbase(length), snap.get_velocity().z,
+                               dz=(road_z - now.location.z) if road_z is not None else None,
+                               tilt=(now.rotation.pitch, now.rotation.roll))
+            if f["why"] in ("level", "tipped"):
+                self.level_teleports += 1
             if f["teleport"]:
                 self._pending.append(cmd.ApplyTransform(vehicle_id, _lifted(transform)))
                 recent = [t for t in self._teleports.get(vehicle_id, []) if frame - t < animate.UNSTABLE_TICKS]

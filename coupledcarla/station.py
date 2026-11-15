@@ -285,6 +285,16 @@ class Station:
         self.camera = self.routing.place_camera(spawn, listen_cam,
                                                 self._destroy, self.got_image,
                                                 turn=multigpu.CameraTurn(self.control.send, self.camera_go))
+        self.rhd = None          # left-hand traffic: a right-hand-drive cabin from the mirrored seat (rhd.py)
+        if seat and ck.get("rhd") and self.eye is not None:
+            from .rhd import RhdCabin
+            self.rhd = RhdCabin(self.size, args.fov, self.eye[:3], self.eye[3], log=say, on_ready=self._use_frame)
+            try:
+                self.rhd.start(self.world, self.actor, bp)
+            except RuntimeError as e:        # e.g. a -nullrhi server: the left-hand-drive cabin as before
+                say(f"rhd: {e}; left-hand-drive cabin")
+                self.rhd.stop()
+                self.rhd = None
         bot = self.welcome.get("bot") or {}
         if kind == "driver":
             from . import inputs
@@ -322,7 +332,7 @@ class Station:
             self.ux = StationUX(self.welcome, args.role, Path(self.log_f.name).with_suffix(""), self.size,
                                 args.headless, audio_device=args.audio_device)
             self.ux.start(self.world, self.actor, self.camera, self.trial, msg.get("agents"), self.input,
-                          view=self.eye, fov=args.fov, version=self.version)
+                          view=self.eye, fov=args.fov, version=self.version, rhd=self.rhd)
         print(f"[station {args.role}] trial {self.trial}: actor {self.actor.id} {self.actor.type_id}", flush=True)
 
     def camera_hz(self):
@@ -350,6 +360,9 @@ class Station:
         if self.ux is not None:
             self.ux.stop()
             self.ux = None
+        if getattr(self, "rhd", None) is not None:
+            self.rhd.stop()
+            self.rhd = None
         if self.camera is not None:
             try:
                 self.camera.stop()
@@ -386,6 +399,8 @@ class Station:
                 lag = lag_f
         if self.actor is None:
             return True
+        if getattr(self, "rhd", None) is not None:
+            self.rhd.ready()             # the right-hand-drive plan, once its depth images are in
         t_sim = snap.timestamp.elapsed_seconds
         self.t0_sim = t_sim if self.t0_sim is None else self.t0_sim
         t = t_sim - self.t0_sim
@@ -547,14 +562,30 @@ class Station:
                 self.last_saved = k
                 out = Path(self.args.out) / "stations" / f"{self.args.role}_trial{self.trial}_frames"
                 out.mkdir(parents=True, exist_ok=True)
-                if self.ux is not None and self.ux.wants_frames():     # with the in-car displays drawn over it
-                    rgb = look.downscale(look.to_rgb(image), self.size)
-                    self.ux.save_frame(np.ascontiguousarray(rgb), out / f"{image.frame:08d}.jpg", self.args.fov)
+                rhd = getattr(self, "rhd", None)
+                if rhd is not None or (self.ux is not None and self.ux.wants_frames()):
+                    rgb = np.ascontiguousarray(look.downscale(look.to_rgb(image), self.size))
+                    if rhd is not None:       # composited with the mirrored seat's frame (rhd.py), then saved
+                        rhd.put(image.frame, rgb, out / f"{image.frame:08d}.jpg")
+                    else:
+                        self._use_frame(out / f"{image.frame:08d}.jpg", rgb)
                     return
                 look.save_frame(image, out / f"{image.frame:08d}.jpg", self.size)
             return
         arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(image.height, image.width, 4)
+        if getattr(self, "rhd", None) is not None:
+            self.rhd.put(image.frame, np.ascontiguousarray(look.downscale(arr[:, :, 2::-1], self.size)), None)
+            return
         self.image = arr[:, :, 2::-1]
+
+    def _use_frame(self, path, rgb):
+        """A finished camera frame (H x W x 3 RGB): shown (path None) or saved with the in-car displays over it."""
+        if path is None:
+            self.image = rgb
+        elif self.ux is not None and self.ux.wants_frames():
+            self.ux.save_frame(rgb, path, self.args.fov)
+        else:
+            look.save_frame(rgb, path, self.size)
 
     def render(self, t):
         if self.screen is None or self.image is None:

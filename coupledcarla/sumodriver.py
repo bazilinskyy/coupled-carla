@@ -24,6 +24,8 @@ import random
 import carla
 import traci
 
+from . import levels
+
 STUCK_S = 10.0      # standing this long where its route cannot go on from its lane: take another road
 
 
@@ -44,10 +46,12 @@ def lane_heading(lane, pos):
     return 0.0
 
 
-def pick_lane(net, x, y, yaw=None, vclass="passenger", radius=25.0):
+def pick_lane(net, x, y, yaw=None, vclass="passenger", radius=25.0, z=None):
     """(lane, position) of the SUMO lane nearest to SUMO (x, y) that `vclass` may use and (yaw given) runs within
-    60 deg of the CARLA yaw, or None."""
-    best = None
+    60 deg of the CARLA yaw, or None. z given (the car's height, or the level of the route so far): lanes higher or
+    lower than the nearest-in-height one cost their extra height as distance (levels.py), so on a stacked road the
+    car's own level wins; nets without heights rank as before."""
+    cands = []
     for lane, dist in net.getNeighboringLanes(x, y, radius):
         if not lane.allows(vclass) or lane.getEdge().getFunction() == "internal":
             continue
@@ -55,10 +59,12 @@ def pick_lane(net, x, y, yaw=None, vclass="passenger", radius=25.0):
         diff = abs((lane_heading(lane, pos) - yaw + 180.0) % 360.0 - 180.0) if yaw is not None else 0.0
         if diff > 60.0:
             continue
-        key = dist + diff / 30.0
-        if best is None or key < best[0]:
-            best = (key, lane, pos)
-    return (best[1], best[2]) if best else None
+        cands.append((dist + diff / 30.0, lane, pos, levels.lane_z(lane, pos)))
+    if not cands:
+        return None
+    keys = levels.level_keys([(c[0], c[3]) for c in cands], z)
+    best = min(range(len(cands)), key=lambda i: keys[i])
+    return cands[best][1], cands[best][2]
 
 
 def plan_route(net, start_edge, vias, vclass="passenger"):
@@ -127,7 +133,8 @@ class SumoDriver:
         self.sid = f"ego_{p['role']}"
         tf = self.vehicle.get_transform()
         x, y = sumo_xy(offset, tf.location.x, tf.location.y)
-        got = pick_lane(net, x, y, tf.rotation.yaw) or pick_lane(net, x, y, tf.rotation.yaw, radius=60.0)
+        z = tf.location.z         # SUMO's heights are CARLA's (same OpenDRIVE); a net without heights ranks as before
+        got = pick_lane(net, x, y, tf.rotation.yaw, z=z) or pick_lane(net, x, y, tf.rotation.yaw, radius=60.0, z=z)
         if got is None:
             raise RuntimeError(f"{p['role']}: no SUMO lane near the spawn for the SUMO driver")
         self.lane, self.pos = got
@@ -135,11 +142,14 @@ class SumoDriver:
         for lat, lon in (p.get("route") or []) + ([[p["destination"]["lat"], p["destination"]["lon"]]]
                                                    if p.get("destination") else []):
             cx, cy = geo.to_carla(lat, lon)
-            near = pick_lane(net, *sumo_xy(offset, cx, cy), radius=40.0)
+            # a via point has no height: it keeps the level of the route so far (on a stacked road, the street
+            # under the expressway stays the street), and the next point goes on from this lane's height
+            near = pick_lane(net, *sumo_xy(offset, cx, cy), radius=40.0, z=z)
             if near is None:
                 log(f"{p['role']}: route point {lat:.5f},{lon:.5f} has no lane within 40 m; skipped")
                 continue
             vias.append(near[0].getEdge())
+            z = levels.lane_z(near[0], near[1])
         start = self.lane.getEdge()
         route = plan_route(net, start, vias) if vias else None
         if vias and route is None:
@@ -222,7 +232,8 @@ class SumoDriver:
             return None
         if self.sid in self.sync.arrived_adopted:          # arrived anyway (or was removed): again from here
             tf = vehicle.get_transform()
-            got = pick_lane(self.net, *sumo_xy(self.offset, tf.location.x, tf.location.y), tf.rotation.yaw)
+            got = pick_lane(self.net, *sumo_xy(self.offset, tf.location.x, tf.location.y), tf.rotation.yaw,
+                            z=tf.location.z)
             if got:
                 self.lane, self.pos = got
                 self.route = random_destination(self.net, self.lane.getEdge(), self.rng) or [self.lane.getEdge().getID()]

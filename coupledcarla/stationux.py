@@ -12,11 +12,11 @@ import math
 import time
 from pathlib import Path
 
-from . import designs, ehmi_design
+from . import designs, ehmi_design, ehmi_inside
 from .soundscape import Soundscape, WorldBodies, body_of
 
 
-def welcome_extras(tc, pcfg, kind=None, base=None, log=print, default_states=()):
+def welcome_extras(tc, pcfg, kind=None, base=None, log=print, default_states=(), default_ehmi=None):
     """What the host adds to a station's welcome: the `sound`, `displays` and `haptics` settings (the participant's
     over the trial's), with display designs and message files resolved on the host (the station needs no files),
     the agents' designed eHMIs, and for an AV passenger the design's states as eHMI keys."""
@@ -28,6 +28,8 @@ def welcome_extras(tc, pcfg, kind=None, base=None, log=print, default_states=())
                           "fov": (pcfg or {}).get("fov"), "screens": (pcfg or {}).get("screens"),
                           "wheel": {True: True, False: False}.get(disp.get("wheel", "auto"), "auto"),
                           "ev_bias": float(disp.get("cabin_ev_bias", -1.0)),
+                          "rhd": str(disp.get("rhd") or "").lower() == "mirror"
+                          and bool((tc.get("map") or {}).get("lefthand")),
                           "hud": {k: disp[k] for k in ("hud_distance_m", "hud_fov_deg", "hud_down_deg") if k in disp}}
     for k in ("sound", "displays", "haptics"):
         merged = config._merge(tc.get(k) or {}, (pcfg or {}).get(k) or {})
@@ -66,6 +68,13 @@ def welcome_extras(tc, pcfg, kind=None, base=None, log=print, default_states=())
                      if s not in listed and s.upper() != "DISABLED" and s != "off"
                      and not any(a in listed for a in designs.STATE_ALIASES.get(s, []))]
             out["ehmi_states"] = listed + extra
+    # an AV passenger's own car: the panels it sees from behind, drawn by the stations, and its indicator
+    if ehmi_inside.occupied(tc):
+        slots = tuple((tc.get("ehmi") or {}).get("slots", ["front"]))
+        inside = ehmi_inside.welcome(tc, specs, lambda a: a.get("ehmi_slots") or slots,
+                                     (tc.get("ehmi") or {}).get("states") or default_ehmi or {}, pcfg, kind)
+        if inside["cars"] or inside.get("own"):
+            out["ehmi_inside"] = inside
     return out
 
 
@@ -76,7 +85,8 @@ def wanted(welcome):
     return bool((w.get("sound") or {}).get("enabled") or (w.get("haptics") or {}).get("enabled")
                 or (w.get("cockpit") or {}).get("wheel") is True
                 or any(disp.get(k) for k in ("cluster", "hud", "centre", "messages", "messages_file"))
-                or (w.get("ehmi_designs") and w.get("ehmi_render", "world") in ("station", "both")))
+                or (w.get("ehmi_designs") and w.get("ehmi_render", "world") in ("station", "both"))
+                or bool((w.get("ehmi_inside") or {}).get("cars") or (w.get("ehmi_inside") or {}).get("own")))
 
 
 class StationUX:
@@ -92,6 +102,9 @@ class StationUX:
         self.agents = {}            # agent id -> actor id
         self.ehmi = {}              # actor id -> eHMI state
         self.ehmi_draw = {}         # actor id -> DesignedEhmi (station-side drawing)
+        self.ehmi_cabin = {}        # own car's panels seen from behind (ehmi_inside.py: drawn by ehmi.inside)
+        self.inside_mode = "mirror"
+        self.indicator = None       # an AV passenger's own indicator of its car's eHMI (a normalised design)
         self.extents = {}
         self._actors = {}
         self.drones = []
@@ -113,11 +126,13 @@ class StationUX:
                 self.cues_w.writerow(["wall_time", "sim_time", "trial", "kind", "name", "detail"])
         self.cues_w.writerow([f"{time.time():.4f}", f"{self.t:.3f}", self.trial, kind, name, detail])
 
-    def start(self, world, actor, camera, trial, agents=None, input_=None, view=None, fov=90.0, version="0.9"):
+    def start(self, world, actor, camera, trial, agents=None, input_=None, view=None, fov=90.0, version="0.9",
+              rhd=None):
         """view: (x, y, z, pitch) of the camera in the vehicle's frame for a driver's or AV passenger's view
         (cockpit.actor_eye): the displays then go onto the car's own panels and the steering wheel turns."""
         from . import audio
         self.world, self.actor, self.camera, self.trial = world, actor, camera, trial
+        self.rhd = rhd         # rhd.RhdCabin: the cabin's depth image comes from its mirrored seat
         self.agents = dict(agents or {})
         w = self.w
         snd = w.get("sound") or {}
@@ -155,12 +170,32 @@ class StationUX:
             from .haptics import Haptics
             self.haptics = Haptics(hap, wheel=getattr(input_, "wheel", None), role=self.role, log=self.log,
                                    on_cue=self.cue)
+        inside = w.get("ehmi_inside") or {}
+        self.inside_mode = inside.get("mode", "mirror")
+        own_id = getattr(actor, "id", None)
         if w.get("ehmi_render", "world") in ("station", "both"):
             for aid, spec in (w.get("ehmi_designs") or {}).items():
                 if aid in self.agents:
                     d = designs.normalise(spec["design"])
-                    self.ehmi_draw[self.agents[aid]] = ehmi_design.DesignedEhmi(d, spec.get("placement"),
-                                                                               spec.get("offset"))
+                    pl = spec.get("placement") or d.get("placement") or ["front"]
+                    if self.agents[aid] == own_id and self.kind == "av_passenger" and self.inside_mode != "mirror":
+                        world_pl, cabin_pl = ehmi_inside.split(pl)      # its own car: the panels seen from behind
+                        if cabin_pl:
+                            self.ehmi_cabin[own_id] = ehmi_design.DesignedEhmi(d, cabin_pl, spec.get("offset"))
+                        pl = world_pl
+                    if pl:
+                        self.ehmi_draw[self.agents[aid]] = ehmi_design.DesignedEhmi(d, pl, spec.get("offset"))
+        for aid, spec in (inside.get("cars") or {}).items():      # drawn by the stations, not in the world
+            if aid in self.agents:
+                aid_actor = self.agents[aid]
+                target = self.ehmi_cabin if (aid_actor == own_id and self.kind == "av_passenger") else self.ehmi_draw
+                if aid_actor in target:          # a station-rendered design already holds every panel
+                    continue
+                target[aid_actor] = ehmi_inside.drawer(spec)
+        own = inside.get("own")
+        if own and self.kind == "av_passenger":
+            self.indicator = designs.normalise(own["design"]) if own.get("design") is not None else \
+                ehmi_inside.plain_design(own.get("plain"))
 
     def _cabin_start(self, world, actor, view, fov, version):
         """The CabinView of this seat, and one depth image of the rigid cabin view (a depth camera on the same
@@ -176,6 +211,9 @@ class StationUX:
         hud = {k[4:]: v for k, v in (ck.get("hud") or {}).items()}
         self.cabin = cockpit.CabinView(entry, view[:3], view[3], self.size, fov, ck.get("lefthand", False), hud=hud)
         self.incar.set_cabin(self.cabin)
+        if getattr(self, "rhd", None) is not None:      # the mirrored cabin's depth: from rhd's plan (_cabin_tick)
+            self.log(f"cockpit: {actor.type_id} right-hand-drive cabin (rhd: mirror), fov {fov:.0f}")
+            return
         try:
             bp = world.get_blueprint_library().find("sensor.camera.depth")
             bp.set_attribute("image_size_x", str(self.size[0]))
@@ -201,6 +239,13 @@ class StationUX:
         self._depth = (a[..., 2] + a[..., 1] * 256.0 + a[..., 0] * 65536.0) / (256 ** 3 - 1) * 1000.0
 
     def _cabin_tick(self):
+        rhd = getattr(self, "rhd", None)
+        if rhd is not None:
+            if self.cabin is not None and self.cabin.depth is None and rhd.cabin_depth is not None:
+                self.cabin.set_depth(rhd.cabin_depth)
+                self.log(f"cockpit: mirrored cabin depth in; steering wheel "
+                         f"{'found' if self.cabin.spin else 'not found'} in the view")
+            return
         if self._depth is None or self._depth_cam is None:
             return
         try:
@@ -299,7 +344,7 @@ class StationUX:
         self.t = t
         if self.actor is None:
             return
-        if self._depth_cam is not None:
+        if self._depth_cam is not None or (getattr(self, "rhd", None) is not None and self.cabin is not None):
             self._cabin_tick()
         self.keys(events)
         try:
@@ -366,9 +411,9 @@ class StationUX:
         return a
 
     # -- drawing --------------------------------------------------------------------------------------------------
-    def _ehmi_segments(self):
+    def _segments_of(self, drawers):
         segs = []
-        for actor_id, de in self.ehmi_draw.items():
+        for actor_id, de in drawers.items():
             a = self._actor(actor_id)
             if a is None:
                 continue
@@ -380,21 +425,54 @@ class StationUX:
                                 tf.rotation.yaw, self.extents[actor_id])
         return segs
 
+    def _ehmi_segments(self):
+        """(segments seen from outside, own car's panels seen from behind as ehmi.inside says)."""
+        return (self._segments_of(self.ehmi_draw),
+                ehmi_inside.for_occupant(self._segments_of(self.ehmi_cabin), self.inside_mode))
+
     def draw(self, surface, fov=90.0):
         """Draws the station-side eHMIs and the in-car displays onto the station's screen (before flip)."""
-        if self.ehmi_draw and self.camera is not None:
+        if (self.ehmi_draw or self.ehmi_cabin) and self.camera is not None:
             import pygame
             tf = self.camera.get_transform()
             cam = (tf.location.x, tf.location.y, tf.location.z, tf.rotation.pitch, tf.rotation.yaw, tf.rotation.roll)
-            for u0, v0, u1, v1, wpx, rgb, b in ehmi_design.project_segments(self._ehmi_segments(), cam,
-                                                                             surface.get_size(), fov):
+            outside, behind = self._ehmi_segments()
+            size = surface.get_size()
+            for u0, v0, u1, v1, wpx, rgb, b in ehmi_design.project_segments(outside, cam, size, fov):
                 col = tuple(int(min(255, c * b)) for c in rgb)
                 pygame.draw.line(surface, col, (u0, v0), (u1, v1), wpx)
+            if behind:       # light through the back of a see-through display: added to the image, not painted
+                glow = pygame.Surface(size)
+                glow.fill((0, 0, 0))
+                for u0, v0, u1, v1, wpx, rgb, b in ehmi_design.project_segments(behind, cam, size, fov):
+                    pygame.draw.line(glow, tuple(int(min(255, c * b)) for c in rgb), (u0, v0), (u1, v1), wpx)
+                surface.blit(glow, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
         if self.incar is not None:
             self.incar.draw(surface)
+        if self.indicator is not None and self.actor is not None:
+            self._draw_indicator(surface)
+
+    def _draw_indicator(self, surface):
+        """The AV passenger's strip at the top of the view: what the car shows outside, the right way round."""
+        import pygame
+        state = self.ehmi.get(self.actor.id)
+        if state in (None, "", "off"):
+            return
+        if state != getattr(self, "_ind_state", None):
+            self._ind_state, self._ind_since = state, self.t
+        rect = ehmi_inside.indicator_rect(surface.get_size(), self.indicator)
+        x, y, w, h = (int(round(v)) for v in rect)
+        box = pygame.Surface((w, h), pygame.SRCALPHA)
+        box.fill((10, 12, 16, 200))
+        surface.blit(box, (x, y))
+        pygame.draw.rect(surface, (70, 74, 82), (x, y, w, h), 1)
+        for u0, v0, u1, v1, wpx, rgb, b in ehmi_inside.indicator_segments(self.indicator, state,
+                                                                          self.t - self._ind_since, rect):
+            pygame.draw.line(surface, tuple(int(min(255, c * b)) for c in rgb), (u0, v0), (u1, v1), wpx)
 
     def wants_frames(self):
-        return bool((self.incar is not None and (self.incar.displays or self.cabin is not None)) or self.ehmi_draw)
+        return bool((self.incar is not None and (self.incar.displays or self.cabin is not None)) or self.ehmi_draw
+                    or self.ehmi_cabin or self.indicator is not None)
 
     def save_frame(self, rgb, path, fov=90.0):
         """Headless: the camera image (H x W x 3 RGB) with the displays drawn over it, saved as a JPEG."""

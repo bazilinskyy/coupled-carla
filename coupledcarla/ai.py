@@ -64,7 +64,7 @@ def _facing(d):
     return carla.Location(-d.y, d.x, 0.0)
 
 
-def draw_ehmi(debug, vehicle, state, states, life, slots=("front",), look_at=None):
+def draw_ehmi(debug, vehicle, state, states, life, slots=("front",), look_at=None, text_slots=None):
     """Draws the eHMI of `vehicle` in its current state on the chosen slots:
 
     front  light bar across the front, the state's text above it (read by someone in front of the car)
@@ -73,6 +73,9 @@ def draw_ehmi(debug, vehicle, state, states, life, slots=("front",), look_at=Non
     road   the text projected on the road 3 m ahead, readable from in front
     eyes   two eyes on the front whose pupils follow `look_at` (a location: the nearest pedestrian), coloured
            by the state: the "eyes on a car" concept for eye contact with an automated vehicle
+
+    text_slots: the slots whose text is drawn (None: all); the others draw their light bars only (an occupied car's
+    front and roof text is drawn by the stations instead, ehmi_inside.py).
     """
     spec = states.get(state) or {}
     rgb = spec.get("color", [0, 0, 0])
@@ -97,7 +100,7 @@ def draw_ehmi(debug, vehicle, state, states, life, slots=("front",), look_at=Non
             d = fwd if slot == "front" else fwd * -1.0
             c = tf.location + d * (ext.x + 0.06) + carla.Location(z=ext.z * 1.05)
             bar(c - right * (ext.y * 0.8), c + right * (ext.y * 0.8))
-            if text:
+            if text and (text_slots is None or slot in text_slots):
                 stroke_text(debug, c + up * 0.42 - d * 0.05, _facing(d * -1.0), up, text, height=0.32,
                             colour=dim, life=life, thickness=0.035)
         elif slot == "roof":
@@ -106,7 +109,7 @@ def draw_ehmi(debug, vehicle, state, states, life, slots=("front",), look_at=Non
                        for sx, sy in ((1, 1), (1, -1), (-1, -1), (-1, 1))]
             for a, b in zip(corners, corners[1:] + corners[:1]):
                 bar(a, b, 0.08)
-            if text:
+            if text and (text_slots is None or slot in text_slots):
                 for d, half in ((fwd, ext.x * 0.45), (fwd * -1.0, ext.x * 0.45),
                                 (right, ext.y * 0.85), (right * -1.0, ext.y * 0.85)):
                     stroke_text(debug, tf.location + z + up * 0.22 + d * (half + 0.02), _facing(d * -1.0), up,
