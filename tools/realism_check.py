@@ -203,8 +203,14 @@ def cmd_render(args):
     st.synchronous_mode, st.fixed_delta_seconds = True, args.delta
     world.apply_settings(st)
     actors, spawned = [], []
+    photo = None
     try:
         world.tick()
+        if (cfg["map"] or {}).get("photoreal"):   # Google's 3D tiles over the twin (photoreal.py): one root request
+            from coupledcarla import photoreal
+            photo = photoreal.attach(world, cfg, False, lambda m: print(m, flush=True))
+            for _ in range(100):       # let the tileset start before the first view
+                world.tick()
         if not args.no_scenery and (mdir / "scenery.json").exists():
             scen = Scenery(client, world, mdir, {"radius_m": 0})
             scen.update([])
@@ -358,6 +364,8 @@ def cmd_render(args):
                 a.destroy()
             except Exception:  # noqa: BLE001
                 pass
+        if photo is not None:
+            photo.destroy()
         for sc in spawned:        # leave the server as it was: scenery and parked cars removed
             ids = [i for key in sc.loaded for i in sc.loaded[key]]
             client.apply_batch_sync([carla.command.DestroyActor(i) for i in ids], False)
