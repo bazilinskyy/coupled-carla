@@ -55,10 +55,12 @@ SOURCES = {
     "open-meteo": ("Open-Meteo.com weather API (national weather services, ERA5)", "CC BY 4.0"),
     "eindhoven": ("Gemeente Eindhoven open data: trees (bomen) and street lights (openbare verlichting)",
                   "public domain"),
-    "nyc": ("NYC Parks 2015 Street Tree Census", "NYC Open Data terms of use"),
+    "nyc_trees": ("NYC Parks 2015 Street Tree Census", "NYC Open Data terms of use"),
     "canopy": ("Meta and WRI High Resolution Canopy Height Maps (Tolan et al. 2024), AWS open data", "CC BY 4.0"),
     "gtfs": ("GTFS timetables of the local transit agencies, found via the Mobility Database catalogue",
              "per feed (see transit.json)"),
+    "gbfs": ("GBFS feeds of the shared bike and scooter systems (MobilityData systems catalogue, CC BY 3.0; "
+             "TfL BikePoint, YouBike)", "per system (see real/gbfs.json)"),
 }
 
 
@@ -74,7 +76,12 @@ def overpass_json(query, timeout=100):
             try:
                 r = requests.post(url, data={"data": query}, headers=UA, timeout=timeout)
                 r.raise_for_status()
-                return r.json()
+                data = r.json()
+                # a query that ran out of time or memory answers 200 with what it had so far and a remark: never
+                # cache that as the box's data
+                if "runtime error" in str(data.get("remark", "")):
+                    raise ValueError(data["remark"])
+                return data
             except (requests.RequestException, ValueError) as err:
                 log(f"Overpass {url} failed: {err}")
         time.sleep(15)
@@ -189,7 +196,7 @@ def _in_box(bbox, s, w, n, e):
 
 MUNICIPAL = [   # (name, area (s, w, n, e) the register covers, fetch, what it has)
     ("eindhoven", (51.38, 5.38, 51.50, 5.57), _ehv, "Gemeente Eindhoven open data: bomen, openbare verlichting"),
-    ("nyc", (40.49, -74.27, 40.92, -73.68), _nyc_trees, "NYC Parks 2015 Street Tree Census"),
+    ("nyc_trees", (40.49, -74.27, 40.92, -73.68), _nyc_trees, "NYC Parks 2015 Street Tree Census"),
 ]
 
 
@@ -197,22 +204,27 @@ def municipal_scenery(bbox, path):
     """Trees and street lights from the city's own registers, as OSM-like nodes ({elements, sources}); empty where
     no register is known. Cached in path."""
     if path.exists():
-        return json.loads(path.read_text())
-    els, used = [], []
+        data = json.loads(path.read_text())
+        # caches written when the tree census was listed as "nyc", the key of NYC's building footprints
+        data["sources"] = ["nyc_trees" if s == "nyc" else s for s in data.get("sources", [])]
+        return data
+    els, used, failed = [], [], False
     for name, area, fetch, what in MUNICIPAL:
         if _in_box(bbox, *area):
             try:
                 got = fetch(bbox)
-            except Exception as err:  # noqa: BLE001 - the register is down: OSM alone
+            except Exception as err:  # noqa: BLE001 - the register is down: OSM alone (and asked again next build)
                 log(f"{name} register failed ({err})")
+                failed = True
                 continue
             els += got
             used.append(name)
             log(f"{what}: {sum(1 for x in got if x['tags'].get('natural') == 'tree')} trees, "
                 f"{sum(1 for x in got if x['tags'].get('highway') == 'street_lamp')} street lights")
     data = {"elements": els, "sources": used}
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data))
+    if not failed:      # a register that was down is not cached as "no register here"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data))
     return data
 
 
@@ -239,13 +251,18 @@ def overture_buildings(bbox, path, release=OVERTURE_RELEASE):
         log("Overture skipped: pip install duckdb")
         return None
     s, w, n, e = bbox
-    con = duckdb.connect()
-    con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial; SET s3_region='us-west-2';")
     q = f"""SELECT height, num_floors, class, subtype, sources[1].dataset AS src, ST_AsGeoJSON(geometry) AS g
             FROM read_parquet('{OVERTURE.format(rel=release)}', hive_partitioning=1)
             WHERE bbox.xmin < {e} AND bbox.xmax > {w} AND bbox.ymin < {n} AND bbox.ymax > {s}"""
+    try:
+        con = duckdb.connect()
+        con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial; SET s3_region='us-west-2';")
+        rows = con.execute(q).fetchall()
+    except Exception as err:  # noqa: BLE001 - offline or S3 down: OSM's buildings (not cached: tried again next build)
+        log(f"Overture failed ({type(err).__name__}: {err}); OSM buildings")
+        return None
     out = []
-    for height, floors, cls, sub, src, g in con.execute(q).fetchall():
+    for height, floors, cls, sub, src, g in rows:
         geom = json.loads(g)
         polys = [geom["coordinates"]] if geom["type"] == "Polygon" else geom["coordinates"]
         for poly in polys:
@@ -659,6 +676,8 @@ def weather_at(lat, lon, when, cache_dir=None):
         params = {"latitude": lat, "longitude": lon, "hourly": ",".join(HOURLY), "timezone": "auto",
                   "start_date": start, "end_date": day.isoformat()}
         recent = (datetime.now(timezone.utc).date() - day).days < 80
+        if now:     # the hours come in local time: east of UTC the local date can be a day ahead of UTC's
+            params["end_date"] = (day + timedelta(days=1)).isoformat()
         if recent:
             params["hourly"] += ",visibility"
             url = METEO

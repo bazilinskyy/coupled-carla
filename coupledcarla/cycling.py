@@ -475,6 +475,9 @@ def counters(bbox, real_dir, now=None):
         sites += got
         if got:
             used.append({"source": name, "what": SOURCES[name][0], "licence": SOURCES[name][1]})
+    if not ok and path.exists():     # offline: the counters fetched before
+        log("bike counters: the cached ones are used")
+        return json.loads(path.read_text())["sites"]
     if ok:      # a failed fetch is tried again next time
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"fetched": now.isoformat(timespec="minutes"), "sources": used,

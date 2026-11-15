@@ -416,8 +416,19 @@ def _number(text):
 
 # --- build ---------------------------------------------------------------------------------------------------
 
+def lane_types(xodr):
+    """The lane types (lower case) of an OpenDRIVE file, or None when it cannot be read. carla.Map.get_waypoint for
+    a lane type the map lacks costs ~0.5 ms (it searches every lane), 100 times a query that finds one."""
+    import re
+    try:
+        text = Path(xodr).read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+    return {t.lower() for t in re.findall(r'<lane\b[^>]*?\btype="([^"]+)"', text)}
+
+
 class Placer:
-    def __init__(self, cat, cmap, ground, carla, sidewalks_free=False):
+    def __init__(self, cat, cmap, ground, carla, sidewalks_free=False, lanes=None):
         self.cat, self.cmap, self.ground, self.carla = cat, cmap, ground, carla
         self.items, self.counts = [], defaultdict(int)
         self.mesh_index = {}
@@ -426,8 +437,9 @@ class Placer:
         if not sidewalks_free:
             self.blocking = self.blocking | lt.Sidewalk
         # Biking asked for apart: in one mask with Driving, get_waypoint picks the nearest bike lane and then
-        # finds the point outside it, so a point on a driving lane beside a cycle lane read as free (eindhoven_centre)
-        self.masks = (self.blocking, lt.Biking)
+        # finds the point outside it, so a point on a driving lane beside a cycle lane read as free (eindhoven_centre);
+        # not at all on a map without bike lanes (lanes: lane_types of its OpenDRIVE), where it only cost time
+        self.masks = (self.blocking, lt.Biking) if lanes is None or "biking" in lanes else (self.blocking,)
 
     def on_lane(self, x, y, z=0.0):
         loc = self.carla.Location(x=x, y=y, z=z)
@@ -470,6 +482,29 @@ def tile_cover(size, T):
     n = max(1, math.ceil(T / a - 1e-6))
     offs = [0.0] if n == 1 else [-T / 2 + a / 2 + i * (T - a) / (n - 1) for i in range(n)]
     return [(((o, 0.0) if L < W else (0.0, o)), s) for o in offs]
+
+
+def kerb_lamp(wp, lefthand, carla):
+    """(outermost lane, x, y, yaw) of a lamp 1 m beyond the outermost lane on the kerb side of a driving lane's
+    waypoint, its arm (+x) over the road; None when the waypoint is not on the outermost driving lane. The kerb is
+    right of the lanes in right-hand traffic and left of them, along netconvert's reference line, in left-hand
+    traffic (London's guessed lamps once lined the centre line, 78 of them between the two directions)."""
+    kerb = -1.0 if lefthand else 1.0
+    edge = wp
+    for _ in range(8):
+        nxt = edge.get_left_lane() if lefthand else edge.get_right_lane()
+        if nxt is None or nxt.lane_type in (carla.LaneType.NONE,):
+            break
+        if nxt.lane_id * edge.lane_id < 0:
+            break
+        edge = nxt
+    if edge.lane_id != wp.lane_id and edge.lane_type == carla.LaneType.Driving:
+        return None
+    tf = edge.transform
+    right = tf.get_right_vector()
+    off = kerb * (edge.lane_width / 2 + 1.0)
+    return (edge, tf.location.x + right.x * off, tf.location.y + right.y * off,
+            tf.rotation.yaw + 90.0 + (180.0 if not lefthand else 0.0))
 
 
 def _bgt(mc, sc, rdir, log):
@@ -627,7 +662,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 
     # a baked level's OpenDRIVE has its real, full-width pavements as sidewalk lanes: street trees, lamps and
     # furniture stand on them (on OSM maps a sidewalk lane is only the walking strip)
-    pl = Placer(cat, cmap, ground, carla, sidewalks_free=bool(mc.get("carla_level")))
+    pl = Placer(cat, cmap, ground, carla, sidewalks_free=bool(mc.get("carla_level")),
+                lanes=lane_types(mdir / "map.xodr"))
     rng = random.Random(42)
     sources = {"osm"}
 
@@ -884,28 +920,17 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             for wp in cmap.generate_waypoints(spacing):
                 if wp.lane_type != carla.LaneType.Driving or wp.is_junction:
                     continue
-                # the outermost lane on this side of the road
-                edge = wp
-                for _ in range(8):
-                    nxt = edge.get_right_lane()
-                    if nxt is None or nxt.lane_type in (carla.LaneType.NONE,):
-                        break
-                    if nxt.lane_id * edge.lane_id < 0:
-                        break
-                    edge = nxt
-                if edge.lane_id != wp.lane_id and edge.lane_type == carla.LaneType.Driving:
+                spot = kerb_lamp(wp, bool(mc.get("lefthand")), carla)
+                if spot is None:
                     continue          # an inner lane: its outer lane gets the lamp
+                edge, x, y, yaw = spot
                 key = (edge.road_id, edge.section_id, edge.lane_id, round(edge.s / spacing))
                 if key in seen:
                     continue
                 seen.add(key)
-                tf = edge.transform
-                right = tf.get_right_vector()
-                off = edge.lane_width / 2 + 1.0
-                x, y = tf.location.x + right.x * off, tf.location.y + right.y * off
                 if not free(x, y, 0.3):
                     continue
-                pl.add("lamp", ms.LAMP, x, y, tf.rotation.yaw + 90.0 + 180.0 + ms.LAMP_YAW, 1.0)   # arm over road
+                pl.add("lamp", ms.LAMP, x, y, yaw + ms.LAMP_YAW, 1.0)   # arm over road
                 done += 1
             log(f"scenery: OSM maps {lamps} street lamps; {done} more along the roads")
         elif m_lamps:

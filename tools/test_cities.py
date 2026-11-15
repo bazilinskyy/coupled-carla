@@ -34,6 +34,13 @@ def run_one(exp, log_path, duration):
     return proc
 
 
+def height_source(meta):
+    """Where a map's building heights come from: its national source (scenery.building_records), else Overture, else
+    OSM."""
+    return next((k for k in ("3dbag", "bdtopo", "nyc", "plateau", "overture", "osm") if k in meta.get("sources", {})),
+                "osm")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--duration", type=float, default=40)
@@ -65,7 +72,7 @@ def main():
         ok = proc.returncode == 0 and summary.get("sim_s", 0) >= args.duration - 0.5
         elev = meta.get("elevation") or {}
         relief = f"{elev['max_m'] - elev['min_m']:.0f}" if elev else "–"
-        heights = next((k for k in ("3dbag", "bdtopo", "nyc", "overture", "osm") if k in meta.get("sources", {})), "osm")
+        heights = height_source(meta)
         scen = sum(v for k, v in (meta.get("scenery") or {}).items()
                    if k in ("building", "landmark", "tree", "bush", "lamp", "furniture", "sign", "ground", "water"))
         tr = meta.get("transit") or {}
