@@ -55,37 +55,29 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 ---
 
 ## Contents
-
-- [License](#license)
-- [What you get](#what-you-get)
-- [Make a map of any place](#make-a-map-of-any-place)
-- [Videos](#videos)
-- [Screenshots](#screenshots)
-- [How it works](#how-it-works)
-- [Quick start](#quick-start)
-- [Cities](#cities)
-- [Real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather)
-- [Public transport](#public-transport)
-- [Experiment files](#experiment-files)
-- [Participants, inputs and views](#participants-inputs-and-views)
-- [Coupled experiments (phase 2)](#coupled-experiments-phase-2)
-- [Phase 3: CARLA 1.0 and the Eindhoven digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin)
-- [Drones](#drones)
-- [Traffic](#traffic)
-- [Traffic lights](#traffic-lights)
-- [Logging and data](#logging-and-data)
-- [Analysis](#analysis)
-- [Trial viewer](#trial-viewer)
-- [Performance](#performance)
-- [coupled-sim features in Coupled CARLA](#coupled-sim-features-in-coupled-carla)
-- [Known limits](#known-limits)
-- [Roadmap](#roadmap)
-- [Lessons learned (gotchas)](#lessons-learned-gotchas)
-- [Project layout](#project-layout)
-- [Support Coupled CARLA](#support-coupled-carla)
+- [Citation](#citation) · [License](#license) · [Support](#support-coupled-carla)
+- [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
+- [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
+- [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport)
+- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
+- [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
+- [Traffic](#traffic) · [Traffic lights](#traffic-lights)
+- [Data](#logging-and-data): [logging](#logging-and-data), [analysis](#analysis), [trial viewer](#trial-viewer)
+- [Performance](#performance) · [coupled-sim features](#coupled-sim-features-in-coupled-carla) · [Known limits](#known-limits) · [Roadmap](#roadmap)
+- [Lessons learned](#lessons-learned-gotchas) · [Project layout](#project-layout)
 - [Credits, data and licences](#credits-data-and-licences)
 
----
+## Citation
+If you use Coupled CARLA for academic work, please cite the software (GitHub's "Cite this repository" button gives
+it in APA and BibTeX, from [`CITATION.cff`](CITATION.cff)):
+
+> Bazilinskyy, P. (2026). Coupled CARLA: a human-factors driving simulator for real places [Computer software].
+> https://github.com/bazilinskyy/coupled-carla
+
+and the coupled simulator it builds on:
+
+> Bazilinskyy, P., Kooijman, L., Dodou, D., & De Winter, J. C. F. (2020). Coupled simulator for research on the
+> interaction between pedestrians and (automated) vehicles. 19th Driving Simulation Conference (DSC). Antibes, France.
 
 ## License
 
