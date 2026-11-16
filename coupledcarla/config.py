@@ -23,6 +23,8 @@ DEFAULTS = {
         "smooth_net": True,          # SUMO's net without sideways jumps and kinks: sharp lane shifts in junctions
                                      # dropped or slowed, junction lanes redrawn as smooth curves, lane corners
                                      # rounded (<= 0.5 m), turns and bends slowed to ~3 m/s^2 (netsmooth.py)
+        "drop_uturns": False,        # with smooth_net: no U-turns on the spot away from dead ends (more teleports
+                                     # where routes need them: netsmooth.turnarounds)
         "buildings": True,           # also fetch building footprints (trial viewer, figures)
         "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
         "overture": True,            # Overture Maps buildings (needs duckdb), else OSM

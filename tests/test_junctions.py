@@ -121,7 +121,7 @@ def test_mapbuild_sumo_net_only(tmp_path, monkeypatch):
     out.mkdir(parents=True)
     (out / "meta.json").write_text("{}")
     seen = []
-    monkeypatch.setattr(mapbuild, "sumo_net", lambda o, guess_tls=True, internal_junctions=False, smooth=True:
+    monkeypatch.setattr(mapbuild, "sumo_net", lambda o, guess_tls=True, internal_junctions=False, smooth=True, drop_uturns=False:
                         seen.append((o, guess_tls, internal_junctions)))
     mapbuild.build(cfg, sumo_only=True)
     assert seen == [(out, True, False)]
@@ -131,7 +131,7 @@ def test_sumo_net_smoothing_passes_the_turn_speed_and_smooths(tmp_path, monkeypa
     from coupledcarla import netsmooth
     calls, smoothed = [], []
     monkeypatch.setattr(mapbuild.subprocess, "check_call", lambda cmd: calls.append(cmd))
-    monkeypatch.setattr(netsmooth, "smooth", lambda path, extra, log: smoothed.append((path, list(extra))))
+    monkeypatch.setattr(netsmooth, "smooth", lambda path, extra, log, **kw: smoothed.append((path, list(extra))))
     (tmp_path / "geo.net.xml").write_text('<net version="1.20">')
     mapbuild.sumo_net(tmp_path)
     assert any("--junctions.limit-turn-speed" in c for c in calls[0])

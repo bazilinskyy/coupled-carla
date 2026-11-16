@@ -370,7 +370,9 @@ def turnarounds(net_path):
     """The U-turn connections (dir "t") of a net that are not at a dead end: SUMO turns a car round on the spot within
     its own length (Eindhoven rush hour: a car reversed its heading at 33 km/h in front of the camera). Dead ends keep
     theirs, as there is no other way out. netconvert's --no-turnarounds does not remove the connections of a loaded
-    net, so they are deleted like the lane shifts."""
+    net, so they are deleted like the lane shifts. Opt-in (map.drop_uturns): on the 19 maps (300 s, seed 42) SUMO
+    teleported 125 vehicles instead of 98 without them (Taipei 9 -> 30: vehicles whose route needed one got stuck),
+    Eindhoven's stayed at 1."""
     import sumolib
     net = sumolib.net.readNet(str(net_path), withInternal=False, withPedestrianConnections=False)
     out = []
@@ -400,13 +402,13 @@ def connection_xml(deletes, slowed):
     return "\n".join(lines) + "\n"
 
 
-def smooth(net_path, extra=(), log=print):
+def smooth(net_path, extra=(), log=print, drop_uturns=False):
     """Rewrites net_path: sharp lane shifts dropped or slowed (netconvert, with the net's own options `extra`
     applied again), then in the XML: lane corners rounded, kinked junction lanes redrawn, bends slowed (see the
     module doc). Returns the counts."""
     net_path = Path(net_path)
     deletes, slowed = plan(connections(net_path))
-    uturns = turnarounds(net_path)
+    uturns = turnarounds(net_path) if drop_uturns else []
     deletes = deletes + uturns
     with tempfile.TemporaryDirectory() as tmp:
         con = Path(tmp) / "smooth.con.xml"
