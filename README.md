@@ -535,9 +535,13 @@ Where OSM maps few street lamps, lamps line the roads every 32 m (on by default,
 meshes give no light at night: CARLA 0.9.16 cannot add lights at run time.
 
 **Seasons.** With `simulation.time` set, deciduous trees follow the date at the place (`coupledcarla/season.py`):
-in leaf, in autumn colour (a growing share take CARLA's autumn sugar maple and red Japanese maples) or bare. CARLA
-has no bare tree mesh, so a bare tree is the same kind at half size (`simulation.scenery.bare: small`, or `drop`,
-`keep`). The dates come from latitude: leaf-out on 23 April and leaf fall on 1 November at 50°, later and earlier
+in leaf, in autumn colour (a growing share take CARLA's autumn sugar maple and red Japanese maples) or bare. A bare
+tree uses CARLA's leafless meshes (its maples and oaks v6, and 1.0's white ash `_B`) at the tree's own height; for
+other families it is the same kind at half size (`simulation.scenery.bare: small`, or `drop`, `keep`). Those
+leafless meshes are never used for trees in leaf: before, 22 % of the Eindhoven twin's trees stood bare in summer.
+A mapped tree that falls on a lane moves up to 1.5 m to a free spot instead of being dropped, and on a baked level
+street trees may stand in parking lanes (the tree pits between the bays). In the Eindhoven twin 2,867 of the
+register's 3,071 trees are placed now, up from 2,452. The dates come from latitude: leaf-out on 23 April and leaf fall on 1 November at 50°, later and earlier
 towards the poles, half a year apart in the south, none within 25° of the equator (latitude alone misses continental
 climates: Burlington leafs out about four weeks early). Evergreen genera and species stay as they are. `leaves:
 modis` uses MODIS MCD12Q2 dates (keyless) where they agree with the model; in city centres they mostly measure
@@ -1194,6 +1198,43 @@ and less greenery in view (33 % against 21 % road, 15 % against 22 % vegetation:
 real ones), and no parked or moving cars (0 % against 1 %: the render tool spawns none). KartaView's car-mounted
 views score best (coarse IoU 0.50), Commons photos worst (0.28; often taken from squares and parks).
 
+**Second round (2026-11-16, `tools/realism_window.sh`).** Each change was rendered at the same 349 views on the
+Windows package and compared against the photos. Three changes went in:
+
+- Trees in leaf: no leafless meshes for trees in summer (see Seasons).
+- Cars in view: the render tool spawns parked cars and 20 moving cars per km of lane. At that rate 45 % of renders
+  have more than 0.5 % car in view, against 58 % of photos.
+- `CoupledReal`: a CARLA 1.0 camera profile fitted to the photos (`coupledcarla/lookfit.py` models the part of
+  Unreal 5's tone mapping a profile controls; `tools/look_fit.py` fits it on half the views and scores it on the
+  other half).
+
+| Measure | Photos | Before | + trees in leaf | + cars | + `CoupledReal` | + overcast sky |
+|---|---|---|---|---|---|---|
+| Coarse IoU | | 0.440 | 0.441 | 0.439 | 0.435 | 0.429 |
+| Skyline error (°) | | 3.73 | 3.63 | 3.67 | 3.77 | 3.83 |
+| Colour histogram similarity | | 0.280 | 0.282 | 0.284 | **0.387** | 0.336 |
+| Luminance mean | 105 | 119 | 119 | 118 | 88 | 83 |
+| Luminance spread | 62.5 | 35.1 | 35.1 | 35.3 | 32.8 | 39.0 |
+| Saturation | 0.235 | 0.182 | 0.191 | 0.186 | **0.238** | 0.285 |
+| Edge density | 0.130 | 0.039 | 0.038 | 0.040 | 0.068 | 0.065 |
+| Vegetation share | 0.216 | 0.137 | 0.150 | 0.151 | 0.167 | 0.176 |
+| Vehicle share | 0.008 | 0.000 | 0.000 | **0.009** | 0.009 | 0.006 |
+
+What each change did:
+
+- The layout scores stay at the level of two real photos of the same street.
+- Trees in leaf and cars bring greenery and vehicles closer to the photos. Cars now match.
+- `CoupledReal` gives the biggest gain: the colours become clearly closer to the photos (0.28 → 0.39), saturation
+  matches, and fine detail rises by 70 %. The fit predicted 0.43, and the renders came out darker than predicted
+  (88 against the photos' 105).
+- An overcast sky (`simulation.cloud_scale` 1.0) made it worse.
+- Still missing: the contrast between sky and ground (spread 33 against 62), which no tone curve can add.
+- Fitting again on all 349 views, from either set of renders, reaches the same colour score (0.38-0.39) only by
+  giving up saturation for brightness, so `CoupledReal` stays as fitted.
+
+Use it on CARLA 1.0 by copying `coupledcarla/data/postprocess/*.json` into the server's
+`Content/Carla/Config/PostProcess`, then setting `simulation.camera_profile: CoupledReal`.
+
 **New York twin (`experiments/nyc_twin.yaml`).** The same pipeline baked NycMidtown, the box of
 `experiments/cities/new_york_midtown.yaml`: the NYC 3D Building Model's 1,761 buildings with facade styles from
 their PLUTO construction year and use, USGS 3DEP ground under the NYS orthophoto, and OSM roads with US lane
@@ -1222,8 +1263,12 @@ Also set a Cloud quota cap of about 50 root requests a day so a bug cannot run u
 stored beyond their Cache-Control lifetime, baked into packages or content packs, or redistributed; saved frames
 carry Google's attribution. Limits: it is photogrammetry (parked cars and people baked into the streets, no semantic
 labels for sensors, sun and shadows baked in, so they double when relit by day). Without a key, the plugin or the
-level data the trial runs on the normal twin. Status: built and checked on lin5080 without a key (one root request
-per level load, caps, fail-soft); not yet seen with a key on a rendering server. Shareable open alternatives:
+level data the trial runs on the normal twin. Status (2026-11-16, with a key on the Windows package): the
+Development and Shipping builds load the tiles and a full trial runs with them. From the air (drone and overview
+cameras) the city looks real. At street level it does not yet beat the plain twin: the mesh is soft close up,
+blue holes show where the twin is hidden before its tiles arrive, and the mesh sits a little too high. Cesium
+loads tiles for the spectator's view, so the spectator now follows the active camera (not yet re-tested). Until
+these are fixed, use it for aerial and drone views. Shareable open alternatives:
 [PLATEAU](https://www.mlit.go.jp/plateau/)'s textured LoD2 buildings for Japan (used by the twin of any place),
 [Helsinki's reality mesh](https://hel.fi/3d) and Espoo's (CC BY 4.0), [Rotterdam 3D](https://data.overheid.nl/dataset/10230-rotterdam-3d)
 (public domain, LoD2 textured from aerial photos).
@@ -1602,6 +1647,15 @@ a 0.9.16 server.
   vehicle class; `tools/drive_check.py <trial>` measures a CARLA trial (the ego's events, jerk, overlapping vehicles,
   walker contacts, heading jumps). With SUMO driving the autopilot, the ego got stuck 0 times in 8 runs of 150 s
   (before: 3-31 times per run).
+- **Junctions without internal stops** (`map.internal_junctions`, default false). `tools/junction_check.py` found
+  that most SUMO collisions hit a vehicle waiting at an internal junction (a turning vehicle's waiting point inside
+  the junction). On junctions rebuilt from OpenDRIVE that point often lies within a neighbouring lane its path does
+  not cross. SUMO's vehicles only watch lanes that cross theirs, so they drove into it (NYC: a cyclist waiting to
+  turn 1 m from a car lane's centre, hit 7 times in 4 runs). SUMO's net is now built without internal junctions, so
+  vehicles wait at the stop line; the OpenDRIVE, lanes and signal programs are unchanged. On the 19 maps (300 s, two
+  seeds): collisions 179 → 57, vehicles standing > 5 s inside a junction 1,521 → 845, teleports 189 → 179,
+  emergency braking 564 → 582, trip times unchanged. A map built before this change gets the new net with
+  `python -m coupledcarla.mapbuild <experiment> --sumo-net`.
 - **Animation**: within `simulation.animate_radius_m` (60 m) of a participant, SUMO vehicles move with physics on,
   following their SUMO pose by velocity, so wheels roll and steer and cyclists pedal (+0.1 ms per tick).
 - **Pedestrians**: SUMO vehicles brake for every walker in or entering their path, using SUMO's own speeds (CARLA
