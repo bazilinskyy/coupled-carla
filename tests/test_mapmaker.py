@@ -537,3 +537,11 @@ def test_web_build_runs_one_at_a_time(server, monkeypatch):
         threading.Event().wait(0.1)
     assert j["state"] == "done" and j["summary"] == {"label": "Kinsale"}
     assert (mm.PLACES / "kinsale.yaml").exists()
+
+
+def test_search_ranks_the_city_before_its_region():
+    from coupledcarla.mapmaker import rank_places
+    res = [{"name": "Chernihiv Oblast", "addresstype": "state", "category": "boundary", "place_rank": 8},
+           {"name": "Chernihiv", "addresstype": "city", "category": "boundary", "place_rank": 16},
+           {"name": "Chernihiv Raion", "addresstype": "district", "category": "boundary", "place_rank": 12}]
+    assert [r["name"] for r in rank_places(res)] == ["Chernihiv", "Chernihiv Oblast", "Chernihiv Raion"]

@@ -296,6 +296,20 @@ def _place_from_photon(f):
             "population": None, "source": "Photon (Komoot), OpenStreetMap data"}
 
 
+REGION_TYPES = {"country", "state", "region", "province", "state_district", "county", "district", "municipality",
+                "archipelago", "island", "continent"}
+
+
+def rank_places(res):
+    """Nominatim's answers with towns, streets and squares before regions of the same name: "Chernihiv" is both a
+    city and its oblast, and the oblast came first (its centre lies in fields: "No roads found here"). Stable."""
+    def region(r):
+        t = r.get("addresstype") or r.get("type")
+        return 1 if t in REGION_TYPES or (r.get("category") == "boundary" and int(r.get("place_rank") or 30) < 14) \
+            else 0
+    return sorted(res, key=region)
+
+
 def search(text, limit=5):
     """Places matching free text, best first: [{name, full, lat, lon, country, country_code, settlement, kind,
     population, source}]. Coordinates ('51.44, 5.48') are looked up in reverse. Raises MapMakerError when nothing
@@ -312,7 +326,7 @@ def search(text, limit=5):
             f"{NOMINATIM}/search", {"q": q, "format": "jsonv2", "limit": limit, "addressdetails": 1, "extratags": 1,
                                     "namedetails": 1, "accept-language": "en"}))
         if res:
-            return [_place_from_nominatim(r) for r in res]
+            return [_place_from_nominatim(r) for r in rank_places(res)]
     except Exception as err:  # noqa: BLE001 - try the fallback
         errors.append(f"Nominatim: {err}")
     try:

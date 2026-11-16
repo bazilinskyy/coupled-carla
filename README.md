@@ -122,7 +122,7 @@ for the 3D world and SUMO for the traffic, turn it into a world you can drive. C
 and the map maker reduces it to typing a place and pressing a button. It is meant for people who do not program:
 researchers in psychology and human factors, designers, students, city planners.
 
-![The map maker in the browser: Kinsale, Ireland, built from the page, with its square, preview and summary](docs/img/mapmaker_page.jpg)
+![The map maker in the browser: Chernihiv, Ukraine, built from the page, with its square, preview and summary](docs/img/mapmaker_page.jpg)
 
 **Set up once** (a computer with an internet connection; to drive, a Windows or Linux PC with a gaming graphics
 card):

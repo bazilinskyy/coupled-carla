@@ -134,3 +134,28 @@ def test_plateau_buildings_heights_and_kinds(monkeypatch, tmp_path):
     assert [b["cls"] for b in out] == ["commercial", "house", "apartments", None]
     assert len(out[0]["ring"]) == 4 and (tmp_path / "plateau.json").exists()
     assert rw.plateau_buildings([51.43, 5.47, 51.45, 5.49], tmp_path / "nl.json") == []   # not Japan: no fetch
+
+
+def test_open_structure_towers():
+    from coupledcarla.realworld import open_structure
+    tv = {"building": "yes", "man_made": "tower", "tower:construction": "lattice", "tower:type": "communication",
+          "height": "156"}
+    assert open_structure(tv)
+    assert open_structure({"man_made": "mast"})
+    assert not open_structure({"man_made": "tower", "tower:type": "communication", "tower:construction": "concrete"})
+    assert not open_structure({"man_made": "tower", "tower:type": "bell_tower"})
+    assert not open_structure({"building": "apartments", "height": "52"})
+
+
+def test_buildings_without_open_towers(tmp_path):
+    import json
+    from coupledcarla import scenery
+    ring = [[31.2889578, 51.4949635], [31.2886834, 51.4948328], [31.2888755, 51.4946845], [31.2891444, 51.4948193],
+            [31.2889578, 51.4949635]]
+    other = [[31.30, 51.49], [31.3003, 51.49], [31.3003, 51.4902], [31.30, 51.4902], [31.30, 51.49]]
+    (tmp_path / "osm_towers.json").write_text(json.dumps({"elements": [
+        {"type": "way", "center": {"lat": 51.49482, "lon": 31.28891},
+         "tags": {"man_made": "tower", "tower:construction": "lattice", "tower:type": "communication"}}]}))
+    recs = [{"ring": ring, "h": 156.0}, {"ring": other, "h": 12.0}]
+    keep = scenery._without_open_towers(recs, (51.48, 31.27, 51.50, 31.31), tmp_path, log=lambda m: None)
+    assert [r["h"] for r in keep] == [12.0]

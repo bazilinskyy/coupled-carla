@@ -241,6 +241,32 @@ def osm_buildings(bbox, path):
     return data
 
 
+OPEN_TOWER_BUILT = {"lattice", "guyed_mast", "guyed_lattice", "dish", "dome", "freestanding_lattice"}
+
+
+def open_structure(tags):
+    """Whether OSM tags describe a lattice tower or mast (a TV or radio tower): drawn as a building it would be a
+    solid block the tower's height (Chernihiv's 156 m lattice TV tower is tagged building=yes as well)."""
+    mm, built = tags.get("man_made"), tags.get("tower:construction")
+    if mm in ("mast", "communications_tower"):
+        return True
+    if mm == "tower" and (built in OPEN_TOWER_BUILT or tags.get("tower:type") in ("communication", "transmission")):
+        return built not in ("concrete", "masonry", "brick", "stone")
+    return False
+
+
+def osm_towers(bbox, path):
+    """Towers and masts in the box (Overpass JSON, centres and tags), to keep open structures out of the buildings."""
+    if path.exists():
+        return json.loads(path.read_text())
+    s, w, n, e = bbox
+    data = overpass_json(f'[out:json][timeout:90];nwr["man_made"~"^(tower|mast|communications_tower)$"]'
+                         f'({s},{w},{n},{e});out center tags;')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, separators=(",", ":")))
+    return data
+
+
 # --- buildings: Overture and 3DBAG ---------------------------------------------------------------------------
 
 def overture_buildings(bbox, path, release=OVERTURE_RELEASE):
