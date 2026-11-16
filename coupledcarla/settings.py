@@ -14,6 +14,7 @@ secret (API keys; never printed, logged, committed or sent anywhere but to their
   freesound_api_key       Freesound recordings (engines, horns, rain, city ambience)
   opentopography_api_key  OpenTopography elevation (Copernicus 30 m, national lidar) outside the countries we cover
   tomtom_api_key          TomTom traffic speeds where no open counts exist
+  anthropic_api_key       Claude (vision) critiques of street-photo spots (realism_check.py critique; optional)
 A key is looked up in its environment variable first (GOOGLE_MAPS_API_KEY, MAPILLARY_TOKEN, ...), then in `secret`,
 then in the older per-user file ~/.config/coupled-carla/<name> where there was one.
 
@@ -29,14 +30,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ENV = {"google_maps_api_key": "GOOGLE_MAPS_API_KEY", "mapillary_token": "MAPILLARY_TOKEN",
        "sketchfab_api_token": "SKETCHFAB_API_TOKEN", "freesound_api_key": "FREESOUND_API_KEY",
-       "opentopography_api_key": "OPENTOPOGRAPHY_API_KEY", "tomtom_api_key": "TOMTOM_API_KEY"}
+       "opentopography_api_key": "OPENTOPOGRAPHY_API_KEY", "tomtom_api_key": "TOMTOM_API_KEY",
+       "anthropic_api_key": "COUPLED_CARLA_ANTHROPIC_API_KEY"}   # not ANTHROPIC_API_KEY: never an ambient key
 LEGACY = {"google_maps_api_key": "google_maps_key", "mapillary_token": "mapillary_token"}
 HOW = {"google_maps_api_key": "console.cloud.google.com: a project with billing, the Map Tiles API, an API key",
        "mapillary_token": "mapillary.com/dashboard/developers: register an app, its client token",
        "sketchfab_api_token": "sketchfab.com: Settings, Password & API, API token",
        "freesound_api_key": "freesound.org/apiv2/apply",
        "opentopography_api_key": "portal.opentopography.org: MyOpenTopo, Request API key",
-       "tomtom_api_key": "developer.tomtom.com: the dashboard's key"}
+       "tomtom_api_key": "developer.tomtom.com: the dashboard's key",
+       "anthropic_api_key": "platform.claude.com: Settings, API keys"}
 _MISSING = object()
 
 

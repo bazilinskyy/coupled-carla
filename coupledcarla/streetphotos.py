@@ -31,6 +31,8 @@ TOKEN_HELP = ("Mapillary needs a client token: log in at mapillary.com, open Das
 TILE_Z = 14
 TILES = "https://tiles.mapillary.com/maps/vtp/{layer}/2/{z}/{x}/{y}"
 GRAPH = "https://graph.mapillary.com"
+SEARCH_FIELDS = ("id,captured_at,compass_angle,computed_compass_angle,computed_geometry,camera_type,"
+                 "camera_parameters,width,height,make,model,creator,sequence,thumb_2048_url")
 IMAGE_FIELDS = ("id,captured_at,compass_angle,computed_compass_angle,geometry,computed_geometry,camera_type,"
                 "camera_parameters,width,height,make,model,creator,sequence,thumb_2048_url,is_pano")
 
@@ -56,13 +58,14 @@ class Http:
         self.session = session
         self.n = 0
 
-    def get(self, url, params=None, headers=None, what=None):
+    def get(self, url, params=None, headers=None, what=None, tries=None):
         import requests
         from .realworld import UA
         host = urlsplit(url).hostname or ""
         what = what or host
         s = self.session or requests
-        for k in range(self.tries):
+        tries = tries or self.tries
+        for k in range(tries):
             wait = self.interval.get(host, 0.2) - (time.time() - self.last.get(host, 0.0))
             if wait > 0:
                 self.sleep(wait)
@@ -76,7 +79,7 @@ class Http:
                 if r.status_code == 200:
                     return r
                 code, retry = f"HTTP {r.status_code}", r.status_code == 429 or r.status_code >= 500
-            if not retry or k == self.tries - 1:
+            if not retry or k == tries - 1:
                 raise FetchError(f"{what}: {code}")
             self.sleep(min(60.0, 2.0 * 3 ** k))
         raise FetchError(f"{what}: no answer")
@@ -277,6 +280,7 @@ class Mapillary:
         self.cache = Cache(cache_dir)
         self.http = http or Http()
         self.log = log
+        self.last_stats = None
 
     def tile(self, layer, z, x, y):
         name = f"mapillary/tiles/{layer}/{z}/{x}/{y}.pbf"
@@ -322,42 +326,76 @@ class Mapillary:
                 out[str(i)] = rec
         return out
 
-    def url_for(self, image_id):
-        """A fresh 2048 px thumbnail URL (the stored ones are signed and expire)."""
-        res = self.http.get(f"{GRAPH}/{image_id}", {"fields": "thumb_2048_url"},
-                            {"Authorization": f"OAuth {self.token}"}, what="Mapillary image").json()
-        return res.get("thumb_2048_url")
+    def search(self, bbox, fields=SEARCH_FIELDS, depth=0, max_age_days=30):
+        """The graph API's image search over bbox [s, w, n, e], cached per box. A box it finds too dense (HTTP 500,
+        "reduce the amount of data") or that fills the 2,000-image page is split in four."""
+        s_, w, n, e = bbox
+        name = f"mapillary/search/{key(round(s_, 6), round(w, 6), round(n, 6), round(e, 6), fields)}.json"
+        if self.cache.fresh(name, max_age_days):
+            return json.loads(self.cache.path(name).read_bytes())
 
-    def images(self, bbox, spacing_m=8.0, max_images=3000):
-        """Image records (realism.py's record format) in bbox: the tile points thinned to one per spacing_m per
-        sequence (a sequence shot every metre does not cost a graph call per image), then their details."""
-        pts = self.points("mly1_public", bbox)
-        pts = [p for p in pts if p.get("layer") == "image"]
-        kept, last = [], {}
-        for p in sorted(pts, key=lambda p: (str(p.get("sequence_id")), p.get("captured_at") or 0)):
-            seq = str(p.get("sequence_id"))
-            q = last.get(seq)
-            if q is not None and _metres(q["lat"], q["lon"], p["lat"], p["lon"]) < spacing_m:
-                continue
-            last[seq] = p
-            kept.append(p)
-        if len(kept) > max_images:      # the most recent first, spread over the box
-            kept.sort(key=lambda p: -(p.get("captured_at") or 0))
-            kept = kept[:max_images]
-        self.log(f"mapillary: {len(pts)} images in the box, {len(kept)} after thinning to one per {spacing_m:.0f} m "
-                 f"of a sequence")
+        def split():
+            ms, mw = (s_ + n) / 2, (w + e) / 2
+            out = []
+            for b in ([s_, w, ms, mw], [s_, mw, ms, e], [ms, w, n, mw], [ms, mw, n, e]):
+                out += self.search(b, fields, depth + 1, max_age_days)
+            return out
         try:
-            det = self.details([p["id"] for p in kept])
+            data = self.http.get(f"{GRAPH}/images", {"bbox": f"{w:.6f},{s_:.6f},{e:.6f},{n:.6f}", "fields": fields,
+                                                     "limit": 2000}, {"Authorization": f"OAuth {self.token}"},
+                                 what="Mapillary image search", tries=1 if depth < 6 else None).json().get("data", [])
         except FetchError as err:
-            det = {}
-            self.log(f"mapillary: image details refused ({err})")
-        if kept and not det:      # raised, so that realism.fetch does not cache an empty list
-            raise FetchError(f"the graph API gave no details for any of {len(kept)} images (it answers 'does not "
-                             f"exist, cannot be loaded due to missing permissions' when the token's application "
-                             f"lacks read access): no Mapillary photos to compare; the tiles (coverage, map "
-                             f"features) still work")
-        recs = [mapillary_record(det[str(p["id"])]) for p in kept if str(p["id"]) in det]
-        return [r for r in recs if r]
+            if "HTTP 500" in str(err) and depth < 6:
+                return split()
+            raise
+        if len(data) >= 2000 and depth < 6:
+            return split()
+        self.cache.get(name, lambda: json.dumps(data).encode())
+        return data
+
+    def url_for(self, image_id, lat=None, lon=None):
+        """A fresh 2048 px thumbnail URL (the stored ones are signed and expire). The graph API gives image URLs only
+        in its search, so the image is searched for in a 60 m box around where it was taken."""
+        if lat is None or lon is None:
+            return None
+        d = 0.0003
+        res = self.http.get(f"{GRAPH}/images", {"bbox": f"{lon - d:.6f},{lat - d:.6f},{lon + d:.6f},{lat + d:.6f}",
+                                                "fields": "id,thumb_2048_url", "limit": 2000},
+                            {"Authorization": f"OAuth {self.token}"}, what="Mapillary image search").json()
+        return next((x.get("thumb_2048_url") for x in res.get("data", []) if str(x.get("id")) == str(image_id)), None)
+
+    def images(self, bbox, spacing_m=8.0, tile_deg=0.002):
+        """Image records (realism.py's record format) in bbox from the graph API's search over tiles of tile_deg,
+        thinned to one per spacing_m along each sequence. Images whose files Mapillary withholds (no thumbnail URL:
+        all of Ukraine in 2026) and images without a heading are left out and counted."""
+        s, w, n, e = bbox
+        raw = {}
+        ny, nx = max(1, math.ceil((n - s) / tile_deg - 1e-6)), max(1, math.ceil((e - w) / tile_deg - 1e-6))
+        for i in range(ny):
+            for j in range(nx):
+                b = [s + (n - s) * i / ny, w + (e - w) * j / nx, s + (n - s) * (i + 1) / ny, w + (e - w) * (j + 1) / nx]
+                for x in self.search(b):
+                    raw[str(x["id"])] = x
+        withheld = sum(1 for x in raw.values() if not x.get("thumb_2048_url"))
+        recs = [mapillary_record(x) for x in raw.values() if x.get("thumb_2048_url")]
+        no_head = sum(1 for r in recs if r is None)
+        recs = [r for r in recs if r and s <= r["lat"] <= n and w <= r["lon"] <= e]
+        kept, last = [], {}
+        for r in sorted(recs, key=lambda r: (r["sequence"], r["time"] or "")):
+            q = last.get(r["sequence"])
+            if q is not None and _metres(q["lat"], q["lon"], r["lat"], r["lon"]) < spacing_m:
+                continue
+            last[r["sequence"]] = r
+            kept.append(r)
+        self.last_stats = {"found": len(raw), "withheld": withheld, "fisheye_or_no_heading": no_head,
+                           "kept": len(kept), "spacing_m": spacing_m}
+        self.log(f"mapillary: {len(raw)} images in the box; {withheld} without an image file (withheld by "
+                 f"Mapillary), {no_head} fisheye or without a heading; {len(kept)} kept (one per {spacing_m:.0f} m "
+                 f"of a sequence)")
+        if raw and withheld == len(raw):     # raised, so that realism.fetch does not cache an empty list
+            raise FetchError(f"Mapillary serves no image file for any of the {len(raw)} photos in the box (it "
+                             f"withholds all of Ukraine's imagery); the tiles (coverage, map features) still work")
+        return kept
 
     def camera_points(self, bbox):
         """(lat, lon, day) of every image in the box (from the tiles; no graph calls): where photos were taken."""
@@ -400,9 +438,8 @@ def mapillary_record(x):
     ctype = x.get("camera_type") or ("spherical" if x.get("is_pano") else "perspective")
     if ctype not in ("perspective", "spherical", "equirectangular"):
         return None        # fisheye (action cams on helmets and handlebars): no pinhole model
-    head = x.get("computed_compass_angle")
-    if head is None:
-        head = x.get("compass_angle")
+    # exactly 0 means not computed / not recorded (GoPro Fusion panoramas in Chernihiv): no heading
+    head = x.get("computed_compass_angle") or x.get("compass_angle") or None
     geom = x.get("computed_geometry") or x.get("geometry")
     if head is None or not geom:
         return None
@@ -586,10 +623,23 @@ def spot_score(m):
     return float(np.mean(vals)) if vals else float("nan")
 
 
+WALL_SHARE = 0.8      # a render whose middle is this much building (CARLA's labels) stands in or against a wall
+CARLA_BUILDING = (3, 4)
+
+
+def wall_share(carla_labels):
+    """Share of the middle half of a render (CARLA semantic tags) that is building or wall."""
+    h, w = carla_labels.shape[:2]
+    mid = carla_labels[h // 4:3 * h // 4, w // 4:3 * w // 4]
+    return float(np.isin(mid, CARLA_BUILDING).mean())
+
+
 def map_score(rows):
-    """Per-map summary: the median spot score x 100 and how many spots have each kind of difference."""
+    """Per-map summary: the median spot score x 100 over the spots whose camera is not in or against a building
+    (pose_suspect: the photo's position is off), and how many spots have each kind of difference."""
     scores = [r["spot_score"] for r in rows
-              if isinstance(r.get("spot_score"), float) and not math.isnan(r["spot_score"])]
+              if isinstance(r.get("spot_score"), float) and not math.isnan(r["spot_score"])
+              and not r.get("pose_suspect")]
     kinds = {}
     for r in rows:
         for t in (r.get("differences") or "").split("; "):
@@ -600,6 +650,7 @@ def map_score(rows):
                     k = "skyline too low" if " too low" in k else "skyline too high"
                 kinds[k] = kinds.get(k, 0) + 1
     return {"score": round(100 * float(np.median(scores)), 1) if scores else None, "spots": len(scores),
+            "pose_suspect": sum(1 for r in rows if r.get("pose_suspect")),
             "differences": dict(sorted(kinds.items(), key=lambda kv: -kv[1]))}
 
 
@@ -1136,3 +1187,247 @@ def validate_corrections(truth, evidence, obs, cls="lamp", shift_m=5.0, drop=0.3
             "before": before, "after_moves": moved_only, "after": after,
             "moves": len(moves), "moves_closer": better, "removes": len(rem), "removes_of_made_up": rem_fake,
             "adds": len(added), "adds_at_a_register_object": add_real}
+
+
+# ---------------------------------------------------------------- vision-model critique (optional, off by default)
+
+CRITIQUE_CATEGORIES = ["materials", "objects", "buildings", "greenery", "wear", "lighting", "sky", "layout", "other"]
+CRITIQUE_WHERE = ["left", "middle", "right", "foreground", "background", "whole"]
+CRITIQUE_PROMPT = (
+    "The first image is a real street photo. The second is a render of a simulated city from the same place, "
+    "height and direction (the renderer's heading may be a few degrees off). What would a person notice that "
+    "makes the render look different from this real street, or less real? Think about the ground surfaces and "
+    "their materials, the street furniture and other objects, the building facades, the plants, dirt and wear, "
+    "the light and the sky. Describe only what you can actually see in these two images, in your own words: name "
+    "an object as missing only if you can see it in the photo, and never list things you cannot see. Ignore "
+    "people and moving vehicles, and do not describe what is the same. Give at most 8 differences, the most "
+    "noticeable first, each with: category (one of " + ", ".join(CRITIQUE_CATEGORIES) + "), what (a short "
+    "phrase about this render), where in the image (one of " + ", ".join(CRITIQUE_WHERE) + "), and severity "
+    "(1 = small, 2 = clear, 3 = it gives the render away). Answer with JSON only: {\"differences\": "
+    "[{\"category\": ..., \"what\": ..., \"where\": ..., \"severity\": ...}]}")
+CRITIQUE_SCHEMA = {
+    "type": "object", "additionalProperties": False, "required": ["differences"],
+    "properties": {"differences": {"type": "array", "items": {
+        "type": "object", "additionalProperties": False, "required": ["category", "what", "where", "severity"],
+        "properties": {"category": {"type": "string", "enum": CRITIQUE_CATEGORIES}, "what": {"type": "string"},
+                       "where": {"type": "string", "enum": CRITIQUE_WHERE},
+                       "severity": {"type": "integer", "enum": [1, 2, 3]}}}}}}
+
+
+def echoes_prompt(what, n=6):
+    """True when `what` is copied from the prompt rather than seen: six or more words in a row from the prompt, the
+    first prompt's example sentence, or five or more of the objects it listed (a 7B model copied both)."""
+    import re
+    words = re.findall(r"[a-z]+", what.lower())
+    grams = {tuple(words[i:i + n]) for i in range(len(words) - n + 1)}
+    pw = re.findall(r"[a-z]+", CRITIQUE_PROMPT.lower())
+    if grams & {tuple(pw[i:i + n]) for i in range(len(pw) - n + 1)}:
+        return True
+    text = " ".join(words)
+    return OLD_EXAMPLE in text or sum(o in words for o in OLD_OBJECTS) >= 5
+
+
+# the first prompt (2026-11-16) had an example and a list of objects that the 7B model copied into its answers
+OLD_EXAMPLE = "road is smooth grey asphalt where the photo has red brick pavers"
+OLD_OBJECTS = ("bicycles", "bollards", "signs", "lamps", "bins", "benches", "cars", "fences")
+
+
+def parse_critique(text):
+    """A model's answer -> [{'category', 'what', 'where', 'severity'}] (tolerant: the first JSON object, or list of
+    differences, in the text, also inside a code fence; unknown categories as 'other', severities clipped to 1-3, at
+    most 8)."""
+    if not text:
+        return []
+    data = None
+    starts = [k for k, c in enumerate(text) if c in "{["]
+    for start in starts:
+        depth = 0
+        for k in range(start, len(text)):
+            depth += {"{": 1, "[": 1, "}": -1, "]": -1}.get(text[k], 0)
+            if depth == 0:
+                try:
+                    data = json.loads(text[start:k + 1])
+                except ValueError:
+                    pass
+                break
+        if data is not None:
+            break
+    if isinstance(data, list):
+        data = {"differences": data}
+    if not isinstance(data, dict) or not data.get("differences"):     # cut off mid-list: its complete items
+        items, k = [], 0
+        while True:
+            k = text.find("{", k)
+            if k < 0:
+                break
+            depth, end = 0, None
+            for j in range(k, len(text)):
+                depth += {"{": 1, "}": -1}.get(text[j], 0)
+                if depth == 0:
+                    end = j
+                    break
+            if end is None:
+                break
+            try:
+                obj = json.loads(text[k:end + 1])
+            except ValueError:
+                obj = None
+            if isinstance(obj, dict) and "what" in obj:
+                items.append(obj)
+                k = end + 1
+            else:
+                k += 1
+        data = {"differences": items}
+    items = (data or {}).get("differences") if isinstance(data, dict) else None
+    out = []
+    for it in items or []:
+        if not isinstance(it, dict) or not str(it.get("what") or "").strip():
+            continue
+        cat = str(it.get("category") or "other").lower().strip()
+        where = str(it.get("where") or "whole").lower().strip()
+        try:
+            sev = int(it.get("severity") or 1)
+        except (TypeError, ValueError):
+            sev = 1
+        if echoes_prompt(str(it["what"])):
+            continue          # a phrase copied from the prompt: not an observation
+        out.append({"category": cat if cat in CRITIQUE_CATEGORIES else "other",
+                    "what": " ".join(str(it["what"]).split())[:200],
+                    "where": where if where in CRITIQUE_WHERE else "whole", "severity": min(3, max(1, sev))})
+    return out[:8]
+
+
+_STOP = {"the", "a", "an", "is", "are", "and", "or", "of", "in", "on", "at", "to", "where", "photo", "render", "has",
+         "have", "with", "than", "no", "not", "while", "but", "too", "more", "less", "there", "its", "it", "real",
+         "rendered", "image", "which", "that", "this", "instead", "missing", "lacks", "shows", "show", "much",
+         "visible", "present", "appears", "appear", "seen", "seem", "seems", "look", "looks", "compared", "absent",
+         "lack", "lacking", "none", "any", "are", "also", "very", "some", "other", "like", "less", "fewer"}
+
+
+def _words(text):
+    import re
+    return [w for w in re.findall(r"[a-z]+", text.lower()) if w not in _STOP and len(w) > 2]
+
+
+def aggregate_critiques(spots, top=15):
+    """Per map: what makes the render look fake, ranked. spots: [(spot id, [differences])]. A theme is a category
+    and the words its differences share; its weight is the summed severity over the spots that name it (a spot
+    counts once per theme). Returns [{'category', 'theme', 'spots', 'weight', 'examples'}]."""
+    from collections import Counter, defaultdict
+    by_cat = defaultdict(list)
+    for sid, diffs in spots:
+        for d in diffs:
+            by_cat[d["category"]].append((sid, d))
+    themes = []
+    for cat, items in by_cat.items():
+        counts = Counter(w for _, d in items for w in set(_words(d["what"])))
+        for word, _ in counts.most_common(6):
+            hits = [(sid, d) for sid, d in items if word in _words(d["what"])]
+            spots_hit = {}
+            for sid, d in hits:
+                spots_hit[sid] = max(spots_hit.get(sid, 0), d["severity"])
+            if len(spots_hit) < 2:
+                continue
+            themes.append({"category": cat, "theme": word, "spots": len(spots_hit),
+                           "weight": sum(spots_hit.values()),
+                           "examples": [d["what"] for _, d in sorted(hits, key=lambda h: -h[1]["severity"])[:3]]})
+    themes.sort(key=lambda t: -t["weight"])
+    out, seen = [], set()
+    for t in themes:          # one theme per set of examples: 'red' and 'brick' about the same pavers count once
+        k = (t["category"], tuple(t["examples"][:2]))
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(t)
+    cats = Counter()
+    for _, diffs in spots:
+        for d in diffs:
+            cats[d["category"]] += d["severity"]
+    return {"themes": out[:top], "categories": dict(cats.most_common()), "spots": len(spots)}
+
+
+def _jpeg_b64(rgb, width=768):
+    import base64
+    import io
+    from PIL import Image
+    im = Image.fromarray(rgb)
+    if im.width > width:
+        im = im.resize((width, int(round(im.height * width / im.width))), Image.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=88)
+    return base64.standard_b64encode(buf.getvalue()).decode("ascii")
+
+
+class ClaudeCritic:
+    """Claude (Anthropic API, the `anthropic` package) with the key anthropic_api_key from the project's secret.
+    Structured output (the JSON schema above); refusals fall back server-side to the default model."""
+
+    name = "claude"
+
+    def __init__(self, model="claude-opus-5-5", effort="medium", key=None):
+        import anthropic
+        from .settings import get_secret
+        key = key or get_secret("anthropic_api_key")[0]
+        if not key:
+            raise FetchError("no anthropic_api_key in the project's secret file (python -m coupledcarla.settings "
+                             "--set anthropic_api_key)")
+        self.client = anthropic.Anthropic(api_key=key)
+        self.model, self.effort = model, effort
+
+    def __call__(self, photo, render):
+        msg = self.client.beta.messages.create(
+            model=self.model, max_tokens=16000, betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+            output_config={"effort": self.effort, "format": {"type": "json_schema", "schema": CRITIQUE_SCHEMA}},
+            messages=[{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": _jpeg_b64(photo)}},
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": _jpeg_b64(render)}},
+                {"type": "text", "text": CRITIQUE_PROMPT}]}])
+        if msg.stop_reason == "refusal":
+            return [], "refused"
+        text = next((b.text for b in msg.content if b.type == "text"), "")
+        return parse_critique(text), text
+
+
+class LocalCritic:
+    """An open vision-language model run locally with transformers (default Qwen2.5-VL-7B-Instruct, Apache 2.0,
+    4-bit with bitsandbytes on a 16 GB GPU shared with others; 'none' quantisation needs about 17 GB)."""
+
+    name = "local"
+
+    def __init__(self, model="Qwen/Qwen2.5-VL-7B-Instruct", quant="4bit", device=None, max_new_tokens=1100):
+        import torch
+        from transformers import AutoModelForImageTextToText, AutoProcessor
+        kw = {"dtype": torch.bfloat16}
+        if quant in ("4bit", "8bit"):
+            from transformers import BitsAndBytesConfig
+            kw["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=quant == "4bit", load_in_8bit=quant == "8bit", bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16)
+            kw["device_map"] = device or "cuda:0"
+        self.model = AutoModelForImageTextToText.from_pretrained(model, **kw).eval()
+        if quant not in ("4bit", "8bit"):
+            self.model.to(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        # about 600 x 450 px per image: enough for materials and objects, little memory
+        self.proc = AutoProcessor.from_pretrained(model, min_pixels=256 * 28 * 28, max_pixels=360 * 28 * 28)
+        self.torch, self.max_new_tokens, self.model_id = torch, max_new_tokens, model
+
+    def __call__(self, photo, render):
+        from PIL import Image
+        msgs = [{"role": "user", "content": [{"type": "image"}, {"type": "image"},
+                                             {"type": "text", "text": CRITIQUE_PROMPT}]}]
+        prompt = self.proc.apply_chat_template(msgs, add_generation_prompt=True)
+        inp = self.proc(text=[prompt], images=[Image.fromarray(photo), Image.fromarray(render)],
+                        return_tensors="pt").to(self.model.device)
+        with self.torch.no_grad():
+            out = self.model.generate(**inp, max_new_tokens=self.max_new_tokens, do_sample=False)
+        text = self.proc.batch_decode(out[:, inp["input_ids"].shape[1]:], skip_special_tokens=True)[0]
+        return parse_critique(text), text
+
+
+def make_critic(backend="auto", model=None, **kw):
+    """'claude' (needs anthropic_api_key), 'local' (an open model on this machine's GPU) or 'auto' (Claude when the
+    key is set, else the local model)."""
+    from .settings import get_secret
+    if backend == "claude" or (backend == "auto" and get_secret("anthropic_api_key")[0]):
+        return ClaudeCritic(**({"model": model} if model else {}), **kw)
+    return LocalCritic(**({"model": model} if model else {}), **kw)

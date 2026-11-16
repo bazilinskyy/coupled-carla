@@ -206,8 +206,11 @@ def test_spot_and_map_scores():
              "differences": "missing building on the right (photo 40%, render 0%); skyline 6 deg too "
                             "low: buildings or trees lower than in the photo, or missing"},
             {"spot_score": float("nan"), "differences": ""}]
-    m = SP.map_score(rows)
-    assert m["score"] == 50.0 and m["spots"] == 2
+    m = SP.map_score(rows + [{"spot_score": 0.05, "pose_suspect": 1, "differences": ""}])
+    assert m["score"] == 50.0 and m["spots"] == 2 and m["pose_suspect"] == 1
+    lab = np.zeros((40, 40), np.uint8)
+    lab[5:35, 5:35] = 3
+    assert SP.wall_share(lab) == 1.0 and SP.wall_share(np.zeros((40, 40), np.uint8)) == 0.0
     assert m["differences"] == {"missing building": 2, "road too wide": 1, "skyline too low": 1}
 
 
@@ -351,3 +354,103 @@ def test_photo_cache_folder_of_a_run(tmp_path):
     legacy = tmp_path / "old"
     (legacy / "panos").mkdir(parents=True)
     assert RC.set_photos_dir(legacy, mdir) == legacy and RC.photos_dir(legacy) == legacy
+
+
+def test_mapillary_search_splits_dense_boxes_and_counts_withheld_images(tmp_path):
+    class Resp:
+        def __init__(self, data):
+            self.data = data
+
+        def json(self):
+            return {"data": self.data}
+
+    calls = []
+
+    class FakeHttp:
+        def get(self, url, params=None, headers=None, what=None, tries=None):
+            w, s, e, n = (float(v) for v in params["bbox"].split(","))
+            calls.append((s, w, n, e))
+            if n - s > 0.0011:                                   # the whole box: too dense
+                raise SP.FetchError("Mapillary image search: HTTP 500")
+            lat, lon = (s + n) / 2, (w + e) / 2
+            img = {"id": f"{lat:.5f}{lon:.5f}", "camera_type": "perspective", "camera_parameters": [0.8],
+                   "width": 2048, "height": 1536, "computed_compass_angle": 90.0, "sequence": f"q{lat:.5f}",
+                   "computed_geometry": {"coordinates": [lon, lat]}, "captured_at": 1700000000000,
+                   "thumb_2048_url": "https://x/1.jpg"}
+            hidden = dict(img, id=img["id"] + "h", thumb_2048_url=None)
+            return Resp([img, hidden])
+    m = SP.Mapillary(tmp_path, token="MLY|t", http=FakeHttp(), log=lambda s: None)
+    recs = m.images([51.0, 5.0, 51.002, 5.002], tile_deg=0.002)
+    assert len(calls) == 5                                       # the box, then its four quarters
+    assert len(recs) == 4 and all(r["source"] == "mapillary" for r in recs)
+    calls.clear()
+    assert len(m.images([51.0, 5.0, 51.002, 5.002], tile_deg=0.002)) == 4
+    assert calls == [(51.0, 5.0, 51.002, 5.002)]                 # the quarters come from the cache
+
+
+def test_mapillary_withheld_box_raises_so_nothing_empty_is_cached(tmp_path):
+    class FakeHttp:
+        def get(self, url, params=None, headers=None, what=None, tries=None):
+            class R:
+                def json(self):
+                    return {"data": [{"id": "1", "camera_type": "spherical", "computed_compass_angle": 10.0,
+                                      "computed_geometry": {"coordinates": [31.29, 51.49]}}]}
+            return R()
+    m = SP.Mapillary(tmp_path, token="MLY|t", http=FakeHttp(), log=lambda s: None)
+    with pytest.raises(SP.FetchError, match="withholds"):
+        m.images([51.48, 31.28, 51.50, 31.30], tile_deg=0.05)
+
+
+def test_mapillary_heading_zero_and_zero_is_unknown():
+    x = {"id": "1", "camera_type": "spherical", "compass_angle": 0, "computed_compass_angle": 0,
+         "computed_geometry": {"coordinates": [5.0, 51.0]}}
+    assert SP.mapillary_record(x) is None
+    assert SP.mapillary_record(dict(x, compass_angle=12.0))["heading"] == 12.0
+
+
+def test_parse_critique_is_tolerant():
+    text = ('Here you go:\n```json\n{"differences": [{"category": "materials", "what": "road is smooth asphalt '
+            'where the photo has red brick", "where": "foreground", "severity": 3}, {"category": "Weather", '
+            '"what": "flat grey sky", "where": "up", "severity": 7}, {"category": "objects", "what": ""}]}\n```')
+    d = SP.parse_critique(text)
+    assert d[0] == {"category": "materials", "what": "road is smooth asphalt where the photo has red brick",
+                    "where": "foreground", "severity": 3}
+    assert d[1]["category"] == "other" and d[1]["where"] == "whole" and d[1]["severity"] == 3
+    assert len(d) == 2                                   # the empty one is dropped
+    copied = '[{"category": "objects", "what": "no bicycles, bollards, signs, lamps, bins, benches", "severity": 2}]'
+    assert SP.parse_critique(copied) == []               # copied from the (old) prompt, not seen
+    assert SP.parse_critique("no json here") == [] and SP.parse_critique("{bad} {\"differences\": []}") == []
+    bare = '```json\n[{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}]\n```'
+    assert SP.parse_critique(bare) == [{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}]
+    cut = '```json\n[{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}, {"categ'
+    assert SP.parse_critique(cut) == [{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}]
+
+
+def test_aggregate_critiques_ranks_themes_by_spots_and_severity():
+    brick = {"category": "materials", "where": "foreground", "severity": 3}
+    spots = [("a", [dict(brick, what="smooth asphalt where the photo has red brick pavers"),
+                    {"category": "objects", "what": "no parked bicycles", "where": "left", "severity": 2}]),
+             ("b", [dict(brick, what="grey asphalt instead of brick", severity=2),
+                    {"category": "objects", "what": "bicycles missing along the wall", "where": "right",
+                     "severity": 1}]),
+             ("c", [{"category": "greenery", "what": "trees too small", "where": "right", "severity": 2}])]
+    agg = SP.aggregate_critiques(spots)
+    top = agg["themes"][0]
+    assert top["category"] == "materials" and top["spots"] == 2 and top["weight"] == 5
+    assert any(t["category"] == "objects" and t["theme"].startswith("bicycle") for t in agg["themes"])
+    assert not any(t["category"] == "greenery" for t in agg["themes"])          # one spot is not a theme
+    assert agg["categories"]["materials"] == 5 and agg["spots"] == 3
+
+
+def test_critique_is_skipped_without_a_key(tmp_path, monkeypatch, capsys):
+    import realism_check as RC
+    from coupledcarla import settings
+    monkeypatch.setattr(settings, "get_secret", lambda name, *a, **k: (None, None))
+    (tmp_path / "spots").mkdir()
+    (tmp_path / "views.csv").write_text(",".join(R.VIEW_FIELDS) + "\n")
+    (tmp_path / "compare.csv").write_text("id,spot_score\n")
+    args = type("A", (), {"out": str(tmp_path), "backend": "claude", "max_spots": 5, "again": False, "vlm": None,
+                          "quant": "4bit", "effort": "medium"})()
+    RC.cmd_critique(args)
+    assert "critique skipped" in capsys.readouterr().out
+    assert not (tmp_path / "critique_summary.json").exists()

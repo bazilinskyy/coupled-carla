@@ -53,13 +53,19 @@ take it in the URL, so the HTTP client's error messages never include the URL.
 
 - *Map features*, from the tiles: positions and classes of lamps, signs, poles and furniture. This works with the
   current token, on every map.
-- *Photos and panoramas*, which need the graph API (`graph.mapillary.com/<image id>`) for the camera, the heading
-  corrected by structure from motion, and the image URL. With the token set on 2026-11-16, the tiles answer but
-  the graph API refuses every image and map feature ("does not exist, cannot be loaded due to missing permissions")
-  and its bbox search returns empty lists. The application probably lacks read access. Until that is fixed, the
-  tool counts Mapillary's photos but cannot compare them. This matters most for Chernihiv, where Mapillary has
-  4,868 panoramas from 2022 and the open sources have none. `realism_check.py sources` tells whether the graph
-  answers.
+- *Photos and panoramas*, from the graph API, with a client token whose application has read access (the
+  first token of 2026-11-16 had none; the second, 19:37, works). Its image search (`graph.mapillary.com/images`)
+  gives the camera, the heading corrected by structure from motion and a signed thumbnail URL (2048 px). Looking an
+  image up by its id gives everything but the URL, so a fresh URL is found by searching a 60 m box around the
+  image. Dense boxes answer HTTP 500 ("reduce the amount of data"), so the box is searched in 0.002° tiles and a
+  tile that still fails, or fills the 2,000-image page, is split in four. Searches are cached for 30 days.
+- Images are left out, and counted, when:
+  - Mapillary serves no image file for them. That is every image in Ukraine in 2026, so Chernihiv has no
+    Mapillary photos either: the search finds 11,269 in its box (the tiles 11,993), all withheld.
+  - They come from a fisheye camera.
+  - Both headings are exactly 0. That means none was recorded, as for the GoPro Fusion panoramas of Chernihiv.
+- Mapillary panoramas are taken at 2.2 m (car roofs) and its other photos at 1.4 m (dashcams, phones), like the
+  other sources' views.
 
 ## Running it
 
@@ -71,6 +77,7 @@ python tools/realism_check.py render   experiments/eindhoven_centre.yaml --out l
 python tools/realism_check.py pairs    experiments/eindhoven_centre.yaml --out logs/sp   # real-vs-real baseline
 python tools/realism_check.py compare  --out logs/sp                                     # metrics, sheets, spots
 python tools/realism_check.py objects  experiments/chernihiv.yaml --evidence mapillary   # street objects
+python tools/realism_check.py objects  experiments/eindhoven_centre.yaml --evidence mapillary_panos --validate lamp
 python tools/realism_check.py table    logs/sp_before logs/sp_after                     # runs side by side
 ```
 
@@ -145,6 +152,57 @@ The four largest are kept per spot, largest first. They describe the view, not t
 front of a building reads as "missing trees"; it can also come from the photo's position (the GPS is off by 2-5 m).
 Use them to find the spots worth a look, then look at the spot image.
 
+## Vision-model critique (optional)
+
+`realism_check.py critique --out <run>` shows a vision-language model each spot's photo and its aligned render. The
+model lists what a person would notice as JSON: category (materials, objects, buildings, greenery, wear, lighting,
+sky, layout, other), what, where in the image, and severity 1-3. Per run, the differences are grouped into themes
+(a category and a word several differences share, for example *materials: brick*) and ranked by the summed
+severity of the spots naming them: "what makes it look fake". It writes:
+
+- `critique/<id>.json`: one file per spot, with the model's raw answer.
+- `critique_summary.json`: the ranked themes.
+- `summary.json`'s `critique`: the top themes, next to the scores.
+
+It is off by default: only this command runs it. Two backends:
+
+- **Claude** (`--backend claude`, or `auto` when the key is set): it needs `anthropic_api_key` in the project's
+  `secret` file, or `$COUPLED_CARLA_ANTHROPIC_API_KEY`. The tool never uses an ambient `ANTHROPIC_API_KEY`. Model
+  `claude-opus-5-5` at effort `medium`, with the JSON schema enforced and server-side fallback on refusals. Without
+  the key the command is skipped with a note.
+- **A local open model** (`--backend local`, or `auto` without a key): Qwen2.5-VL-7B-Instruct (Apache 2.0, 16.6 GB
+  download), loaded in 4 bits with bitsandbytes so it needs about 6 GB of GPU memory. Run it under
+  `~/cc-carla.lock` on lin4080, so no CARLA server shares the GPU.
+
+`--max-spots` (default 40) spreads the critiqued spots from the worst score to the best. The spot images are
+real photos, so only the open sources' photos go to the model; Google Street View is never used (its terms
+forbid it).
+
+**First results with the local model** (2026-11-16, Qwen2.5-VL-7B in 4 bits on lin4080, 30 spots per run spread
+over the scores, about 9 s per spot). The top themes per run, by summed severity:
+
+| Run | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| `eindhoven_centre` 0.9.16 | trees (22 spots) | ground smoother and more uniform (12) | plants (13) | flat lighting, no shadows (12) | sky a solid colour, no clouds (13) |
+| EhvCentre twin | trees missing (29) | ground surface missing or smoother (17) | ground smoother, more uniform (16) | no clouds (14) | even, less dynamic lighting (13) |
+| Campus, Mapillary views | trees, "no leaves" (24) | grass uniform and bright green (23) | asphalt road surface (15) | road (11) | trees' leaves (13) |
+| `eindhoven_centre`, Mapillary views | trees (23) | sky a solid colour (14) | brick texture (10) | ground smoother (9) | ground uniform (9) |
+
+The model agrees with the layout scores (trees first everywhere). It adds what the layout cannot see: ground
+surfaces too smooth and uniform (no bricks, joints or wear), a cloudless solid-colour sky, flat light without
+shadows, and dirt and wear missing.
+
+It is a coarse critic, though:
+- Its items are short and generic ("trees", "plants").
+- Severity is 2 or 3 for 98 % of items.
+- It misses gross errors. On one campus spot the render stands on grass where the photo shows a four-lane road,
+  and the model wrote about the trees' branches.
+
+A first prompt that gave an example sentence and a list of objects was copied into its answers: the example
+appeared in 90 of 120 answers. The prompt now has neither, and `parse_critique` drops items copied from the
+prompt (none in the 120 new answers). Claude was not tried: no `anthropic_api_key` is set. Example spots with
+their critiques are in each run's `critique/`.
+
 ## Street objects
 
 `objects` compares the photos' evidence with what `scenery.json` places:
@@ -157,7 +215,8 @@ Two kinds of evidence:
 
 - **Mapillary map features** (token; `--evidence mapillary`), from the tiles. A feature is placed by Mapillary from
   many photos. Signs seen from the front and the back are merged within 1.5 m.
-- **Poles in Panoramax panoramas** (no key; `--evidence panoramax`). The Cityscapes model labels each panorama, and
+- **Poles in panoramas**: Panoramax's (no key; `--evidence panoramax`) or Mapillary's (`--evidence
+  mapillary_panos`, camera height 2.2 m). The Cityscapes model labels each panorama, and
   every pole whose foot is seen on the ground gets a direction and a distance (camera height 2.1 m over the angle
   of the foot below the horizon). It counts when two or more panoramas put it within 2.5 m. It is a lamp when it
   is taller than 5 m or leaves the image at the top, a sign when a sign touches it, else a pole.
@@ -209,16 +268,19 @@ lamps or signs.
 Results from 2026-11-16, made on lin4080 with `pairs` giving Eindhoven's real-vs-real scale. All figures are
 medians over the spots:
 
-- Map score: median spot score × 100.
+- Map score: median spot score × 100, leaving out the spots whose render stands in or against a building
+  (counted in "in a wall": the photo's position is off by a few metres).
 - Index: the realism index of the spot score (0 = a random real place, 1 = the same street).
 
-| Map | CARLA, renders | Views (sources) | Map score | Index | Coarse IoU | Boundary F | Skyline (°) | DINO global | DINO patch |
-|---|---|---|---|---|---|---|---|---|---|
-| `eindhoven_centre` | 0.9.16, lin4080 (renders of 2026-11-15, re-scored) | 350 (Panoramax 196, Commons 90, KartaView 64) | 35.7 | 0.27 | 0.420 | 0.333 | 4.0 | 0.124 | 0.316 |
-| EhvCentre twin (`eindhoven_twin`) | 1.0, win5090 package, `CoupledReal` (renders of 2026-11-16, re-scored) | the same 350 | 37.6 | 0.37 | 0.435 | 0.334 | 3.8 | 0.182 | 0.336 |
-| TU/e campus, south part (`eindhoven_centre --box`) | 0.9.16, lin4080 | 34 (Panoramax 28, KartaView 6) | 32.6 | 0.11 | 0.331 | 0.317 | 4.6 | 0.162 | 0.318 |
-| TUeCampus twin | 1.0 | not rendered: needs a win5090 GPU window (lin5080's GPU is the crowd workers') | | | | | | | |
-| `chernihiv` | 0.9.16, lin4080 | 17 (Commons only) | 24.4 | -0.32 | 0.282 | 0.148 | 8.0 | 0.017 | 0.251 |
+| Map | CARLA, renders | Views (sources) | In a wall | Map score | Index | Coarse IoU | Boundary F | Skyline (°) | DINO global | DINO patch |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `eindhoven_centre` | 0.9.16, lin4080 (renders of 2026-11-15, re-scored) | 350 (Panoramax 196, Commons 90, KartaView 64) | 23 | 36.2 | 0.27 | 0.420 | 0.333 | 4.0 | 0.124 | 0.316 |
+| `eindhoven_centre`, Mapillary views | 0.9.16, lin4080 | 250 (Mapillary: 154 photos, 96 panoramas) | 20 | 33.7 | 0.11 | 0.419 | 0.290 | 4.2 | 0.090 | 0.290 |
+| EhvCentre twin (`eindhoven_twin`) | 1.0, win5090 package, `CoupledReal` (renders of 2026-11-16, re-scored) | the same 350 as the first row | 11 | 38.2 | 0.37 | 0.435 | 0.334 | 3.8 | 0.182 | 0.336 |
+| TU/e campus, south part (`eindhoven_centre --box`) | 0.9.16, lin4080 | 250 (Mapillary 221, Panoramax 23, KartaView 6) | 0 | 32.4 | 0.10 | 0.366 | 0.300 | 2.7 | 0.124 | 0.302 |
+| the same, open sources only (first run) | 0.9.16, lin4080 | 34 (Panoramax 28, KartaView 6) | 0 | 32.6 | 0.11 | 0.331 | 0.317 | 4.6 | 0.162 | 0.318 |
+| TUeCampus twin | 1.0 | not rendered: needs a win5090 GPU window (lin5080's GPU is the crowd workers') | | | | | | | | |
+| `chernihiv` | 0.9.16, lin4080 | 17 (Commons only: Mapillary withholds Ukraine's images) | 0 | 24.4 | -0.32 | 0.282 | 0.148 | 8.0 | 0.017 | 0.251 |
 
 **Layout.** In the two Eindhoven maps, where things are (coarse IoU 0.42-0.44, index 0.44-0.51) and the skyline
 (index 0.9-1.0, as good as a second photo) are halfway or better between a random place and the same street.
@@ -232,9 +294,25 @@ so the renders read as "not a real street" before anything else.
 The campus sample is small. Its photos are 74 % vegetation against 50 % in the renders, and the renders have
 twice the road.
 
+**Mapillary views.** On the same 0.9.16 map they score lower than the open sources' views (33.7 against 36.2).
+Its photos come from many people and cameras (dashcams behind windscreens, phones, 2015-2026), and 2.5 % of each
+view is parked cars against 0.2 % in the renders. Their headings are better than Panoramax's: the alignment search
+moves them a median 9°, against 24° for the campus panoramas.
+
+On the campus, 250 views (221 from Mapillary) confirm the first small run: map score 32.4 against 32.6. They
+also give the main differences:
+
+- missing trees, named 249 times;
+- trees or greenery where the photo has none, 215 times: the campus trees stand in the wrong places;
+- road too wide, 112 times.
+
+A spot can name a difference more than once (on the left and in the middle), so these are counts of mentions,
+not of spots.
+
 **Chernihiv.** The figure rests on 17 Commons photos of landmarks taken from squares, which score lowest
-everywhere (Commons spot score 0.25 in Eindhoven too). It is a weak sample. Mapillary's 4,868 Chernihiv
-panoramas would replace it once the graph API answers.
+everywhere (Commons spot score 0.25 in Eindhoven too). It is a weak sample. Mapillary has 11,993 photos and 4,868
+panoramas there, but in 2026 it serves no image file for any of them: it withholds Ukraine's imagery. Better
+Chernihiv figures need another source.
 
 **By source** (Eindhoven centre, 0.9.16):
 
@@ -244,7 +322,7 @@ panoramas would replace it once the graph API answers.
 | KartaView | 64 | 0.38 |
 | Commons | 90 | 0.26 |
 
-**Most frequent differences** (spots naming each, of 350 for the Eindhoven maps):
+**Most frequent differences** (mentions over all spots; a spot can name one on the left and in the middle):
 
 | Difference | `eindhoven_centre` 0.9.16 | EhvCentre twin | Campus (34) | Chernihiv (17) |
 |---|---|---|---|---|
@@ -263,7 +341,58 @@ tiles as road: against CARLA's own labels of the same renders it reaches a coars
 where the photo has none" come in equal numbers, which is what 2-5 m photo position errors look like next to
 narrow streets.
 
-### Street objects
+### Vision-model critique (optional)
+
+`realism_check.py critique --out <run>` shows a vision-language model each spot's photo and its aligned render. The
+model lists what a person would notice as JSON: category (materials, objects, buildings, greenery, wear, lighting,
+sky, layout, other), what, where in the image, and severity 1-3. Per run, the differences are grouped into themes
+(a category and a word several differences share, for example *materials: brick*) and ranked by the summed
+severity of the spots naming them: "what makes it look fake". It writes:
+
+- `critique/<id>.json`: one file per spot, with the model's raw answer.
+- `critique_summary.json`: the ranked themes.
+- `summary.json`'s `critique`: the top themes, next to the scores.
+
+It is off by default: only this command runs it. Two backends:
+
+- **Claude** (`--backend claude`, or `auto` when the key is set): it needs `anthropic_api_key` in the project's
+  `secret` file, or `$COUPLED_CARLA_ANTHROPIC_API_KEY`. The tool never uses an ambient `ANTHROPIC_API_KEY`. Model
+  `claude-opus-5-5` at effort `medium`, with the JSON schema enforced and server-side fallback on refusals. Without
+  the key the command is skipped with a note.
+- **A local open model** (`--backend local`, or `auto` without a key): Qwen2.5-VL-7B-Instruct (Apache 2.0, 16.6 GB
+  download), loaded in 4 bits with bitsandbytes so it needs about 6 GB of GPU memory. Run it under
+  `~/cc-carla.lock` on lin4080, so no CARLA server shares the GPU.
+
+`--max-spots` (default 40) spreads the critiqued spots from the worst score to the best. The spot images are
+real photos, so only the open sources' photos go to the model; Google Street View is never used (its terms
+forbid it).
+
+**First results with the local model** (2026-11-16, Qwen2.5-VL-7B in 4 bits on lin4080, 30 spots per run spread
+over the scores, about 9 s per spot). The top themes per run, by summed severity:
+
+| Run | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| `eindhoven_centre` 0.9.16 | trees (22 spots) | ground smoother and more uniform (12) | plants (13) | flat lighting, no shadows (12) | sky a solid colour, no clouds (13) |
+| EhvCentre twin | trees missing (29) | ground surface missing or smoother (17) | ground smoother, more uniform (16) | no clouds (14) | even, less dynamic lighting (13) |
+| Campus, Mapillary views | trees, "no leaves" (24) | grass uniform and bright green (23) | asphalt road surface (15) | road (11) | trees' leaves (13) |
+| `eindhoven_centre`, Mapillary views | trees (23) | sky a solid colour (14) | brick texture (10) | ground smoother (9) | ground uniform (9) |
+
+The model agrees with the layout scores (trees first everywhere). It adds what the layout cannot see: ground
+surfaces too smooth and uniform (no bricks, joints or wear), a cloudless solid-colour sky, flat light without
+shadows, and dirt and wear missing.
+
+It is a coarse critic, though:
+- Its items are short and generic ("trees", "plants").
+- Severity is 2 or 3 for 98 % of items.
+- It misses gross errors. On one campus spot the render stands on grass where the photo shows a four-lane road,
+  and the model wrote about the trees' branches.
+
+A first prompt that gave an example sentence and a list of objects was copied into its answers: the example
+appeared in 90 of 120 answers. The prompt now has neither, and `parse_critique` drops items copied from the
+prompt (none in the 120 new answers). Claude was not tried: no `anthropic_api_key` is set. Example spots with
+their critiques are in each run's `critique/`.
+
+## Street objects
 
 From the Mapillary map features. "Photographed" counts the scenery objects with a Mapillary photo within 20 m.
 
@@ -287,7 +416,19 @@ within 4 m of 76 % of the photographed NDW posts.
 **Chernihiv's lamps** are placed every 32 m along the kerbs, because OSM maps few lamps there. Only 63 of them
 match a Mapillary lamp, which is the case the correction pass is for.
 
-**Panoramax poles as evidence.** 408 Eindhoven panoramas gave 1,006 pole sightings and 124 poles seen twice or more
+**Poles in panoramas as evidence.** Both sources tested against Eindhoven's lamp and NDW sign registers:
+
+| Panoramas | Searched | Poles seen in 2+ panoramas | Within 4 m of a register lamp or sign post | Photographed register objects found |
+|---|---|---|---|---|
+| Panoramax (2024, backpack pole) | 408 | 124 (15 lamps, 41 signs, 68 poles) | 51 % (lamps 73 %) | 15 % |
+| Mapillary (2026 and older, mostly car roofs) | 800 | 424 (95 lamps, 96 signs, 233 poles) | 39 % (lamps 43 %) | 27 % |
+
+Mapillary's panoramas find more but place them worse: camera heights differ from rig to rig, and some
+headings are off. Neither is good enough to correct with. A correction pass on the spoiled register made almost
+no changes with either, and the changes it made were mostly wrong (Mapillary panoramas: 12-19 adds, 1-3 at a
+register lamp).
+
+Earlier findings (Panoramax only): 408 Eindhoven panoramas gave 1,006 pole sightings and 124 poles seen twice or more
 (15 lamps, 41 signs, 68 other poles). The lamps lie a median 2.1 m from the register's, and 73 % are within 4 m.
 But they find only 4 % of the photographed register lamps, because the detector needs the pole's foot on the
 ground, unhidden. That is too few to correct anything yet. The detector would need the pole's top (lamp heads),

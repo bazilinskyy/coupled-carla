@@ -105,12 +105,13 @@ def set_photos_dir(out, mdir, photos=None):
 
 
 def _fresh_url(v, out):
-    """Mapillary's thumbnail URLs are signed and expire: a new one by the image id (None when the graph API refuses)."""
+    """Mapillary's thumbnail URLs are signed and expire: a new one, found by searching around the image's spot
+    (None when it cannot be had; the stored URL is tried then)."""
     if v.get("source") != "mapillary":
         return None
     try:
         from coupledcarla.streetphotos import Mapillary
-        return Mapillary(photos_dir(out)).url_for(v["src_id"])
+        return Mapillary(photos_dir(out)).url_for(v["src_id"], float(v["lat"]), float(v["lon"]))
     except Exception as err:  # noqa: BLE001 - the stored URL is tried
         print(f"{v['id']}: no fresh Mapillary URL ({err})", flush=True)
         return None
@@ -737,6 +738,13 @@ def cmd_compare(args):
                                                 float(rr["wide_hfov"]), gt, args.yaw_margin, args.pitch_margin,
                                                 args.pano_yaw)
         extra_metrics(m, rg, ag, real_rgb, arg, v["hfov"], perc)
+        if gt is not None:      # CARLA's own labels: a view that is nearly all wall stands in or against a building
+            from coupledcarla import streetphotos as SP
+            m["wall_share"] = SP.wall_share(gt)
+            if m["wall_share"] > SP.WALL_SHARE:
+                m["pose_suspect"] = 1
+                m["differences"] = "camera in or against a building (photo position off?)" + (
+                    "; " + m["differences"] if m["differences"] else "")
         rows.append({"id": vid, "source": v["source"], "kind": v["kind"], "lat": v["lat"], "lon": v["lon"],
                      "heading": v["heading"], "local_time": v["local_time"], **m})
         imgs = [real_rgb, arg, R.colourise(rg), R.colourise(ag)]
@@ -988,14 +996,17 @@ def cmd_sources(args):
             m = SP.Mapillary(pdir)
             pts = [p for p in m.points("mly1_public", bbox) if p.get("layer") == "image"]
             feats = m.features(bbox)
-            probe = m.details([pts[0]["id"]]) if pts else {}
+            try:
+                kept = len(m.images(bbox))
+            except SP.FetchError:
+                kept = 0
             cov["sources"]["mapillary"] = {
                 "photos": len(pts), "panoramas": sum(bool(p.get("is_pano")) for p in pts),
                 "years": dict(sorted(Counter(time.strftime("%Y", time.gmtime((p.get("captured_at") or 0) / 1000))
                                              for p in pts).items())),
                 "map_features": len(feats),
                 "feature_classes": dict(Counter(SP.mly_class(f["value"], f["layer"]) or "other" for f in feats)),
-                "graph_api": "ok" if probe else "refused (image details and URLs unavailable to this token)",
+                "image_search": m.last_stats, "usable": kept,
                 "licence": SP.MAPILLARY[1]}
         except SP.FetchError as err:
             cov["sources"]["mapillary"] = {"error": str(err)}
@@ -1004,6 +1015,75 @@ def cmd_sources(args):
     print(f"{cfg['name']} {bbox}")
     for src, c in cov["sources"].items():
         print(f"  {src}: " + json.dumps(c))
+
+
+def _spot_pair(path, w, h):
+    """(photo, aligned render) cut back out of a spot image (photo | render over the two layouts)."""
+    a = _load(path)
+    return a[:h, :w].copy(), a[:h, w + 4:2 * w + 4].copy()
+
+
+def cmd_critique(args):
+    """A vision-language model lists what a person would notice between photo and render, per spot, as JSON
+    (category, what, where, severity); per run the themes that make the renders look fake, ranked. Off by default
+    (this command only). Claude with the key anthropic_api_key in the secret file, else (or --backend local) an
+    open model on this machine's GPU. Writes <out>/critique/<id>.json, critique_summary.json and summary.json's
+    'critique'."""
+    from coupledcarla import streetphotos as SP
+    from coupledcarla.settings import get_secret
+    out = Path(args.out)
+    views = {v["id"]: v for v in R.read_views(out / "views.csv")}
+    with (out / "compare.csv").open(newline="") as f:
+        rows = [r for r in csv.DictReader(f) if (out / "spots" / f"{r['id']}.jpg").exists()]
+    rows.sort(key=lambda r: _num(r.get("spot_score")))
+    if args.max_spots and len(rows) > args.max_spots:     # spread over the scores, worst to best
+        step = len(rows) / args.max_spots
+        rows = [rows[int(i * step)] for i in range(args.max_spots)]
+    if args.backend == "claude" and not get_secret("anthropic_api_key")[0]:
+        print("critique skipped: no anthropic_api_key in the project's secret file (python -m coupledcarla.settings "
+              "--set anthropic_api_key), and --backend claude asked for Claude; --backend local runs an open model "
+              "on this machine's GPU instead", flush=True)
+        return
+    cdir = out / "critique"
+    cdir.mkdir(parents=True, exist_ok=True)
+    critic, done = None, []
+    t0 = time.time()
+    for k, r in enumerate(rows):
+        path = cdir / f"{r['id']}.json"
+        if path.exists() and not args.again:     # parsed again from the raw answer (the parser may have improved)
+            old = json.loads(path.read_text())
+            done.append((r["id"], SP.parse_critique(old.get("raw")) if old.get("raw") else old["differences"]))
+            continue
+        if critic is None:
+            kw = {"quant": args.quant} if args.backend != "claude" and not (
+                args.backend == "auto" and get_secret("anthropic_api_key")[0]) else {"effort": args.effort}
+            critic = SP.make_critic(args.backend, args.vlm, **kw)
+            print(f"critic: {critic.name} {getattr(critic, 'model_id', getattr(critic, 'model', ''))}", flush=True)
+        v = views[r["id"]]
+        photo, render = _spot_pair(out / "spots" / f"{r['id']}.jpg", int(v["width"]), int(v["height"]))
+        try:
+            diffs, raw = critic(photo, render)
+        except Exception as err:  # noqa: BLE001 - one spot the model fails on is not fatal
+            print(f"{r['id']}: no critique ({type(err).__name__}: {err})", flush=True)
+            continue
+        path.write_text(json.dumps({"id": r["id"], "critic": critic.name, "spot_score": r.get("spot_score"),
+                                    "differences": diffs, "raw": raw}, indent=1))
+        done.append((r["id"], diffs))
+        if (k + 1) % 10 == 0:
+            print(f"{k + 1}/{len(rows)} spots critiqued ({(time.time() - t0) / (k + 1):.1f} s each)", flush=True)
+    agg = SP.aggregate_critiques(done)
+    agg["critic"] = critic.name if critic else "cached"
+    (out / "critique_summary.json").write_text(json.dumps(agg, indent=1))
+    sp = out / "summary.json"
+    if sp.exists():
+        summ = json.loads(sp.read_text())
+        summ["critique"] = {k: agg[k] for k in ("critic", "spots", "categories")}
+        summ["critique"]["themes"] = agg["themes"][:10]
+        sp.write_text(json.dumps(summ, indent=1))
+    print(f"what makes it look fake ({agg['spots']} spots; weight = summed severity of the spots naming it):")
+    for t in agg["themes"]:
+        print(f"  {t['weight']:3d}  {t['category']:9s} {t['theme']:12s} {t['spots']:3d} spots   "
+              f"e.g. {t['examples'][0]}")
 
 
 def _lane_check(mdir, cfg):
@@ -1054,9 +1134,10 @@ def cmd_objects(args):
             continue
         if src == "mapillary":
             ev, cams = SP.mapillary_evidence(SP.Mapillary(mdir / "real" / "streetphotos"), bbox, geo)
-        elif src == "panoramax":
+        elif src in ("panoramax", "mapillary_panos"):      # poles found in the panoramas of a source
             set_photos_dir(out, mdir, getattr(args, "photos", None))
-            recs = [r for r in R.daytime(R.fetch(mdir, bbox, sources=("panoramax",)))
+            psrc = "panoramax" if src == "panoramax" else "mapillary"
+            recs = [r for r in R.daytime(R.fetch(mdir, bbox, sources=(psrc,)))
                     if r["projection"] == "equirect"]
             recs = _thin(recs, args.pano_spacing)[:args.max_panos]
             labels = Labels(out, args.model, args.device)
@@ -1067,9 +1148,9 @@ def cmd_objects(args):
                 except Exception as err:  # noqa: BLE001 - a panorama that cannot be fetched is skipped
                     print(f"{r['src_id']}: skipped ({err})", flush=True)
                     return None
-            ev, cams = SP.pano_evidence(recs, geo, lab, cam_h=R.HEIGHTS["pano"])
+            ev, cams = SP.pano_evidence(recs, geo, lab, cam_h=R.HEIGHTS["pano" if psrc == "panoramax" else "mly_pano"])
         else:
-            raise SystemExit(f"unknown evidence source {src} (mapillary, panoramax)")
+            raise SystemExit(f"unknown evidence source {src} (mapillary, panoramax, mapillary_panos)")
         SP.save_evidence(mdir, src, ev, cams)
     protect = None if args.protect == "auto" else [x for x in args.protect.split(",") if x and x != "none"]
     actions = tuple(a for a in args.actions.split(",") if a)
@@ -1179,9 +1260,19 @@ def main():
     p.add_argument("experiment")
     p.add_argument("--sources", default="panoramax,kartaview,commons,mapillary")
     p.add_argument("--refresh", action="store_true")
+    p = sub.add_parser("critique", parents=[common],
+                       help="a vision-language model's differences per spot, ranked per run (optional)")
+    p.add_argument("--backend", default="auto", choices=["auto", "claude", "local"],
+                   help="auto: Claude when anthropic_api_key is set, else the local model")
+    p.add_argument("--vlm", default=None, help="model id (Claude: claude-opus-5-5; local: Qwen/Qwen2.5-VL-7B-Instruct)")
+    p.add_argument("--quant", default="4bit", choices=["4bit", "8bit", "none"], help="local model quantisation")
+    p.add_argument("--effort", default="medium", help="Claude's effort")
+    p.add_argument("--max-spots", type=int, default=40, help="spots to critique, spread from worst to best (0: all)")
+    p.add_argument("--again", action="store_true")
     p = sub.add_parser("objects", parents=[common, seg], help="street objects in the photos against scenery.json")
     p.add_argument("experiment")
-    p.add_argument("--evidence", default="mapillary", help="mapillary and/or panoramax (poles in panoramas)")
+    p.add_argument("--evidence", default="mapillary",
+                   help="mapillary (its map features), panoramax or mapillary_panos (poles found in their panoramas)")
     p.add_argument("--refresh", action="store_true", help="find the evidence again (else the saved one)")
     p.add_argument("--max-panos", type=int, default=600)
     p.add_argument("--pano-spacing", type=float, default=6.0, help="one panorama per this many metres of a ride")
@@ -1197,7 +1288,7 @@ def main():
     p.add_argument("--json", default=None)
     args = ap.parse_args()
     {"prepare": cmd_prepare, "render": cmd_render, "compare": cmd_compare, "pairs": cmd_pairs,
-     "table": cmd_table, "sources": cmd_sources, "objects": cmd_objects}[args.cmd](args)
+     "table": cmd_table, "sources": cmd_sources, "objects": cmd_objects, "critique": cmd_critique}[args.cmd](args)
 
 
 if __name__ == "__main__":
