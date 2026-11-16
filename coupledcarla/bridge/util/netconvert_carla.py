@@ -91,11 +91,17 @@ class SumoTopology(object):
         # The edge is split into different lane sections. We return the nearest edge based on the
         # s coordinate of the provided landmark.
         else:
-            # Ensures that all the related sumo edges belongs to the same opendrive road but to
-            # different lane sections.
-            assert set([edge.split('.', 1)[0] for edge, lane_index in sumo_ids]) == 1
-
-            s_coords = [float(edge.split('.', 1)[1]) for edge, lane_index in sumo_ids]
+            # The related sumo edges should belong to the same opendrive road, one per lane section
+            # (<road>.<s>). CARLA's original asserted this with `set(...) == 1`, which is never true:
+            # every road split into lane sections that carries a landmark crashed the conversion (a
+            # city-sized twin has thousands). Edges that are not <road>.<s> of one road (joined roads):
+            # the first one, as for a single edge.
+            try:
+                s_coords = [float(edge.split('.', 1)[1]) for edge, lane_index in sumo_ids]
+            except (IndexError, ValueError):
+                return sumo_ids[0]
+            if len(set(edge.split('.', 1)[0] for edge, lane_index in sumo_ids)) != 1:
+                return sumo_ids[0]
 
             s_coords, sumo_ids = zip(*sorted(zip(s_coords, sumo_ids)))
             index = bisect.bisect_left(s_coords, s, lo=1) - 1

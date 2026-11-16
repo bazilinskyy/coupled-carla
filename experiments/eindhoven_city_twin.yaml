@@ -23,8 +23,8 @@ simulation:
   weather: CloudyNoon
 
 traffic:
-  cars_per_hour: 6000
-  bikes_per_hour: 2000
+  cars_per_hour: 20000   # half the centre twin's density (2,400 an hour on 4 km2): the suburbs are quieter
+  bikes_per_hour: 6000
 
 participants:
   - role: driver
