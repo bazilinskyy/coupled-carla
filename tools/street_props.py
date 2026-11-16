@@ -1112,6 +1112,9 @@ Data the shapes and the choices follow (facts, not copied works):
   lamps: general street knowledge, approximate.
 - Ideas for road wear, rooftop clutter and furniture by country standard: BeamNG.Earth
   (https://github.com/TecnaGamer/BeamNG.Earth, MIT, TecnaGamer); no code or data of it is used.
+- Shop signs and posters: lettering in DejaVu Sans Bold (Bitstream Vera / DejaVu licence, free to embed; the copy
+  in matplotlib), generic Dutch trade words and invented poster titles, no brand or real event. Bikes: a generic
+  Dutch city bike; the Swapfiets look is only its well-known blue front tyre (no logo).
 - Considered and not used: Sketchfab "City parking asset Amsterdammertje" (ustoopia, CC BY 4.0) and "Dutch Traffic
   Light" (tickinggears, CC BY 4.0); the procedural ones are exact in size, light and need no attribution in the
   package.
