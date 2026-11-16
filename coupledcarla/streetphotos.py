@@ -1216,24 +1216,51 @@ CRITIQUE_SCHEMA = {
 
 
 def parse_critique(text):
-    """A model's answer -> [{'category', 'what', 'where', 'severity'}] (tolerant: the first JSON object in the text,
-    unknown categories as 'other', severities clipped to 1-3, at most 8)."""
+    """A model's answer -> [{'category', 'what', 'where', 'severity'}] (tolerant: the first JSON object, or list of
+    differences, in the text, also inside a code fence; unknown categories as 'other', severities clipped to 1-3, at
+    most 8)."""
     if not text:
         return []
-    start = text.find("{")
     data = None
-    while start >= 0 and data is None:
+    starts = [k for k, c in enumerate(text) if c in "{["]
+    for start in starts:
         depth = 0
         for k in range(start, len(text)):
-            depth += {"{": 1, "}": -1}.get(text[k], 0)
+            depth += {"{": 1, "[": 1, "}": -1, "]": -1}.get(text[k], 0)
             if depth == 0:
                 try:
                     data = json.loads(text[start:k + 1])
                 except ValueError:
                     pass
                 break
-        if data is None:
-            start = text.find("{", start + 1)
+        if data is not None:
+            break
+    if isinstance(data, list):
+        data = {"differences": data}
+    if not isinstance(data, dict) or not data.get("differences"):     # cut off mid-list: its complete items
+        items, k = [], 0
+        while True:
+            k = text.find("{", k)
+            if k < 0:
+                break
+            depth, end = 0, None
+            for j in range(k, len(text)):
+                depth += {"{": 1, "}": -1}.get(text[j], 0)
+                if depth == 0:
+                    end = j
+                    break
+            if end is None:
+                break
+            try:
+                obj = json.loads(text[k:end + 1])
+            except ValueError:
+                obj = None
+            if isinstance(obj, dict) and "what" in obj:
+                items.append(obj)
+                k = end + 1
+            else:
+                k += 1
+        data = {"differences": items}
     items = (data or {}).get("differences") if isinstance(data, dict) else None
     out = []
     for it in items or []:
@@ -1346,7 +1373,7 @@ class LocalCritic:
 
     name = "local"
 
-    def __init__(self, model="Qwen/Qwen2.5-VL-7B-Instruct", quant="4bit", device=None, max_new_tokens=700):
+    def __init__(self, model="Qwen/Qwen2.5-VL-7B-Instruct", quant="4bit", device=None, max_new_tokens=1100):
         import torch
         from transformers import AutoModelForImageTextToText, AutoProcessor
         kw = {"dtype": torch.bfloat16}

@@ -1050,8 +1050,9 @@ def cmd_critique(args):
     t0 = time.time()
     for k, r in enumerate(rows):
         path = cdir / f"{r['id']}.json"
-        if path.exists() and not args.again:
-            done.append((r["id"], json.loads(path.read_text())["differences"]))
+        if path.exists() and not args.again:     # parsed again from the raw answer (the parser may have improved)
+            old = json.loads(path.read_text())
+            done.append((r["id"], SP.parse_critique(old.get("raw")) if old.get("raw") else old["differences"]))
             continue
         if critic is None:
             kw = {"quant": args.quant} if args.backend != "claude" and not (

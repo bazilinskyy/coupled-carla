@@ -418,6 +418,10 @@ def test_parse_critique_is_tolerant():
     assert d[1]["category"] == "other" and d[1]["where"] == "whole" and d[1]["severity"] == 3
     assert len(d) == 2                                   # the empty one is dropped
     assert SP.parse_critique("no json here") == [] and SP.parse_critique("{bad} {\"differences\": []}") == []
+    bare = '```json\n[{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}]\n```'
+    assert SP.parse_critique(bare) == [{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}]
+    cut = '```json\n[{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}, {"categ'
+    assert SP.parse_critique(cut) == [{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}]
 
 
 def test_aggregate_critiques_ranks_themes_by_spots_and_severity():
