@@ -1952,7 +1952,12 @@ gap, gaps, acceleration and lane-change eagerness, and Dutch bikes e-bike speeds
 compares the crowd's crossings with CROWD's. Demo clips are checked before encoding (`tools/clip_check.py`, also run by
 `make_videos.py`, `--force` to override): overlapping bodies, vehicles in buildings, swerves, jumps and pop-ins in
 view, SUMO teleports and collisions, camera shake. Follow cameras steady their target's position and view direction
-(`pos_smooth_s`, `turn_smooth_s`).
+(`pos_smooth_s`, `turn_smooth_s`). A SUMO vehicle held back by something in CARLA (a kerb, a pole, another body) is placed with physics off for a
+while and slides back onto its SUMO pose (at most 0.2 m and 4° per tick) instead of jumping. Cars and bikes whose trip
+starts within `simulation.depart_hide_m` (60 m) of a participant or free camera are left out, so nothing appears out
+of nowhere in front of them. The clip QA counts a vehicle as inside a building only where the scenery shows one, holds
+a drone's own camera to 0.3° (it turns with the drone), and reports SUMO's collisions without blocking (their visible
+part is an overlap, which blocks).
 
 ## Traffic lights
 
