@@ -132,6 +132,22 @@ def right_lane(wp):
     return wp.get_right_waypoint() if hasattr(wp, "get_right_waypoint") else wp.get_right_lane()
 
 
+def road_lanes(wp, kind=None, limit=8):
+    """wp and every lane beside it across the road (both sides, both directions), driving lanes only when kind is
+    given (carla.LaneType), in order from the left edge to the right."""
+    left, right, seen = [], [], {(wp.road_id, wp.section_id, wp.lane_id)}
+    for step, out in ((left_lane, left), (right_lane, right)):
+        w = wp
+        for _ in range(limit):
+            w = step(w)
+            if w is None or (w.road_id, w.section_id, w.lane_id) in seen:
+                break
+            seen.add((w.road_id, w.section_id, w.lane_id))
+            out.append(w)
+    lanes = left[::-1] + [wp] + right
+    return [w for w in lanes if kind is None or w.lane_type == kind]
+
+
 def server_major(client):
     """0 for CARLA 0.9.x / 0.10.x, 1 for CARLA 1.0 (UE 5.8) and later."""
     try:

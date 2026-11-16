@@ -82,6 +82,29 @@ def plan_route(net, start_edge, vias, vclass="passenger"):
     return edges
 
 
+def drivable_lane(net, x, y, rng, yaw=None, vclass="passenger", radius=80.0, z=None):
+    """(lane, position, route) of the nearest lane within radius of SUMO (x, y) from which a random destination
+    can be reached, or None: a spawn lane can be a dead end (Salamanca's Plaza Mayor: a 16 m edge with no way
+    out, so the car arrived at once and stood still). Lanes within 60 deg of yaw first, then any heading."""
+    cands = []
+    for lane, dist in net.getNeighboringLanes(x, y, radius):
+        if not lane.allows(vclass) or lane.getEdge().getFunction() == "internal":
+            continue
+        pos, _ = lane.getClosestLanePosAndDist((x, y))
+        diff = abs((lane_heading(lane, pos) - yaw + 180.0) % 360.0 - 180.0) if yaw is not None else 0.0
+        cands.append((diff > 60.0, dist + (abs(levels.lane_z(lane, pos) - z) if z is not None else 0.0), lane, pos))
+    seen = set()
+    for _, _, lane, pos in sorted(cands, key=lambda c: (c[0], c[1])):
+        edge = lane.getEdge()
+        if edge.getID() in seen:
+            continue
+        seen.add(edge.getID())
+        route = random_destination(net, edge, rng, vclass, tries=12)
+        if route:
+            return lane, pos, route
+    return None
+
+
 def random_destination(net, start_edge, rng, vclass="passenger", lo=600.0, hi=1500.0, tries=60):
     """A route (edge ids) from start_edge to a random edge lo-hi m away (straight line), or None."""
     sx, sy = start_edge.getToNode().getCoord()
@@ -155,7 +178,15 @@ class SumoDriver:
         if vias and route is None:
             log(f"{p['role']}: no SUMO route through the given points; a random destination instead")
         self._planned = bool(route)
-        route = route or random_destination(net, start, self.rng) or [start.getID()]
+        route = route or random_destination(net, start, self.rng)
+        if not route:           # a dead end: start from the nearest lane that leads somewhere
+            alt = drivable_lane(net, x, y, self.rng, tf.rotation.yaw, z=z)
+            if alt is not None:
+                lane, pos, route = alt
+                log(f"{p['role']}: no way on from lane {self.lane.getID()}; starting on {lane.getID()} instead")
+                self.lane, self.pos = lane, pos
+                self._place_on_lane(offset)
+        route = route or [self.lane.getEdge().getID()]
         self.route = route
         self.vtype = self._vtype()
         length = sum(net.getEdge(e).getLength() for e in route)
@@ -166,6 +197,19 @@ class SumoDriver:
             self._insert()
         else:   # out of the way until the hold ends (below the road, no physics)
             self._hide()
+
+    def _place_on_lane(self, offset):
+        """Moves the CARLA car to its SUMO start (self.lane at self.pos), facing along the lane."""
+        sx, sy = self.lane.getShape()[0]
+        try:
+            import sumolib.geomhelper as gh
+            sx, sy = gh.positionAtShapeOffset(self.lane.getShape(), self.pos)
+        except ImportError:
+            pass
+        lz = levels.lane_z(self.lane, self.pos)     # SUMO's heights are CARLA's; 0 for a net without heights
+        loc = carla.Location(x=sx - offset[0], y=offset[1] - sy,
+                             z=(lz if lz else self.vehicle.get_transform().location.z) + 0.5)
+        self.vehicle.set_transform(carla.Transform(loc, carla.Rotation(yaw=lane_heading(self.lane, self.pos))))
 
     def _vtype(self):
         vid = "ego:" + self.vehicle.type_id

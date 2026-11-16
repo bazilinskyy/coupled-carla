@@ -197,11 +197,14 @@ def spawn_vehicle(world, geo, p, log):
             f"{wp.transform.location.distance(carla.Location(x=x, y=y, z=wp.transform.location.z)):.1f} m away")
         candidates = [wp.transform]
         if "heading" in sp:
+            # the driving lane across the road facing the heading best, the nearest of those (the opposite
+            # direction lies to the right on a left-hand map, and a road can have several lanes each way)
             yaw = heading_to_yaw(sp["heading"])
-            opp = compat.left_lane(wp)
-            if opp and abs((opp.transform.rotation.yaw - yaw + 180) % 360 - 180) < \
-                    abs((wp.transform.rotation.yaw - yaw + 180) % 360 - 180):
-                candidates = [opp.transform]
+            here = carla.Location(x=x, y=y, z=wp.transform.location.z)
+            lanes = compat.road_lanes(wp, carla.LaneType.Driving) or [wp]
+            wp = min(lanes, key=lambda w: (round(abs((w.transform.rotation.yaw - yaw + 180) % 360 - 180) / 45.0),
+                                           w.transform.location.distance(here)))
+            candidates = [wp.transform]
         candidates += [w.transform for w in wp.next(15.0) + wp.previous(15.0)]
     else:
         # CARLA's spawn points of an OpenDRIVE-generated world do not always face along the lane, so start on

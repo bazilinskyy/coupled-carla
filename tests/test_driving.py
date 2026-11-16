@@ -270,6 +270,22 @@ def test_plan_route_and_random_destination():
     assert sd.random_destination(net, a, random.Random(1)) == ["a", "b", "c"]
 
 
+def test_drivable_lane_skips_a_dead_end():
+    sd = pytest.importorskip("coupledcarla.sumodriver")
+    import random
+    dead, a, b, c = _Edge("dead", to=(0, 0)), _Edge("a", to=(0, 0)), _Edge("b", to=(800, 0)), _Edge("c", to=(900, 0))
+    paths = {("a", "b"): [a, b], ("a", "c"): [a, b, c], ("b", "c"): [b, c]}
+    net = types.SimpleNamespace(getShortestPath=lambda f, t, vClass=None: (paths.get((f.getID(), t.getID())), 1.0),
+                                getEdges=lambda: [dead, a, b, c])
+    near = _Lane(dead, [(0.0, 0.0), (16.0, 0.0)])          # nearest, but no way on from it
+    far = _Lane(a, [(0.0, 30.0), (100.0, 30.0)])
+    net.getNeighboringLanes = lambda x, y, r: [(near, 1.0), (far, 30.0)]
+    assert sd.random_destination(net, dead, random.Random(1)) is None
+    lane, pos, route = sd.drivable_lane(net, 5.0, 1.0, random.Random(1), yaw=0.0)
+    assert lane is far and route == ["a", "b", "c"]
+    net.getNeighboringLanes = lambda x, y, r: [(near, 1.0)]
+    assert sd.drivable_lane(net, 5.0, 1.0, random.Random(1)) is None
+
 # -- pedsignals.py ---------------------------------------------------------------------------------------------------
 
 def test_crossing_links_and_all_red():
