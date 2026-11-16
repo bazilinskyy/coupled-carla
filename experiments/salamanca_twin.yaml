@@ -1,0 +1,32 @@
+# Salamanca's Plaza Mayor (1 km) as a baked CARLA 1.0 level: the carla-digitaltwins twin SalamancaPlaza made by the
+# "twin of any place" pipeline from Spain's open data (PNOA orthophoto, MDT05 terrain, the Catastro's buildings with
+# their floors, year and use; OSM roads), with SUMO driving on the twin's own OpenDRIVE.
+# Needs a CARLA 1.0 server that has the level (see README, "A twin of any place").
+name: salamanca_twin
+
+map:
+  opendrive: twins/SalamancaPlaza.xodr   # the twin's OpenDRIVE, copied next to the experiments (not in git)
+  carla_level: SalamancaPlaza
+  name: salamanca_twin
+  lefthand: false
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 2400
+  bikes_per_hour: 1200
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 40.9644, lon: -5.6648}   # south of the Plaza Mayor (pedestrian); starts on the nearest lane that leads on
+
+trials:
+  - {duration_s: 300}

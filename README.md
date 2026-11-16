@@ -218,12 +218,16 @@ download). They are made headless by [`tools/make_videos.py`](tools/make_videos.
 [`experiments/videos/clips.yaml`](experiments/videos/clips.yaml), on CARLA 0.9.16 at Epic quality: frames kept at 25
 fps of simulation time, so even a run slower than real time gives a smooth clip; first-person clips carry what the
 participant hears (`--record-audio`), outside cameras what can be heard where the camera is. All files:
-[release demo-videos](https://github.com/bazilinskyy/coupled-carla/releases/tag/demo-videos). The first two are on the CARLA 1.0 Eindhoven digital twin. Watch them in the browser on the [project page](https://bazilinskyy.github.io/coupled-carla/).
+[release demo-videos](https://github.com/bazilinskyy/coupled-carla/releases/tag/demo-videos). The first four are on CARLA 1.0 digital twins (Eindhoven, Salamanca, Shibuya). Watch them in the browser on the [project page](https://bazilinskyy.github.io/coupled-carla/).
 
 <table>
 <tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_eindhoven.mp4"><img src="docs/img/videos/twin_eindhoven.jpg" alt="The Eindhoven digital twin"></a><br><b>The Eindhoven digital twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 4.8 MB<br>3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and street furniture from open data</sub></td>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_drones.mp4"><img src="docs/img/videos/twin_drones.jpg" alt="Drones over the Eindhoven twin"></a><br><b>Drones over the Eindhoven twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · drone pilot (FPV) · 20 s, 3.1 MB<br>the pilot climbs over the twin's real roof shapes; delivery and swarm drones fly in the cruise band</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_salamanca.mp4"><img src="docs/img/videos/twin_salamanca.jpg" alt="Plaza Mayor, Salamanca"></a><br><b>Plaza Mayor, Salamanca</b><br><sub>Salamanca, Spain, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 4.0 MB<br>a twin of any place from Spain's open data: Catastro buildings with their floors, PNOA aerial photo, MDT05 terrain</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_shibuya.mp4"><img src="docs/img/videos/twin_shibuya.jpg" alt="Shibuya crossing twin"></a><br><b>Shibuya crossing twin</b><br><sub>Tokyo, Japan, CARLA 1.0 twin (left-hand) · driver (autopilot), chase camera · 20 s, 3.2 MB<br>across the scramble crossing in a twin from Japan's open data: PLATEAU buildings with their photo textures, GSI photo and terrain</sub></td>
 </tr>
 <tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_rush_hour.mp4"><img src="docs/img/videos/eindhoven_rush_hour.jpg" alt="Rush hour in Eindhoven"></a><br><b>Rush hour in Eindhoven</b><br><sub>Eindhoven centre, Netherlands · driver (autopilot), chase camera · 20 s, 3.3 MB<br>dense mixed traffic around the station, buses of the real lines, cyclists sharing the road</sub></td>
@@ -1270,7 +1274,11 @@ blue holes show where the twin is hidden before its tiles arrive, and the mesh s
 on the ground sees under it). Cesium loads tiles for the spectator's view, so the spectator follows the active
 camera; with that, a drone's camera gets the tiles as soon as it climbs. Streaming them is costly: a drone flight
 ran at a real-time factor of 0.05 and a street-level trial at 0.24, so for now use it for recorded aerial and
-drone views rather than live studies. Shareable open alternatives:
+drone views rather than live studies.
+
+![A drone's camera over Eindhoven's centre with Google's Photorealistic 3D Tiles (imagery: Google)](docs/img/photoreal_eindhoven_drone.jpg)
+
+*A drone's camera over Eindhoven's centre with `map.photoreal: google` (CARLA 1.0, Windows package). Imagery © Google.* Shareable open alternatives:
 [PLATEAU](https://www.mlit.go.jp/plateau/)'s textured LoD2 buildings for Japan (used by the twin of any place),
 [Helsinki's reality mesh](https://hel.fi/3d) and Espoo's (CC BY 4.0), [Rotterdam 3D](https://data.overheid.nl/dataset/10230-rotterdam-3d)
 (public domain, LoD2 textured from aerial photos).

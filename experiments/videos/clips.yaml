@@ -397,6 +397,40 @@ clips:
       look_up_m: 1.5
       smooth_s: 0.8
     carla: '1.0'
+  - name: twin_salamanca
+    title: Plaza Mayor, Salamanca
+    crf: 29
+    place: Salamanca, Spain (CARLA 1.0 twin)
+    role: driver (autopilot), chase camera
+    when: midday
+    agents: SUMO cars, buses and cyclists on the twin's own roads
+    notice: a twin made by the "twin of any place" pipeline from Spain's open data (Catastro buildings with their
+      floors, PNOA aerial photo, MDT05 terrain)
+    experiment: experiments/salamanca_twin.yaml
+    set: {simulation: {camera_profile: CoupledReal}}
+    hold:
+      driver: 20
+    start_s: 25
+    duration_s: 20
+    camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}
+    carla: '1.0'
+  - name: twin_shibuya
+    title: Shibuya crossing twin
+    crf: 29
+    place: Tokyo, Japan (CARLA 1.0 twin, left-hand)
+    role: driver (autopilot), chase camera
+    when: midday
+    agents: SUMO cars on the left, buses and cyclists
+    notice: driving across the scramble crossing in a twin from Japan's open data (PLATEAU buildings with their photo
+      textures, GSI aerial photo and terrain)
+    experiment: experiments/shibuya_twin.yaml
+    set: {simulation: {camera_profile: CoupledReal}}
+    hold:
+      driver: 20
+    start_s: 38
+    duration_s: 20
+    camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}
+    carla: '1.0'
   - name: twin_drones
     title: Drones over the Eindhoven twin
     place: Eindhoven centre (CARLA 1.0 twin)
