@@ -56,6 +56,9 @@ from pathlib import Path
 
 DATA = Path(__file__).parent / "data"
 VERSION = 1
+# where a stall came from (parked.json slot index 7)
+SOURCES = ("osm_tag", "bgt", "osm_area", "default", "lot_osm", "lot_bgt", "parking_lane")
+LOT_SOURCES = ("lot_osm", "lot_bgt")
 
 # static car meshes: name -> (body type as fleet.BODY_BLUEPRINTS, paint colour as fleet.COLORS, blueprints it stands
 # for). CARLA 0.9.16's "parked" meshes (Town10's parked layer) and the whole-car meshes of the older models.
@@ -732,7 +735,7 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
             sections[(w.road_id, w.section_id)].append(w)
     slots = []
     mesh_index = {}
-    src_names = ["osm_tag", "bgt", "osm_area", "default", "lot_osm", "lot_bgt", "parking_lane"]
+    src_names = list(SOURCES)
 
     def lane_at(road, lid, s):
         try:
@@ -1023,6 +1026,12 @@ def _ref_dir(road, lid, s, smin, smax, lane_at):
     return dx / n, dy / n
 
 
+def photo_on(tc):
+    """map.photoreal is on for this trial (Google's photo mesh over a baked level)."""
+    v = (tc.get("map") or {}).get("photoreal")
+    return v not in (None, False, "", "off", "none", "false")
+
+
 # --- trial time ----------------------------------------------------------------------------------------------------
 
 def trial_data(mdir, tc, log=print):
@@ -1051,9 +1060,20 @@ def trial_data(mdir, tc, log=print):
     day, hour = transit.day_type(when), when.hour
     fixed = pc.get("occupancy", "auto")
     occ = {z: (float(fixed) if fixed not in (None, "auto") else occupancy(z, day, hour)) for z in ZONES}
-    items = [[s[0], s[1], s[2], s[3], s[4], 1.0, "parked"] for s in data["slots"] if s[6] < occ[ZONES[s[5]]]]
-    n = sum(1 for s in data["slots"] if len(s) <= 8)        # (a car's window glass is a slot of its own)
-    taken = sum(1 for s in data["slots"] if len(s) <= 8 and s[6] < occ[ZONES[s[5]]])
+    slots = data["slots"]
+    if photo_on(tc):
+        # Google's photo mesh (map.photoreal) has the real car parks with their photographed cars; its cut (photoreal
+        # cut_mask) removes the photo mesh only over the twin's lanes, parking lanes included. So CARLA's cars stand
+        # in the parking lanes (where the photographed ones were cut away) and none on the car parks
+        lots = {SOURCES.index(k) for k in LOT_SOURCES}
+        kept = [s for s in slots if len(s) < 8 or s[7] not in lots]
+        if len(kept) < len(slots):
+            log(f"parked: {sum(1 for s in slots if len(s) <= 8) - sum(1 for s in kept if len(s) <= 8)} car park "
+                f"stalls left to the photo mesh's own cars (map.photoreal)")
+        slots = kept
+    items = [[s[0], s[1], s[2], s[3], s[4], 1.0, "parked"] for s in slots if s[6] < occ[ZONES[s[5]]]]
+    n = sum(1 for s in slots if len(s) <= 8)        # (a car's window glass is a slot of its own)
+    taken = sum(1 for s in slots if len(s) <= 8 and s[6] < occ[ZONES[s[5]]])
     log(f"parked: {taken} of {n} stalls taken at {when:%a %H:%M} ({day}; occupancy "
         f"{', '.join(f'{z} {occ[z]:.2f}' for z in ZONES)})")
     if (tc.get("map") or {}).get("carla_level") and "snapped" not in data:

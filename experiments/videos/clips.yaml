@@ -162,6 +162,24 @@ clips:
     camera: {kind: follow, target: driver, offset: [-9.0, 0, 3.2], look_ahead_m: 10, look_up_m: 3.0, smooth_s: 0.8,
              attributes: {exposure_compensation: -0.2, exposure_max_bright: 15}}
 
+  - name: chernihiv_avenue
+    title: Down prospekt Myru, Chernihiv
+    scale: [960, 540]
+    crf: 29
+    place: Chernihiv, Ukraine (made with the map maker)
+    role: driver (autopilot), chase camera
+    when: weekday 17:00
+    agents: SUMO cars, buses and cyclists, a pedestrian crowd
+    notice: a map made by typing "Chernihiv" into the map maker; the tree-lined prospekt Myru towards the centre
+    experiment: experiments/chernihiv.yaml
+    time: "2026-09-16 17:00"
+    set: {traffic: {walkers: {count: 40, radius_m: 150}}}
+    hold: {driver: 60}
+    patch: {participants: {driver: {route: [[51.4968, 31.2885], [51.4912, 31.2985]]}}}
+    start_s: 64
+    duration_s: 20
+    camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}
+
   - name: kigali_hills
     title: Kigali's hills
     place: Kigali, Rwanda

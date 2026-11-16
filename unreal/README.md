@@ -29,8 +29,30 @@ key. Nothing from Google is stored in content: tiles stream at run time.
 
 For a packaged (cooked) server add both to the project instead, so the package build compiles and stages them:
 `CarlaUnreal.uproject` "Plugins": `{"Name": "CesiumForUnreal", "Enabled": true}, {"Name": "CoupledPhotoreal", "Enabled": true}`,
-and cook Cesium's materials, which only C++ refers to: `Config/DefaultGame.ini`, section `[/Script/UnrealEd.ProjectPackagingSettings]`,
-`+DirectoriesToAlwaysCook=(Path="/CesiumForUnreal")`.
+and cook Cesium's materials and this plugin's tile material, which only C++ refers to: `Config/DefaultGame.ini`, section
+`[/Script/UnrealEd.ProjectPackagingSettings]`, `+DirectoriesToAlwaysCook=(Path="/CesiumForUnreal")` and
+`+DirectoriesToAlwaysCook=(Path="/CoupledPhotoreal")`.
+
+## Tile material (the height-limited cut)
+
+`Content/Materials/M_CCPhotorealTiles` (with two 4 x 4 default textures) replaces Cesium's base material on the photo
+tiles. It is made by `Tools/make_material.py` in an editor of the tree (headless: `UnrealEditor-Cmd <uproject>
+-run=pythonscript -script=<plugin>/Tools/make_material.py -EnablePlugins=CoupledPhotoreal -unattended -nullrhi`) and
+checked by cooking it alone (`-run=cook -targetplatform=Linux -cooksinglepackagenorefs
+-package=/CoupledPhotoreal/Materials/M_CCPhotorealTiles`: the shader errors show there, not in the editor with
+-nullrhi). It reads Cesium's glTF parameters by name (a material without layers), clips where the level's cut grid
+(`<Level>_cut.bin`, `python -m coupledcarla.photoreal cut <Level> <xodr>`) says the pixel is over the twin's lanes and
+lower than the road + `cut_top`, and also where Cesium's polygon overlay (`Clipping_*`, `cut=polygons`, night
+footprints) covers it. A server without the material (an older package) falls back to `cut=polygons`.
+
+## Profiling and A/B tests
+
+`prof=<s>` appends a row every s seconds to `google_tiles_profile.csv` in the config folder (frame, game, render, RHI
+thread and GPU ms per frame, visible and loaded tiles, cameras, cut). `control=1` applies `photoreal_control.txt` there
+whenever it changes (`key=value` lines: `phase`, `cut` mask/polygons/none, `cut_top`, `grow`, `tiles` 0/1 (the twin
+alone), `sse`, `culled_sse`, `forbid_holes`, `loads`, `cache_mb`, `fog`, `occlusion`, `load_ms`, `clip_sse`, `clip_tex`,
+`cams`, `player`, `viewport`, `cvar.<name>`) and acknowledges it in `photoreal_control.ack`; none of these reloads the
+tileset, so a whole comparison costs one root request. `tools/photoreal_profile.py` drives it.
 
 ## Level data
 

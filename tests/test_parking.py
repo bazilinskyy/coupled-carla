@@ -256,3 +256,22 @@ def test_xodr_crosswalks_and_signals(tmp_path):
     assert abs((x1 - x0) - 4) < 1e-6 and abs((y1 - y0) - 7) < 1e-6
     assert pts["signals"] == [(20.0, -1.0)]
     assert len(pts["crossing"]) == 2 and abs(pts["crossing"][1].centroid.y - 4) < 1e-6   # the pedestrian light
+
+
+def test_photoreal_leaves_car_parks_to_the_photo_mesh(tmp_path):
+    lot, lane = parking.SOURCES.index("lot_bgt"), parking.SOURCES.index("parking_lane")
+    slots = [[0, 1.0, 0.0, 0.0, 90.0, 0, 0.01, lane], [1, 1.0, 0.0, 0.0, 90.0, 0, 0.01, lane, 1],
+             [0, 9.0, 0.0, 0.0, 90.0, 0, 0.01, lot], [1, 9.0, 0.0, 0.0, 90.0, 0, 0.01, lot, 1]]
+    (tmp_path / "parked.json").write_text(json.dumps({
+        "version": 1, "catalog": "1.0", "cell_m": 100.0, "meshes": ["/Game/Car.Car", "/Game/Glass.Glass"],
+        "zones": parking.ZONES, "slots": slots}))
+    tc = {"map": {"bbox": [51.43, 5.47, 51.45, 5.49], "carla_level": "EhvCentre"},
+          "simulation": {"time": "2026-11-16 03:00"}}
+    assert len(parking.trial_data(tmp_path, tc, log=lambda m: None)["items"]) == 4
+    tc["map"]["photoreal"] = {"provider": "google"}
+    logs = []
+    d = parking.trial_data(tmp_path, tc, log=logs.append)
+    assert [(it[0], it[1]) for it in d["items"]] == [(0, 1.0), (1, 1.0)]     # the parking lane's car and its glass
+    assert "1 car park stalls left to the photo mesh" in logs[0]
+    tc["map"]["photoreal"] = False
+    assert len(parking.trial_data(tmp_path, tc, log=lambda m: None)["items"]) == 4

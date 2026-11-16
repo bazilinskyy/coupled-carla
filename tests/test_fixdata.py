@@ -189,8 +189,8 @@ def test_expired_caches_are_used_when_the_refresh_fails(tmp_path, monkeypatch):
         with pytest.raises(requests.ConnectionError):
             mod._cached("never_fetched", down)
     monkeypatch.setattr(fleet, "_rdw", down)
-    (tmp_path / fleet.__name__ / "rdw_nl.json").write_text(json.dumps(reg))
-    os.utime(tmp_path / fleet.__name__ / "rdw_nl.json", (old, old))
+    (tmp_path / fleet.__name__ / "rdw_nl_v2.json").write_text(json.dumps(reg))
+    os.utime(tmp_path / fleet.__name__ / "rdw_nl_v2.json", (old, old))
     assert fleet.registry([51.436, 5.47, 51.45, 5.493]) == reg
     # the GTFS catalogue: a week old and offline
     csv = tmp_path / "mobilitydatabase_feeds_v2.csv"

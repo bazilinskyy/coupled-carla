@@ -343,6 +343,33 @@ export SUMO_HOME=$(.venv/bin/python -c "import sumo; print(sumo.SUMO_HOME)")
 export PATH=$SUMO_HOME/bin:$PATH PROJ_LIB=$SUMO_HOME/data/proj
 ```
 
+### The `config` and `secret` files
+
+The machine's own settings and API keys live in two JSON files in the root of the project, `config` and `secret`.
+Both are ignored by git, so they are never committed; the templates `default.config` and `default.secret` are. Copy
+them once and fill in only what you use (every entry may stay empty; a feature that needs a key says so):
+
+```bash
+cp default.config config && cp default.secret secret && chmod 600 secret
+.venv/bin/python -m coupledcarla.settings          # which keys are set (names and lengths only, never the keys)
+```
+
+| `secret` entry | Used for | Free key from |
+|---|---|---|
+| `google_maps_api_key` | Google Photorealistic 3D Tiles ([Photorealistic tiles](#photorealistic-tiles-optional)) | console.cloud.google.com (billing on; 1,000 tile sessions a month free) |
+| `mapillary_token` | street photos and their detected signs, poles and lamps, to compare and correct the twins | mapillary.com/dashboard/developers |
+| `sketchfab_api_token` | openly licensed 3D models of street furniture | sketchfab.com, Settings, Password & API |
+| `freesound_api_key` | recordings for the soundscape (engines, horns, rain, city ambience) | freesound.org/apiv2/apply |
+| `opentopography_api_key` | elevation outside the countries with national data (Copernicus 30 m, lidar) | portal.opentopography.org |
+| `tomtom_api_key` | traffic speeds where no open counts exist | developer.tomtom.com |
+
+An environment variable with the entry's name in capitals (`GOOGLE_MAPS_API_KEY`, `MAPILLARY_TOKEN`, ...) wins over
+`secret`. The CARLA server's photorealistic-tiles plugin runs inside the server and reads its key on the server
+machine from `GOOGLE_MAPS_API_KEY` or `~/.config/coupled-carla/google_maps_key` (Windows:
+`%USERPROFILE%\.config\coupled-carla\google_maps_key`). `config` holds `mute_sound` (true: nothing is played on
+the speakers, as `COUPLED_CARLA_MUTE=1`; recordings still work) and `config_dir` (where the tiles ledger and credits
+live).
+
 Build a map once, then run its trials:
 
 ```bash
@@ -387,12 +414,12 @@ Three per inhabited continent, by size, each a 1.4 km square around a central po
 
 | Continent | Large | Medium | Small |
 |---|---|---|---|
-| Africa | Cairo (Tahrir), ~22 M | Kigali, ~1.7 M | Stellenbosch, ~0.2 M (left-hand) |
-| Asia | Tokyo (Shibuya), ~37 M (left-hand) | Taipei (Main Station), ~2.6 M | Luang Prabang, ~0.06 M |
-| Europe | London (Westminster), ~9 M (left-hand) | Lyon (Bellecour), ~0.5 M | Leuven, ~0.1 M |
-| North America | New York (Midtown), ~8.3 M | Portland, Oregon, ~0.65 M | Burlington, Vermont, ~0.045 M |
-| South America | São Paulo (Sé), ~12 M | Montevideo, ~1.3 M | Ushuaia, ~0.08 M |
-| Oceania | Sydney (CBD), ~5.3 M (left-hand) | Auckland (CBD), ~1.7 M (left-hand) | Nouméa, ~0.1 M |
+| Africa | 🇪🇬&nbsp;Cairo (Tahrir), ~22 M | 🇷🇼&nbsp;Kigali, ~1.7 M | 🇿🇦&nbsp;Stellenbosch, ~0.2 M (left-hand) |
+| Asia | 🇯🇵&nbsp;Tokyo (Shibuya), ~37 M (left-hand) | 🇹🇼&nbsp;Taipei (Main Station), ~2.6 M | 🇱🇦&nbsp;Luang Prabang, ~0.06 M |
+| Europe | 🇬🇧&nbsp;London (Westminster), ~9 M (left-hand) | 🇫🇷&nbsp;Lyon (Bellecour), ~0.5 M | 🇧🇪&nbsp;Leuven, ~0.1 M |
+| North America | 🇺🇸&nbsp;New York (Midtown), ~8.3 M | 🇺🇸&nbsp;Portland, Oregon, ~0.65 M | 🇺🇸&nbsp;Burlington, Vermont, ~0.045 M |
+| South America | 🇧🇷&nbsp;São Paulo (Sé), ~12 M | 🇺🇾&nbsp;Montevideo, ~1.3 M | 🇦🇷&nbsp;Ushuaia, ~0.08 M |
+| Oceania | 🇦🇺&nbsp;Sydney (CBD), ~5.3 M (left-hand) | 🇳🇿&nbsp;Auckland (CBD), ~1.7 M (left-hand) | 🇳🇨&nbsp;Nouméa, ~0.1 M |
 
 Plus **Eindhoven** (city centre, station to the TU/e campus edge, 1.6 km), the reference use case
 ([`experiments/eindhoven_centre.yaml`](experiments/eindhoven_centre.yaml)). Populations are approximate and
@@ -408,25 +435,25 @@ Smoke test, 2026-11-14: 40 s headless autopilot trial per map, CARLA 0.9.16 at E
 
 | Map | Continent | Size | Traffic | Lane links | Buildings | Building heights | Relief (m) | Scenery meshes | Bus lines (with timetable) | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane | Collisions | Result |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Eindhoven | Europe | medium | right | 2318 | 2998 | 3dbag | 11 | 16781 | 51 (45) | 11 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| Cairo (Tahrir) | Africa | large | right | 3835 | 1308 | overture | 66 | 10814 | – | 3 | 0.994 | 0 | 1 | 1 | 0 | ok |
-| Kigali | Africa | medium | right | 1655 | 2942 | overture | 188 | 15270 | 18 (0) | 3 | 0.994 | 0 | 0 | 0 | 0 | ok |
-| Stellenbosch | Africa | small | left | 1748 | 1683 | overture | 32 | 8665 | – | 7 | 0.994 | 0 | 9 | 9 | 0 | ok |
-| Tokyo (Shibuya) | Asia | large | left | 5057 | 3833 | overture | 87 | 15735 | 31 (10) | 15 | 0.989 | 0 | 0 | 0 | 0 | ok |
-| Taipei (Main Station) | Asia | medium | right | 2940 | 2679 | overture | 48 | 15461 | 150 (0) | 14 | 0.991 | 0 | 0 | 0 | 0 | ok |
-| Luang Prabang | Asia | small | right | 1418 | 3611 | overture | 87 | 10402 | – | 2 | 0.995 | 0 | 0 | 0 | 0 | ok |
-| London (Westminster) | Europe | large | left | 2751 | 2069 | overture | 30 | 10053 | 31 (0) | 2 | 0.994 | 0 | 1 | 1 | 0 | ok |
-| Lyon (Bellecour) | Europe | medium | right | 2276 | 2518 | bdtopo | 135 | 19667 | 21 (20) | 6 | 0.992 | 0 | 2 | 2 | 0 | ok |
-| Leuven | Europe | small | right | 1537 | 5049 | overture | 26 | 19194 | 26 (26) | 4 | 0.992 | 0 | 2 | 2 | 0 | ok |
-| New York (Midtown) | North America | large | right | 2229 | 1404 | nyc | 14 | 8289 | 67 (54) | 9 | 0.988 | 0 | 0 | 0 | 0 | ok |
-| Portland, Oregon | North America | medium | right | 4368 | 710 | overture | 50 | 14077 | 27 (25) | 5 | 0.99 | 0 | 0 | 0 | 0 | ok |
-| Burlington, Vermont | North America | small | right | 2033 | 1974 | overture | 83 | 12027 | 10 (2) | 5 | 0.993 | 0 | 1 | 1 | 0 | ok |
-| São Paulo (Sé) | South America | large | right | 2164 | 3182 | overture | 85 | 16300 | 64 (56) | 4 | 0.991 | 0 | 0 | 0 | 0 | ok |
-| Montevideo | South America | medium | right | 1917 | 2411 | overture | 64 | 12668 | 3 (0) | 5 | 0.991 | 0 | 0 | 0 | 0 | ok |
-| Ushuaia | South America | small | right | 2404 | 2309 | overture | 129 | 12561 | 2 (0) | 3 | 0.993 | 0 | 0 | 0 | 0 | ok |
-| Sydney (CBD) | Oceania | large | left | 2609 | 985 | overture | 111 | 14600 | 32 (31) | 1 | 0.993 | 0 | 8 | 8 | 0 | ok |
-| Auckland (CBD) | Oceania | medium | left | 3935 | 1142 | overture | 47 | 14635 | 31 (29) | 0 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| Nouméa | Oceania | small | right | 1786 | 2465 | overture | 67 | 18425 | – | 6 | 0.993 | 0 | 2 | 2 | 0 | ok |
+| 🇳🇱&nbsp;Eindhoven | Europe | medium | right | 2318 | 2998 | 3dbag | 11 | 16781 | 51 (45) | 11 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| 🇪🇬&nbsp;Cairo&nbsp;(Tahrir) | Africa | large | right | 3835 | 1308 | overture | 66 | 10814 | – | 3 | 0.994 | 0 | 1 | 1 | 0 | ok |
+| 🇷🇼&nbsp;Kigali | Africa | medium | right | 1655 | 2942 | overture | 188 | 15270 | 18 (0) | 3 | 0.994 | 0 | 0 | 0 | 0 | ok |
+| 🇿🇦&nbsp;Stellenbosch | Africa | small | left | 1748 | 1683 | overture | 32 | 8665 | – | 7 | 0.994 | 0 | 9 | 9 | 0 | ok |
+| 🇯🇵&nbsp;Tokyo&nbsp;(Shibuya) | Asia | large | left | 5057 | 3833 | overture | 87 | 15735 | 31 (10) | 15 | 0.989 | 0 | 0 | 0 | 0 | ok |
+| 🇹🇼&nbsp;Taipei&nbsp;(Main&nbsp;Station) | Asia | medium | right | 2940 | 2679 | overture | 48 | 15461 | 150 (0) | 14 | 0.991 | 0 | 0 | 0 | 0 | ok |
+| 🇱🇦&nbsp;Luang&nbsp;Prabang | Asia | small | right | 1418 | 3611 | overture | 87 | 10402 | – | 2 | 0.995 | 0 | 0 | 0 | 0 | ok |
+| 🇬🇧&nbsp;London&nbsp;(Westminster) | Europe | large | left | 2751 | 2069 | overture | 30 | 10053 | 31 (0) | 2 | 0.994 | 0 | 1 | 1 | 0 | ok |
+| 🇫🇷&nbsp;Lyon&nbsp;(Bellecour) | Europe | medium | right | 2276 | 2518 | bdtopo | 135 | 19667 | 21 (20) | 6 | 0.992 | 0 | 2 | 2 | 0 | ok |
+| 🇧🇪&nbsp;Leuven | Europe | small | right | 1537 | 5049 | overture | 26 | 19194 | 26 (26) | 4 | 0.992 | 0 | 2 | 2 | 0 | ok |
+| 🇺🇸&nbsp;New&nbsp;York&nbsp;(Midtown) | North America | large | right | 2229 | 1404 | nyc | 14 | 8289 | 67 (54) | 9 | 0.988 | 0 | 0 | 0 | 0 | ok |
+| 🇺🇸&nbsp;Portland,&nbsp;Oregon | North America | medium | right | 4368 | 710 | overture | 50 | 14077 | 27 (25) | 5 | 0.99 | 0 | 0 | 0 | 0 | ok |
+| 🇺🇸&nbsp;Burlington,&nbsp;Vermont | North America | small | right | 2033 | 1974 | overture | 83 | 12027 | 10 (2) | 5 | 0.993 | 0 | 1 | 1 | 0 | ok |
+| 🇧🇷&nbsp;São&nbsp;Paulo&nbsp;(Sé) | South America | large | right | 2164 | 3182 | overture | 85 | 16300 | 64 (56) | 4 | 0.991 | 0 | 0 | 0 | 0 | ok |
+| 🇺🇾&nbsp;Montevideo | South America | medium | right | 1917 | 2411 | overture | 64 | 12668 | 3 (0) | 5 | 0.991 | 0 | 0 | 0 | 0 | ok |
+| 🇦🇷&nbsp;Ushuaia | South America | small | right | 2404 | 2309 | overture | 129 | 12561 | 2 (0) | 3 | 0.993 | 0 | 0 | 0 | 0 | ok |
+| 🇦🇺&nbsp;Sydney&nbsp;(CBD) | Oceania | large | left | 2609 | 985 | overture | 111 | 14600 | 32 (31) | 1 | 0.993 | 0 | 8 | 8 | 0 | ok |
+| 🇳🇿&nbsp;Auckland&nbsp;(CBD) | Oceania | medium | left | 3935 | 1142 | overture | 47 | 14635 | 31 (29) | 0 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| 🇳🇨&nbsp;Nouméa | Oceania | small | right | 1786 | 2465 | overture | 67 | 18425 | – | 6 | 0.993 | 0 | 2 | 2 | 0 | ok |
 
 All 19 maps load and drive with their scenery. "Scenery meshes" counts the placements on the whole map (about
 2,000-2,700 are loaded at a time around the car); "Relief" is the terrain's height range within the box; "Bus
@@ -1508,10 +1535,15 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   power per octave band (63 Hz-8 kHz; Directive (EU) 2015/996 as amended in 2021) for its category (car, van,
   bus/truck, moped, motorbike): rolling noise with the road surface (`road_surface`, e.g. Dutch paving blocks), air
   temperature and, on wet roads, IMAGINE's wet-road increase, and propulsion noise with the acceleration and the
-  engine speed of a gearbox model (idling when stopped). The engine is synthesised from its firing frequency and
-  orders, load-dependent harmonics, intake and exhaust resonances and cycle-to-cycle jitter (after Pieren et al.
-  2016 and Baldan et al. 2015), carrying CNOSSOS's band levels: a car at 50 km/h measures 72.9 dB(A) at 7.5 m
-  (measured pass-bys 70-73). Electric cars have tyres and an AVAS (on by default: UN R138, 56 dB(A) at 2 m up to 20
+  engine speed of a gearbox model (idling when stopped). The engine is heard from recordings of real engines, the
+  game-audio way (`engine_sound: recorded`, `coupledcarla/soundsamples.py`): a few steady-rpm loops per engine type
+  (petrol for cars, diesel for vans, buses and trucks, a twin for motorbikes; `data/sounds/engines`, cut by
+  `tools/sound_samples.py`), the two around the wanted engine speed resampled to it and cross-faded, each split into
+  the octave bands so that it plays at exactly CNOSSOS's band levels (the recording gives the timbre only); a
+  cruising or coasting engine is up to 6 dB quieter than CNOSSOS's average (`engine_part_load_db`), so steady urban
+  traffic is mostly tyres. `engine_sound: synth` keeps the older additive model (firing orders, formants, jitter,
+  after Pieren et al. 2016 and Baldan et al. 2015), also the fallback when the loops cannot be decoded. A car at
+  50 km/h measures 72.9 dB(A) at 7.5 m (measured pass-bys 70-73). Electric cars have tyres and an AVAS (on by default: UN R138, 56 dB(A) at 2 m up to 20
   km/h); bicycles a freewheel and now and then a bell; emergency vehicles a siren with their special lights; buses
   an air hiss at stops; `horn: true` makes a car braking hard before a pedestrian sound its horn.
   Every source reaches the ears by a direct path and two first-order reflections off the nearest facades, each
@@ -1520,10 +1552,30 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   the sides; a reverberant tail is sized by the street canyon around the listener. Output is panned stereo, or
   binaural for headphones (`spatial: binaural`: MIT KEMAR HRTFs, fetched once; else a spherical head model). A
   limiter keeps the sum from clipping.
-  Inside a car (driver, AV passenger) the own tyres and engine come through the cabin's insertion loss (41 dB(A) at
-  idle, 60 at 50 km/h, 70 at 100 km/h), with wind noise, the indicator relay and rain on the roof. Pedestrians hear
-  footsteps and accessible pedestrian signals at signalised crossings (ticking once a second while red, eight a
-  second while green, as Dutch and German signals do). The ambience follows the trial's real conditions (`weather:
+  Inside a car (driver, AV passenger) the own tyres and engine come through the cabin's insertion loss (about 50
+  dB(A) at idle, 60 at 50 km/h, 70 at 100 km/h), with wind noise, the recorded indicator relay (also for the hazard
+  lights), rain on the roof and windscreen (a recording in a parked car under the synthesised drops) and the wipers
+  while it rains (intermittent below 1 mm/h, 45 sweeps a minute, 65 above 4 mm/h; `wipers: off`). An **electric own
+  car** (e.g. `vehicle: vehicle.tesla.model3`, [`experiments/eindhoven_ev_driver.yaml`](experiments/eindhoven_ev_driver.yaml))
+  has no engine: the traction motor and reduction gear whine at orders of the motor speed (72 rpm per km/h), rising
+  with speed and louder when accelerating (`ev_motor_db`, 38 dB(A) at 50 km/h), tyres and wind, and its own AVAS
+  faintly through the cabin below 20 km/h; its cluster shows a power meter (`cluster_ev`) instead of the rev counter.
+  Pedestrians hear recorded footsteps (`footsteps`: shoes, trainers or grass; heel and toe, a random step each time
+  with a little pitch and level variation; about 60 dB(A) at the ears with hard soles), rain on their umbrella
+  (`umbrella: true`) and accessible pedestrian signals at signalised crossings (ticking once a second while red,
+  eight a second while green, as Dutch and German signals do). Wet roads add IMAGINE's tyre hiss (up to +12 dB above
+  2 kHz).
+- **Sound events** (`Soundscape.event(name, body_id, kind=...)`): what other parts of the simulator ask for, heard
+  from where that actor is: `horn` (short, long, double, or `seconds=`; recorded car horns, one per car, bus horns
+  and a truck's air horn, 95-108 dB(A) at 7 m; `body_id` None is the participant's own horn in the cabin), `bell` (a
+  bicycle's, recorded), `shout` (a pedestrian's "hey!"), `hazard` (on/off: the own car's relay ticks) and
+  `indicator` (left/right/off). Each is logged as a `sound_event` cue.
+- **The city's own sounds** (`coupledcarla/soundplaces.py`, `places: true`): recordings at real places of the map,
+  through the same propagation (occlusion, reflections, the street's reverb): voices and cutlery at the nearest cafe
+  terrace (Overture places, 8-23 h), people talking around a pedestrian (by the walkers near), construction at OSM
+  construction sites (working days 7-17 h), fountains, church bells striking the hour from the nearest church (7-22
+  h), crickets on warm summer nights and cicadas on hot days near green, leaves in the wind among trees, and a long
+  echo inside tunnels and passages under buildings. Places are cached in `maps/<name>/sound_places.json`. The ambience follows the trial's real conditions (`weather:
   real`, `time`): birds by dawn, season and the trees around, wind in the leaves, rain from the rain rate, the far
   traffic as a distant hum. Bird, rain and bicycle-bell recordings come from Wikimedia Commons (CC0, public domain,
   CC BY, CC BY-SA; fetched at run time and cached, never in the repository, credited in `audio_credits.txt`);
@@ -2180,6 +2232,11 @@ just as much; how to report bugs, propose features and run the tests: [CONTRIBUT
   [MyoSuite](https://github.com/MyoHub/myosuite) (Apache-2.0) on [MuJoCo](https://mujoco.org) (Apache-2.0), and
   [embodied-human](https://github.com/M-Colley/embodied-human) (Apache-2.0 AND MIT), used as separately installed packages.
 - Coupled CARLA's own code is released under the [MIT License](LICENSE).
+- Recorded sounds in `coupledcarla/data/sounds/` (engines, footsteps, horns, bells, wipers, rain in a car, city
+  ambience; 3.8 MB): openly licensed recordings from [Freesound](https://freesound.org), CC0 or CC BY. The CC BY ones:
+  Soundholder (Renault Master 2.8 dTi engine, CC BY 3.0), klankbeeld (pedestrian area, cafe terrace, construction
+  site, wind in trees, a shout; CC BY 4.0), arundasstp (bus horns, CC BY 4.0), dibko (a belfry's strike, CC BY
+  4.0). Every file, its source, author, licence and cut: [SOURCES.md](coupledcarla/data/sounds/SOURCES.md).
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL. Built maps and
   `buildings.json` are derived databases under the ODbL.

@@ -1,5 +1,10 @@
+import os
 import sys
 from pathlib import Path
+
+# tests never play sound on the machine's speakers (pygame's dummy driver; audio.Output records only)
+os.environ.setdefault("COUPLED_CARLA_MUTE", "1")
+os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # import coupledcarla without installing it
 

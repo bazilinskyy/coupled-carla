@@ -3,6 +3,9 @@
 #include "CCPhotorealTiles.h"
 
 #include "Cesium3DTileset.h"
+#include "CesiumCamera.h"
+#include "CesiumCameraManager.h"
+#include "CesiumLoadedTile.h"
 #include "Cesium3DTilesetLoadFailureDetails.h"
 #include "CesiumCartographicPolygon.h"
 #include "CesiumCreditSystem.h"
@@ -18,7 +21,20 @@
 #include "Carla/Game/CarlaStatics.h"
 #include "Carla/Weather/Weather.h"
 
+#include "Components/SceneCaptureComponent2D.h"
 #include "Components/StaticMeshComponent.h"
+#include "DynamicRHI.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/SceneCapture2D.h"
+#include "Engine/Texture2D.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "HAL/IConsoleManager.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInterface.h"
+#include "Misc/Compression.h"
+#include "RenderTimer.h"
+#include "UObject/UObjectIterator.h"
 #include "Dom/JsonObject.h"
 #include "Engine/StaticMesh.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
@@ -42,6 +58,9 @@ DEFINE_LOG_CATEGORY(LogCoupledPhotoreal);
 namespace
 {
 const TCHAR *GoogleRootUrl = TEXT("https://tile.googleapis.com/v1/3dtiles/root.json");
+// the plugin's tile material (Content/Materials; tools in unreal/CoupledPhotoreal/Tools/make_material.py)
+const TCHAR *TileMaterialPath = TEXT("/CoupledPhotoreal/Materials/M_CCPhotorealTiles.M_CCPhotorealTiles");
+constexpr int32 MaxCameras = 16;
 constexpr int32 MaxRunsKept = 200;
 
 FString HomeDir()
@@ -324,6 +343,13 @@ void ACCPhotorealTiles_C::Tick(float DeltaSeconds)
     NextCredits = T + 10.0;
     UpdateCredits();
   }
+  UpdateCameras(T);
+  ApplyNativeOptions();
+  if (bControl)
+  {
+    CheckControl(T);
+  }
+  UpdateProfile(T, DeltaSeconds);
   // a session lasts up to three hours: renew once before it runs out (one more billed root), if the caps allow
   const double SessionS = OptNum(TEXT("session_h"), 2.9) * 3600.0;
   if (SessionS > 0.0 && T - StartTime > SessionS)
@@ -346,6 +372,12 @@ void ACCPhotorealTiles_C::Tick(float DeltaSeconds)
 bool ACCPhotorealTiles_C::Start(FString &Why)
 {
   RunCap = FMath::Max(1, (int32)OptNum(TEXT("run_cap"), 2.0));
+  CutTop = OptNum(TEXT("cut_top"), 2.8);
+  CutGrow = OptNum(TEXT("grow"), 0.0);
+  bFeedCameras = Opt(TEXT("cams"), TEXT("1")) == TEXT("1");
+  PlayerCameras = Opt(TEXT("player"), TEXT("auto"));
+  ProfEvery = OptNum(TEXT("prof"), 0.0);
+  bControl = Opt(TEXT("control"), TEXT("0")) == TEXT("1");
   bNightBuildings = Opt(TEXT("night"), TEXT("1")) == TEXT("1");
   const FString TestUrl = Opt(TEXT("url"), TEXT(""));
   const bool bTest = !TestUrl.IsEmpty();
@@ -412,6 +444,16 @@ bool ACCPhotorealTiles_C::LoadLevelData(const FString &Level, FString &Why)
     CarveRings = RingsFromJson(Root, TEXT("carve"));
   }
   FootprintRings = RingsFromJson(Root, TEXT("footprints"));
+  const TSharedPtr<FJsonObject> *Cut = nullptr;
+  const bool bWantMask = Opt(TEXT("cut"), TEXT("mask")) == TEXT("mask") || bControl;
+  if (Opt(TEXT("carve"), TEXT("1")) != TEXT("0") && bWantMask && Root->TryGetObjectField(TEXT("cut"), Cut))
+  {
+    FString CutWhy;
+    if (!LoadCutGrid(*Cut, FPaths::GetPath(Files.Last()), CutWhy))
+    {
+      UE_LOG(LogCoupledPhotoreal, Warning, TEXT("CoupledPhotoreal: no cut grid (%s)"), *CutWhy);
+    }
+  }
   const TArray<TSharedPtr<FJsonValue>> *JCov = nullptr;
   if (Root->TryGetArrayField(TEXT("coverage"), JCov))
   {
@@ -448,9 +490,10 @@ bool ACCPhotorealTiles_C::LoadLevelData(const FString &Level, FString &Why)
     }
   }
   UE_LOG(LogCoupledPhotoreal, Log,
-         TEXT("CoupledPhotoreal: %s: origin %.7f, %.7f, %.2f m (ellipsoid), %d carve rings, %d footprints, hiding %s"),
+         TEXT("CoupledPhotoreal: %s: origin %.7f, %.7f, %.2f m (ellipsoid), %d carve rings, %d footprints, cut grid %s, "
+              "hiding %s"),
          *Files.Last(), OriginLat, OriginLon, OriginHeight, CarveRings.Num(), FootprintRings.Num(),
-         Hide.IsEmpty() ? TEXT("nothing") : *Hide);
+         bMaskReady ? TEXT("loaded") : TEXT("none"), Hide.IsEmpty() ? TEXT("nothing") : *Hide);
   return true;
 }
 
@@ -486,7 +529,23 @@ void ACCPhotorealTiles_C::SpawnCesium(const FString &Key)
       Out.Add(Polygon);
     }
   };
-  MakePolygons(CarveRings, CarvePolygons);
+  // the cut: the mask (the tile material and the grid) when both are here, else Cesium's polygon overlay
+  CutMode = Opt(TEXT("carve"), TEXT("1")) == TEXT("0") ? TEXT("none") : Opt(TEXT("cut"), TEXT("mask"));
+  if (Opt(TEXT("mat"), TEXT("plugin")) == TEXT("plugin"))
+  {
+    TileMaterial = LoadObject<UMaterialInterface>(nullptr, TileMaterialPath, nullptr, LOAD_NoWarn);
+  }
+  if (CutMode == TEXT("mask") && (!bMaskReady || TileMaterial == nullptr))
+  {
+    UE_LOG(LogCoupledPhotoreal, Warning, TEXT("CoupledPhotoreal: cut=mask needs %s; the polygon overlay cuts instead"),
+           TileMaterial == nullptr ? TEXT("the tile material (a server built with this plugin's content)")
+                                   : TEXT("the level's cut grid (python -m coupledcarla.photoreal cut)"));
+    CutMode = TEXT("polygons");
+  }
+  if (CutMode == TEXT("polygons") || bControl)
+  {
+    MakePolygons(CarveRings, CarvePolygons);
+  }
   if (bNightBuildings)
   {
     MakePolygons(FootprintRings, FootprintPolygons);
@@ -542,12 +601,20 @@ void ACCPhotorealTiles_C::SpawnCesium(const FString &Key)
   Tileset->MaximumSimultaneousTileLoads = FMath::Clamp((int32)OptNum(TEXT("loads"), 32.0), 1, 128);
   Tileset->MaximumCachedBytes = (int64)FMath::Clamp(OptNum(TEXT("cache_mb"), 1024.0), 64.0, 16384.0) * 1024 * 1024;
   Tileset->ShowCreditsOnScreen = true;
+  Tileset->EnableFogCulling = Opt(TEXT("fog"), TEXT("1")) == TEXT("1");
+  if (TileMaterial != nullptr)
+  {
+    Tileset->SetMaterial(TileMaterial);   // before BeginPlay: no reload
+  }
+  Tileset->SetLifecycleEventReceiver(this);
   SetClip(false);
   UGameplayStatics::FinishSpawningActor(Tileset, FTransform::Identity);
   LedgerCountRoot();   // BeginPlay -> LoadTileset has sent the root request
   FailureHandle = OnCesium3DTilesetLoadFailure.AddUObject(this, &ACCPhotorealTiles_C::OnLoadFailure);
-  UE_LOG(LogCoupledPhotoreal, Log, TEXT("CoupledPhotoreal: streaming %s (root requests: %d this run)"),
-         TestUrl.IsEmpty() ? TEXT("Google Photorealistic 3D Tiles") : *TestUrl, RootsThisRun);
+  UE_LOG(LogCoupledPhotoreal, Log, TEXT("CoupledPhotoreal: streaming %s (root requests: %d this run), cut %s, %s"),
+         TestUrl.IsEmpty() ? TEXT("Google Photorealistic 3D Tiles") : *TestUrl, RootsThisRun, *CutMode,
+         TileMaterial != nullptr ? TEXT("plugin tile material") : TEXT("Cesium's tile material"));
+  SetViewport(Opt(TEXT("viewport"), TEXT("1")) != TEXT("0"));
 }
 
 void ACCPhotorealTiles_C::SetClip(bool bWithFootprints)
@@ -562,9 +629,12 @@ void ACCPhotorealTiles_C::SetClip(bool bWithFootprints)
     Clip = nullptr;
   }
   TArray<TSoftObjectPtr<ACesiumCartographicPolygon>> Polygons;
-  for (ACesiumCartographicPolygon *P : CarvePolygons)
+  if (CutMode == TEXT("polygons"))
   {
-    Polygons.Add(P);
+    for (ACesiumCartographicPolygon *P : CarvePolygons)
+    {
+      Polygons.Add(P);
+    }
   }
   if (bWithFootprints)
   {
@@ -582,6 +652,10 @@ void ACCPhotorealTiles_C::SetClip(bool bWithFootprints)
                                                                               TEXT("CCRoadClip")));
   Clip->Polygons = Polygons;
   Clip->InvertSelection = false;
+  // the overlay's detail: Cesium's default (2 px error, up to 2048 px textures) rasterises every tile at up to 8x its
+  // screen size, testing each pixel against each triangle of the rings over it (cesium-native)
+  Clip->SetMaximumScreenSpaceError(OptNum(TEXT("clip_sse"), 2.0));
+  Clip->SetMaximumTextureSize((int32)OptNum(TEXT("clip_tex"), 2048.0));
   Clip->ExcludeSelectedTiles = false;   // a tile wholly inside a road ring still loads (its kerbs may stand outside)
   Tileset->AddInstanceComponent(Clip);
   if (Tileset->HasActorBegunPlay())
@@ -646,7 +720,8 @@ void ACCPhotorealTiles_C::ApplyVisibility()
     if (AActor *A = M.Actor.Get())
     {
       // visibility only: collision (cars, walkers, LiDAR) and navigation keep the twin's geometry
-      const bool bShow = (M.bBuilding && bNight && bNightBuildings && FootprintPolygons.Num() > 0) || !bTilesReady;
+      const bool bShow = (M.bBuilding && bNight && bNightBuildings && FootprintPolygons.Num() > 0) || !bTilesReady ||
+                         !bTilesShown;
       A->SetActorHiddenInGame(!bShow);
       NHidden += bShow ? 0 : 1;
     }
@@ -820,6 +895,13 @@ void ACCPhotorealTiles_C::EndPlay(const EEndPlayReason::Type EndPlayReason)
     OnCesium3DTilesetLoadFailure.Remove(FailureHandle);
   }
   RestoreTwin();
+  FlushProfile(Now());
+  if (ACesiumCameraManager *Manager = ACesiumCameraManager::GetDefaultCameraManager(this))
+  {
+    Manager->AdditionalCameras.Reset();
+    Manager->UsePlayerCameras = true;
+  }
+  SetViewport(true);
   if (Tileset != nullptr)
   {
     Tileset->Destroy();
@@ -942,5 +1024,454 @@ void ACCPhotorealTiles_C::LedgerCountRoot()
   if (!WriteJsonFile(Path, L))
   {
     UE_LOG(LogCoupledPhotoreal, Warning, TEXT("CoupledPhotoreal: cannot write the usage ledger %s"), *Path);
+  }
+}
+
+// ------------------------------------------------------------------------------------------------ the cut grid
+
+bool ACCPhotorealTiles_C::LoadCutGrid(const TSharedPtr<FJsonObject> &Cut, const FString &Folder, FString &Why)
+{
+  // written by coupledcarla.photoreal write_cut (format i8u16): zlib of an int8 plane (signed distance to the cut's
+  // outline, m = v * sdf_step, negative inside) and a little-endian uint16 plane (road height, m = z_base + v / 100),
+  // rows from the grid's southern edge (y0) northwards, columns from x0 eastwards (the level's metres, y north)
+  if (Str(Cut, TEXT("format")) != TEXT("i8u16"))
+  {
+    Why = FString::Printf(TEXT("unknown cut grid format '%s'"), *Str(Cut, TEXT("format")));
+    return false;
+  }
+  const int32 W = (int32)Num(Cut, TEXT("w")), H = (int32)Num(Cut, TEXT("h"));
+  const double X0 = Num(Cut, TEXT("x0")), Y0 = Num(Cut, TEXT("y0")), Res = Num(Cut, TEXT("res"));
+  const double Step = Num(Cut, TEXT("sdf_step")), ZBase = Num(Cut, TEXT("z_base"));
+  if (W <= 0 || H <= 0 || W > 16384 || H > 16384 || Res <= 0.0)
+  {
+    Why = FString::Printf(TEXT("bad cut grid size %d x %d at %.3f m"), W, H, Res);
+    return false;
+  }
+  const FString Path = FPaths::Combine(Folder, Str(Cut, TEXT("file")));
+  TArray<uint8> Packed;
+  if (!FFileHelper::LoadFileToArray(Packed, *Path))
+  {
+    Why = FString::Printf(TEXT("cannot read %s"), *Path);
+    return false;
+  }
+  const int64 N = (int64)W * H;
+  TArray<uint8> Raw;
+  Raw.SetNumUninitialized(N * 3);
+  if (!FCompression::UncompressMemory(NAME_Zlib, Raw.GetData(), (int32)Raw.Num(), Packed.GetData(), Packed.Num()))
+  {
+    Why = FString::Printf(TEXT("%s does not decompress to %d x %d"), *Path, W, H);
+    return false;
+  }
+  const EPixelFormat Format = GPixelFormats[PF_G16R16F].Supported ? PF_G16R16F : PF_FloatRGBA;
+  const int32 Channels = Format == PF_G16R16F ? 2 : 4;
+  UTexture2D *Tex = UTexture2D::CreateTransient(W, H, Format, TEXT("CCPhotorealCutGrid"));
+  if (Tex == nullptr)
+  {
+    Why = TEXT("cannot create the cut grid texture");
+    return false;
+  }
+  Tex->SRGB = false;
+  Tex->Filter = TF_Bilinear;
+  Tex->AddressX = TA_Clamp;
+  Tex->AddressY = TA_Clamp;
+  Tex->NeverStream = true;
+  FTexture2DMipMap &Mip = Tex->GetPlatformData()->Mips[0];
+  FFloat16 *Px = static_cast<FFloat16 *>(Mip.BulkData.Lock(LOCK_READ_WRITE));
+  const int8 *Sdf = reinterpret_cast<const int8 *>(Raw.GetData());
+  const uint8 *Z = Raw.GetData() + N;
+  for (int64 i = 0; i < N; ++i)
+  {
+    const uint16 Zq = (uint16)(Z[2 * i] | (Z[2 * i + 1] << 8));
+    Px[Channels * i] = FFloat16((float)(Sdf[i] * Step));
+    Px[Channels * i + 1] = FFloat16((float)(ZBase + Zq / 100.0));
+    if (Channels == 4)
+    {
+      Px[Channels * i + 2] = FFloat16(0.0f);
+      Px[Channels * i + 3] = FFloat16(1.0f);
+    }
+  }
+  Mip.BulkData.Unlock();
+  Tex->UpdateResource();
+  CutTexture = Tex;
+  // UV from Unreal world cm (x east, y south): u = (X / 100 - x0) / (w res), v = (-Y / 100 - y0) / (h res)
+  CutXform = FLinearColor((float)(1.0 / (100.0 * W * Res)), (float)(-X0 / (W * Res)), (float)(-1.0 / (100.0 * H * Res)),
+                          (float)(-Y0 / (H * Res)));
+  bMaskReady = true;
+  UE_LOG(LogCoupledPhotoreal, Log, TEXT("CoupledPhotoreal: cut grid %d x %d at %.2f m from %s"), W, H, Res, *Path);
+  return true;
+}
+
+void ACCPhotorealTiles_C::ApplyCutParams(UMaterialInstanceDynamic *Mid) const
+{
+  if (Mid == nullptr)
+  {
+    return;
+  }
+  const bool bOn = CutMode == TEXT("mask") && bMaskReady;
+  if (CutTexture != nullptr)
+  {
+    Mid->SetTextureParameterValue(TEXT("CCCutTex"), CutTexture);
+  }
+  Mid->SetVectorParameterValue(TEXT("CCCutXform"), CutXform);
+  Mid->SetScalarParameterValue(TEXT("CCCutOn"), bOn ? 1.0f : 0.0f);
+  Mid->SetScalarParameterValue(TEXT("CCCutTop"), CutTop > 0.0 ? (float)CutTop : 1.0e6f);   // 0: full height
+  Mid->SetScalarParameterValue(TEXT("CCCutGrow"), (float)CutGrow);
+}
+
+void ACCPhotorealTiles_C::ApplyCutParamsToAll()
+{
+  Mids.RemoveAll([](const TWeakObjectPtr<UMaterialInstanceDynamic> &M) { return !M.IsValid(); });
+  for (const TWeakObjectPtr<UMaterialInstanceDynamic> &M : Mids)
+  {
+    ApplyCutParams(M.Get());
+  }
+}
+
+void ACCPhotorealTiles_C::SetCutMode(const FString &Mode)
+{
+  FString M = Mode;
+  if (M == TEXT("mask") && (!bMaskReady || TileMaterial == nullptr))
+  {
+    UE_LOG(LogCoupledPhotoreal, Warning, TEXT("CoupledPhotoreal: cut=mask is not available here"));
+    return;
+  }
+  if (M != TEXT("mask") && M != TEXT("polygons") && M != TEXT("none"))
+  {
+    return;
+  }
+  CutMode = M;
+  SetClip(bNight && bNightBuildings && FootprintPolygons.Num() > 0);
+  ApplyCutParamsToAll();
+}
+
+void ACCPhotorealTiles_C::CustomizeMaterial(ICesiumLoadedTilePrimitive &TilePrimitive, UMaterialInstanceDynamic &Material,
+                                            const UCesiumMaterialUserData *CesiumData,
+                                            const CesiumGltf::Material &GltfMaterial)
+{
+  if (TileMaterial == nullptr)
+  {
+    return;
+  }
+  if (Mids.Num() > 4 * FMath::Max(64, LoadedTiles))
+  {
+    Mids.RemoveAll([](const TWeakObjectPtr<UMaterialInstanceDynamic> &M) { return !M.IsValid(); });
+  }
+  Mids.Add(&Material);
+  ApplyCutParams(&Material);
+}
+
+void ACCPhotorealTiles_C::OnTileVisibilityChanged(ICesiumLoadedTile &Tile, bool bVisible)
+{
+  if (bVisible)
+  {
+    VisibleTiles.Add(&Tile);
+  }
+  else
+  {
+    VisibleTiles.Remove(&Tile);
+  }
+}
+
+void ACCPhotorealTiles_C::OnTileLoaded(ICesiumLoadedTile &Tile)
+{
+  ++LoadedTiles;
+}
+
+void ACCPhotorealTiles_C::OnTileUnloading(ICesiumLoadedTile &Tile)
+{
+  LoadedTiles = FMath::Max(0, LoadedTiles - 1);
+  VisibleTiles.Remove(&Tile);
+}
+
+// ----------------------------------------------------------------------------------------- cameras and viewport
+
+void ACCPhotorealTiles_C::UpdateCameras(double T)
+{
+  ACesiumCameraManager *Manager = ACesiumCameraManager::GetDefaultCameraManager(this);
+  if (Manager == nullptr)
+  {
+    return;
+  }
+  if (!bFeedCameras)
+  {
+    if (LastCams != 0)
+    {
+      Manager->AdditionalCameras.Reset();
+      Manager->UsePlayerCameras = PlayerCameras != TEXT("0");
+      LastCams = 0;
+    }
+    return;
+  }
+  if (T >= NextCamScan)
+  {
+    // CARLA's camera sensors are ASensor actors holding a scene capture, which Cesium does not look for (it finds
+    // ASceneCapture2D actors and player cameras): every scene capture of this world outside an ASceneCapture2D
+    NextCamScan = T + 1.0;
+    Captures.Reset();
+    UWorld *World = GetWorld();
+    for (TObjectIterator<USceneCaptureComponent2D> It; It && Captures.Num() < MaxCameras; ++It)
+    {
+      USceneCaptureComponent2D *C = *It;
+      if (C == nullptr || C->IsTemplate() || C->GetWorld() != World || !IsValid(C->GetOwner()) ||
+          C->GetOwner()->IsA<ASceneCapture2D>() || C->ProjectionType != ECameraProjectionMode::Perspective ||
+          C->TextureTarget == nullptr || C->TextureTarget->SizeX < 1 || C->TextureTarget->SizeY < 1)
+      {
+        continue;
+      }
+      Captures.Add(C);
+    }
+  }
+  TArray<FCesiumCamera> Cams;
+  for (const TWeakObjectPtr<USceneCaptureComponent2D> &W : Captures)
+  {
+    const USceneCaptureComponent2D *C = W.Get();
+    if (C == nullptr || C->TextureTarget == nullptr)
+    {
+      continue;
+    }
+    Cams.Emplace(FVector2D(C->TextureTarget->SizeX, C->TextureTarget->SizeY), C->GetComponentLocation(),
+                 C->GetComponentRotation(), (double)C->FOVAngle);
+  }
+  Manager->AdditionalCameras = Cams;
+  // the spectator (the player camera) only while no sensor looks, unless asked for (player=1) or never (player=0)
+  Manager->UsePlayerCameras = PlayerCameras == TEXT("1") || (PlayerCameras == TEXT("auto") && Cams.Num() == 0);
+  if (Cams.Num() != LastCams)
+  {
+    LastCams = Cams.Num();
+    UE_LOG(LogCoupledPhotoreal, Log, TEXT("CoupledPhotoreal: tiles load for %d camera sensor(s)%s"), LastCams,
+           Manager->UsePlayerCameras ? TEXT(" and the spectator") : TEXT(""));
+  }
+}
+
+void ACCPhotorealTiles_C::SetViewport(bool bOn)
+{
+  // the server window's own view of the world (the spectator's); camera sensors capture on their own
+  if (GEngine != nullptr && GEngine->GameViewport != nullptr && bViewportOff == bOn)
+  {
+    GEngine->GameViewport->bDisableWorldRendering = !bOn;
+    bViewportOff = !bOn;
+    UE_LOG(LogCoupledPhotoreal, Log, TEXT("CoupledPhotoreal: the server window %s the world"),
+           bOn ? TEXT("renders") : TEXT("no longer renders"));
+  }
+}
+
+void ACCPhotorealTiles_C::ApplyNativeOptions()
+{
+  if (bNativeOptionsApplied || Tileset == nullptr)
+  {
+    return;
+  }
+  Cesium3DTilesSelection::Tileset *Native = Tileset->GetTileset();
+  if (Native == nullptr)
+  {
+    return;
+  }
+  bNativeOptionsApplied = true;
+  // game-thread time per frame for turning loaded tiles into meshes (Cesium for Unreal sets 5 ms)
+  const double LoadMs = OptNum(TEXT("load_ms"), 0.0);
+  if (LoadMs > 0.0)
+  {
+    Native->getOptions().mainThreadLoadingTimeLimit = LoadMs;
+    Native->getOptions().tileCacheUnloadTimeLimit = LoadMs;
+  }
+}
+
+// ------------------------------------------------------------------------------------- profile and control file
+
+void ACCPhotorealTiles_C::UpdateProfile(double T, float DeltaSeconds)
+{
+  if (ProfEvery <= 0.0)
+  {
+    return;
+  }
+  if (ProfStart <= 0.0)
+  {
+    ProfStart = ProfLastTick = T;
+    NextProf = T + ProfEvery;
+    return;
+  }
+  ++ProfFrames;
+  const double Wall = FMath::Max(0.0, T - ProfLastTick);
+  ProfLastTick = T;
+  ProfWall += Wall;
+  ProfMaxFrame = FMath::Max(ProfMaxFrame, Wall);
+  ProfGame += FPlatformTime::ToMilliseconds(GGameThreadTime);
+  ProfRender += FPlatformTime::ToMilliseconds(GRenderThreadTime);
+  ProfRhi += FPlatformTime::ToMilliseconds(GRHIThreadTime);
+  ProfGpu += FPlatformTime::ToMilliseconds(RHIGetGPUFrameCycles());
+  if (T >= NextProf)
+  {
+    FlushProfile(T);
+    NextProf = T + ProfEvery;
+  }
+}
+
+void ACCPhotorealTiles_C::FlushProfile(double T)
+{
+  if (ProfEvery <= 0.0 || ProfFrames == 0)
+  {
+    return;
+  }
+  const FString Path = FPaths::Combine(ConfigDir(), TEXT("google_tiles_profile.csv"));
+  const bool bNew = !FPaths::FileExists(Path);
+  Cesium3DTilesSelection::Tileset *Native = Tileset ? Tileset->GetTileset() : nullptr;
+  const double N = (double)ProfFrames;
+  FString Line;
+  if (bNew)
+  {
+    Line += TEXT("time,run,map,phase,frames,frame_ms,max_frame_ms,game_ms,render_ms,rhi_ms,gpu_ms,tiles_visible,"
+                 "tiles_loaded,native_tiles,tile_mb,load_pct,cameras,cut,cut_top,sse,mids\n");
+  }
+  Line += FString::Printf(TEXT("%s,%s,%s,%s,%lld,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%d,%d,%.1f,%.0f,%d,%s,%.2f,%.1f,%d\n"),
+                          *FDateTime::Now().ToString(TEXT("%Y-%m-%dT%H:%M:%S")), *RunStart, *MapName, *Phase,
+                          ProfFrames, 1000.0 * ProfWall / N, 1000.0 * ProfMaxFrame, ProfGame / N, ProfRender / N,
+                          ProfRhi / N, ProfGpu / N, VisibleTiles.Num(), LoadedTiles,
+                          Native ? (int32)Native->getNumberOfTilesLoaded() : 0,
+                          Native ? Native->getTotalDataBytes() / 1.0e6 : 0.0, Tileset ? Tileset->GetLoadProgress() : 0.0,
+                          FMath::Max(0, LastCams), *CutMode, CutTop, Tileset ? Tileset->MaximumScreenSpaceError : 0.0,
+                          Mids.Num());
+  FFileHelper::SaveStringToFile(Line, *Path, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM, &IFileManager::Get(),
+                                FILEWRITE_Append);
+  ProfFrames = 0;
+  ProfWall = ProfGame = ProfRender = ProfRhi = ProfGpu = ProfMaxFrame = 0.0;
+}
+
+void ACCPhotorealTiles_C::CheckControl(double T)
+{
+  if (T < NextControl)
+  {
+    return;
+  }
+  NextControl = T + 0.5;
+  // photoreal_control.txt beside the ledger: "key=value" pairs (lines or ";"); applied in order whenever the text
+  // changes; then photoreal_control.ack holds the applied text, so a script knows when a phase starts
+  const FString Dir = ConfigDir();
+  FString Text;
+  if (!FFileHelper::LoadFileToString(Text, *FPaths::Combine(Dir, TEXT("photoreal_control.txt"))) || Text == LastControl)
+  {
+    return;
+  }
+  LastControl = Text;
+  FlushProfile(T);    // the rows before belong to the phase before
+  TArray<FString> Lines;
+  Text.Replace(TEXT(";"), TEXT("\n")).ParseIntoArrayLines(Lines, true);
+  for (const FString &L : Lines)
+  {
+    FString K, V;
+    if (L.TrimStartAndEnd().Split(TEXT("="), &K, &V))
+    {
+      ApplyRuntime(K.TrimStartAndEnd(), V.TrimStartAndEnd());
+    }
+  }
+  NextProf = T + ProfEvery;
+  FFileHelper::SaveStringToFile(Text, *FPaths::Combine(Dir, TEXT("photoreal_control.ack")));
+}
+
+void ACCPhotorealTiles_C::ApplyRuntime(const FString &Key, const FString &Value)
+{
+  const double V = FCString::Atod(*Value);
+  const bool bOn = Value == TEXT("1") || Value == TEXT("true");
+  UE_LOG(LogCoupledPhotoreal, Log, TEXT("CoupledPhotoreal: control: %s=%s"), *Key, *Value);
+  if (Key == TEXT("phase"))
+  {
+    Phase = Value.Replace(TEXT(","), TEXT(" "));
+  }
+  else if (Key == TEXT("cut"))
+  {
+    SetCutMode(Value);
+  }
+  else if (Key == TEXT("cut_top"))
+  {
+    CutTop = V;
+    ApplyCutParamsToAll();
+  }
+  else if (Key == TEXT("grow"))
+  {
+    CutGrow = V;
+    ApplyCutParamsToAll();
+  }
+  else if (Key == TEXT("tiles"))
+  {
+    // tiles=0: the twin alone in the same level load (the baseline without another root request)
+    bTilesShown = bOn;
+    if (Tileset != nullptr)
+    {
+      Tileset->SetActorHiddenInGame(!bOn);
+      Tileset->SuspendUpdate = !bOn;
+    }
+    ApplyVisibility();
+  }
+  else if (Tileset == nullptr)
+  {
+    return;
+  }
+  else if (Key == TEXT("sse"))
+  {
+    Tileset->SetMaximumScreenSpaceError(V);
+  }
+  else if (Key == TEXT("culled_sse"))
+  {
+    Tileset->EnforceCulledScreenSpaceError = V > 0.0;
+    if (V > 0.0)
+    {
+      Tileset->CulledScreenSpaceError = V;
+    }
+  }
+  else if (Key == TEXT("forbid_holes"))
+  {
+    Tileset->ForbidHoles = bOn;
+  }
+  else if (Key == TEXT("loads"))
+  {
+    Tileset->MaximumSimultaneousTileLoads = FMath::Clamp((int32)V, 1, 128);
+  }
+  else if (Key == TEXT("cache_mb"))
+  {
+    Tileset->MaximumCachedBytes = (int64)FMath::Clamp(V, 64.0, 16384.0) * 1024 * 1024;
+  }
+  else if (Key == TEXT("fog"))
+  {
+    Tileset->EnableFogCulling = bOn;
+  }
+  else if (Key == TEXT("occlusion"))
+  {
+    Tileset->SetEnableOcclusionCulling(bOn);
+  }
+  else if (Key == TEXT("load_ms") && Tileset->GetTileset() != nullptr && V > 0.0)
+  {
+    Tileset->GetTileset()->getOptions().mainThreadLoadingTimeLimit = V;
+    Tileset->GetTileset()->getOptions().tileCacheUnloadTimeLimit = V;
+  }
+  else if ((Key == TEXT("clip_sse") || Key == TEXT("clip_tex")) && Clip != nullptr)
+  {
+    if (Key == TEXT("clip_sse"))
+    {
+      Clip->SetMaximumScreenSpaceError(V);
+    }
+    else
+    {
+      Clip->SetMaximumTextureSize((int32)V);
+    }
+    Clip->Refresh();   // re-adds the overlay (no tileset reload, no root request)
+  }
+  else if (Key == TEXT("cams"))
+  {
+    bFeedCameras = bOn;
+    NextCamScan = 0.0;
+  }
+  else if (Key == TEXT("player"))
+  {
+    PlayerCameras = Value;
+  }
+  else if (Key == TEXT("viewport"))
+  {
+    SetViewport(bOn);
+  }
+  else if (Key.StartsWith(TEXT("cvar.")))
+  {
+    if (IConsoleVariable *Var = IConsoleManager::Get().FindConsoleVariable(*Key.Mid(5)))
+    {
+      Var->Set(*Value, ECVF_SetByCode);
+    }
   }
 }

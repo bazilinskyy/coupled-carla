@@ -222,6 +222,12 @@ class Ambience:
                                                                   poisson=True, gain_db_sd=4.0, kinds=("direct",)))
             self.roof = m.add(("amb", "roof"), synth.EventVoice(synth.tick_buffers("roof", 6), seed=4,
                                                                 poisson=True, gain_db_sd=4.0, kinds=("direct",)))
+            # rain on the roof and windscreen heard in a parked car (a recording, data/sounds), under the drops above
+            from . import soundsamples
+            rc = soundsamples.clip("rain_in_car", log)
+            self.rain_car = None
+            if rc is not None:
+                self.rain_car = m.add(("amb", "rain_car"), synth.ShapedMono(rc, loop=True, kinds=("direct",)))
             log(f"sound: rain {env.rain:.1f} mm/h ({'recorded' if self.credits.keys() & {'rain_light', 'rain_heavy'} else 'synthesised'})")
         self.rain_shape = np.array([-20.0, -14.0, -9.0, -5.0, -2.0, 0.0, -1.0, -5.0])   # rain on hard ground
 
@@ -322,6 +328,13 @@ class Ambience:
             roof = self.roof
             roof.period = 1.0 / max(1.0, 60.0 * R) if inside else None
             rl = ac.rain_level(R, inside=True) - 10 * math.log10(max(1.0, 60.0 * R) * 0.05)
+            rc = getattr(self, "rain_car", None)
+            if rc is not None:       # the recorded bed carries most of it, the drops on top
+                rl -= 4.0
+                bd = rc.band_db(ac.rain_level(R, inside=True) - 2.0)
+                rc.paths[0].w = rc.weights(bd, ref) * (0.0 if mute or not inside else 1.0)
+                if inside:
+                    self.used.add("rain_in_car")
             roof.paths[0].w = roof.weights(roof.band_db(rl), ref) * (0.0 if mute or not inside else 1.0)
             info["rain_dba"] = ac.rain_level(R, inside=inside)
         return info
