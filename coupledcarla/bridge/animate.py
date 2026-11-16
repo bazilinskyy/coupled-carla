@@ -141,6 +141,7 @@ class PathSmoother:
         self.k = 0.0
         self.vs = None
         self._last_yaw = None
+        self._anchor = self._travel = None
         self.trailer = None
         self.snaps = 0
         self.max_off = 0.0
@@ -162,6 +163,18 @@ class PathSmoother:
             # a trailer-style body turned round where SUMO's heading pointed backwards (Eindhoven rush hour, trial
             # of 2026-11-16 18:48: 8-10 m jumps); left for later
             self.vs = max(0.0, speed)
+            # ... unless SUMO's heading points against the way its front moves (a bus driving east for seconds
+            # with SUMO's angle west, then flipping): then it is turned round behind its front
+            h0 = math.radians(target[2])
+            front = (target[0] + 0.5 * length * math.cos(h0), target[1] + 0.5 * length * math.sin(h0))
+            if self._anchor is None or math.dist(self._anchor, front) > 3.0:
+                self._anchor = front
+            elif math.dist(self._anchor, front) > TRAVEL_M:
+                self._travel = math.degrees(math.atan2(front[1] - self._anchor[1], front[0] - self._anchor[0]))
+                self._anchor = front
+            if self._travel is not None and speed > 0.5 and abs(wrap_deg(target[2] - self._travel)) > 120.0:
+                h = math.radians(self._travel)
+                target = (front[0] - 0.5 * length * math.cos(h), front[1] - 0.5 * length * math.sin(h), self._travel)
             yr = wrap_deg(target[2] - self._last_yaw) / dt if self._last_yaw is not None and dt > 0 else 0.0
             self._last_yaw = target[2]
             return target[0], target[1], target[2], yr, self.vs

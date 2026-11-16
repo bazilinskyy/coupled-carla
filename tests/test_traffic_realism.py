@@ -245,3 +245,12 @@ def test_u_turns_are_found():
     a, b, c = N(1), N(2), N(3)
     assert sumodriver.has_u_turn([E(a, b), E(b, a)])
     assert not sumodriver.has_u_turn([E(a, b), E(b, c)])
+
+
+def test_a_bus_pointing_backwards_is_turned_round():
+    sm = animate.PathSmoother()
+    out = None
+    for i in range(100):           # the front drives +x at 3 m/s; SUMO says the bus points -x (yaw 180)
+        fx = 0.06 * i
+        out = sm.step((fx + 5.0, 0.0, 180.0), 3.0, 10.0, 0.02)     # centre half a length "ahead" of the front
+    assert abs(animate.wrap_deg(out[2])) < 1.0 and out[0] < 0.06 * 99
