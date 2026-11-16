@@ -23,8 +23,8 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, photoreal, realworld, season, soundrec, study, \
-    towns, traffic
+from . import analysis, compat, config, crowdpeds, inputs, mapbuild, nightlights, parking, photoreal, realworld, season, \
+    soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from . import ehmi_design, ehmi_inside, levels, livemap, multigpu, placement, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
@@ -143,6 +143,7 @@ def set_weather(world, sc, latlon=None, cache_dir=None, log=print):
     w = sc["weather"]
     info = {"weather": w}
     real = w == "real"
+    rec = None
     if isinstance(w, str) and not real:
         weather = getattr(carla.WeatherParameters, w)
     else:
@@ -182,6 +183,8 @@ def set_weather(world, sc, latlon=None, cache_dir=None, log=print):
         weather.sun_altitude_angle = sc["sun_altitude"]
     world.set_weather(weather)
     info["night"] = weather.sun_altitude_angle < 3.0
+    # cars' lights by the Dutch rules: dipped beam and rear lights at night, in fog and in rain (nightlights.py)
+    info["lights"] = nightlights.weather_lights(weather, rec if real else None, sc.get("headlights", "auto"))
     return info
 
 
@@ -363,7 +366,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         (out / "weather.json").write_text(json.dumps(wx, indent=2))
         tc["_sound_env"] = soundrec.sound_env(wx, mdir, world.get_weather(),
                                               (tc.get("sound") or {}).get("weather")).as_dict()   # stations' sound
-        BridgeHelper.night = wx["night"]
+        BridgeHelper.night = wx["lights"]["low_beam"]         # SUMO cars: dipped beam and rear lights
+        BridgeHelper.fog = wx["lights"]["fog_rear"]
+        if wx["lights"]["low_beam"]:
+            log(f"cars drive with dipped beam and rear lights ({wx['lights']['why']})"
+                + ("; rear fog lights on" if wx["lights"]["fog_rear"] else ""))
         photo = photoreal.attach(world, tc, wx["night"], log)    # map.photoreal: Google's 3D tiles (photoreal.py)
         look.ATTRIBUTION = photoreal.attribution_text(photo.s) if photo else None
         if tc["server"].get("offscreen", True):
@@ -483,8 +490,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if isinstance(ag, ScriptedCar):
                 watch_collisions(ag.vehicle, ag.id)
 
-        if wx["night"]:      # headlights on after dark (SUMO cars: BridgeHelper.night)
-            lights = carla.VehicleLightState.LowBeam | carla.VehicleLightState.Position
+        if wx["lights"]["low_beam"]:      # headlights on after dark, in fog and rain (SUMO cars: BridgeHelper.night)
+            lights = nightlights.light_bits(wx["lights"], carla)
             for a in [p.actor for p in parts if p.actor.type_id.startswith("vehicle.")] + \
                      [ag.vehicle for ag in agents if isinstance(ag, ScriptedCar)]:
                 a.set_light_state(carla.VehicleLightState(int(a.get_light_state()) | int(lights)))
@@ -501,7 +508,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             scenery.update([a.get_location() for a in focus_actors])
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
-                                                  f"{scenery.lights_radius:.0f} m" if scenery.light_bp else ""))
+                                                  f"{scenery.lights_radius:.0f} m" if scenery.light_bp else "")
+                + (f", {scenery.n_lamp_specs} with their register colour and lumens" if scenery.n_lamp_specs else ""))
             if not town or towns.own_parked(world, tc, mdir, log):     # a town may keep its own parked cars
                 parked = parking.scenery(client, world, mdir, tc, log,
                                          on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
@@ -549,7 +557,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 part.bot.apply = lambda c, i=part.actor.id: queue(walker_cmd(i, c))
         for ag in agents:
             if isinstance(ag, ScriptedCar):
-                ag.apply = lambda c, i=ag.vehicle.id: queue(carla.command.ApplyVehicleControl(i, c))
+                bl = nightlights.BrakeLight(ag.vehicle, queue)      # its brake lights follow its control
+                ag.apply = lambda c, i=ag.vehicle.id, bl=bl: (queue(carla.command.ApplyVehicleControl(i, c)),
+                                                             bl.update(c, carla))
             else:
                 ag.follow.apply = lambda c, i=ag.walker.id: queue(walker_cmd(i, c))
         for f in getattr(crowd, "follow", None) or []:        # ai.Crowd (behaviour off)
@@ -648,6 +658,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     if ctl is not None:
                         queue(carla.command.ApplyVehicleControl(part.actor.id, ctl))
                         part.ctl = ctl
+                        if not hasattr(part.input, "_send_lights"):      # the bot driver: brake lights from here
+                            if getattr(part, "brake_light", None) is None:
+                                part.brake_light = nightlights.BrakeLight(part.actor, queue)
+                            part.brake_light.update(ctl, carla)
                 elif part.bot is not None:
                     part.bot.step(t)
                 while part.ehmi_schedule and part.ehmi_schedule[0][0] <= t:

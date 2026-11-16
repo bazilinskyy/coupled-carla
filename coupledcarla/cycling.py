@@ -837,6 +837,8 @@ def _demand(cfg, cc, map_dir, work, types, end, log):
             rate = new
         else:
             log(f"no open bike counter with a count for {day} {hour:02d}:00 in reach; bikes_per_hour {rate:.0f}")
+    if tc.get("_bike_weather", 1.0) < 1.0:     # rain (traffic.prepare, nightlights.bike_weather_factor)
+        rate *= tc["_bike_weather"]
     _write_od(od_r, src_r, dst_r, end)
     _write_od(od_c, src_c, dst_c, end)
     files, _ = _generate(net_file, work, "bike", rate, share, end, seed, types, costs, od_r, od_c)

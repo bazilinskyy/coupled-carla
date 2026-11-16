@@ -150,7 +150,8 @@ def _ehv(bbox):
         out.append({"type": "node", "id": -1_000_000 - i, "lat": g["lat"], "lon": g["lon"], "tags": tags})
     lights = requests.get(EHV.format("data-openbare-verlichting"),
                           params={"where": where, "select": "geo_point_2d,lph_armatuur,soort_lamp,kleur_lamp,"
-                                                             "type_drager_mast,type_drager_uithouder,type_armatuur"},
+                                                             "type_lamp,lumen_lamp,wattage_lamp,type_drager_mast,type_drager_uithouder,"
+                                                             "type_armatuur"},
                           headers=UA, timeout=180).json()
     seen = set()
     for i, lt in enumerate(lights):
@@ -162,13 +163,15 @@ def _ehv(bbox):
             continue
         seen.add(key)
         tags = {"highway": "street_lamp", "source": "eindhoven-openbare-verlichting",
-                "lamp_type": lt.get("soort_lamp") or "", "light:colour": lt.get("kleur_lamp") or ""}
+                "lamp_type": lt.get("soort_lamp") or "", "light:colour": lt.get("kleur_lamp") or "",
+                # the lamp, its flux and how it is mounted (nightlights.lamp_spec)
+                "lamp_model": lt.get("type_lamp") or "", "light:lumen": lt.get("lumen_lamp") or "",
+                "light:wattage": lt.get("wattage_lamp") or "", "support:register": lt.get("type_drager_mast") or "",
+                "lamp_arm": lt.get("type_drager_uithouder") or ""}
         if lt.get("lph_armatuur"):
             tags["height"] = f"{float(lt['lph_armatuur']) / 100:.1f}"      # light point height, cm
-        for k, v in (("ehv:mast", "type_drager_mast"), ("ehv:arm", "type_drager_uithouder"),
-                     ("ehv:luminaire", "type_armatuur")):       # mast and arm types (streetlook.py)
-            if lt.get(v):
-                tags[k] = lt[v]
+        if lt.get("type_armatuur"):
+            tags["lamp_luminaire"] = lt["type_armatuur"]      # the luminaire (streetlook.py)
         out.append({"type": "node", "id": -2_000_000 - i, "lat": g["lat"], "lon": g["lon"], "tags": tags})
     out += _ehv_furniture(where)
     return out
@@ -233,13 +236,12 @@ def _in_box(bbox, s, w, n, e):
     return s <= lat <= n and w <= lon <= e
 
 
+MUNICIPAL_VERSION = 3      # 2: Eindhoven's lamps with their lamp model, lumens, watts, mast and arm; 3: its luminaires,
+                           # benches and bins (streetlook.py)
 MUNICIPAL = [   # (name, area (s, w, n, e) the register covers, fetch, what it has)
     ("eindhoven", (51.38, 5.38, 51.50, 5.57), _ehv, "Gemeente Eindhoven open data: bomen, openbare verlichting"),
     ("nyc_trees", (40.49, -74.27, 40.92, -73.68), _nyc_trees, "NYC Parks 2015 Street Tree Census"),
 ]
-
-
-MUNICIPAL_VERSION = 2      # 2: Eindhoven's mast and arm types, benches and bins (a version 1 cache is fetched again)
 
 
 def municipal_scenery(bbox, path):
@@ -252,7 +254,7 @@ def municipal_scenery(bbox, path):
         data["sources"] = ["nyc_trees" if s == "nyc" else s for s in data.get("sources", [])]
         if data.get("version", 1) >= MUNICIPAL_VERSION or "eindhoven" not in data["sources"]:
             return data
-        old = data      # an Eindhoven cache without the mast types: fetched again, kept if that fails
+        old = data      # Eindhoven's lamps without their lamp, flux and mount (before MUNICIPAL_VERSION 2)
     els, used, failed = [], [], False
     for name, area, fetch, what in MUNICIPAL:
         if _in_box(bbox, *area):
@@ -266,7 +268,7 @@ def municipal_scenery(bbox, path):
             used.append(name)
             log(f"{what}: {sum(1 for x in got if x['tags'].get('natural') == 'tree')} trees, "
                 f"{sum(1 for x in got if x['tags'].get('highway') == 'street_lamp')} street lights")
-    if failed and old is not None:
+    if failed and old is not None:      # the register is down: the older cache rather than none
         return old
     data = {"elements": els, "sources": used}
     if not failed:      # a register that was down is not cached as "no register here"
@@ -788,6 +790,7 @@ def weather_at(lat, lon, when, cache_dir=None):
     i = times.index(stamp) if stamp in times else len(times) - 1
     rec = {k: v[i] for k, v in data["hourly"].items() if k != "time"}
     rec["precipitation_3h"] = sum(x or 0 for x in data["hourly"]["precipitation"][max(0, i - 2):i + 1])   # 3 h
+    rec["precipitation_before_3h"] = sum(x or 0 for x in data["hourly"]["precipitation"][max(0, i - 3):i])
     rec["time"] = times[i]
     rec["timezone"] = data.get("timezone")
     return rec, local, off

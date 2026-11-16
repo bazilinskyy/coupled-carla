@@ -413,7 +413,9 @@ def for_trial(cfg, mdir, world, log=log):
     sc = cfg["simulation"].get("scenery") or {}
     state, progress, info = trial_leaves(cfg, mdir, log)
     season = {"state": state, "progress": progress, "bare": sc.get("bare", "small"),
-              "lights_radius_m": float(sc.get("lights_radius_m", 200.0))}
+              "lights_radius_m": float(sc.get("lights_radius_m", 200.0)),
+              "lamp_lumen_scale": float(sc.get("lamp_lumen_scale", 1.0)),
+              "lamp_colours": sc.get("lamp_colours", True) not in (False, None, "off")}
     sun = world.get_weather().sun_altitude_angle
     want = sc.get("lamp_lights", "auto")
     if want and (want is True or sun <= NIGHT_SUN):

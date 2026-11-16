@@ -37,7 +37,8 @@ class BridgeHelper(object):
     blueprint_library = []
     offset = (0, 0)
 
-    night = False     # coupled-carla: headlights on for every SUMO vehicle after dark
+    night = False     # coupled-carla: dipped beam and rear lights on every SUMO vehicle (night, fog, rain; RVV art. 32)
+    fog = False       # coupled-carla: rear fog lights too (fog under 50 m; RVV art. 34)
     _vtypes_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data",
                                 "vtypes.json")
     with open(_vtypes_path) as f:
@@ -263,7 +264,7 @@ class BridgeHelper(object):
             current_lights ^= carla.VehicleLightState.LowBeam
 
         # Fog.
-        if (bool(sumo_lights & SumoVehSignal.FOGLIGHT) !=
+        if ((bool(sumo_lights & SumoVehSignal.FOGLIGHT) or BridgeHelper.fog) !=
                 bool(current_lights & carla.VehicleLightState.Fog)):
             current_lights ^= carla.VehicleLightState.Fog
 
@@ -278,9 +279,12 @@ class BridgeHelper(object):
             current_lights ^= carla.VehicleLightState.Reverse
 
         # Door open left/right.
+        # (coupled-carla: and the rear lights with the dipped beam, RVV art. 32(3): without Position a car's rear
+        # stayed dark at night)
         if (any([
                 bool(sumo_lights & SumoVehSignal.DOOR_OPEN_LEFT),
-                bool(sumo_lights & SumoVehSignal.DOOR_OPEN_RIGHT)
+                bool(sumo_lights & SumoVehSignal.DOOR_OPEN_RIGHT),
+                BridgeHelper.night
         ]) != bool(current_lights & carla.VehicleLightState.Position)):
             current_lights ^= carla.VehicleLightState.Position
 

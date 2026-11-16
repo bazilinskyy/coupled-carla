@@ -60,7 +60,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Citation](#citation) · [License](#license) · [Support](#support-coupled-carla)
 - [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
 - [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
-- [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
+- [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [night and rain](#night-and-rain), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
 - [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [VR stations](docs/lab_guide.md#vr-stations), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
 - [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
 - [Traffic](#traffic) · [Traffic lights](#traffic-lights)
@@ -495,9 +495,9 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | Road signs (NL) | [NDW Verkeersborden](https://docs.ndw.nu/en/data-uitwisseling/interface-beschrijvingen/verkeersborden-api/), the national traffic sign register (CC0); sign faces: the RVV drawings on [Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:Diagrams_of_road_signs_of_the_Netherlands) (public domain / CC0, 13 CC BY-SA 4.0) | every official sign at its position, facing the traffic it governs, plates stacked on posts: CARLA's own stop, give-way and no-entry meshes; on CARLA 1.0 every other sign with its Dutch face on a plate of its shape (248 designs; Eindhoven: 779 of 955 plates), else a blank plate; OSM signs of the same kind within 8 m are dropped |
 | Shared bikes and scooters | [GBFS](https://gbfs.org) feeds from [MobilityData's systems catalogue](https://github.com/MobilityData/gbfs/blob/master/systems.csv) (CC BY 3.0), TfL BikePoint, Taipei's YouBike | the bikes at each dock and free-floating bikes, scooters and mopeds where they stand (CARLA's road bike and Vespa meshes); a trial at `time: now` takes a fresh snapshot (9 maps have a system) |
 | Tree heights | [Meta/WRI 1 m canopy height map](https://registry.opendata.aws/dataforgood-fb-forests/) (Tolan et al. 2024) | the size of trees without a mapped height (OSM nodes and rows, park planting), corrected against Eindhoven's register |
-| City registers | Eindhoven's open data ([bomen](https://data.eindhoven.nl/explore/dataset/bomen/): 127,911 trees with species and height class; [openbare verlichting](https://data.eindhoven.nl/explore/dataset/data-openbare-verlichting/): 58,430 lamps with mast height); NYC's [2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) | every public tree and street light where the city lists them (OSM trees within 3 m of one are dropped; register lamps replace OSM and guessed ones) |
+| City registers | Eindhoven's open data ([bomen](https://data.eindhoven.nl/explore/dataset/bomen/): 127,911 trees with species and height class; [openbare verlichting](https://data.eindhoven.nl/explore/dataset/data-openbare-verlichting/): 58,507 lights with mast, arm, lamp, wattage and lumens); NYC's [2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) | every public tree and street light where the city lists them (OSM trees within 3 m of one are dropped; register lamps replace OSM and guessed ones; lights on walls, under canopies, on span wires or in the paving get no pole; [night lights](#night-and-rain)) |
 | Weather | [Open-Meteo](https://open-meteo.com) forecast and ERA5 archive (back to 1940) | clouds, rain, wet roads, wind and fog of that hour |
-| Sun | computed (NOAA solar position) | the sun's altitude and direction for the place and local time; headlights on after dark |
+| Sun | computed (NOAA solar position) | the sun's altitude and direction for the place and local time; headlights on after dark ([night and rain](#night-and-rain)) |
 
 ```yaml
 map:
@@ -563,7 +563,7 @@ Built from these sources (the test maps of central Eindhoven, Lyon, Kigali and N
 | New York (Midtown) | 1,406 (NYC Open Data) | 801 (719) | 1,153 (103) | 339 | 2 | 14 m |
 
 Where OSM maps few street lamps, lamps line the roads every 32 m (on by default, `guess_lamps`). The lamp
-meshes give no light at night: CARLA 0.9.16 cannot add lights at run time.
+meshes give no light at night on CARLA 0.9.16, which cannot add lights at run time ([night and rain](#night-and-rain)).
 
 **Seasons.** With `simulation.time` set, deciduous trees follow the date at the place (`coupledcarla/season.py`):
 in leaf, in autumn colour (a growing share take CARLA's autumn sugar maple and red Japanese maples) or bare. A bare
@@ -612,6 +612,64 @@ Output: counts per kind and problem, the worst examples and camera frames in `lo
 300 m of the centre it found and the fixes removed, in Eindhoven: 168 of CARLA's own traffic lights hanging at 5 m
 (0 left), 45 duplicate signal heads (0), 867 floating objects (20), 35 signs, lamps or poles on a lane or in a
 junction (7); New York and Tokyo alike.
+
+### Night and rain
+
+`coupledcarla/nightlights.py` gives the street lamps the light their city lists, drives cars with the lights the Dutch
+rules ask for and sends fewer cyclists out in the rain.
+
+**Lamps from the register.** Eindhoven's lighting register lists per light point its mast or bracket, its arm, the
+height of the light, the lamp (`SON-T PIA PLUS 150W`, `CorePro LED Urban PLL Mains 13W 830`), its wattage and its
+lumens. In the centre (3,129 lights in the map's box) 1,013 are not on a pole of their own: on the walls of the
+road tunnels and underpasses (about 350: Kruisstraat, Vestdijk, Boschdijk, Dommel, Elisabeth), in car parks, on facades and
+columns, under canopies (the station's), on span wires over shopping streets or set in the paving. Each of them used
+to stand as a street lamp on its own pole, rows of them on the streets above the tunnels; now only lamps on masts are
+placed (2,343 lamp poles before, 1,816 now). Each placed lamp keeps its colour temperature and flux in `scenery.json` (`lamp_specs`):
+the colour from the lamp model's code (LED `830` = 3,000 K, `740` = 4,000 K, `3000K`, `WW`), else from the kind of
+lamp (high-pressure sodium 2,000 K, low-pressure sodium 1,800 K, CosmoPolis 2,800 K, ceramic metal halide 3,000 K,
+fluorescent and mercury 4,000 K, LED 3,000 K), else the colour word (geel, oranje); the flux from the listed lumens
+(median 3,500 lm; 10-90 % 1,800-17,000 lm), else watts times the kind's efficacy, capped at 40,000 lm. In the
+centre's lamps: 910 at 3,000 K, 481 sodium at 2,000 K, 347 at 4,000 K, 75 at 2,800 K. OSM lamps with `lamp_type`
+(sodium, LED, mercury) and `support` (wall_mounted, suspended, ceiling, ground) are read the same way elsewhere.
+
+On CARLA 1.0 the lit lamps get that colour and flux through the LightManager (`simulation.scenery.lamp_colours`,
+`lamp_lumen_scale`, default 1: the real lumens). This needs a fix in CARLA: ue58-dev applies a client's
+`set_intensity`/`set_color` to its own record only, not to the light (the lamp blueprints' `UpdateLights` graphs
+never reach their light components; only on/off was enforced), so without it every lamp keeps CARLA's 27,000 lm
+and warm white. The fix is three lines in `UCarlaLight::SetLightState`:
+[`unreal/patches/CarlaLight_SetLightState.patch`](unreal/patches/CarlaLight_SetLightState.patch) (not yet built
+into the lin5080 editor or the win5090 package). Lamps under 1,000 lm are sent as 1,000: CARLA reads smaller
+street-light values as kilolumens. Why the lamps were dark before: they were spawned 100 m up and moved down, which
+a Static root mesh ignores (fixed by spawning them in place, above); CARLA's own fixes in ue58-dev made old
+UE4-unit lamps, switched-off light components, light-masking IES profiles and lamp heads that shadowed their own
+light render. CARLA 0.9.16 cannot add lights: its lamps stay dark poles, and night there is lit by headlights,
+lit shop windows and the sky.
+
+**Vehicle lights** (`simulation.headlights: auto`), after the Dutch traffic rules (RVV 1990): dipped beam at night
+and by day when visibility is seriously impaired (art. 32(1)), rear lights whenever the dipped beam is on (art.
+32(3)), the rear fog light only in fog or snow under 50 m (art. 34(2)), never for rain. The law gives no number for
+seriously impaired; here it is visibility under 1 km (fog) or rain from 2.5 mm/h (the start of moderate rain). Night
+is the sun below 3°, as before. This holds for the participants' cars, scripted cars and every SUMO car (before,
+SUMO cars at night drove with headlights but dark rear lights: the bridge switched the rear lights only for open
+doors). The autopilot driver and scripted cars now light their brake lights while braking (keyboard and wheel did
+already; SUMO cars follow SUMO's brake signal). `weather.json` says which lights and why.
+
+**Wet roads and rain.** Rain of the real hour sets CARLA's precipitation (1 mm/h = 20), the rain of the last three hours
+its wetness and puddles ([weather](#real-world-scenery-terrain-and-weather) above). CARLA 1.0 also puts rain
+on the camera lens and around every camera and makes the roads look wet; 0.9.16 darkens and mirrors wet roads.
+Neither CARLA has spray behind vehicles, wipers (no vehicle has a wiper mesh or animation, so the cabin view shows
+none; a drawn overlay is not used) or umbrellas (no hand-held umbrella mesh, and walkers cannot hold props through
+the API), and its cyclists have no rain gear.
+
+**Fewer cyclists in rain** (`traffic.cycling.weather: auto`). Bike demand (counted or set) is multiplied by the hourly factors of
+[Wessel (2020)](https://www.wiwi.uni-muenster.de/ivm/sites/ivm/files/documents/forschung/diskussionspapiere/workingpaper32v2.pdf) from 188 German counting stations: drizzle under 0.5 mm/h 0.85, 0.5-1 mm/h 0.82, 1-2 mm/h
+0.77, 2-5 mm/h 0.74, 5 mm/h and more 0.75, times 0.79 when it rained in the three hours before. The rain comes from
+Open-Meteo with `weather: real`, else from the preset or the weather's precipitation (MidRainy: 3 mm/h, x 0.74).
+
+`tools/scenery_shots.py --chase NAME:LAT,LON,HEADING --ahead 3 --brake --lights rules|old` renders a car with three
+cars ahead in its lane, lit as the rules say or as before (`--scenery-json` spawns another scenery.json, e.g. one
+built before a change); `tools/lamp_check.py --scenery MAPDIR` reports the lit lamps and their colour and lumens on
+a CARLA 1.0 server.
 
 ### Parked cars
 

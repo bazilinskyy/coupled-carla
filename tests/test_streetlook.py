@@ -35,36 +35,34 @@ def test_parse_mast():
 
 def test_lamps_by_register_type(cat10):
     c = streetlook.Chooser(cat10, "NLD", (51.43, 5.47, 51.45, 5.49))
-    lamp = c.lamp
-    assert lamp({"ehv:mast": "AL 3,5 CONISCH NIEUW"}, True)[0] == "SM_CC_NL_LampPostTop4"
-    assert lamp({"ehv:mast": "AL 3,5 CONISCH NIEUW"}, True)[1] == pytest.approx(0.875)
-    assert lamp({"ehv:mast": "AL 6 NEDAL V.061PT03.6E.000", "ehv:arm": "AL OPZETSTUK 0,20 M"}, True)[0] == \
+    lamp = c.street_lamp
+    assert lamp({"support:register": "AL 3,5 CONISCH NIEUW"}, True)[0] == "SM_CC_NL_LampPostTop4"
+    assert lamp({"support:register": "AL 3,5 CONISCH NIEUW"}, True)[1] == pytest.approx(0.875)
+    assert lamp({"support:register": "AL 6 NEDAL V.061PT03.6E.000", "lamp_arm": "AL OPZETSTUK 0,20 M"}, True)[0] == \
         "SM_CC_NL_LampTopLed6"
-    m, s, arm = lamp({"ehv:mast": "ST 9 STANDAARD VZ", "ehv:arm": "ST ENKEL 1,50 M LOS VZ"}, True)
+    m, s, arm = lamp({"support:register": "ST 9 STANDAARD VZ", "lamp_arm": "ST ENKEL 1,50 M LOS VZ"}, True)
     assert (m, s, arm) == ("SM_CC_NL_LampArm9", 1.0, True)
-    assert lamp({"ehv:mast": "ST 15 CONISCH VZ"}, True)[0] == "SM_CC_NL_LampArm12"
-    assert lamp({"ehv:mast": "ST 11 M.V.U. 0,44/0,38 DUB.A/S VZ", "ehv:arm": "ST DUBBEL 1,50 M"}, True)[0] == \
+    assert lamp({"support:register": "ST 15 CONISCH VZ"}, True)[0] == "SM_CC_NL_LampArm12"
+    assert lamp({"support:register": "ST 11 M.V.U. 0,44/0,38 DUB.A/S VZ", "lamp_arm": "ST DUBBEL 1,50 M"}, True)[0] == \
         "SM_CC_NL_LampDouble10"
-    assert lamp({"ehv:mast": "GY 3,5 (met deur)"}, True)[0] == "SM_CC_NL_LampHeritage4"
-    assert lamp({"ehv:mast": "BB IN/OP/AAN WAND/GEVEL"}, True) == "skip"
-    assert lamp({"support": "wall_mounted"}, True) == "skip"
+    assert lamp({"support:register": "GY 3,5 (met deur)"}, True)[0] == "SM_CC_NL_LampHeritage4"
     assert lamp({}, True)[0] == "SM_CC_NL_LampTopLed6" and lamp({}, False)[0] == "SM_CC_NL_LampPostTop4"
     # scale stays within the limits (a 30 m mast does not become a 40 m lamp)
     assert lamp({"height": "25"}, True)[1] == streetlook.SCALE_LIMITS[1]
-    assert c.counts["lamp_no_mast"] == 2
+    assert c.counts["lamp_post_top"] >= 2
 
 
 def test_regions_and_catalogue_versions(cat10):
     assert streetlook.region("NLD") == "NL" and streetlook.region("GBR") == "UK" and streetlook.region("USA") is None
     us = streetlook.Chooser(cat10, "USA")
-    assert us.lamp({"ehv:mast": "AL 4"}, True) is None and us.furniture("amenity", "bench", {}) is None
+    assert us.street_lamp({"support:register": "AL 4"}, True) is None and us.furniture("amenity", "bench", {}) is None
     old = streetlook.Chooser(scenery.Catalog("0.9.16"), "NLD")      # 0.9.16 has none of our meshes: CARLA's props
-    assert old.lamp({"ehv:mast": "AL 4"}, True) is None
+    assert old.street_lamp({"support:register": "AL 4"}, True) is None
     assert old.furniture("barrier", "bollard", {}) is None
     uk = streetlook.Chooser(cat10, "GBR")
-    assert uk.lamp({}, True)[0] == "SM_CC_UK_LampColumn8" and uk.lamp({}, False) is None
+    assert uk.street_lamp({}, True)[0] == "SM_CC_UK_LampColumn8" and uk.street_lamp({}, False) is None
     assert uk.furniture("amenity", "waste_basket", {}) == "SM_CC_UK_BinCast"
-    assert streetlook.Chooser(cat10, "JPN").lamp({}, True)[0] == "SM_CC_JP_LampGooseneck8"
+    assert streetlook.Chooser(cat10, "JPN").street_lamp({}, True)[0] == "SM_CC_JP_LampGooseneck8"
 
 
 def test_dutch_furniture(cat10):
@@ -186,10 +184,10 @@ def test_municipal_cache_version(tmp_path, monkeypatch):
     def fake(bbox):
         calls.append(bbox)
         return [{"type": "node", "id": -1, "lat": 51.44, "lon": 5.47,
-                 "tags": {"highway": "street_lamp", "ehv:mast": "AL 4"}}]
+                 "tags": {"highway": "street_lamp", "support:register": "AL 4"}}]
     monkeypatch.setattr(rw, "MUNICIPAL", [("eindhoven", (51.38, 5.38, 51.50, 5.57), fake, "test")])
     got = rw.municipal_scenery((51.43, 5.47, 51.45, 5.49), path)
-    assert calls and got["version"] == rw.MUNICIPAL_VERSION and got["elements"][0]["tags"]["ehv:mast"] == "AL 4"
+    assert calls and got["version"] == rw.MUNICIPAL_VERSION and got["elements"][0]["tags"]["support:register"] == "AL 4"
     calls.clear()
     rw.municipal_scenery((51.43, 5.47, 51.45, 5.49), path)       # now current: read from the cache
     assert not calls
@@ -223,3 +221,33 @@ def test_vienna_faces_for_osm_signs(cat10):
     assert f("speed", 50, "USA", cat10) is None and f("speed", 55, "FRA", cat10) is None   # no such face
     assert f("give_way", None, "UKR", scenery.Catalog("0.9.16")) is None
     assert f("stop", None, "UKR", cat10) is None and f("give_way", None, None, cat10) is None
+
+
+def test_night_stand_in_for_regional_lamps(cat10):
+    """A regional lamp records CARLA's lit lamp as its night stand-in, relative to it; Scenery swaps it in when the
+    trial has lamp lights."""
+    from coupledcarla.scenery import Placer
+    pl = Placer.__new__(Placer)
+    pl.cat, pl.items, pl.bases, pl.counts, pl.mesh_index = cat10, [], [], {}, {}
+    pl.ground = lambda x, y: 1.5
+    pl.counts = __import__("collections").defaultdict(int)
+    item = pl.add("lamp", "SM_CC_NL_LampArm9", 10.0, 20.0, 90.0, 1.0)
+    alt = streetlook.night_stand_in(pl, cat10, item, "SM_StreetLight06_A", 10.0, 20.0, 90.0)
+    assert alt[0] == pl.mesh_index["SM_StreetLight06_A"]
+    rows = streetlook.night_rows(pl)
+    assert rows[0][0] == 0 and rows[0][1] == alt[0]
+    assert item[1] + rows[0][2] == pytest.approx(alt[1]) and item[3] + rows[0][4] == pytest.approx(alt[3])
+
+    class W:
+        def get_blueprint_library(self):
+            return SimpleNamespace(find=lambda name: name)
+    meshes = [None] * len(pl.mesh_index)
+    for name, i in pl.mesh_index.items():
+        meshes[i] = cat10.path(name)
+    data = {"meshes": meshes, "cell_m": 100.0, "items": [item], "lamp_night": rows}
+    night = scenery.Scenery(None, W(), None, {"radius_m": 0}, log=lambda *a: None, data=data,
+                            season={"lights": {"SM_StreetLight06_A": "blueprint.cc_streetlight06_a"}})
+    got = [it for v in night.cells.values() for it in v]
+    assert got[0][0] == alt[0] and got[0][1] == pytest.approx(alt[1])
+    day = scenery.Scenery(None, W(), None, {"radius_m": 0}, log=lambda *a: None, data=data)
+    assert [it for v in day.cells.values() for it in v][0][0] == item[0]

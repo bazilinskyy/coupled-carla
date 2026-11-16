@@ -243,7 +243,8 @@ def main():
                     tf = act.get_transform()    # where scenery.json meant it: the lamp item at the actor's x, y
                     it = min(items, key=lambda i: math.hypot(i[1] - tf.location.x, i[2] - tf.location.y))
                     lamps.append((carla.Transform(carla.Location(it[1], it[2], it[3]), tf.rotation), aid))
-            print(f"Scenery: {scen.n} actors, {scen.n_lights} lit lamps in {len(scen.lit)} cells")
+            print(f"Scenery: {scen.n} actors, {scen.n_lights} lit lamps in {len(scen.lit)} cells, "
+                  f"{scen.n_lamp_specs} given their register colour and lumens (nightlights.py)")
             report(world, lamps, "scenery.py lamps")
         else:
             rows = []

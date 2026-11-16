@@ -7,8 +7,9 @@ real dimensions; data/street_props.json lists them), scenery.py places a region'
 - the Netherlands (map in NLD): lamp posts by the street-light register's mast type and height where the city has
   one (Eindhoven: type_drager_mast "AL 3,5 CONISCH" -> a 4 m post-top lamp, "AL 6 NEDAL" -> a 6 m mast with a top
   LED luminaire, "ST 9 STANDAARD" with an arm -> a 9 m steel mast with a 1.5 m arm, "DUBBEL" -> a double-arm mast,
-  "GY 3,5" cast iron -> a lantern; wall- and ceiling-mounted lights ("BB IN/OP/AAN WAND/GEVEL") have no mast and are
-  left out instead of standing as a lamp post in the facade), else by height and distance to the road; the "Model
+  "GY 3,5" cast iron -> a lantern; lights that are not on a pole of their own are left out by nightlights.mount),
+  else by height and distance to the road; at night with lamp lights, a lamp spawns as CARLA's lit lamp in its
+  place (scenery.Scenery: our meshes carry no light); the "Model
   Eindhoven" bench in the register's colour (zitbanken0), round or square bins in its colour (afvalbakken0),
   steel bollards (the red-brown "Amsterdammertje" in Amsterdam), rows of bike stands ("nietjes") by capacity,
   shark-teeth give-way lines at the register's B6 signs and OSM's give-way points, red asphalt on cycle lanes;
@@ -125,17 +126,13 @@ class Chooser:
     def _count(self, key):
         self.counts[key] = self.counts.get(key, 0) + 1
 
-    def lamp(self, tags, near_road):
-        """(mesh, scale, has_arm) for a street lamp; "skip" for a light without a mast of its own (on a wall, a
-        ceiling, in the pavement); None to keep CARLA's choice."""
+    def street_lamp(self, tags, near_road):
+        """(mesh, scale, has_arm) for a street lamp on a pole of its own (scenery.py leaves the others out by
+        nightlights.mount), or None to keep CARLA's choice. Register tags: support:register (type_drager_mast),
+        lamp_arm (type_drager_uithouder), height (the light point's)."""
         if self.region is None:
             return None
-        mast, arm = tags.get("ehv:mast"), tags.get("ehv:arm")
-        support = tags.get("support") or tags.get("lamp_mount") or ""
-        mat, h, kind, length = parse_mast(mast, arm)
-        if mat == "BB" or kind == "wall" or support in ("wall_mounted", "ceiling", "suspended", "ground"):
-            self._count("lamp_no_mast")
-            return "skip"
+        mat, h, kind, length = parse_mast(tags.get("support:register"), tags.get("lamp_arm"))
         if h is None:
             h = _num(tags.get("height")) if tags.get("height") else None
         if self.region in ("UK", "JP"):
@@ -161,8 +158,10 @@ class Chooser:
             style = "arm9"
         else:
             style = "arm12"
-        self._count("lamp_" + style)
-        return self._scaled(LAMP_MESH[style], LAMP_H[style], h, style not in ("post_top", "heritage"))
+        got = self._scaled(LAMP_MESH[style], LAMP_H[style], h, style not in ("post_top", "heritage"))
+        if got:
+            self._count("lamp_" + style)
+        return got
 
     def _scaled(self, mesh, mesh_h, h, arm):
         if not self._have(mesh):
@@ -590,3 +589,38 @@ def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log
             said.append("rooftop " + ", ".join(f"{k} {v}" for k, v in sorted(got.items())))
     if said:
         log("scenery: " + "; ".join(said))
+
+
+# --- night: CARLA's lit lamp in place of ours ----------------------------------------------------------------------
+
+def night_stand_in(pl, cat, item, stock, x, y, yaw):
+    """Record CARLA's own lamp `stock` (the one scenery would have placed, which carries a light on CARLA 1.0) as
+    the night stand-in of our lamp `item`, placed at (x, y) as it would have been; relative to the item so that
+    placement.settle's height changes carry over. Returns the stand-in as an item-like list (its position for
+    nightlights' lamp specs), or None when the catalogue lacks the stock lamp."""
+    if stock not in cat:
+        return None
+    sx, sy, sz, syaw = cat.place(stock, x, y, _item_ground(pl, item), yaw, 1.0)
+    idx = pl.mesh_index.setdefault(stock, len(pl.mesh_index))
+    if not hasattr(pl, "night_lamps"):
+        pl.night_lamps = []
+    pl.night_lamps.append((item, [idx, round(sx - item[1], 2), round(sy - item[2], 2), round(sz - item[3], 2),
+                                  round(syaw % 360, 1)]))
+    return [idx, round(sx, 2), round(sy, 2), round(sz, 2), round(syaw % 360, 1), 1.0, "lamp"]
+
+
+def _item_ground(pl, item):
+    """The ground height the item stands on (its base), else the placer's ground under it."""
+    for it, base in zip(reversed(pl.items), reversed(pl.bases)):
+        if it is item and base is not None:
+            return base[2]
+    return pl.ground(item[1], item[2])
+
+
+def night_rows(pl):
+    """scenery.json "lamp_night": [item index, stock mesh index, dx, dy, dz, yaw] per regional lamp."""
+    pairs = getattr(pl, "night_lamps", None) or []
+    if not pairs:
+        return []
+    index = {id(it): k for k, it in enumerate(pl.items)}
+    return [[index[id(it)]] + alt for it, alt in pairs if id(it) in index]

@@ -36,6 +36,8 @@ from types import SimpleNamespace
 
 import numpy as np
 
+from . import nightlights
+
 DATA = Path(__file__).parent / "data"
 CELL = 100.0          # streaming cell size (m)
 TILE_M = 40.0         # ground tile size (m); 20 m on maps with more than 40 m of relief
@@ -439,6 +441,7 @@ class Placer:
         self.junctions = junctions      # placement.JunctionAreas: a generated map's paved junctions count as lanes
         self.lane_points = None         # placement.LanePoints of the blocking lanes, for footprints
         self.items, self.counts = [], defaultdict(int)
+        self.lamp_specs = []      # (lamp item, nightlights.lamp_spec) per placed lamp
         self.bases = []          # per item (x, y, z) of the ground it was placed on (placement.settle)
         self.surface = None      # placement.GroundSurface once the ground tiles are laid
         self.mesh_index = {}
@@ -1004,6 +1007,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             t = el.get("tags", {})
             x, y = geo.to_carla(el["lat"], el["lon"])
             if t.get("highway") == "street_lamp":
+                spec = nightlights.lamp_spec(t)
+                if spec["mount"] != "pole":     # on a wall, under a canopy, on a wire, in the paving: no pole
+                    pl.counts["lamp_not_pole"] += 1
+                    continue
                 if not free(x, y, 0.3):
                     continue
                 if lamp_twin(x, y):
@@ -1014,14 +1021,15 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
                 far = wp is None or wp.transform.location.distance(carla.Location(x=x, y=y)) > 9
                 far = far or (_number(t.get("height")) or 99) <= 4.5      # a low mast (register): a park lamp
-                own = look.lamp(t, not far)     # the region's mast for the register's type (streetlook.py)
-                if own == "skip":       # a light on a wall or ceiling: no mast of its own
-                    continue
+                own = look.street_lamp(t, not far)     # the region's mast for the register's type (streetlook.py)
+                stock, syaw = ms.PARK_LAMP if far else ms.LAMP, 0.0 if far or towards is None else towards + ms.LAMP_YAW
                 if own:
-                    pl.add("lamp", own[0], x, y, (towards or 0.0) if own[2] else _h(el["id"]) % 360, own[1])
+                    item = pl.add("lamp", own[0], x, y, (towards or 0.0) if own[2] else _h(el["id"]) % 360, own[1])
+                    # at night CARLA's lamp with its light stands in for it (our meshes carry none)
+                    item = streetlook.night_stand_in(pl, cat, item, stock, x, y, syaw) or item
                 else:
-                    pl.add("lamp", ms.PARK_LAMP if far else ms.LAMP, x, y,
-                           0.0 if far or towards is None else towards + ms.LAMP_YAW, 1.0)
+                    item = pl.add("lamp", stock, x, y, syaw, 1.0)
+                pl.lamp_specs.append((item, spec))      # its colour and flux for CARLA 1.0's lights
                 lamps += 1
                 continue
             meshes = None
@@ -1059,15 +1067,19 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 seen.add(key)
                 if not free(x, y, 0.3):
                     continue
-                own = look.lamp({}, True)
-                if own and own != "skip":
-                    pl.add("lamp", own[0], x, y, yaw, own[1])
+                own = look.street_lamp({}, True)
+                if own:
+                    streetlook.night_stand_in(pl, cat, pl.add("lamp", own[0], x, y, yaw, own[1]), ms.LAMP, x, y,
+                                              yaw + ms.LAMP_YAW)
                 else:
                     pl.add("lamp", ms.LAMP, x, y, yaw + ms.LAMP_YAW, 1.0)   # arm over road
                 done += 1
             log(f"scenery: OSM maps {lamps} street lamps; {done} more along the roads")
         elif m_lamps:
             log(f"scenery: {lamps} street lamps from the city's register")
+        if pl.counts["lamp_not_pole"]:
+            log(f"scenery: {pl.counts['lamp_not_pole']} lamps left out that are not on a pole of their own (on "
+                "walls, under canopies, on span wires, in the paving)")
         if pl.counts["lamp_twin"]:
             log(f"scenery: {pl.counts['lamp_twin']} lamps left out within {LAMP_MIN_M} m of another (mapped twice)")
         log(f"scenery: {pl.counts['furniture']} pieces of street furniture, {pl.counts['lamp']} lamps")
@@ -1291,9 +1303,15 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
     out = {"version": 1, "catalog": cat.version, "cell_m": CELL, "meshes": [cat.path(m) for m in meshes],
            "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources), "leaf": leaf}
+    specs = nightlights.spec_rows([it for it, _ in pl.lamp_specs], [sp for _, sp in pl.lamp_specs])
+    if specs:           # register lamps' colour temperature and lumens (nightlights.py), by position
+        out["lamp_specs"] = specs
     if pl.surface is not None and len(pl.surface):      # the ground's top, for signals.py's poles
         out["ground_planes"] = pl.surface.to_list()
     from .ndwsigns import fallbacks
+    night = streetlook.night_rows(pl)
+    if night:       # regional lamps -> CARLA's lit lamp for trials with lamp lights (Scenery)
+        out["lamp_night"] = night
     fb = dict(fallbacks(meshes, cat), **streetlook.fallbacks(meshes, cat))
     if fb:      # Dutch sign faces and regional props: CARLA's mesh where the server lacks our content
         out["fallbacks"] = fb
@@ -1336,9 +1354,22 @@ class Scenery:
         self.light_bp = {by_name[m]: bp for m, bp in (season.get("lights") or {}).items() if m in by_name}
         self.lights_radius = float(season.get("lights_radius_m", 200.0))
         self.lit, self.lamps, self.n_lights = set(), {}, 0
+        # register lamps' colour and lumens (scenery.json "lamp_specs"), given to their lights at a lit spawn
+        self.lamp_index = nightlights.SpecIndex(data.get("lamp_specs")) if self.light_bp else None
+        self.lamp_scale = float(season.get("lamp_lumen_scale", 1.0))
+        self.lamp_colours = bool(season.get("lamp_colours", True))
+        self.n_lamp_specs = 0
         if self.light_bp:
             lib = world.get_blueprint_library()
             self.light_bp = {i: lib.find(bp) for i, bp in self.light_bp.items()}
+            if data.get("lamp_night"):     # regional lamps (streetlook.py) have no light: CARLA's lit lamp instead
+                items = list(items)
+                for i, m, dx, dy, dz, yaw in data["lamp_night"]:
+                    it = items[i]
+                    if it is not None:
+                        items[i] = [m, round(it[1] + dx, 2), round(it[2] + dy, 2), round(it[3] + dz, 2), yaw,
+                                    1.0] + it[6:]
+                log(f"scenery: {len(data['lamp_night'])} regional lamps stand as CARLA's lit lamps tonight")
         for it in items:
             if it is None:
                 continue
@@ -1397,6 +1428,10 @@ class Scenery:
                         lm.turn_on(lm.get_all_lights(carla.LightGroup.Street))
                     except Exception as err:  # noqa: BLE001 - lamps without light still stand
                         self.log(f"scenery: street lights not switched on ({err})")
+                    if self.lamp_index:
+                        self.n_lamp_specs += nightlights.apply_lamp_lights(
+                            self.world, self.lamps[key], self.lamp_index, self.lamp_scale, self.lamp_colours,
+                            self.log)
         self.loaded.setdefault(key, []).extend(ids)
         self.n += len(ids)
         if self.on_spawn:

@@ -190,7 +190,9 @@ class LiveFeed:
         world.set_weather(w)
         try:
             from .bridge.synchronization import BridgeHelper
-            BridgeHelper.night = bool(info.get("night"))      # SUMO cars' headlights
+            lights = info.get("lights") or {"low_beam": bool(info.get("night"))}
+            BridgeHelper.night = bool(lights.get("low_beam"))     # SUMO cars' headlights and rear lights
+            BridgeHelper.fog = bool(lights.get("fog_rear"))
         except ImportError:
             pass
         self.weather = {"preset": preset or self.weather["preset"], "time": tod or self.weather["time"],
