@@ -5,8 +5,14 @@ Unreal on the CARLA server; the CoupledPhotoreal plugin (unreal/CoupledPhotoreal
 places it and this module prepares and switches it:
 
 - Roads: CARLA's OpenDRIVE roads (smooth surface, lane markings) stay. The photo mesh is cut out above the twin's
-  carriageway (or also its sidewalks, `carve: road`) by a Cesium polygon clipping overlay: carve_rings() turns the
-  twin's OpenDRIVE lanes (odroutline.py) into hole-free polygons (Cesium's cartographic polygons have no holes).
+  carriageway, parking lanes included (or also its sidewalks, `carve: road`), up to `cut_top_m` above the road
+  (`cut: mask`, the default): cut_mask() rasterises the lanes (odroutline.py) into a grid of the signed distance to
+  the cut's outline and the road height, which the plugin's tile material samples, so Google's parked cars and road
+  furniture go while tree crowns and building overhangs above 2.8 m stay. `cut: polygons` is the older full-height
+  cut by a Cesium polygon clipping overlay (carve_rings(): hole-free polygons, as Cesium's cartographic polygons have
+  no holes), which Cesium rasterises for every tile on its worker threads (each texel tested against each triangle).
+- Cameras: the plugin hands CARLA's camera sensors to Cesium (`cameras: sensors`), so the spectator no longer has to
+  follow the participant and the server window need not render (`viewport: auto`).
 - Buildings and ground: the twin's 3DBAG buildings and its photo ground are hidden where the photo mesh covers them
   (visibility only: collision, LiDAR and navigation still use them, so cars drive on CARLA's roads and walkers on its
   sidewalks). At night the twin's buildings come back (their windows light up) and the photo mesh is cut along the
@@ -39,6 +45,7 @@ import os
 import re
 import sys
 import time
+import zlib
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, urlunsplit, parse_qsl, urlencode
 
@@ -88,7 +95,30 @@ DEFAULTS = {
                                  # so stations, drones and film cameras looking elsewhere do not see gaps
     "max_loads": 32,             # tiles loading at once
     "cache_mb": 1024,            # Cesium's tile cache in memory (MB); streamed tiles are never written to disk
+    "cut": "mask",               # how the photo mesh is cut over the twin's lanes: "mask" (a precomputed distance and
+                                 # road-height grid sampled by the plugin's tile material: no per-tile work, and the
+                                 # cut can stop at cut_top_m) or "polygons" (Cesium's polygon clipping overlay, full
+                                 # height, rasterised per tile: the old way). "mask" falls back to "polygons" on a
+                                 # server without the material or a level without the grid
+    "cut_top_m": 2.8,            # the cut reaches this high above the road (m): Google's parked cars, vans and road
+                                 # furniture go, tree crowns and building overhangs above it stay; 0 = full height
+    "cut_res_m": 0.5,            # the grid's pixel (m); coarser for big twins (at most 8192 pixels a side)
+    "cameras": "sensors",        # whose views load the tiles: "sensors" = CARLA's camera sensors (the stations',
+                                 # drones', film cameras; the spectator only while there are none), "spectator" =
+                                 # the spectator alone (run.py then keeps it where the saved view is)
+    "viewport": "auto",          # render the server's own window: "auto" = not when the server is off screen
+                                 # (nobody sees it; the camera sensors render on their own), true, false
+    "load_ms": 0,                # game-thread time per frame for creating loaded tiles and freeing old ones (ms;
+                                 # 0 = Cesium for Unreal's 5 ms): bounds the frame-time spikes when many tiles arrive
+    "fog_culling": True,         # Cesium's fog culling (far tiles hidden in its atmosphere's fog); false keeps far
+                                 # tall towers on the skyline
+    "profile_s": 0,              # > 0: the server writes frame timings and tile counts every this many seconds to
+                                 # google_tiles_profile.csv beside the usage ledger (tools/photoreal_profile.py)
+    "control": False,            # the server applies photoreal_control.txt beside the ledger at run time (A/B tests in
+                                 # one level load, so one root request; tools/photoreal_profile.py writes it)
 }
+CUTS = ("mask", "polygons")
+CAMERAS = ("sensors", "spectator")
 CARVE = ("carriageway", "road", "none")
 HIDE = ("building", "terrain", "ground", "sidewalk", "road", "roadline", "vegetation", "none")
 LIGHT = ("baked", "relit", "auto")
@@ -183,6 +213,20 @@ def problems(cfg):
                       ("cache_mb", 64, 16384)):
         if not _num(s[k]) or not lo <= s[k] <= hi:
             out.append(("error", f"{k} {s[k]!r}: a number {lo}..{hi}"))
+    if s["cut"] not in CUTS:
+        out.append(("error", f"cut {s['cut']!r} is not one of {', '.join(CUTS)}"))
+    if s["cameras"] not in CAMERAS:
+        out.append(("error", f"cameras {s['cameras']!r} is not one of {', '.join(CAMERAS)}"))
+    if s["viewport"] not in ("auto", True, False):
+        out.append(("error", f"viewport {s['viewport']!r}: auto, true or false"))
+    for k, lo, hi in (("cut_top_m", 0, 50), ("cut_res_m", 0.1, 10), ("load_ms", 0, 100), ("profile_s", 0, 3600)):
+        if not _num(s[k]) or not lo <= s[k] <= hi:
+            out.append(("error", f"{k} {s[k]!r}: a number {lo}..{hi}"))
+    for k in ("fog_culling", "control"):
+        if not isinstance(s[k], bool):
+            out.append(("error", f"{k} {s[k]!r}: true or false"))
+    if s["cut"] == "polygons" and s["cut_top_m"]:
+        out.append(("warn", "cut: polygons cuts at full height (cut_top_m needs cut: mask)"))
     if not isinstance(s["forbid_holes"], bool):
         out.append(("error", f"forbid_holes {s['forbid_holes']!r}: true or false"))
     if s["data"] is not None and not (isinstance(s["data"], str) and re.fullmatch(r"[A-Za-z0-9_-]+", s["data"])):
@@ -198,7 +242,7 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def role_options(s, night=False):
+def role_options(s, night=False, offscreen=True):
     """The actor's options as its role_name ("k=v;k=v"; CCPhotorealTiles.cpp reads them). Never the key."""
     relit = s["light"] == "relit" or (s["light"] == "auto" and night)
     hide = [h for h in s["hide"] if h != "none"] or ["none"]
@@ -207,7 +251,11 @@ def role_options(s, night=False):
             "month_cap": s["month_cap"], "run_cap": s["run_cap"], "session_h": s["session_h"],
             "dz": s["height_offset_m"], "key_in": s["key_in"], "hold": s["hold"], "hold_low": s["hold_low"],
             "forbid_holes": int(bool(s["forbid_holes"])), "culled_sse": s["culled_sse"], "loads": s["max_loads"],
-            "cache_mb": s["cache_mb"]}
+            "cache_mb": s["cache_mb"], "cut": s["cut"], "cut_top": s["cut_top_m"],
+            "cams": 1 if s["cameras"] == "sensors" else 0,
+            "viewport": int(not offscreen if s["viewport"] == "auto" else bool(s["viewport"])),
+            "load_ms": s["load_ms"], "fog": int(bool(s["fog_culling"])), "prof": s["profile_s"],
+            "control": int(bool(s["control"]))}
     if s.get("data"):
         opts["data"] = s["data"]
     if s.get("test_url"):                 # tools/photoreal_check.py: a local mock server, never Google
@@ -684,6 +732,224 @@ def carve_rings(xodr, carve="carriageway", step=1.0, simplify=0.1, grow=0.0):
     return rings, georef_str, stats
 
 
+# --------------------------------------------------------------------------------------- height-limited cut
+
+CUT_FORMAT = "i8u16"      # zlib of two planes, rows from the south: int8 signed distance (m = v * sdf_step), then
+                          # little-endian uint16 road height (m = z_base + v / 100); the plugin reads it
+
+
+def _scan_fill(rings, x0, y0, res, w, h):
+    """Even-odd fill of closed rings (lists of (x, y)) at the pixel centres of a w x h grid whose pixel (i, j) has
+    its centre at (x0 + (i + 0.5) res, y0 + (j + 0.5) res). Rows are y, columns x. A bool array (h, w)."""
+    import numpy as np
+    rows, xs = [], []
+    for ring in rings:
+        a = np.asarray(ring, dtype=float)
+        if len(a) < 3:
+            continue
+        b = np.roll(a, -1, axis=0)
+        ylo, yhi = np.minimum(a[:, 1], b[:, 1]), np.maximum(a[:, 1], b[:, 1])
+        j0 = np.ceil((ylo - y0) / res - 0.5).astype(int)          # first row centre >= ylo
+        j1 = np.ceil((yhi - y0) / res - 0.5).astype(int)          # first row centre >= yhi (excluded)
+        j0, j1 = np.clip(j0, 0, h), np.clip(j1, 0, h)
+        n = np.maximum(j1 - j0, 0)
+        keep = n > 0
+        if not keep.any():
+            continue
+        e = np.repeat(np.nonzero(keep)[0], n[keep])
+        start = np.repeat(np.cumsum(n[keep]) - n[keep], n[keep])
+        j = j0[e] + (np.arange(len(e)) - start)
+        yc = y0 + (j + 0.5) * res
+        t = (yc - a[e, 1]) / (b[e, 1] - a[e, 1])
+        rows.append(j)
+        xs.append(a[e, 0] + t * (b[e, 0] - a[e, 0]))
+    inside = np.zeros((h, w), dtype=bool)
+    if not rows:
+        return inside
+    rows, xs = np.concatenate(rows), np.concatenate(xs)
+    order = np.lexsort((xs, rows))
+    rows, xs = rows[order], xs[order]
+    # crossings pair up within a row (closed rings): fill [x_2k, x_2k+1) at the pixel centres
+    first = np.r_[True, rows[1:] != rows[:-1]]
+    rank = np.arange(len(rows)) - np.maximum.accumulate(np.where(first, np.arange(len(rows)), 0))
+    a_idx = np.nonzero(rank % 2 == 0)[0]
+    a_idx = a_idx[a_idx + 1 < len(rows)]
+    a_idx = a_idx[rows[a_idx + 1] == rows[a_idx]]
+    c0 = np.clip(np.ceil((xs[a_idx] - x0) / res - 0.5).astype(int), 0, w)
+    c1 = np.clip(np.ceil((xs[a_idx + 1] - x0) / res - 0.5).astype(int), 0, w)
+    diff = np.zeros((h, w + 1), dtype=np.int32)
+    np.add.at(diff, (rows[a_idx], c0), 1)
+    np.add.at(diff, (rows[a_idx], c1), -1)
+    return np.cumsum(diff[:, :w], axis=1) > 0
+
+
+def _boundary_distance(rings, x0, y0, res, w, h, clamp, piece=2.0, chunk=4000):
+    """Distance (m) from each pixel centre to the nearest ring edge, exact within `clamp` (clamp beyond)."""
+    import numpy as np
+    segs = []
+    for ring in rings:
+        a = np.asarray(ring, dtype=float)
+        if len(a) < 2:
+            continue
+        b = np.roll(a, -1, axis=0)
+        ln = np.hypot(*(b - a).T)
+        k = np.maximum(1, np.ceil(ln / piece).astype(int))      # pieces of at most `piece` m
+        idx = np.repeat(np.arange(len(a)), k)
+        f0 = (np.arange(len(idx)) - np.repeat(np.cumsum(k) - k, k)) / np.repeat(k, k)
+        f1 = f0 + 1.0 / np.repeat(k, k)
+        p, d = a[idx], (b - a)[idx]
+        segs.append(np.hstack([p + d * f0[:, None], p + d * f1[:, None]]))
+    dist = np.full((h, w), float(clamp), dtype=np.float32)
+    if not segs:
+        return dist
+    segs = np.vstack(segs)
+    r = int(math.ceil((piece / 2 + clamp) / res)) + 1
+    oi, oj = np.meshgrid(np.arange(-r, r + 1), np.arange(-r, r + 1))
+    oi, oj = oi.ravel(), oj.ravel()
+    flat = dist.ravel()
+    for c in range(0, len(segs), chunk):
+        s = segs[c:c + chunk]
+        mi = np.floor(((s[:, 0] + s[:, 2]) / 2 - x0) / res).astype(int)
+        mj = np.floor(((s[:, 1] + s[:, 3]) / 2 - y0) / res).astype(int)
+        ii, jj = mi[:, None] + oi[None, :], mj[:, None] + oj[None, :]
+        px, py = x0 + (ii + 0.5) * res, y0 + (jj + 0.5) * res
+        ax, ay = s[:, 0:1], s[:, 1:2]
+        dx, dy = s[:, 2:3] - ax, s[:, 3:4] - ay
+        L2 = np.maximum(dx * dx + dy * dy, 1e-12)
+        t = np.clip(((px - ax) * dx + (py - ay) * dy) / L2, 0.0, 1.0)
+        dd = np.hypot(px - (ax + t * dx), py - (ay + t * dy))
+        ok = (ii >= 0) & (ii < w) & (jj >= 0) & (jj < h) & (dd < clamp)
+        np.minimum.at(flat, (jj[ok] * w + ii[ok]), dd[ok].astype(np.float32))
+    return dist
+
+
+def _height_grid(points, x0, y0, res, w, h, cell=2.0, reach=12.0):
+    """Road height (m) at each pixel: the highest lane sample in its `cell` (bridges over roads: the deck), holes
+    filled from the neighbouring cells out to `reach` m, then bilinear onto the pixel grid. Far from any road: the
+    median of the samples (no cut there)."""
+    import numpy as np
+    pts = np.asarray(points, dtype=float).reshape(-1, 3)
+    if not len(pts):
+        return np.zeros((h, w), dtype=np.float32)
+    cw, ch = int(math.ceil(w * res / cell)) + 2, int(math.ceil(h * res / cell)) + 2
+    ci = np.clip(np.floor((pts[:, 0] - x0) / cell).astype(int) + 1, 0, cw - 1)
+    cj = np.clip(np.floor((pts[:, 1] - y0) / cell).astype(int) + 1, 0, ch - 1)
+    z = np.full((ch, cw), -np.inf)
+    np.maximum.at(z, (cj, ci), pts[:, 2])
+    filled = np.isfinite(z)
+    for _ in range(int(math.ceil(reach / cell))):
+        if filled.all():
+            break
+        zs = np.where(filled, z, 0.0)
+        acc = np.zeros_like(zs)
+        cnt = np.zeros_like(zs)
+        for dj in (-1, 0, 1):
+            for di in (-1, 0, 1):
+                acc += np.roll(np.roll(zs, dj, 0), di, 1)
+                cnt += np.roll(np.roll(filled, dj, 0), di, 1)
+        grow = ~filled & (cnt > 0)
+        z[grow] = acc[grow] / cnt[grow]
+        filled |= grow
+    z[~filled] = float(np.median(pts[:, 2]))
+    # bilinear: cell (ci, cj) centre at x0 + (ci - 1 + 0.5) cell
+    gx = (x0 + (np.arange(w) + 0.5) * res - x0) / cell + 0.5
+    gy = (y0 + (np.arange(h) + 0.5) * res - y0) / cell + 0.5
+    ix, iy = np.clip(np.floor(gx).astype(int), 0, cw - 2), np.clip(np.floor(gy).astype(int), 0, ch - 2)
+    fx, fy = np.clip(gx - ix, 0, 1)[None, :], np.clip(gy - iy, 0, 1)[:, None]
+    z00, z10 = z[iy][:, ix], z[iy][:, ix + 1]
+    z01, z11 = z[iy + 1][:, ix], z[iy + 1][:, ix + 1]
+    return ((z00 * (1 - fx) + z10 * fx) * (1 - fy) + (z01 * (1 - fx) + z11 * fx) * fy).astype(np.float32)
+
+
+def cut_mask(xodr, carve="carriageway", res=0.5, grow=0.0, clamp=4.0, extra=None, max_px=8192, step=1.0):
+    """The height-limited road cut as a grid over the level: per pixel the signed distance (m, negative inside the
+    cut, clamped to +-clamp) to the cut's outline and the road height there (m, the OpenDRIVE elevation). The
+    plugin's tile material (M_CCPhotorealTiles) clips the photo mesh where the distance is below its grow option and
+    the photo mesh is lower than the road + cut_top (default 2.8 m): Google's parked cars, road furniture and the
+    photographed road surface go, trees and building fronts that overhang the road stay. The signed distance keeps
+    the outline sharp between pixels (bilinear filtering of a distance is exact on straight edges).
+
+    extra: more cut areas, [(ring, z)]: e.g. the stalls of CARLA's parked cars (their photographed counterparts go).
+    Returns (header, array (h, w, 2) float16); header: x0, y0 (the grid's corner, the level's metres: x east, y
+    north), res (m), w, h, clamp, format, stats."""
+    import numpy as np
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    from . import odroutline
+    roads, georef_str = odroutline.parse(xodr)
+    types = set(odroutline.CARRIAGEWAY) | (set(odroutline.SIDEWALK) if carve == "road" else set())
+    shapes, pts = [], []
+    for rd in roads:
+        for p in odroutline.lane_outlines(rd, types, step):
+            if len(p) >= 3:
+                g = Polygon(p)
+                g = g if g.is_valid else g.buffer(0)
+                if not g.is_empty and g.area > 0.05:
+                    shapes.append(g)
+        pts.extend(odroutline.lane_heights(rd, types))
+    for ring, z in extra or ():
+        if len(ring) >= 3:
+            g = Polygon(ring)
+            g = g if g.is_valid else g.buffer(0)
+            if not g.is_empty:
+                shapes.append(g)
+                cx, cy = g.centroid.x, g.centroid.y
+                pts.extend([(cx, cy, z)] + [(x, y, z) for x, y in list(g.exterior.coords)[:-1]])
+    if not shapes:
+        raise PhotorealError(f"{xodr}: no lanes of the cut's types ({carve})")
+    merged = unary_union(shapes)
+    if grow:
+        merged = merged.buffer(grow, join_style=2)
+    rings = []
+    for g in getattr(merged, "geoms", [merged]):
+        if g.geom_type == "Polygon":
+            rings.append(list(g.exterior.coords)[:-1])
+            rings.extend(list(r.coords)[:-1] for r in g.interiors)
+    minx, miny, maxx, maxy = merged.bounds
+    pad = clamp + 2 * res
+    span = max(maxx - minx, maxy - miny) + 2 * pad
+    res = max(float(res), span / max_px)               # a whole-city twin gets a coarser grid
+    x0, y0 = minx - pad, miny - pad
+    w, h = int(math.ceil((maxx - minx + 2 * pad) / res)), int(math.ceil((maxy - miny + 2 * pad) / res))
+    inside = _scan_fill(rings, x0, y0, res, w, h)
+    dist = _boundary_distance(rings, x0, y0, res, w, h, clamp)
+    sdf = np.where(inside, -dist, dist)
+    z = _height_grid(pts, x0, y0, res, w, h)
+    z[sdf >= clamp] = np.nan       # far from the cut: no height needed (compresses to nothing)
+    arr = np.stack([sdf, z], axis=-1).astype(np.float32)
+    head = {"x0": round(x0, 3), "y0": round(y0, 3), "res": round(res, 4), "w": w, "h": h, "clamp": clamp,
+            "format": CUT_FORMAT, "carve": carve,
+            "stats": {"area_m2": round(merged.area, 1), "lane_polygons": len(shapes) - len(extra or ()),
+                      "extra": len(extra or ()), "height_samples": len(pts),
+                      "z_min": round(float(np.nanmin(z)), 2), "z_max": round(float(np.nanmax(z)), 2)}}
+    return head, arr, georef_str
+
+
+def write_cut(path, arr, head):
+    """Write the grid (cut_mask's float array) as CUT_FORMAT; fills head's sdf_step, z_base, file and bytes."""
+    import numpy as np
+    step = head["clamp"] / 127.0
+    sdf = np.clip(np.round(arr[..., 0] / step), -127, 127).astype(np.int8)
+    z = arr[..., 1]
+    base = math.floor(float(np.nanmin(z)) if np.isfinite(z).any() else 0.0)
+    zq = np.where(np.isfinite(z), np.clip(np.round((z - base) * 100.0), 0, 65535), 0).astype("<u2")
+    raw = sdf.tobytes() + zq.tobytes()
+    Path(path).write_bytes(zlib.compress(raw, 9))
+    head.update({"format": CUT_FORMAT, "sdf_step": step, "z_base": base, "file": Path(path).name,
+                 "bytes": Path(path).stat().st_size})
+    return len(raw)
+
+
+def read_cut(path, head):
+    """The grid back as float32 (h, w, 2): signed distance, road height (0 far from the cut)."""
+    import numpy as np
+    raw = zlib.decompress(Path(path).read_bytes())
+    n = head["w"] * head["h"]
+    sdf = np.frombuffer(raw[:n], dtype=np.int8).astype(np.float32) * head["sdf_step"]
+    z = np.frombuffer(raw[n:3 * n], dtype="<u2").astype(np.float32) / 100.0 + head["z_base"]
+    return np.stack([sdf, z], axis=-1).reshape(head["h"], head["w"], 2)
+
+
 def footprint_rings(buildings, grow=0.5, simplify=0.2):
     """Hole-free rings of building footprints (lists of (x, y) in the level's metres), grown a little so the photo
     mesh's walls are cut too."""
@@ -746,8 +1012,10 @@ def level_data(cfg, xodr=None, network=True, footprints=None):
     if not src.exists():
         raise PhotorealError(f"no OpenDRIVE at {src} (map.opendrive)")
     from . import odroutline
+    cut = None
     if s["carve"] != "none":
         rings, georef_str, stats = carve_rings(src, s["carve"], grow=s["carve_grow_m"])
+        cut = cut_mask(src, s["carve"], res=s["cut_res_m"], grow=s["carve_grow_m"])
     else:
         _, georef_str = odroutline.parse(src)
         rings, stats = [], {"carve": "none"}
@@ -769,6 +1037,7 @@ def level_data(cfg, xodr=None, network=True, footprints=None):
         "carve": [[list(p) for p in proj.lonlat(r)] for r in rings],
         "footprints": [[list(p) for p in proj.lonlat(r)] for r in fp],
         "stats": dict(stats, footprints=len(fp)),
+        **({"cut": cut[0], "_cut_grid": cut[1]} if cut else {}),
     }
 
 
@@ -786,6 +1055,9 @@ def prepare(cfg, xodr=None, pack=PACK, network=True, footprints=None):
     s = settings(cfg["map"]) or DEFAULTS
     out = pack_file(s.get("data") or level, pack)      # a variant (another carve) under its own name
     out.parent.mkdir(parents=True, exist_ok=True)
+    grid = data.pop("_cut_grid", None)
+    if grid is not None:      # the height-limited cut's grid beside it (the plugin reads <name>_cut.bin)
+        write_cut(out.with_name(out.stem + "_cut.bin"), grid, data["cut"])
     out.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
     mdir = _config.map_dir(cfg)
     if mdir.exists():
@@ -796,7 +1068,25 @@ def prepare(cfg, xodr=None, pack=PACK, network=True, footprints=None):
         f"ellipsoidal ({data['datum']['vdatum']} + {data['datum']['geoid_m']:.2f} m, {data['datum']['frame']} shift "
         f"{data['datum']['shift_m']}); {st.get('rings', 0)} carve rings ({st.get('points', 0)} points, "
         f"{st.get('area_m2', 0):.0f} m2), {st['footprints']} footprints; {out.stat().st_size / 1e6:.1f} MB")
+    if data.get("cut"):
+        c = data["cut"]
+        log(f"cut grid {c['w']} x {c['h']} at {c['res']} m, road heights {c['stats']['z_min']}..{c['stats']['z_max']} m "
+            f"-> {out.with_name(c['file'])} ({out.with_name(c['file']).stat().st_size / 1e6:.1f} MB)")
     return out
+
+
+def add_cut(pack_json, xodr, carve="carriageway", res=0.5, grow=0.0):
+    """Add the height-limited cut's grid to an existing level data file (its origin, carve rings and footprints stay
+    as they are): <name>_cut.bin beside it and the "cut" header in it."""
+    pack_json = Path(pack_json)
+    data = json.loads(pack_json.read_text(encoding="utf-8"))
+    head, grid, _ = cut_mask(xodr, carve, res=res, grow=grow)
+    write_cut(pack_json.with_name(pack_json.stem + "_cut.bin"), grid, head)
+    data["cut"] = head
+    pack_json.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
+    log(f"{pack_json.name}: cut grid {head['w']} x {head['h']} at {head['res']} m, road heights "
+        f"{head['stats']['z_min']}..{head['stats']['z_max']} m -> {head['file']} ({head['bytes'] / 1e6:.1f} MB)")
+    return head
 
 
 # ---------------------------------------------------------------------------------------------- run time
@@ -865,7 +1155,7 @@ def attach(world, tc, night=False, log_fn=log):
                f"CoupledCarla content pack: unreal/README.md); the twin is shown as it is")
         return None
     if bp.has_attribute("role_name"):
-        bp.set_attribute("role_name", role_options(s, night))
+        bp.set_attribute("role_name", role_options(s, night, (tc.get("server") or {}).get("offscreen", True)))
     import carla
     actor = world.try_spawn_actor(bp, carla.Transform())
     if actor is None:
@@ -1156,6 +1446,13 @@ def main(argv=None):
     p.add_argument("--offline", action="store_true", help="no PROJ grid download (needs vdatum: ellipsoid)")
     p.add_argument("--footprints", help="building footprints for the night cut: a carla-digitaltwins ue/manifest.json "
                                         "or a buildings.json (default the map folder's buildings.json)")
+    c = sub.add_parser("cut", help="add the height-limited cut's grid to a level's existing data file")
+    c.add_argument("level", help="the level (Photoreal/<level>.json in the pack) or a path to such a file")
+    c.add_argument("xodr", help="the level's OpenDRIVE")
+    c.add_argument("--pack", default=str(PACK))
+    c.add_argument("--carve", default="carriageway", choices=CARVE[:2])
+    c.add_argument("--res", type=float, default=DEFAULTS["cut_res_m"])
+    c.add_argument("--grow", type=float, default=0.0)
     sub.add_parser("status", help="is there a key on this machine; root requests used")
     m = sub.add_parser("measure", help="ONE billed root request: street height offset and building shift")
     m.add_argument("experiment")
@@ -1165,6 +1462,10 @@ def main(argv=None):
     m.add_argument("--out", help="write the result JSON here")
     m.add_argument("--footprints", help="as for prepare (the building shift needs footprints)")
     a = ap.parse_args(argv)
+    if a.cmd == "cut":
+        f = Path(a.level) if a.level.endswith(".json") else pack_file(a.level, Path(a.pack))
+        add_cut(f, a.xodr, a.carve, a.res, a.grow)
+        return 0
     if a.cmd == "status":
         print(key_status())
         print(Usage().summary())

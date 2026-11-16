@@ -58,6 +58,19 @@ def band_loops(kind="pink", seconds=4.0, seed=7, rate=RATE):
         if pw > 0:
             spec[m] *= 1.0 / math.sqrt(pw)
     spec[(f < edges[0]) | (f >= edges[-1])] = 0.0
+    H = crossovers(f, edges)
+    total = np.fft.irfft(spec, n)
+    scale = FS / float(np.sqrt(np.mean(total * total))) * math.sqrt(NB)    # each band: power of one FS_RMS row
+    for b in range(NB):
+        out[b] = (np.fft.irfft(spec * H[b], n) * scale).astype(np.float32)
+    _LOOPS[key] = out
+    return out
+
+
+def crossovers(f, edges=None):
+    """(NB, len(f)) amplitude-complementary octave crossovers (cosine skirts a third of an octave wide at each inner
+    band edge; the outer bands open-ended): they sum to 1 at every frequency."""
+    edges = ac.EDGES if edges is None else edges
     lf = np.log2(np.maximum(f, 1.0))
     H = np.zeros((NB, len(f)))
     half = 1.0 / 6.0
@@ -67,13 +80,26 @@ def band_loops(kind="pink", seconds=4.0, seed=7, rate=RATE):
         rise = np.clip((lf - (lo - half)) / (2 * half), 0.0, 1.0) if b > 0 else np.ones_like(lf)
         fall = np.clip(((hi + half) - lf) / (2 * half), 0.0, 1.0) if b < NB - 1 else np.ones_like(lf)
         H[b] = np.minimum(np.sin(0.5 * np.pi * rise) ** 2, np.sin(0.5 * np.pi * fall) ** 2)
-    H /= np.maximum(H.sum(axis=0), 1e-12)          # exactly complementary (amplitude)
-    total = np.fft.irfft(spec, n)
-    scale = FS / float(np.sqrt(np.mean(total * total))) * math.sqrt(NB)    # each band: power of one FS_RMS row
+    return H / np.maximum(H.sum(axis=0), 1e-12)
+
+
+def band_split(x, rate=RATE, low_cut=30.0):
+    """A looped mono buffer (a recording) as NB octave-band rows (the crossovers above, applied to the whole loop, so
+    each row loops seamlessly), each scaled to RMS FS_RMS, and the buffer's power share per band (sums to 1)."""
+    x = np.asarray(x, np.float64)
+    n = len(x)
+    spec = np.fft.rfft(x)
+    f = np.fft.rfftfreq(n, 1.0 / rate)
+    spec[f < low_cut] = 0.0
+    H = crossovers(f)
+    rows = np.zeros((NB, n), np.float32)
+    share = np.zeros(NB)
     for b in range(NB):
-        out[b] = (np.fft.irfft(spec * H[b], n) * scale).astype(np.float32)
-    _LOOPS[key] = out
-    return out
+        y = np.fft.irfft(spec * H[b], n)
+        p = float(np.mean(y * y))
+        share[b] = p
+        rows[b] = (y * (FS / math.sqrt(p))).astype(np.float32) if p > 0 else 0.0
+    return rows, share / max(share.sum(), 1e-30)
 
 
 def split_low_high(x, rate=RATE):
@@ -480,8 +506,9 @@ class EventVoice(SpatialVoice):
     starts, its level varied by `gain_db_sd`. Two rows, low and high, as ShapedMono. period None: silent."""
     K = 2
 
-    def __init__(self, buffers, seed=0, jitter=0.03, gain_db_sd=1.5, poisson=False, **kw):
+    def __init__(self, buffers, seed=0, jitter=0.03, gain_db_sd=1.5, poisson=False, rate_sd=0.0, **kw):
         super().__init__(**kw)
+        self.rate_sd = float(rate_sd)          # per-event speed of play (pitch) variation, a share (recorded steps)
         self.bufs = []
         shares = []
         for b in buffers:
@@ -489,13 +516,14 @@ class EventVoice(SpatialVoice):
             self.bufs.append(np.stack([low, high]).astype(np.float32))
             shares.append(sh)
         self.share = np.mean(shares, axis=0)
+        self.nbase = len(self.bufs)
         self.p_low = max(float(self.share[:5].sum()), 1e-9)
         self.p_high = max(float(self.share[5:].sum()), 1e-9)
         self.rng = np.random.default_rng(seed)
         self.jitter, self.gsd, self.poisson = jitter, gain_db_sd, poisson
         self.period = None
         self.next = 0.0           # samples until the next event
-        self.active = []          # [buffer index, position, gain]
+        self.active = []          # [buffer, position, gain]
         self.events = 0
 
     def advance(self, n):
@@ -508,7 +536,14 @@ class EventVoice(SpatialVoice):
             while self.next < n:
                 start = int(max(0.0, self.next))
                 g = 10 ** (self.rng.normal(0.0, self.gsd) / 20.0)
-                self.active.append([int(self.rng.integers(len(self.bufs))), -start, g])
+                b = self.bufs[int(self.rng.integers(self.nbase))]
+                if self.rate_sd > 0:      # this event's own copy, resampled (a slightly different step)
+                    r = 1.0 + float(np.clip(self.rng.normal(0.0, self.rate_sd), -2.5 * self.rate_sd, 2.5 * self.rate_sd))
+                    pos = np.arange(0.0, b.shape[1] - 1, r)
+                    i0 = pos.astype(np.int64)
+                    fr = (pos - i0).astype(np.float32)
+                    b = b[:, i0] * (1.0 - fr) + b[:, i0 + 1] * fr
+                self.active.append([b, -start, g])
                 self.events += 1
                 if self.poisson:
                     self.next += self.rng.exponential(per)
@@ -519,7 +554,7 @@ class EventVoice(SpatialVoice):
             self.next = max(self.next - n, 0.0)
         keep = []
         for ev in self.active:
-            b = self.bufs[ev[0]]
+            b = ev[0]
             pos = ev[1]
             s0 = max(0, -pos)
             i0 = max(0, pos)
@@ -538,6 +573,13 @@ class EventVoice(SpatialVoice):
         return np.array([math.sqrt(P[:5].sum() / self.p_low), math.sqrt(P[5:].sum() / self.p_high)], np.float32)
 
     band_db = ShapedMono.band_db
+
+    def band_dba(self, level_dba, atten_db=0.0):
+        """Band levels at the ears for an A-weighted level of one event (its loudest 100 ms), `atten_db` per band
+        taken off afterwards."""
+        with np.errstate(divide="ignore"):
+            s = 10.0 * np.log10(np.maximum(self.share, 1e-12))
+        return s - ac.a_weighted(s) + level_dba - np.asarray(atten_db, float)
 
 
 # -- reverberation ---------------------------------------------------------------------------------------------------
@@ -692,6 +734,11 @@ def tick_buffers(kind="aps", n=3, seed=5, rate=RATE):
             t = np.arange(m) / rate
             f0 = rng.uniform(1500.0, 5000.0)
             x = _decay_noise(rng, m, 0.0008, 1000.0, 12000.0) + 0.6 * np.sin(2 * np.pi * f0 * t * (1 + 8 * t)) * np.exp(-t / 0.006)
+        elif kind == "umbrella":        # a raindrop on a taut umbrella canopy: a short tap of the fabric
+            m = int(0.03 * rate)
+            t = np.arange(m) / rate
+            x = 0.7 * _decay_noise(rng, m, 0.003, 400, 7000) + np.sin(2 * np.pi * rng.uniform(180, 320) * t) * \
+                np.exp(-t / 0.006)
         elif kind == "roof":            # a raindrop on a car roof: a dull thud of the panel
             m = int(0.05 * rate)
             t = np.arange(m) / rate

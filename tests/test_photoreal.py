@@ -552,3 +552,83 @@ def test_pack_registers_the_blueprint():
     bp = json.loads((photoreal.PACK / "Content" / "Config" / "BlueprintParameters.json").read_text())
     e = next(b for b in bp["Blueprints"] if b["Name"] == "cc_photoreal_google")
     assert e["Path"].endswith("_C")          # CARLA appends _C to paths without it: the native class carries it
+
+
+# ------------------------------------------------------------------------------------- height-limited cut
+
+def test_scan_fill_and_distance_of_a_square():
+    ring = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    inside = photoreal._scan_fill([ring], -5.0, -5.0, 0.5, 40, 40)
+    assert inside.sum() == 400                        # 10 x 10 m at 0.5 m pixels
+    assert inside[10 + 1, 10 + 1] and not inside[9, 9]
+    hole = [(4.0, 4.0), (6.0, 4.0), (6.0, 6.0), (4.0, 6.0)]
+    assert photoreal._scan_fill([ring, hole], -5.0, -5.0, 0.5, 40, 40).sum() == 400 - 16
+    d = photoreal._boundary_distance([ring], -5.0, -5.0, 0.5, 40, 40, clamp=4.0)
+    # pixel centre (2.25, 5.25): 2.25 m from the left edge; far ones clamped
+    assert d[int((5.25 + 5) / 0.5), int((2.25 + 5) / 0.5)] == pytest.approx(2.25, abs=1e-5)
+    assert d[0, 0] == pytest.approx(4.0)
+
+
+def test_cut_mask_follows_the_lanes_and_their_height(tmp_path):
+    hill = road(1, "<geometry s='0' x='0' y='0' hdg='0' length='100'><line/></geometry>", 100,
+                left=[("driving", 3.5), ("sidewalk", 2.0)], right=[("driving", 3.5), ("parking", 2.5), ("sidewalk", 2.0)])
+    hill = hill.replace("<elevation s='0' a='10.0' b='0'", "<elevation s='0' a='10.0' b='0.05'")    # 5 % up
+    f = tmp_path / "m.xodr"
+    f.write_text(xodr([hill]))
+    head, arr, geo = photoreal.cut_mask(f, "carriageway", res=0.5)
+    assert arr.shape == (head["h"], head["w"], 2) and geo == GEO
+
+    def at(x, y):
+        i, j = int((x - head["x0"]) / head["res"]), int((y - head["y0"]) / head["res"])
+        return float(arr[j, i, 0]), float(arr[j, i, 1])
+
+    # carriageway: y from -6 (driving 3.5 + parking 2.5) to +3.5; sidewalks outside
+    sd, z = at(50.1, 0.1)
+    assert sd < -3.0 and z == pytest.approx(12.5, abs=0.15)       # 10 m + 5 % of 50 m
+    assert at(50.1, -5.9)[0] < 0 and at(50.1, -6.6)[0] > 0         # the parking lane is cut, the sidewalk not
+    assert at(50.1, 3.25)[0] == pytest.approx(-0.25, abs=0.05)     # sub-pixel: 0.25 m inside the left edge
+    assert at(90.1, 0.1)[1] == pytest.approx(14.5, abs=0.15)
+    head2, arr2, _ = photoreal.cut_mask(f, "road", res=0.5)
+    assert head2["stats"]["area_m2"] > head["stats"]["area_m2"] + 300
+    p = tmp_path / "cut.bin"
+    photoreal.write_cut(p, arr, head)
+    back = photoreal.read_cut(p, head)
+    near = arr[..., 0] < head["clamp"]
+    assert np.abs(back[..., 0] - arr[..., 0]).max() <= head["sdf_step"] / 2 + 1e-6
+    assert np.abs(back[..., 1][near] - arr[..., 1][near]).max() <= 0.006
+    assert head["file"] == "cut.bin" and head["z_base"] == 10
+    # a whole-city grid stays within max_px
+    head3, arr3, _ = photoreal.cut_mask(f, "carriageway", res=0.05, max_px=512)
+    assert max(head3["w"], head3["h"]) <= 512 and head3["res"] > 0.05
+
+
+def test_cut_camera_and_profile_options():
+    s = photoreal.settings({"photoreal": "google"})
+    o = dict(kv.split("=") for kv in photoreal.role_options(s).split(";"))
+    assert o["cut"] == "mask" and o["cut_top"] == "2.8" and o["cams"] == "1" and o["viewport"] == "0"
+    assert o["prof"] == "0" and o["control"] == "0" and o["fog"] == "1" and o["load_ms"] == "0"
+    assert dict(kv.split("=") for kv in photoreal.role_options(s, offscreen=False).split(";"))["viewport"] == "1"
+    s2 = photoreal.settings({"photoreal": {"cut": "polygons", "cut_top_m": 0, "cameras": "spectator", "viewport": True,
+                                           "profile_s": 2, "control": True, "fog_culling": False}})
+    o2 = dict(kv.split("=") for kv in photoreal.role_options(s2).split(";"))
+    assert (o2["cut"], o2["cut_top"], o2["cams"], o2["viewport"], o2["prof"], o2["control"], o2["fog"]) == \
+        ("polygons", "0", "0", "1", "2", "1", "0")
+    base = {"carla_level": "EhvCentre", "opendrive": "twins/EhvCentre.xodr"}
+    text = " | ".join(m for _, m in photoreal.problems({"map": dict(base, photoreal={
+        "cut": "texture", "cameras": "all", "viewport": "maybe", "cut_top_m": -1, "control": "yes"})}))
+    for frag in ("cut 'texture'", "cameras 'all'", "viewport 'maybe'", "cut_top_m -1", "control 'yes'"):
+        assert frag in text
+    warn = photoreal.problems({"map": dict(base, photoreal={"cut": "polygons"})})
+    assert warn and warn[0][0] == "warn" and "full height" in warn[0][1]
+
+
+def test_pack_cut_grid_matches_its_header():
+    pack = photoreal.PACK / "Content" / "Config" / "Photoreal"
+    for f in sorted(pack.glob("*.json")):
+        head = json.loads(f.read_text()).get("cut")
+        if not head:
+            continue
+        grid = photoreal.read_cut(pack / head["file"], head)
+        assert grid.shape == (head["h"], head["w"], 2)
+        assert (grid[..., 0] < 0).mean() > 0.01            # some of the level is cut
+        assert head["stats"]["z_min"] - 0.02 <= float(grid[..., 1][grid[..., 0] < 0].min())

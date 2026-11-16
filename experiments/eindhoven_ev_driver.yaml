@@ -1,0 +1,48 @@
+# Driving an electric car (a Tesla Model 3) through Eindhoven's centre: the drivable electric car type. Its cabin
+# sounds like an electric car's: no engine, the motor and reduction gear's whine rising with speed and louder when
+# accelerating, tyres and wind, and the car's own AVAS heard faintly through the cabin below 20 km/h; the cluster
+# shows a power meter (regeneration below 0) instead of a rev counter. Swap `vehicle` for vehicle.lincoln.mkz_2020
+# (petrol, the default elsewhere) or vehicle.mercedes.sprinter (diesel van) to hear the recorded engines instead.
+#
+#   host:     python -m coupledcarla.run experiments/eindhoven_ev_driver.yaml
+#   station:  python -m coupledcarla.station --host <host> --role driver --input wheel
+#   headless: python -m coupledcarla.run experiments/eindhoven_ev_driver.yaml --record-audio   (autopilot below)
+name: eindhoven_ev_driver
+
+map:
+  name: eindhoven_centre
+  bbox: [51.4360, 5.4700, 51.4500, 5.4930]
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+  time: "10:30"
+
+traffic:
+  cars_per_hour: 1800
+  bikes_per_hour: 900
+  buses_per_hour: 6
+
+sound:
+  enabled: true
+  reference_db: 94                 # measure the F3 tone at the driver's ears and enter the reading here
+  electric: auto                   # CARLA's electric models (vehicle.tesla.*, ...) and the scripted agents
+  ev_motor_db: 38                  # the motor whine at the driver's ears at 50 km/h, dB(A)
+  avas: {enabled: true, db: 56, until_kmh: 20}
+  record: true
+
+participants:
+  - role: driver
+    kind: driver
+    vehicle: vehicle.tesla.model3  # electric (EV_PATTERNS in soundscape.py)
+    input: autopilot               # keyboard | wheel for a human driver
+    view: driver
+    spawn: {lat: 51.4431683, lon: 5.4913458, heading: 255}
+    displays:
+      cluster: true                # cluster_ev: speed, power meter, gear P/D/R
+
+logging:
+  radius_m: 150
+
+trials:
+  - {duration_s: 60}

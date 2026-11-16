@@ -696,8 +696,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 scenery.update([a.get_location() for a in focus_actors])
             if parked is not None and summary["ticks"] % 50 == 35:
                 parked.update([a.get_location() for a in focus_actors])
-            if photo is not None and summary["ticks"] % 5 == 0:
+            if photo is not None and photo.s.get("cameras") == "spectator" and summary["ticks"] % 5 == 0:
                 # Cesium streams the photo tiles for the spectator's view: keep it where the saved or shown view is
+                # (with cameras: sensors the plugin hands CARLA's camera sensors to Cesium instead)
                 # (a film camera, the drone pilot's camera, the participant's view), else just behind the participant
                 cams = ([r.camera for r in film.rigs if r.camera is not None] if film is not None else []) + \
                     ([drone_world.view.camera] if drone_world is not None and getattr(drone_world, "view", None)

@@ -17,7 +17,9 @@ A display design is the same format as an eHMI design (designs.py). Its states a
 shown. Real take-over requests of an automated car come from takeover.py (its own warning, beeps and reaction
 time); the displays follow its state, with {time_left} counting down its budget. A message with `takeover: true`
 is a scripted warning only (no automation hands over), with its reaction (first brake, throttle or steering) logged. Live values in text, gauges and
-bars: {speed} {limit} {rpm} {gear} {clock} {trial_time} {distance} {message} {mode} {time_left} {reaction}.
+bars: {speed} {limit} {rpm} {gear} {power} {clock} {trial_time} {distance} {message} {mode} {time_left} {reaction}.
+An electric own car (set_electric, from sound.electric) has no rpm (0) and no gear number (P, D, R); its default
+cluster is cluster_ev (a power meter, % of full power, regeneration below 0, instead of the rev counter).
 Conditions (`when`): left right blinkers headlights braking reverse automated manual takeover message limit
 over_limit; "!x" negates. Messages for a display that is not configured go to the centre screen (a plain message
 panel when there is none). Every message shown, take-over request and response is logged by the station.
@@ -321,7 +323,8 @@ class InCar:
                 log(f"displays: {name}: {e}")
                 continue
             rect = spec.get("rect") if isinstance(spec, dict) else None
-            self.displays[name] = {"design": d, "rect": self._rect(name, d, rect), "own_rect": bool(rect)}
+            self.displays[name] = {"design": d, "rect": self._rect(name, d, rect), "own_rect": bool(rect),
+                                   "default": design == DEFAULT_DESIGNS[name], "base": base}
         try:
             self.messages = designs.load_messages(self.cfg, base)
         except (OSError, ValueError) as e:
@@ -354,6 +357,20 @@ class InCar:
         self.screen_gain, self.hud_gain = 0.92, 0.9
         if self.displays or self.messages:
             log(f"displays: {', '.join(self.displays) or 'none'}; {len(self.messages)} timed messages")
+
+    def set_electric(self, electric=True):
+        """The own car is electric: no rev counter (the default cluster becomes cluster_ev, a power meter), no
+        engine rpm and no gear number."""
+        electric = bool(electric)
+        if electric == getattr(self, "electric", False):
+            return
+        self.electric = electric
+        disp = self.displays.get("cluster")
+        if disp is not None and disp.get("default"):
+            try:
+                disp["design"] = designs.load("cluster_ev" if electric else "cluster", "incar", disp.get("base"))
+            except (OSError, ValueError) as e:
+                self.log(f"displays: cluster_ev: {e}")
 
     def set_cabin(self, cabin):
         """The station's cockpit.CabinView (dashboard style), or None for flat panels."""
@@ -427,13 +444,18 @@ class InCar:
             self.on_event("message", m["text"], f"{self._target(m)} {m['seconds']:.1f} s", m)
         self.shown = [s for s in self.shown if tt < s[1]]
         gear, rpm = _gear_rpm(kmh, throttle, reverse, control)
+        power = 0
+        if getattr(self, "electric", False):      # no engine: no rpm, a single fixed gear
+            gear = "R" if reverse else ("P" if kmh < 0.5 and throttle < 0.05 else "D")
+            rpm = 0.0
+            power = int(round(100 * throttle if throttle > 0.02 else (-40 * brake if kmh > 3 else 0)))
         left_time = max(0.0, self.takeover[1] - tt) if self.takeover is not None else \
             max(0.0, time_left) if (state == "TAKEOVER" and time_left is not None) else 0.0
         blink_on = (t * 1.5) % 1.0 < 0.5
         lights = int(lights or 0)
         clock = self.clock0 + tt
         self.values = {"speed": int(round(kmh)), "limit": limit if limit is not None else "--", "rpm": int(rpm),
-                       "gear": gear, "clock": f"{int(clock // 3600) % 24:02d}:{int(clock // 60) % 60:02d}",
+                       "gear": gear, "power": power, "clock": f"{int(clock // 3600) % 24:02d}:{int(clock // 60) % 60:02d}",
                        "trial_time": f"{tt:.0f}", "distance": f"{self.distance / 1000:.1f}",
                        "message": self.shown[-1][0]["text"] if self.shown else "",
                        "mode": {"AUTOMATED": "Automated", "TAKEOVER": "Take over"}.get(state, "Manual"),
