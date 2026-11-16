@@ -149,7 +149,8 @@ def _ehv(bbox):
             tags["height"] = str(EHV_HEIGHTS[t["hoogte"]])
         out.append({"type": "node", "id": -1_000_000 - i, "lat": g["lat"], "lon": g["lon"], "tags": tags})
     lights = requests.get(EHV.format("data-openbare-verlichting"),
-                          params={"where": where, "select": "geo_point_2d,lph_armatuur,soort_lamp,kleur_lamp"},
+                          params={"where": where, "select": "geo_point_2d,lph_armatuur,soort_lamp,kleur_lamp,"
+                                  "type_lamp,lumen_lamp,wattage_lamp,type_drager_mast,type_drager_uithouder"},
                           headers=UA, timeout=180).json()
     seen = set()
     for i, lt in enumerate(lights):
@@ -161,7 +162,11 @@ def _ehv(bbox):
             continue
         seen.add(key)
         tags = {"highway": "street_lamp", "source": "eindhoven-openbare-verlichting",
-                "lamp_type": lt.get("soort_lamp") or "", "light:colour": lt.get("kleur_lamp") or ""}
+                "lamp_type": lt.get("soort_lamp") or "", "light:colour": lt.get("kleur_lamp") or "",
+                # the lamp, its flux and how it is mounted (nightlights.lamp_spec)
+                "lamp_model": lt.get("type_lamp") or "", "light:lumen": lt.get("lumen_lamp") or "",
+                "light:wattage": lt.get("wattage_lamp") or "", "support:register": lt.get("type_drager_mast") or "",
+                "lamp_arm": lt.get("type_drager_uithouder") or ""}
         if lt.get("lph_armatuur"):
             tags["height"] = f"{float(lt['lph_armatuur']) / 100:.1f}"      # light point height, cm
         out.append({"type": "node", "id": -2_000_000 - i, "lat": g["lat"], "lon": g["lon"], "tags": tags})
@@ -196,6 +201,7 @@ def _in_box(bbox, s, w, n, e):
     return s <= lat <= n and w <= lon <= e
 
 
+MUNICIPAL_VERSION = 2      # 2: Eindhoven's lamps with their lamp model, lumens, watts, mast and arm
 MUNICIPAL = [   # (name, area (s, w, n, e) the register covers, fetch, what it has)
     ("eindhoven", (51.38, 5.38, 51.50, 5.57), _ehv, "Gemeente Eindhoven open data: bomen, openbare verlichting"),
     ("nyc_trees", (40.49, -74.27, 40.92, -73.68), _nyc_trees, "NYC Parks 2015 Street Tree Census"),
@@ -205,11 +211,14 @@ MUNICIPAL = [   # (name, area (s, w, n, e) the register covers, fetch, what it h
 def municipal_scenery(bbox, path):
     """Trees and street lights from the city's own registers, as OSM-like nodes ({elements, sources}); empty where
     no register is known. Cached in path."""
+    old = None
     if path.exists():
         data = json.loads(path.read_text())
         # caches written when the tree census was listed as "nyc", the key of NYC's building footprints
         data["sources"] = ["nyc_trees" if s == "nyc" else s for s in data.get("sources", [])]
-        return data
+        if data.get("version", 1) >= MUNICIPAL_VERSION or "eindhoven" not in data["sources"]:
+            return data
+        old = data      # Eindhoven's lamps without their lamp, flux and mount (before MUNICIPAL_VERSION 2)
     els, used, failed = [], [], False
     for name, area, fetch, what in MUNICIPAL:
         if _in_box(bbox, *area):
@@ -223,8 +232,11 @@ def municipal_scenery(bbox, path):
             used.append(name)
             log(f"{what}: {sum(1 for x in got if x['tags'].get('natural') == 'tree')} trees, "
                 f"{sum(1 for x in got if x['tags'].get('highway') == 'street_lamp')} street lights")
+    if failed and old is not None:      # the register is down: the older cache rather than none
+        return old
     data = {"elements": els, "sources": used}
     if not failed:      # a register that was down is not cached as "no register here"
+        data["version"] = MUNICIPAL_VERSION
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(data))
     return data
@@ -742,6 +754,7 @@ def weather_at(lat, lon, when, cache_dir=None):
     i = times.index(stamp) if stamp in times else len(times) - 1
     rec = {k: v[i] for k, v in data["hourly"].items() if k != "time"}
     rec["precipitation_3h"] = sum(x or 0 for x in data["hourly"]["precipitation"][max(0, i - 2):i + 1])   # 3 h
+    rec["precipitation_before_3h"] = sum(x or 0 for x in data["hourly"]["precipitation"][max(0, i - 3):i])
     rec["time"] = times[i]
     rec["timezone"] = data.get("timezone")
     return rec, local, off

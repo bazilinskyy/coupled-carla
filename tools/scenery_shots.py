@@ -11,11 +11,17 @@ simulation.capture (coupledcarla/look.py): rendered at 2x and downscaled, no mot
 exposure chosen per view among EVs around look.exposure_ev (the one whose median ground luminance is nearest
 look.target_luminance). --weather doc is look.DOC_WEATHER with the sun's azimuth of --time. --before DIR also saves
 the view with the cameras as they were (1x, CARLA's default post-processing, auto exposure) for comparison.
+Night and rain (nightlights.py): --ahead N puts N cars in the lane ahead of a --chase car (every 10 m), and every car
+there drives with the lights the rules ask for (--lights rules: dipped beam and rear lights at night, in fog and in
+rain from 2.5 mm/h) or as before nightlights.py (--lights old: the participant's car dipped beam and rear lights at
+night only, SUMO's cars dipped beam only, with dark rear lights). --brake lights the first car's brake lights.
+--scenery-json FILE spawns that scenery.json instead of the map's (e.g. one built before a change).
 A shot the realism guard rejects (look.realism_problems: an empty world by the semantic camera, too dark or bright,
 clipped, glaring) is not saved; the reason is printed (--force saves it anyway).
 Starts its own CARLA server (or uses the one at the experiment's server port).
 """
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -23,7 +29,7 @@ import carla
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from coupledcarla import config, look, parking  # noqa: E402
+from coupledcarla import config, look, nightlights, parking  # noqa: E402
 from coupledcarla.display import VIEWS  # noqa: E402
 from coupledcarla.geo import Geo, ground, heading_to_yaw  # noqa: E402
 from coupledcarla.run import load_world, set_weather  # noqa: E402
@@ -31,11 +37,14 @@ from coupledcarla.scenery import Scenery  # noqa: E402
 from coupledcarla.server import Server  # noqa: E402
 
 SKY = 11      # CARLA 0.9.14+ semantic tag of the sky
+AHEAD = ["vehicle.audi.a2", "vehicle.toyota.prius", "vehicle.volkswagen.t2_2021", "vehicle.mini.cooper_s_2021",
+         "vehicle.nissan.patrol_2021", "vehicle.citroen.c3"]
+AHEAD_COLOURS = ["120,124,128", "30,40,70", "180,180,176", "110,20,24", "40,42,44", "200,200,196"]
 
 
 def keep(q, img):
     q[img.frame] = img
-    for k in sorted(q)[:-2]:
+    for k in sorted(q)[:-8]:
         q.pop(k, None)
 
 
@@ -82,6 +91,9 @@ def shoot(world, tf, size, fov, cap, weather, parent=None, before=False, settle=
         frame = world.tick()
     import time
     time.sleep(0.5)
+    common = set.intersection(*(set(q) for _, q in cams.values()))
+    if frame not in common and common:      # a camera was late with the last tick's image: the newest all have
+        frame = max(common)
     sem = np.frombuffer(cams["_sem"][1][frame].raw_data, dtype=np.uint8).reshape(size[1], size[0], 4)[:, :, 2].copy()
     out, meds = {}, {}
     for name, (cam, q) in cams.items():
@@ -113,6 +125,10 @@ def main():
     ap.add_argument("--no-parked", action="store_true")
     ap.add_argument("--quality", type=int, default=88)
     ap.add_argument("--force", action="store_true", help="save shots the realism guard rejects (look.py)")
+    ap.add_argument("--ahead", type=int, default=0, help="cars in the lane ahead of a --chase car")
+    ap.add_argument("--lights", choices=["rules", "old"], default="rules", help="the cars' lights (see above)")
+    ap.add_argument("--brake", action="store_true", help="the first car ahead brakes (brake lights)")
+    ap.add_argument("--scenery-json", help="spawn this scenery.json instead of the map's")
     args = ap.parse_args()
     cfg = config.load(args.experiment)
     mdir = config.map_dir(cfg)
@@ -131,7 +147,7 @@ def main():
         if args.sun is not None:
             sc["sun_altitude"] = args.sun
         bb = cfg["map"]["bbox"]
-        set_weather(world, sc, ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real")
+        wx = set_weather(world, sc, ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real")
         world.wait_for_tick()       # get_weather() returns the new weather only after a tick
         weather = world.get_weather()
         settings = world.get_settings()
@@ -160,7 +176,15 @@ def main():
                     wp = cand
                     break
             shots.append((name, VIEWS["chase"], 90, wp, wp.transform.location))
-        scen = Scenery(client, world, mdir, {"radius_m": 0.0})     # all of it: aerial views see the whole map
+        data = json.loads(Path(args.scenery_json).read_text()) if args.scenery_json else None
+        scen = Scenery(client, world, mdir, {"radius_m": 0.0}, data=data)   # all of it: aerial views see the whole map
+        LS = carla.VehicleLightState
+        if args.lights == "rules":      # every car as nightlights.vehicle_lights says
+            own = other = nightlights.light_bits(wx.get("lights") or {}, carla)
+        else:                           # before nightlights.py: night only; SUMO cars without rear lights
+            own = int(LS.LowBeam) | int(LS.Position) if wx["night"] else 0
+            other = int(LS.LowBeam) if wx["night"] else 0
+        print(f"lights ({args.lights}): own car {own}, other cars {other} ({(wx.get('lights') or {}).get('why')})")
         parked = None if args.no_parked else parking.scenery(client, world, mdir, cfg)
         lib = world.get_blueprint_library()
         for name, tf, fov, wp, at in shots:
@@ -175,9 +199,26 @@ def main():
                 t = wp.transform
                 t.location.z += 0.3
                 car = world.spawn_actor(vbp, t)
-                for _ in range(40):         # let it settle on its wheels
+                cars = [car]
+                for k in range(args.ahead):     # cars in the lane ahead, with their lights
+                    nxt = wp.next(10.0 * (k + 1))
+                    if not nxt:
+                        break
+                    bp2 = lib.find(AHEAD[k % len(AHEAD)])
+                    if bp2.has_attribute("color"):
+                        bp2.set_attribute("color", AHEAD_COLOURS[k % len(AHEAD_COLOURS)])
+                    t2 = nxt[0].transform
+                    t2.location.z += 0.3
+                    other_car = world.try_spawn_actor(bp2, t2)
+                    if other_car is not None:
+                        bits = other | (int(LS.Brake) if args.brake and k == 0 else 0)
+                        other_car.set_light_state(LS(bits))
+                        cars.append(other_car)
+                car.set_light_state(LS(own))
+                for _ in range(40):         # let them settle on their wheels
                     world.tick()
-                car.set_simulate_physics(False)
+                for c in cars:
+                    c.set_simulate_physics(False)
             w, h = (int(v) for v in args.size.split("x"))
             imgs, pick, ev, meds, sem = shoot(world, tf, (w, h), fov, cap, weather, parent=car, before=bool(args.before))
             from PIL import Image
@@ -188,7 +229,8 @@ def main():
             if probs and not args.force:
                 print(f"REJECTED {path}: {'; '.join(probs)} (--force saves it anyway)", flush=True)
                 if car is not None:
-                    car.destroy()
+                    for c in cars:
+                        c.destroy()
                 continue
             Image.fromarray(np.ascontiguousarray(imgs[pick])).save(path, quality=args.quality)
             if args.before:
@@ -198,7 +240,8 @@ def main():
             print(f"{path} ({path.stat().st_size // 1024} KB): EV {pick[2:]} (best {ev:.2f}; median ground by EV "
                   f"{meds}; sun {weather.sun_altitude_angle:.1f} deg, clouds {weather.cloudiness:.0f})", flush=True)
             if car is not None:
-                car.destroy()
+                for c in cars:
+                    c.destroy()
         scen.destroy()
         if parked is not None:
             parked.destroy()

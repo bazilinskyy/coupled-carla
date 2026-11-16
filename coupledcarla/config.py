@@ -132,7 +132,11 @@ DEFAULTS = {
                                          # size), "drop" (left out) or "keep" (in leaf)
                     "lamp_lights": "auto",   # CARLA 1.0: lamps spawned as street lights, which the server lights
                                              # when the sun is at or below the horizon; true: always; false: never
-                    "lights_radius_m": 200.0},   # ... only within this distance of a participant (0: all)
+                    "lights_radius_m": 200.0,   # ... only within this distance of a participant (0: all)
+                    "lamp_colours": True,       # CARLA 1.0: lit lamps take the colour temperature of their lamp
+                                                # (city register or OSM lamp_type; nightlights.py)
+                    "lamp_lumen_scale": 1.0},   # ... and its lumens times this (register lamps; the rest keep
+                                                # CARLA's 27,000 lm)
         "parked": {"enabled": True,  # parked cars (map.scenery.parked) in the stalls taken at the trial's hour
                    "radius_m": 250.0,     # streamed within this distance of the participants
                    "occupancy": "auto",   # "auto": by zone and local hour (parking.PRESENCE), or a share 0-1
@@ -141,6 +145,9 @@ DEFAULTS = {
                                           # level with cars of its own keeps them); true: the level's only; false: ours
         "town_lights": "auto",       # CARLA towns: street and building lights on at night (LightManager); "on",
                                      # "off", or false (left to the server)
+        "headlights": "auto",        # cars' dipped beam and rear lights (nightlights.py, RVV 1990 art. 32/34):
+                                     # "auto" at night, in fog under 1 km and rain from 2.5 mm/h (rear fog light
+                                     # under 50 m of fog), "on", or "off"
     },
     "traffic": {
         "seed": 42,
@@ -170,6 +177,8 @@ DEFAULTS = {
             "max_bikes_per_hour": 3000,   # cap on the counted demand (a cyclist in CARLA costs ~3 ms per tick)
             "dock_weight": 2.0,      # bike edges within 30 m of a shared-bike dock (GBFS, gbfs.py) draw 1 + this
                                      # times the trip starts and ends; 0: off
+            "weather": "auto",       # "auto": fewer cyclists in rain (the hour's and the 3 hours before, from the
+                                     # weather or Open-Meteo; Wessel 2020, nightlights.bike_rain_factor); false: off
         },
         "fleet": "auto",             # "auto": car body types and colours from the open vehicle register where
                                      # there is one (fleet.py: RDW for NL, NY DMV for New York, Waka Kotahi
