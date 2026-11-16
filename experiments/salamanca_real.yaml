@@ -1,0 +1,38 @@
+# Salamanca (Plaza Mayor), as real as Coupled CARLA gets: the twin SalamancaPlaza (Catastro buildings) with Google's Photorealistic 3D Tiles over it
+# and the live data on: the sun and weather of now, traffic from the map's road classes, cyclists, buses from OSM lines.
+# Needs YOUR Google Maps Platform key with billing on the server machine (README "Photorealistic tiles"; each level
+# load is one billed root request) and the level data in the server's content pack. Without a key it runs on the twin.
+name: salamanca_real
+map:
+  opendrive: twins/SalamancaPlaza.xodr
+  carla_level: SalamancaPlaza
+  name: salamanca_twin
+  lefthand: false
+  photoreal:
+    provider: google
+    carve: carriageway
+  scenery:
+    trees: false
+    buildings: false
+server:
+  quality: Epic
+simulation:
+  step: 0.02
+  time: now
+  weather: real
+traffic:
+  cars_per_hour: auto
+  bikes_per_hour: 1200
+  counts: auto
+  walkers:
+    count: auto
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+  spawn:
+    lat: 40.9644
+    lon: -5.6648
+trials:
+- duration_s: 300

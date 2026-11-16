@@ -1,0 +1,44 @@
+# Tokyo (Shibuya crossing), as real as Coupled CARLA gets: the twin ShibuyaCrossing (PLATEAU buildings) with Google's Photorealistic 3D Tiles over it
+# and the live data on: the sun and weather of now, left-hand traffic, Toei buses from OSM lines, a crowd calibrated with CROWD for Japan.
+# Needs YOUR Google Maps Platform key with billing on the server machine (README "Photorealistic tiles"; each level
+# load is one billed root request) and the level data in the server's content pack. Without a key it runs on the twin.
+name: shibuya_real
+map:
+  opendrive: twins/ShibuyaCrossing.xodr
+  carla_level: ShibuyaCrossing
+  name: shibuya_twin
+  lefthand: true
+  photoreal:
+    provider: google
+    carve: carriageway
+  scenery:
+    trees: false
+    buildings: false
+server:
+  quality: Epic
+simulation:
+  step: 0.02
+  time: now
+  weather: real
+traffic:
+  cars_per_hour: auto
+  bikes_per_hour: 1200
+  counts: auto
+  walkers:
+    count: auto
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+  spawn:
+    lat: 35.65918
+    lon: 139.69926
+    heading: 330
+  route:
+  - - 35.6595
+    - 139.70045
+  - - 35.659
+    - 139.7002
+trials:
+- duration_s: 300

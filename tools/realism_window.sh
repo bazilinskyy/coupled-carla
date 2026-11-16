@@ -6,6 +6,7 @@
 # packaged server of the task cc58-pkgserver, ~/cc58/gpu_window.sh holding the GPU):
 #     bash tools/realism_window.sh              # ~35 min of GPU (5 x 201 views), then ~40 min of CPU on $CPU_HOST
 #     ONLY="look overcast" bash tools/realism_window.sh      # some variants only (also: clean)
+#     ONLY="photo photoroad" BUDGET=25 bash tools/realism_window.sh   # Google's tiles over the twin (your key)
 # CoupledReal is fitted with a model of Unreal's tone mapping (lookfit.py) that got the direction of each setting
 # right on CARLA 0.9.16 but its size 30-50 % low, so its predicted gain must be measured here before it is adopted.
 #
@@ -32,7 +33,8 @@ BUDGET=${BUDGET:-12}       # minutes per variant (201 views take ~6)
 log() { echo "$(date +%T) $*"; }
 
 # variant -> scenery set and render options
-declare -A SCN=([before]=before [trees]=after [cars]=after [clean]=after [look]=after [overcast]=after)
+declare -A SCN=([before]=before [trees]=after [cars]=after [clean]=after [look]=after [overcast]=after
+                [photo]=after [photoroad]=after)
 declare -A OPT=(
   [before]="--no-parked --moving-cars 0 --profile Dashcam"
   [trees]="--no-parked --moving-cars 0 --profile Dashcam"
@@ -40,7 +42,14 @@ declare -A OPT=(
   [clean]="--moving-cars 20 --profile CoupledClean"      # optional (ONLY=...): the profile CoupledReal starts from
   [look]="--moving-cars 20 --profile CoupledReal"
   [overcast]="--moving-cars 20 --profile CoupledReal --cloud-scale 1.0"
+  # Google's Photorealistic 3D Tiles over the twin (one billed root request per variant; the key on the server):
+  # the photo mesh brings the buildings, trees and furniture (no scenery), CARLA its roads and cars; tiles need
+  # longer to settle at each view
+  [photo]="--moving-cars 20 --profile Dashcam --no-scenery --settle 60 --first-settle 400"
+  [photoroad]="--moving-cars 20 --profile Dashcam --no-scenery --settle 60 --first-settle 400"
 )
+# variants on another experiment than $EXP
+declare -A EXPV=([photo]=experiments/eindhoven_twin_photoreal.yaml [photoroad]=experiments/eindhoven_twin_photoreal_road.yaml)
 
 use_scenery() {        # before | after: put that set in place
   cp "$MAP/realism/scenery.$1.json" "$MAP/scenery.json"
@@ -80,7 +89,7 @@ for v in $ONLY; do
   mkdir -p $out && cp "$BASE/views.csv" $out/
   use_scenery ${SCN[$v]}
   log "render $v: ${OPT[$v]}"
-  $PY tools/realism_check.py render "$EXP" --out $out --port $PORT --budget-min $BUDGET ${OPT[$v]} 2>&1 \
+  $PY tools/realism_check.py render "${EXPV[$v]:-$EXP}" --out $out --port $PORT --budget-min $BUDGET ${OPT[$v]} 2>&1 \
       | grep -v WARNING | grep -E "rendered|scenery|parked|moving|budget|error|Error" | tail -6
 done
 use_scenery after

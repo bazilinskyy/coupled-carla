@@ -1,0 +1,44 @@
+# Eindhoven as real as Coupled CARLA gets (the test bench of the realism work): the Eindhoven twin (EhvCentre) with
+# Google's Photorealistic 3D Tiles over it, and every live data stream on. The photo mesh is what you see (the real
+# buildings, trees and roofs as photographed); the twin keeps CARLA's roads with lane markings, collision, LiDAR,
+# navigation and, at night, its 3DBAG buildings with lit windows. Live data: the sun and weather of now (Open-Meteo),
+# traffic fitted to NDW counts, the real buses where they are now (OVapi GTFS-Realtime), cyclists from the Dutch
+# cycle network, the RDW car fleet, parked cars by the hour, a crowd calibrated with CROWD.
+# Needs YOUR Google Maps Platform key with billing on the server machine (README "Photorealistic tiles"; each level
+# load is one billed root request) and the level data in the server's content pack (photoreal prepare). Without a
+# key it runs on the twin.
+name: eindhoven_real
+
+map:
+  name: eindhoven_twin                # the twin's SUMO net, scenery and parked cars
+  opendrive: twins/EhvCentre.xodr
+  carla_level: EhvCentre
+  photoreal:
+    provider: google
+    carve: carriageway
+  scenery:
+    trees: false                      # the photo mesh has the real trees
+    buildings: false
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  time: now
+  weather: real
+
+traffic:
+  cars_per_hour: auto
+  counts: auto
+  walkers: {count: auto}
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 51.44453, lon: 5.47883}   # Fellenoord by the station
+
+trials:
+  - {duration_s: 300}

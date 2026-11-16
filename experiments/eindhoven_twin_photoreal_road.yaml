@@ -1,0 +1,53 @@
+# A variant of eindhoven_twin_photoreal.yaml for the realism comparison: the photo mesh is also cut above the
+# sidewalks, so near the viewer everything on the ground is CARLA's (kerbs, paving, furniture) and the photo mesh
+# gives the buildings, trees and everything further away.
+# The Eindhoven twin (EhvCentre) with Google's Photorealistic 3D Tiles over it: the photogrammetry mesh replaces the
+# twin's buildings and ground, CARLA's own roads (lane markings, a smooth surface) stay, collision stays the twin's.
+# Opt-in and not free: needs YOUR Google Maps Platform key with billing on the server machine
+# ($GOOGLE_MAPS_API_KEY or ~/.config/coupled-carla/google_maps_key, mode 600), a server with the Cesium for Unreal and
+# CoupledPhotoreal plugins (unreal/README.md), and the level data in the content pack:
+#   python -m coupledcarla.photoreal prepare experiments/eindhoven_twin_photoreal.yaml \
+#       --footprints <carla-digitaltwins>/build/ehv_centre/ue/manifest.json
+# Each level load sends ONE root request (Google bills those: 1,000 a month free, then USD 6 per 1,000). Without a key
+# the trial runs on the normal twin (one log line). See README "Photorealistic tiles (optional)".
+name: eindhoven_twin_photoreal_road
+
+map:
+  name: eindhoven_twin                # the same SUMO net and scenery as eindhoven_twin.yaml
+  opendrive: twins/EhvCentre.xodr
+  carla_level: EhvCentre
+  photoreal:
+    provider: google
+    carve: road                       # also the sidewalks: CARLA's sharp kerbs, paving and street furniture near the eye
+    data: EhvCentre_road              # its own level data (prepare writes Photoreal/EhvCentre_road.json)
+    hide: [building, terrain]         # visibility only: cars, walkers and LiDAR still meet the twin's geometry
+    day_cap: 50                       # root requests a day on the server machine (also set a Cloud quota cap)
+    month_cap: 1000                   # the free monthly allowance
+  scenery:
+    trees: false                      # the photo mesh has the real trees (and lamps, signs: keep CARLA's for lights)
+    buildings: false
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 2400
+  bikes_per_hour: 1200
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 51.44453, lon: 5.47883}   # Fellenoord by the station
+
+pois:
+  - {name: eindhoven_centraal, lat: 51.4433, lon: 5.4797}
+  - {name: 18_septemberplein, lat: 51.4385, lon: 5.4780}
+
+trials:
+  - {duration_s: 300}
