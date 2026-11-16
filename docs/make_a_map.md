@@ -69,12 +69,12 @@ You do this once per computer. If someone has set up Coupled CARLA for you, skip
    measuring the hills, placing the buildings, planting the trees, and so on. A medium map takes about 4 minutes.
    You can leave the page; the build goes on as long as the small window stays open.
 
-   ![Building Kinsale: each step in plain words](img/mapmaker_progress.jpg)
+   ![Building Chernihiv: each step in plain words](img/mapmaker_progress.jpg)
 5. **Look at the result.** You get a picture of the map from above (roads, buildings, trees, water) and a summary:
    how many kilometres of road, buildings, trees, lamps, bus lines, and how hilly it is. Under "Made from open
    data" are the sources; credit them when you publish pictures or results (OpenStreetMap at least).
 
-   ![Kinsale, built: the square on the map, the picture from above and the summary](img/mapmaker_page.jpg)
+   ![Chernihiv, built: the square on the map, the picture from above and the summary](img/mapmaker_page.jpg)
 6. **Press "Drive it".** On a PC with CARLA, the simulator starts and a window opens after about a minute. Drive
    with W/S/A/D or the arrow keys; Esc ends the drive. Without CARLA, the page tells you what is missing and shows
    the exact command to run on a PC that has it.

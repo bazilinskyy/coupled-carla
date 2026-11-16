@@ -224,6 +224,10 @@ def config_dir(env=None):
     env = os.environ if env is None else env
     if env.get("COUPLED_CARLA_CONFIG_DIR"):     # tests; shared lab machines (the plugin reads it too)
         return Path(env["COUPLED_CARLA_CONFIG_DIR"])
+    if env is os.environ:
+        from .settings import get_config
+        if get_config("config_dir", ""):          # the project's config file (settings.py)
+            return Path(get_config("config_dir")).expanduser()
     home = env.get("USERPROFILE") if os.name == "nt" else env.get("HOME")
     return Path(home or Path.home()) / ".config" / "coupled-carla"
 
@@ -235,6 +239,11 @@ def read_key(env=None, cfgdir=None):
     k = (env.get(KEY_ENV) or "").strip()
     if k:
         return k, "env"
+    if cfgdir is None and env is os.environ:      # the project's secret file (settings.py)
+        from .settings import get_secret
+        k, src = get_secret("google_maps_api_key", env={})
+        if src == "secret":
+            return k, "secret"
     f = Path(cfgdir or config_dir(env)) / "google_maps_key"
     try:
         for line in f.read_text(encoding="utf-8").splitlines():
@@ -248,11 +257,13 @@ def read_key(env=None, cfgdir=None):
 
 def key_status(env=None, cfgdir=None):
     """One line about the key on this machine, without the key."""
+    given = cfgdir
     cfgdir = Path(cfgdir or config_dir(env))
-    key, src = read_key(env, cfgdir)
+    key, src = read_key(env, given)
     if key is None:
         return f"no Google Maps API key ({KEY_ENV} unset, {cfgdir / 'google_maps_key'} missing)"
-    msg = f"Google Maps API key found ({'$' + KEY_ENV if src == 'env' else cfgdir / 'google_maps_key'}, " \
+    where = {"env": "$" + KEY_ENV, "secret": "the project's secret file"}.get(src, cfgdir / "google_maps_key")
+    msg = f"Google Maps API key found ({where}, " \
           f"{len(key)} characters)"
     if src == "file" and os.name != "nt":
         mode = (cfgdir / "google_maps_key").stat().st_mode & 0o777

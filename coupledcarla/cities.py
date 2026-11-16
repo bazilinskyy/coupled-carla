@@ -17,6 +17,20 @@ from . import config, mapbuild
 ROOT = Path(__file__).resolve().parent.parent
 
 
+ISO2 = {"Argentina": "AR", "Australia": "AU", "Belgium": "BE", "Brazil": "BR", "Egypt": "EG", "France": "FR",
+        "Japan": "JP", "Laos": "LA", "New Caledonia": "NC", "New Zealand": "NZ", "Rwanda": "RW", "South Africa": "ZA",
+        "Taiwan": "TW", "USA": "US", "United Kingdom": "GB", "Uruguay": "UY", "Netherlands": "NL", "Ukraine": "UA",
+        "Spain": "ES", "Switzerland": "CH", "Finland": "FI"}
+
+
+def flag(country=None, code=None):
+    """The emoji flag of a country (its name as in cities.yaml, or an ISO 3166-1 alpha-2 code); "" when unknown."""
+    cc = (code or ISO2.get(country or "", "")).upper()
+    if len(cc) != 2 or not cc.isalpha():
+        return ""
+    return "".join(chr(0x1F1E6 + ord(ch) - ord("A")) for ch in cc)
+
+
 def bbox(lat, lon, size_km):
     half = size_km / 2.0
     dlat = half / 111.32

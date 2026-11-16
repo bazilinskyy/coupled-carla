@@ -313,3 +313,11 @@ def test_speed_from_positions_when_carla_reports_none():
         sc.update(t, (0, 0, 1.6, 0), [car])
     assert sc.voices_info()[7]["kmh"] == pytest.approx(50.0, abs=2.0)
     assert sc.voices_info()[7]["tyre_db"] is not None
+
+
+def test_mute_keeps_the_speakers_silent(tmp_path, monkeypatch):
+    from coupledcarla import audio
+    monkeypatch.setenv("COUPLED_CARLA_MUTE", "1")
+    logs = []
+    out = audio.Output(audio.Mixer(), device=True, record=tmp_path / "r.wav", log=logs.append)
+    assert out.channel is None and any("COUPLED_CARLA_MUTE" in m for m in logs)

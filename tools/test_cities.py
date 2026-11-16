@@ -14,6 +14,8 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from coupledcarla.cities import flag  # noqa: E402
 
 
 def run_one(exp, log_path, duration):
@@ -47,10 +49,11 @@ def main():
     ap.add_argument("--only", action="append")
     args = ap.parse_args()
     cat = yaml.safe_load((ROOT / "experiments" / "cities.yaml").read_text())
-    exps = [("eindhoven_centre", ROOT / "experiments" / "eindhoven_centre.yaml", "Eindhoven", "Europe", "medium", "right")]
+    exps = [("eindhoven_centre", ROOT / "experiments" / "eindhoven_centre.yaml", f"{flag('Netherlands')}&nbsp;Eindhoven",
+             "Europe", "medium", "right")]
     for c in cat["cities"]:
-        exps.append((c["slug"], ROOT / "experiments" / "cities" / f"{c['slug']}.yaml", c["name"], c["continent"],
-                     c["size"], c["drive"]))
+        exps.append((c["slug"], ROOT / "experiments" / "cities" / f"{c['slug']}.yaml",
+                     (f"{flag(c.get('country'))} {c['name']}".strip()).replace(" ", "&nbsp;"), c["continent"], c["size"], c["drive"]))
     rows = []
     for slug, exp, name, continent, size, drive in exps:
         if args.only and slug not in args.only:

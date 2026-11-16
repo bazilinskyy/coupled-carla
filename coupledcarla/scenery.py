@@ -573,6 +573,40 @@ def _ring_xy(geo, ring):
     return pts
 
 
+def _without_open_towers(recs, bbox, rdir, log=print):
+    """Drops footprints that hold an OSM lattice tower or mast (open structures, not solid buildings)."""
+    from shapely.geometry import Point, Polygon
+    from . import realworld as rw
+    try:
+        data = rw.osm_towers(bbox, rdir / "osm_towers.json")
+    except Exception as err:  # noqa: BLE001 - Overpass down: keep every footprint
+        log(f"OSM towers failed ({err}); open towers may stand as solid blocks")
+        return recs
+    pts = []
+    for el in data.get("elements", []):
+        if not rw.open_structure(el.get("tags", {})):
+            continue
+        c = el.get("center") or el
+        if "lat" in c and "lon" in c:
+            pts.append(Point(c["lon"], c["lat"]))
+    if not pts:
+        return recs
+    keep, dropped = [], 0
+    for r in recs:
+        try:
+            poly = Polygon(r["ring"])
+        except (ValueError, TypeError):
+            keep.append(r)
+            continue
+        if any(poly.buffer(0.00005).contains(p) for p in pts):
+            dropped += 1
+            continue
+        keep.append(r)
+    if dropped:
+        log(f"{dropped} footprint(s) of lattice towers or masts left out (open structures, not solid buildings)")
+    return keep
+
+
 def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
     """Footprints in CARLA coordinates with height, kind and source: national data (3DBAG, BD TOPO, NYC,
     PLATEAU) > Overture > OSM."""
@@ -627,8 +661,11 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
             h = _number(tags.get("height"))
             if h is None and _number(tags.get("building:levels")) is not None:
                 h = 3.2 * _number(tags.get("building:levels")) + 1.5
+            if rw.open_structure(tags):
+                continue
             recs.append({"ring": [[g["lon"], g["lat"]] for g in geom], "h": h, "cls": tags.get("building"),
                          "src": "osm", "roof": _roof(tags.get("roof:shape"))})
+    recs = _without_open_towers(recs, bbox, rdir, log)
     out = []
     for r in recs:
         pts = _ring_xy(geo, r["ring"])

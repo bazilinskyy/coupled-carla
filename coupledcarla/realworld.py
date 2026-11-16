@@ -241,6 +241,32 @@ def osm_buildings(bbox, path):
     return data
 
 
+OPEN_TOWER_BUILT = {"lattice", "guyed_mast", "guyed_lattice", "dish", "dome", "freestanding_lattice"}
+
+
+def open_structure(tags):
+    """Whether OSM tags describe a lattice tower or mast (a TV or radio tower): drawn as a building it would be a
+    solid block the tower's height (Chernihiv's 156 m lattice TV tower is tagged building=yes as well)."""
+    mm, built = tags.get("man_made"), tags.get("tower:construction")
+    if mm in ("mast", "communications_tower"):
+        return True
+    if mm == "tower" and (built in OPEN_TOWER_BUILT or tags.get("tower:type") in ("communication", "transmission")):
+        return built not in ("concrete", "masonry", "brick", "stone")
+    return False
+
+
+def osm_towers(bbox, path):
+    """Towers and masts in the box (Overpass JSON, centres and tags), to keep open structures out of the buildings."""
+    if path.exists():
+        return json.loads(path.read_text())
+    s, w, n, e = bbox
+    data = overpass_json(f'[out:json][timeout:90];nwr["man_made"~"^(tower|mast|communications_tower)$"]'
+                         f'({s},{w},{n},{e});out center tags;')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, separators=(",", ":")))
+    return data
+
+
 # --- buildings: Overture and 3DBAG ---------------------------------------------------------------------------
 
 def overture_buildings(bbox, path, release=OVERTURE_RELEASE):
@@ -608,6 +634,22 @@ def _ahn(bbox, res=2.0):
     return Dem(z, "rd", {"x0": x0, "y1": y1, "res": res_x})
 
 
+def _get_retry(url, tries=4, timeout=60, wait_s=5.0):
+    """requests.get with retries (a slow or busy tile server: S3 timed out on one of Chernihiv's tiles)."""
+    last = None
+    for i in range(tries):
+        try:
+            r = requests.get(url, headers=UA, timeout=timeout)
+            r.raise_for_status()
+            return r
+        except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as err:
+            last = err
+            if i + 1 < tries:
+                log(f"terrain tile: {type(err).__name__}, trying again ({i + 2} of {tries})")
+                time.sleep(wait_s * (i + 1))
+    raise last
+
+
 def _terrarium(bbox, zoom=15):
     from PIL import Image
     s, w, n, e = bbox
@@ -623,8 +665,7 @@ def _terrarium(bbox, zoom=15):
     mosaic = np.zeros(((ty1 - ty0 + 1) * 256, (tx1 - tx0 + 1) * 256))
     for ty in range(ty0, ty1 + 1):
         for tx in range(tx0, tx1 + 1):
-            r = requests.get(TERRARIUM.format(z=zoom, x=tx, y=ty), headers=UA, timeout=60)
-            r.raise_for_status()
+            r = _get_retry(TERRARIUM.format(z=zoom, x=tx, y=ty))
             a = np.asarray(Image.open(io.BytesIO(r.content)).convert("RGB"), dtype=np.float64)
             mosaic[(ty - ty0) * 256:(ty - ty0 + 1) * 256, (tx - tx0) * 256:(tx - tx0 + 1) * 256] = \
                 a[..., 0] * 256 + a[..., 1] + a[..., 2] / 256 - 32768
