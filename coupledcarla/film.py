@@ -8,7 +8,8 @@ when its own timestamp falls on the grid, so frames stay evenly spaced even when
 Camera kinds (`camera.kind`):
   attach   rigidly on an actor (`target`): mount driver | passenger | hood | chase | roof | eye, or [x, y, z(, pitch,
            yaw)] in the actor's frame (metres forward, right, up); `spring: true` uses CARLA's spring arm (smooth chase)
-  follow   not attached: `offset` [forward, right, up] in the target's frame, its heading smoothed over `smooth_s`,
+  follow   not attached: `offset` [forward, right, up] in the target's frame, its heading smoothed over `smooth_s` and
+           its position steadied over `pos_smooth_s` (0.25 s; a spring fed the target's velocity: no lag, no jitter),
            looking at the target (`look_ahead_m` in front, `look_up_m` up); the pose is predicted one tick ahead. Its
            boom collides like a game's spring arm (`collide: true`): a ray from above the target to the camera
            (World.cast_ray) pulls the camera in front of the first vehicle, building or wall on the way, at once,
@@ -107,6 +108,26 @@ def ease(u):
 def angle_lerp(a, b, w):
     """a moved toward b by the share w, the short way round (degrees)."""
     return a + ((b - a + 180.0) % 360.0 - 180.0) * w
+
+
+POS_SMOOTH_S = 0.25      # follow cameras: time constant of the steadied target position (s)
+TURN_SMOOTH_S = 0.2      # ... and of the view's direction (a car passing close by swung a pedestrian's view 24 deg
+                         # between two frames)
+STEADY_RESET_M = 3.0     # the target jumped farther than this (a new target, a teleport): no smoothing across it
+
+
+def steady_step(p, v, target, target_v, dt, tau):
+    """One step of a critically damped spring (natural frequency 1/tau) pulling (p, v) toward a target moving at
+    target_v: a constant-velocity target is followed without lag, jitter faster than ~1/(2 pi tau) Hz is damped.
+    Semi-implicit: stable for any dt <= tau."""
+    w = 1.0 / tau
+    nv, np_ = [], []
+    for pi, vi, ti, tvi in zip(p, v, target, target_v):
+        a = w * w * (ti - pi) + 2.0 * w * (tvi - vi)
+        vn = vi + a * dt
+        nv.append(vn)
+        np_.append(pi + vn * dt)
+    return tuple(np_), tuple(nv)
 
 
 def smooth_weight(dt, tau):
@@ -359,6 +380,10 @@ class Rig:
                 return None
             loc, yaw, vel = st
             loc = tuple(p + v * f.step for p, v in zip(loc, vel))     # where it will be when this frame renders
+            # a steadied head: the target's position through a critically damped spring that is fed the target's
+            # velocity (no lag at a steady pace), so a walker's capsule jitter or a car's physics shudder is not
+            # filmed (pedestrian clip: 12 cm jumps of the walker's root); pos_smooth_s 0 turns it off
+            loc = self._steady(loc, vel, f.step, float(c.get("pos_smooth_s", POS_SMOOTH_S)))
             w = smooth_weight(f.step, float(c.get("smooth_s", 0.8)))
             self.yaw = yaw if self.yaw is None else angle_lerp(self.yaw, yaw, w)
             fwd, right, up = (list(c.get("offset", [-7.0, 0.0, 2.6])) + [0, 0])[:3]
@@ -384,6 +409,11 @@ class Rig:
                     p_a, y_a = look_rotation(pos, look)
                     p_b, y_b = look_rotation(pos, self.look)
                     lw = float(c.get("look_weight", 1.0))
+                    # nobody looks backwards over their shoulder: the eyes leave a target that passes behind
+                    # (between 90 and 150 deg off straight ahead), else the short way round flips from one side
+                    # to the other as it crosses behind (a car passing behind the pedestrian: 300 deg/s)
+                    behind = abs((y_b - y_a + 180.0) % 360.0 - 180.0)
+                    lw *= max(0.0, min(1.0, (150.0 - behind) / 60.0))
                     yaw, pitch = angle_lerp(y_a, y_b, lw), p_a + (p_b - p_a) * lw
                     d = 10.0
                     look = (pos[0] + d * math.cos(math.radians(yaw)) * math.cos(math.radians(pitch)),
@@ -393,7 +423,25 @@ class Rig:
             return None
         pitch, yaw = look_rotation(pos, look)
         pitch += float(c.get("pitch_offset", 0.0))
+        if self.kind == "follow":     # a head (or a stabilised camera) turns smoothly: the view's own angles
+            tau = float(c.get("turn_smooth_s", TURN_SMOOTH_S))     # through a short low-pass (0: off)
+            if getattr(self, "_view", None) is not None and tau > 0:
+                w = smooth_weight(f.step, tau)
+                pitch = self._view[0] + (pitch - self._view[0]) * w
+                yaw = angle_lerp(self._view[1], yaw, w)
+            self._view = (pitch, yaw)
         return carla.Transform(carla.Location(*pos), carla.Rotation(pitch=pitch, yaw=yaw))
+
+    def _steady(self, loc, vel, dt, tau):
+        st = getattr(self, "_spring", None)
+        if tau <= 0:
+            return loc
+        if st is None or math.dist(st[0], loc) > STEADY_RESET_M:
+            self._spring = (tuple(loc), tuple(vel))
+            return loc
+        p, v = steady_step(st[0], st[1], loc, vel, dt, tau)
+        self._spring = (p, v)
+        return p
 
     def _boom(self, loc, pos, dt, release_s):
         """The follow camera's position with its boom shortened in front of what lies between it and the target."""
@@ -428,6 +476,7 @@ class Rig:
             if alt is not None and alt.id != self.target.id:
                 f.log(f"film {self.name}: target {self.target.id} gone, now {alt.id} {alt.type_id}")
                 self.target, self.yaw, self._pivot_up = alt, None, None
+                self._spring = self._view = None
         if self.kind in ("tripod", "orbit", "path", "follow"):
             tf = self.transform(t + f.step, snap)
             if tf is not None:

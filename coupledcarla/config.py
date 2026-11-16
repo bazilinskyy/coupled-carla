@@ -20,6 +20,11 @@ DEFAULTS = {
         "internal_junctions": False,  # SUMO's net with netconvert's internal junctions (turning vehicles wait inside
                                      # the junction); off: they wait at the stop line, as the waiting points of the
                                      # re-made junctions lay in other lanes (mapbuild.NO_INTERNAL_JUNCTIONS)
+        "smooth_net": True,          # SUMO's net without sideways jumps and kinks: sharp lane shifts in junctions
+                                     # dropped or slowed, junction lanes redrawn as smooth curves, lane corners
+                                     # rounded (<= 0.5 m), turns and bends slowed to ~3 m/s^2 (netsmooth.py)
+        "drop_uturns": False,        # with smooth_net: no U-turns on the spot away from dead ends (more teleports
+                                     # where routes need them: netsmooth.turnarounds)
         "buildings": True,           # also fetch building footprints (trial viewer, figures)
         "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
         "overture": True,            # Overture Maps buildings (needs duckdb), else OSM
@@ -118,6 +123,9 @@ DEFAULTS = {
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
         "animate_radius_m": 60.0,    # ... and within this distance move with physics on (bridge/animate.py): wheels
                                      # roll and steer, cyclists pedal; 0: all placed with physics off as before
+        "smooth_paths": True,        # SUMO vehicles in CARLA drive a smoothed copy of their SUMO path (lateral
+                                     # acceleration and steering rate of a human driver, bridge/animate.py
+                                     # PathSmoother): a kink in a SUMO junction lane is a curve, not a swerve
         "autopilot": "sumo",         # input autopilot: "sumo" (SUMO drives the car with the traffic's rules,
                                      # sumodriver.py; route: [[lat, lon], ...] or destination: {lat, lon} on the
                                      # participant) or "carla" (CARLA's BasicAgent on random lanes); a participant's
@@ -168,6 +176,10 @@ DEFAULTS = {
                                      # under 50 m of fog), "on", or "off"
     },
     "traffic": {
+        "driver_mix": True,          # every SUMO driver and rider their own time gap, gaps, acceleration, lane
+                                     # changing; e-bikes and red-light running cyclists (drivermix.py)
+        "cyclist_red_running": "auto",   # a quarter of the cyclists ride on through red when clear: auto = in the
+                                     # Netherlands only (SWOV's observations; drivermix.py)
         "seed": 42,
         "cars_per_hour": "auto",     # cars entering per hour, or "auto": from the map's lane-km by road class and
                                      # the trial's hour (coupledcarla/counts.py)

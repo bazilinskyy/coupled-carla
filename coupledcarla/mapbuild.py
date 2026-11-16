@@ -363,7 +363,7 @@ def scenery_for_server(cfg, out, server_major, log=log):
 NO_INTERNAL_JUNCTIONS = ["--default.connection.cont-pos", "0"]
 
 
-def sumo_net(out, guess_tls=True, internal_junctions=False):
+def sumo_net(out, guess_tls=True, internal_junctions=False, smooth=True, drop_uturns=False):
     """OpenDRIVE -> map.net.xml with CARLA's road ids, by the vendored netconvert_carla.py (CARLA 1.0 does not ship
     it). The SUMO net never gets the sidewalks (see config.py); bus-only lanes (OpenDRIVE "restricted") are open to
     buses, taxis and emergency vehicles (bridge/util/data/*.typ.xml). No internal junctions unless internal_junctions
@@ -375,19 +375,25 @@ def sumo_net(out, guess_tls=True, internal_junctions=False):
     is the net the OpenDRIVE was written from, so its lanes lie where CARLA's do (the bridge offset is then 0); only
     the road ids differ, which matters only for CARLA-run traffic lights (tls_manager: carla). Without internal
     junctions netconvert re-writes it (same edges, lanes and lights)."""
-    extra = [] if internal_junctions else NO_INTERNAL_JUNCTIONS
+    from . import netsmooth
+    extra = ([] if internal_junctions else NO_INTERNAL_JUNCTIONS) + (netsmooth.NET_ARGS if smooth else [])
     if _lefthand(out / "geo.net.xml"):
         if extra:
             netconvert("--sumo-net-file", str(out / "geo.net.xml"), *extra, "-o", str(out / "map.net.xml"))
         else:
             (out / "map.net.xml").write_bytes((out / "geo.net.xml").read_bytes())
         log("left-hand map: SUMO runs geo.net.xml (the OpenDRIVE's source net)")
-        return
-    subprocess.check_call([sys.executable, str(Path(__file__).parent / "bridge" / "util" / "netconvert_carla.py"),
-                           str(out / "map.xodr"), "--output", str(out / "map.net.xml"),
-                           *(["--guess-tls"] if guess_tls else []), "--no-sidewalks",
-                           *([f"--netconvert-args={' '.join(extra)}"] if extra else [])])
-    log("OpenDRIVE -> CARLA-consistent SUMO net" + ("" if internal_junctions else " (no internal junctions)"))
+    else:
+        subprocess.check_call([sys.executable, str(Path(__file__).parent / "bridge" / "util" / "netconvert_carla.py"),
+                               str(out / "map.xodr"), "--output", str(out / "map.net.xml"),
+                               *(["--guess-tls"] if guess_tls else []), "--no-sidewalks",
+                               *([f"--netconvert-args={' '.join(extra)}"] if extra else [])])
+        log("OpenDRIVE -> CARLA-consistent SUMO net" + ("" if internal_junctions else " (no internal junctions)"))
+    if smooth:      # no sideways jumps or kinks in SUMO's paths, slower sharp turns and bends (netsmooth.py)
+        try:
+            netsmooth.smooth(out / "map.net.xml", extra, log, drop_uturns=drop_uturns)
+        except Exception as err:  # noqa: BLE001 - the net as netconvert made it still drives
+            log(f"net smoothing failed ({err}); map.net.xml as netconvert made it")
 
 
 def build_transit(cfg, out, meta):
@@ -439,7 +445,8 @@ def build_from_opendrive(cfg, out):
     netconvert("--opendrive-files", str(xodr), "--offset.disable-normalization", "--no-internal-links",
                "-o", str(out / "geo.net.xml"))
     sumo_net(out, guess_tls=not mc.get("carla_town"),   # a CARLA town's lights are its own signals: none guessed
-             internal_junctions=mc.get("internal_junctions", False))
+             internal_junctions=mc.get("internal_junctions", False), smooth=mc.get("smooth_net", True),
+             drop_uturns=mc.get("drop_uturns", False))
     bbox = mc.get("bbox") or _bbox_of(out / "geo.net.xml")
     meta = {"name": mc["name"], "lefthand": bool(mc.get("lefthand")), "buildings": 0, "bbox": bbox,
             "built": time.strftime("%Y-%m-%d %H:%M:%S"), "opendrive": str(src), "carla_level": mc.get("carla_level"),
@@ -510,13 +517,17 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
     out = config.map_dir(cfg)
     out.mkdir(parents=True, exist_ok=True)
     if sumo_only and (out / "meta.json").exists():     # SUMO's net again from the map's OpenDRIVE (or geo.net.xml)
-        sumo_net(out, guess_tls=not mc.get("carla_town"), internal_junctions=mc.get("internal_junctions", False))
+        sumo_net(out, guess_tls=not mc.get("carla_town"), internal_junctions=mc.get("internal_junctions", False),
+                 smooth=mc.get("smooth_net", True),
+                 drop_uturns=mc.get("drop_uturns", False))
         log(f"SUMO net rebuilt: {out}")
         return out
     if transit_only and (out / "meta.json").exists():
         meta = json.loads((out / "meta.json").read_text())
         # nets built before bus lanes were open to buses (a CARLA town's without guessed lights)
-        sumo_net(out, guess_tls=not mc.get("carla_town"), internal_junctions=mc.get("internal_junctions", False))
+        sumo_net(out, guess_tls=not mc.get("carla_town"), internal_junctions=mc.get("internal_junctions", False),
+                 smooth=mc.get("smooth_net", True),
+                 drop_uturns=mc.get("drop_uturns", False))
         build_transit(dict(cfg, map=dict(mc, bbox=meta.get("bbox") or mc["bbox"])), out, meta)   # a twin's box
         (out / "meta.json").write_text(json.dumps(meta, indent=2))
         log(f"public transport rebuilt: {out}")
@@ -592,7 +603,8 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
     name_signals(xodr)
     stats = check_xodr(xodr)
 
-    sumo_net(out, internal_junctions=mc.get("internal_junctions", False))
+    sumo_net(out, internal_junctions=mc.get("internal_junctions", False), smooth=mc.get("smooth_net", True),
+             drop_uturns=mc.get("drop_uturns", False))
     meta = {"name": mc["name"], "lefthand": bool(mc.get("lefthand")), "buildings": 0, "bbox": mc["bbox"],
             "built": time.strftime("%Y-%m-%d %H:%M:%S"),
             "files": {"osm": "map.osm", "geo_net": "geo.net.xml", "xodr": "map.xodr", "sumo_net": "map.net.xml"},

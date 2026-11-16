@@ -72,6 +72,12 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
         import traceback
         traceback.print_exc()
         log(f"traffic lights: SUMO's programmes ({type(err).__name__}: {err})")
+    if tc.get("driver_mix", True):     # the red-light running cyclists' types (drivermix.py), taken on departure
+        from . import drivers
+        (work / "variants.add.xml").write_text("<additional>\n" + "".join(
+            "    " + drivers.bike_red_runner(bp, tc["car_following"]) + "\n" for bp in tc["bike_types"]) +
+            "</additional>\n")
+        additional.append("variants.add.xml")
     try:     # scramble crossings: an all-pedestrian phase in their signal programmes (pedsignals.py)
         from . import pedsignals
         scramble = pedsignals.prepare(map_dir, sumo_net, work, log)
@@ -156,6 +162,7 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     <fcd-output.signals value="true"/>
     <device.fcd.period value="0.1"/>
     <tripinfo-output value="sumo_tripinfo.xml"/>{stop_xml}
+    <collision-output value="sumo_collisions.xml"/>
   </output>
   <random_number><seed value="{tc['seed']}"/></random_number>
 </configuration>

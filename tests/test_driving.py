@@ -25,7 +25,8 @@ def test_vtypes_sizes_and_models():
     assert bike.get("carFollowModel") == "EIDM"           # not Krauss: no random dawdling 50 times a second
     assert float(bike.get("length")) == pytest.approx(1.84, abs=0.01)
     bus = types_[tc["bus_type"]]
-    assert float(bus.get("width")) <= 2.55 and bus.get("decel") == "2.0"
+    # CARLA's bus is wider than a real one: SUMO gets its body width (drivers.BODY_WIDTH), so bodies keep apart
+    assert float(bus.get("width")) == drivers.BODY_WIDTH.get(tc["bus_type"], 2.55) and bus.get("decel") == "2.0"
 
 
 def test_size_attrs_unknown_blueprint():

@@ -51,7 +51,7 @@ class FcdStats:
 
     def __init__(self, lane_speed, kind_of, period=0.1):
         self.lane_speed, self.kind_of, self.period = lane_speed, kind_of, period
-        self.acc, self.jerk, self.gap, self.free = {}, {}, {}, {}
+        self.acc, self.jerk, self.gap, self.free, self.free_mps = {}, {}, {}, {}, {}
         self.last = {}                  # vehicle -> (time, accel)
         self.junction_stop = {}         # vehicle -> seconds standing on an internal lane in a row
         self.junction_waits = []        # completed stops inside junctions longer than 5 s (s)
@@ -76,6 +76,7 @@ class FcdStats:
         limit = self.lane_speed.get(lane)
         if limit and not lane.startswith(":") and speed > 1.0 and (not has_leader or float(gap) > 80.0):
             self.free.setdefault(kind, []).append(speed / limit)
+            self.free_mps.setdefault(kind, []).append(speed)
         if lane.startswith(":") and speed < 0.1:
             self.junction_stop[vid] = self.junction_stop.get(vid, 0.0) + self.period
         elif vid in self.junction_stop:
@@ -100,6 +101,7 @@ class FcdStats:
                 "time_gap_under_1s_share": round(share(gaps, lambda g: g < 1.0) or 0.0, 4),
                 "time_gap_under_0.5s_share": round(share(gaps, lambda g: g < 0.5) or 0.0, 4),
                 "free_speed_over_limit": summary(free, 3),
+                "free_speed_mps": summary(self.free_mps.get(kind, []), 2),
                 "free_speed_over_110pct_share": round(share(free, lambda r: r > 1.1) or 0.0, 4),
             }
         waits = self.junction_waits + [w for w in self.junction_stop.values() if w > 5.0]
@@ -272,3 +274,144 @@ def series_jerk(times, speeds_xy):
     acc = [(vs[i + 1] - vs[i]) / 0.1 for i in range(len(vs) - 1)]
     jerk = [(acc[i + 1] - acc[i]) / 0.1 for i in range(len(acc) - 1)]
     return [abs(a) for a in acc], [abs(j) for j in jerk]
+
+
+# -- bodies and turns from the SUMO FCD (x, y, angle) ---------------------------------------------------------------
+
+def fcd_box(rec, length, width):
+    """(x, y, yaw, hx, hy) of a vehicle's body from an FCD record (front bumper x, y in the net; navigation angle:
+    0 north, clockwise) in a frame with y pointing south like CARLA's (y flipped, yaw = angle - 90)."""
+    yaw = float(rec["angle"]) - 90.0
+    fx, fy = float(rec["x"]), -float(rec["y"])
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    return (fx - c * length / 2.0, fy - s * length / 2.0, yaw, length / 2.0, width / 2.0)
+
+
+class BodyStats:
+    """Side clearance of large vehicles and lateral accelerations, from FCD records with x, y, angle.
+
+    add_step(t, recs) once per FCD time step; size_of(type id) -> (length, width, large) or None. A large vehicle's
+    side clearance counts against bodies beside it (their extents along its axis overlap) while one of the two moves;
+    lateral acceleration per vehicle from its body centre over 0.2 s (clipcheck.dynamics)."""
+
+    def __init__(self, size_of, near_m=0.5):
+        self.size_of, self.near_m = size_of, near_m
+        self.min_clear = {}            # (kind pair) -> min clearance
+        self.close = []                # (t, a, b, clearance) under near_m
+        self.series = {}               # vehicle -> [(t, x, y, yaw)]
+
+    def add_step(self, t, recs):
+        boxes, big, moving = {}, [], {}
+        for r in recs:
+            sz = self.size_of(r.get("type", ""))
+            if sz is None or "x" not in r or "angle" not in r:
+                continue
+            b = fcd_box(r, sz[0], sz[1])
+            boxes[r["id"]] = b
+            moving[r["id"]] = float(r.get("speed", 0.0)) > 0.5
+            self.series.setdefault(r["id"], []).append((t, b[0], b[1], b[2]))
+            if sz[2]:
+                big.append(r["id"])
+        if not big:
+            return
+        g = Grid(15.0)
+        for vid, b in boxes.items():
+            g.add(vid, b[0], b[1])
+        from .clipcheck import box_clearance, side_by_side
+        for a in big:
+            ba = boxes[a]
+            for o in g.near(ba[0], ba[1]):
+                if o == a or not (moving[a] or moving[o]):
+                    continue
+                bo = boxes[o]
+                if (bo[0] - ba[0]) ** 2 + (bo[1] - ba[1]) ** 2 > 225 or not side_by_side(ba, bo):
+                    continue
+                d = box_clearance(ba, bo)
+                key = "large-large" if o in big else "large-other"
+                if key not in self.min_clear or d < self.min_clear[key]:
+                    self.min_clear[key] = d
+                if d < self.near_m and (o not in big or a < o):
+                    self.close.append((t, a, o, round(d, 2), key))
+
+    def result(self, period=0.1):
+        from .clipcheck import dynamics
+        lat_max = []
+        for s in self.series.values():
+            runs, cur = [], []
+            for p in s:
+                if cur and p[0] - cur[-1][0] > 1.5 * period:
+                    runs.append(cur)
+                    cur = []
+                cur.append(p)
+            runs.append(cur)
+            m = 0.0
+            for run in runs:
+                for d in dynamics(run):
+                    if d[3] > 2.0:
+                        m = max(m, d[1])
+            lat_max.append(m)
+        eps = {k: episodes([(round(c[0] / period), (c[1], c[2])) for c in self.close if c[4] == k], gap_frames=10)
+               for k in ("large-large", "large-other")}
+        return {"min_side_clearance_m": {k: round(v, 2) for k, v in self.min_clear.items()},
+                "large_close_episodes": eps,
+                "large_close_examples": [c for c in self.close if c[4] == "large-large"][:6] +
+                                        [c for c in self.close if c[4] == "large-other"][:4],
+                "vehicle_max_lat_acc": summary(lat_max), "vehicles_over_4_mps2": sum(1 for v in lat_max if v > 4.0)}
+
+
+
+# -- targets: what real traffic shows ---------------------------------------------------------------------------------
+# (path in traffic_check's summary, low, high, source). A path is keys joined by "/"; a None bound is open.
+TARGETS = [
+    ("fcd/car/abs_accel/p95", None, 2.5, "urban drivers' longitudinal accelerations: 95th percentile under ~2-2.5 "
+     "m/s^2 (Bokare & Maurya 2017, Transp. Res. Procedia 25; Wang et al. 2004 naturalistic data)"),
+    ("fcd/car/decel_over_4.5_share", None, 0.005, "hard braking (> 4.5 m/s^2) is rare in normal driving "
+     "(< 0.5 % of time; naturalistic studies, e.g. Bagdadi & Varhelyi 2011)"),
+    ("fcd/car/abs_jerk/p95", None, 2.5, "jerk: comfortable driving stays under ~2 m/s^3 (Bae et al. 2019; "
+     "Huang & Wang 2004); 2.5 allows for SUMO's 0.1 s sampling"),
+    ("fcd/car/time_gap_s/p50", 1.0, 2.2, "median time gap in urban car following 1-2 s (Treiber & Kesting 2013, "
+     "table 11.2: T 1.0-1.5 s; observed medians 1.3-2 s)"),
+    ("fcd/car/time_gap_under_0.5s_share", None, 0.05, "time gaps under 0.5 s: a few percent at most"),
+    ("fcd/car/free_speed_over_limit/p50", 0.85, 1.08, "free-flow speed / limit in cities ~0.9-1.05 "
+     "(speeds.py: PBOT spot speeds; NL enforcement)"),
+    ("fcd/bike/free_speed_mps/p50", 4.2, 5.4, "Dutch cyclists 15-19 km/h (KiM Cycling Facts 2023; Fietsberaad: "
+     "pedelecs 18.7 km/h)"),
+    ("fcd/bodies/vehicle_max_lat_acc/p50", None, 4.0, "a vehicle's sharpest turn: lateral acceleration of human "
+     "drivers mostly under 3-4 m/s^2 (Xu et al. 2015)"),
+    ("fcd/bodies/large_close_episodes/large-large", None, 0, "buses never pass each other closer than 0.5 m"),
+    ("sumo/teleports", None, 1, "no vehicle teleported (vanishes and reappears)"),
+    ("collisions/n", None, 0, "SUMO collisions"),
+    ("red_light_share_by_class/car", None, 0.01, "cars entering on red: rare (red-light cameras, EU studies "
+     "~1 % of entries)"),
+    ("red_light_share_by_class/bike", 0.1, 0.4, "Dutch cyclists crossing on red: ~24 % of adults "
+     "(SWOV, observations in The Hague)"),
+]
+
+
+def _get(d, path):
+    for k in path.split("/"):
+        if not isinstance(d, dict) or k not in d:
+            return None
+        d = d[k]
+    return d
+
+
+def against_targets(summary, targets=TARGETS):
+    """[{metric, value, low, high, ok, source}] for the measures present in a traffic_check summary."""
+    out = []
+    for path, lo, hi, src in targets:
+        v = _get(summary, path)
+        if v is None:
+            continue
+        ok = (lo is None or v >= lo) and (hi is None or v <= hi)
+        out.append({"metric": path, "value": v, "low": lo, "high": hi, "ok": ok, "source": src})
+    return out
+
+
+def targets_table(rows):
+    lines = ["| Measure | Value | Target | OK | Source |", "|---|---|---|---|---|"]
+    for r in rows:
+        tgt = (f"{r['low']}-{r['high']}" if r["low"] is not None and r["high"] is not None else
+               f">= {r['low']}" if r["low"] is not None else f"<= {r['high']}")
+        lines.append(f"| {r['metric']} | {r['value']} | {tgt} | {'yes' if r['ok'] else 'NO'} | {r['source']} |")
+    return "\n".join(lines)

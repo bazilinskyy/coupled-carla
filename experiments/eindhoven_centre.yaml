@@ -3,6 +3,7 @@ name: eindhoven_centre
 
 map:
   bbox: [51.4360, 5.4700, 51.4500, 5.4930]   # south, west, north, east (about 1.6 x 1.6 km)
+  drop_uturns: true      # no U-turns on the spot in junctions (netsmooth.turnarounds): teleports stay at 1
 
 server:
   quality: Epic

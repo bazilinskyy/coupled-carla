@@ -353,6 +353,20 @@ class PathWalker:
     def step(self, t):
         if self.done or t < self.start_s or not self.points:
             self.apply(carla.WalkerControl(speed=0.0))
+            self._hist = None
+            return
+        climb = getattr(self, "_climb", None)
+        if climb is not None:                     # on the way up a high kerb (_step_up)
+            t0, tf0, dest = climb
+            u = min(1.0, (t - t0) / CLIMB_S)
+            a = tf0.location
+            lift = min(1.0, 2.0 * u)              # up first, then forward
+            loc = carla.Location(a.x + (dest.x - a.x) * u, a.y + (dest.y - a.y) * u, a.z + (dest.z - a.z) * lift)
+            self.walker.set_transform(carla.Transform(loc, tf0.rotation))
+            if u >= 1.0:
+                self._climb = None
+                self._hist = None
+                self.walker.set_simulate_physics(True)
             return
         loc = self.walker.get_location()
         target = self.points[self.i]
@@ -370,6 +384,49 @@ class PathWalker:
             return
         self.apply(carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0),
                                                       speed=self.speed))
+        self._step_up(t, loc, dx / d, dy / d)
+
+    def _step_up(self, t, loc, ux, uy):
+        """A walker that pushes against a kerb higher than it can step (CARLA's walkers climb ~0.45 m; the road
+        of an OSM map can lie 0.5 m above the ground tiles beside it: Eindhoven pedestrian clip, the walker
+        bounced in place for 14 s and the head camera shook) is lifted onto it, as a person steps up: only when
+        it made no headway for STUCK_S and the road surface just ahead (OpenDRIVE) is above its feet by less than
+        STEP_MAX_M."""
+        hist = getattr(self, "_hist", None)
+        if hist is None or t < hist[0]:
+            self._hist = (t, loc.x, loc.y)
+            return
+        if math.hypot(loc.x - hist[1], loc.y - hist[2]) > 0.25:
+            self._hist = (t, loc.x, loc.y)
+            return
+        if t - hist[0] < STUCK_S:
+            return
+        self._hist = (t, loc.x, loc.y)
+        try:
+            cmap = getattr(self, "_cmap", None) or self.walker.get_world().get_map()
+            self._cmap = cmap
+            feet = loc.z - self.walker.bounding_box.extent.z
+            wp = ahead = None
+            for d in (0.4, 0.7, 1.0, 1.3):        # the road's edge within a step or two
+                ahead = carla.Location(loc.x + d * ux, loc.y + d * uy, loc.z)
+                wp = cmap.get_waypoint(ahead, project_to_road=False, lane_type=carla.LaneType.Any)
+                if wp is not None:
+                    break
+            if wp is None or not 0.1 < wp.transform.location.z - feet < STEP_MAX_M:
+                return
+            tf = self.walker.get_transform()
+            # stepped up over CLIMB_S as a person climbs a kerb (one jump of a metre showed in the other views)
+            self._climb = (t, tf, carla.Location(ahead.x, ahead.y,
+                                                 wp.transform.location.z + self.walker.bounding_box.extent.z + 0.05))
+            self.walker.set_simulate_physics(False)
+            self.steps_up = getattr(self, "steps_up", 0) + 1
+        except RuntimeError:
+            pass
+
+
+STUCK_S = 0.6        # PathWalker: no headway for this long while walking ...
+STEP_MAX_M = 0.8     # ... and a road surface ahead at most this much above its feet: lifted onto it ...
+CLIMB_S = 0.6        # ... over this long
 
 
 class ScriptedWalker:
