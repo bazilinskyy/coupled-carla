@@ -391,6 +391,7 @@ DEFAULTS = {
         "radius_m": 150,             # around the participants
         "crowd": "auto",             # auto: traffic.walkers.count "auto" when the experiment has no crowd
         "max_extra_walkers": 30,     # sitters, bus passengers, couriers, drivers at once (~0.4 ms per tick each)
+        "poses": True,               # bone poses on people standing still: sitting, a phone, waving, head turns
         "activities": {"enabled": True, "groups": True, "children": True, "phones": True, "wheelchairs": True,
                        "shops": True, "doors": True, "benches": True, "stops": True, "bikes": True},
         "kerbside": {"enabled": True, "deliveries": True, "pickups": True, "buses": True, "parking": True},

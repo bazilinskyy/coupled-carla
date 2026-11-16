@@ -151,6 +151,7 @@ DEFAULTS = {
     "radius_m": 150.0,          # around the participants
     "crowd": "auto",            # auto: the crowd on (traffic.walkers.count auto) when the experiment has none
     "max_extra_walkers": 30,    # sitters, waiters, couriers, passengers at once (a walker costs ~0.4 ms per tick)
+    "poses": True,              # bone poses on standing people (sitting, a phone, waving, the head turned)
     "activities": {"enabled": True, "groups": True, "children": True, "phones": True, "wheelchairs": True,
                    "shops": True, "doors": True, "benches": True, "stops": True, "bikes": True},
     "kerbside": {"enabled": True, "deliveries": True, "pickups": True, "buses": True, "parking": True},
@@ -688,6 +689,7 @@ class LivingCity:
         self.lib = world.get_blueprint_library()
         self.cmap = world.get_map()
         self.poser = Poser(carla, log)
+        self.poser.failed = not lc.get("poses", True)       # off: people stand (and sit) without poses
         self.radius = float(lc.get("radius_m", 150.0))
         self.extra = set()          # crowd indices of the walkers the living city added (sitters, waiters, ...)
         self.vehicles = {}          # carla id -> {kind, ...} vehicles the living city drives or holds
