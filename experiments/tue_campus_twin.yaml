@@ -1,0 +1,38 @@
+# The TU/e campus in Eindhoven (1.1 x 1.5 km) as a baked CARLA 1.0 level: the carla-digitaltwins twin TUeCampus made
+# by the "twin of any place" pipeline from Dutch open data (PDOK 8 cm aerial photo, AHN terrain, 3DBAG LoD 2.2
+# buildings; OSM roads, profile nl_urban), with SUMO driving on the twin's own OpenDRIVE. For the campus demo video;
+# Google Photorealistic 3D Tiles can be streamed over it (map.photoreal, see eindhoven_twin_photoreal.yaml).
+# Needs a CARLA 1.0 server that has the level (see README, "A twin of any place").
+name: tue_campus_twin
+
+map:
+  opendrive: twins/TUeCampus.xodr   # the twin's OpenDRIVE, copied next to the experiments (not in git)
+  carla_level: TUeCampus
+  name: tue_campus_twin
+  lefthand: false
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 2400
+  bikes_per_hour: 1200
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 51.44842, lon: 5.48690, heading: 90}   # on De Zaale north of Atlas and MetaForum, heading east
+
+pois:
+  - {name: metaforum, lat: 51.44755, lon: 5.48745}
+  - {name: atlas, lat: 51.4479, lon: 5.4860}
+  - {name: groene_loper, lat: 51.44675, lon: 5.4880}
+
+trials:
+  - {duration_s: 300}

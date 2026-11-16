@@ -88,18 +88,24 @@ class SumoTopology(object):
         if (len(sumo_ids)) == 1:
             return sumo_ids[0]
 
-        # The edge is split into different lane sections. We return the nearest edge based on the
-        # s coordinate of the provided landmark.
+        # The edge is split into different lane sections ("<road>.<s>") and/or into pieces by netconvert
+        # ("<edge>#<k>", in driving order). We return the lane section holding the s coordinate of the provided
+        # landmark and, of its pieces, the last one (the road's end, where its successors begin).
+        # (Upstream asserted `set(...) == 1`, which is always false, and parsed s from every id, which fails for
+        # "#" pieces: coupled-carla's TU/e campus twin has both.)
         else:
-            # Ensures that all the related sumo edges belongs to the same opendrive road but to
-            # different lane sections.
-            assert set([edge.split('.', 1)[0] for edge, lane_index in sumo_ids]) == 1
+            def piece(edge):
+                base, _, part = edge.partition('#')
+                road, _, sec = base.partition('.')
+                return road, float(sec) if sec else 0.0, int(part) if part.isdigit() else 0
 
-            s_coords = [float(edge.split('.', 1)[1]) for edge, lane_index in sumo_ids]
+            pieces = [(piece(edge), (edge, lane_index)) for edge, lane_index in sumo_ids]
+            # Ensures that all the related sumo edges belongs to the same opendrive road.
+            assert len(set(p[0] for p, _ in pieces)) == 1
 
-            s_coords, sumo_ids = zip(*sorted(zip(s_coords, sumo_ids)))
-            index = bisect.bisect_left(s_coords, s, lo=1) - 1
-            return sumo_ids[index]
+            s_coords = sorted(set(p[1] for p, _ in pieces))
+            section = s_coords[max(bisect.bisect_left(s_coords, s, lo=1) - 1, 0)]
+            return max((p[2], sid) for p, sid in pieces if p[1] == section)[1]
 
     def is_junction(self, odr_road_id, odr_lane_id):
         """
