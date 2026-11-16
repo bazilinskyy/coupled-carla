@@ -15,7 +15,7 @@ controller, as on the street:
   the link shapes; a turning stream may share its green with one it yields to, as a 'g', except a left turn from
   its own lane), amber from CROW's 2022 handbook, all-red clearance from the paths' distances to the conflict
   points (rounded up to 0.5 s as Eindhoven does), cycle and maximum cycle from the Nota (under 90 s inside the
-  Ring, at most 120 s on it), vehicle-actuated (SUMO's "actuated": the green ends when the detectors see a gap,
+  Ring, at most 120 s on it), vehicle-actuated (SUMO's "actuated": the green ends when the detectors see a 3 s gap,
   between a minimum and a maximum) as nearly every Dutch signal is;
 - write_net(): a copy of map.net.xml with these controllers (connections' tl and linkIndex, the junction type and
   the tlLogic); lanes, edges and their geometry stay byte for byte as they were (netconvert is not run again: it
@@ -35,7 +35,7 @@ from pathlib import Path
 
 from . import junctions as J
 
-VERSION = 9                       # bump when the design changes: the cached nets are rebuilt
+VERSION = 11                       # bump when the design changes: the cached nets are rebuilt
 DATA = Path(__file__).parent / "data" / "signals"
 
 # --- Dutch timings ----------------------------------------------------------------------------------------------
@@ -59,8 +59,10 @@ CYCLE_BY_STAGES = {1: 50.0, 2: 50.0, 3: 65.0, 4: 80.0}
 CYCLE_MAX_INNER, CYCLE_MAX_MAIN = 90.0, 120.0
 MAIN_ROAD_SPEED = 13.0            # m/s (about 50 km/h and more) with 2+ lanes: a main road (the Ring, radials)
 MAX_GREEN_FACTOR = 1.8            # actuated: the maximum green is this times the planned green (within the cap)
+FEEDERS = True                    # a stream into the middle of a multi-node junction keeps its exit's conflicts
 PED_STAGE = 12.0                  # a mid-block crossing's red for the road (s): 9 m at 1.2 m/s (Regeling) + start
-ACTUATED_PARAMS = {"max-gap": "3.0", "detector-gap": "2.0", "passing-time": "1.9"}
+# actuated: SUMO's defaults (max-gap 3.0 s, detector-gap 2.0 s, passing-time 1.9 s); no <param> is written: the
+# bridge (sumo_simulation.SumoTLLogic) reads every tlLogic param as a CARLA landmark link and fails on others
 
 # --- matching -----------------------------------------------------------------------------------------------------
 MATCH_M = 45.0                    # a listed junction this close to a signalised node controls it
@@ -478,6 +480,21 @@ def design(net, nodes, cid="tls", inner=True, log=_log):
         ga, gb = gof[a], gof[b]
         if ga != gb and kind == "full":
             full[ga][gb] = full[gb][ga] = True
+    # a junction of several nodes (dual carriageways): a stream that drives into the middle must be able to leave it,
+    # so a group may not share a stage with what conflicts with the inner group it feeds (vehicles stood inside the
+    # junction, blocking it: 8 teleports in 900 s at Kennedylaan/Fellenoord)
+    feeds = []
+    for gb, b in enumerate(groups if FEEDERS else []):
+        if not b["internal"]:
+            continue
+        for ga, a in enumerate(groups):
+            if ga != gb and any(links[k]["to"].rsplit("_", 1)[0] == b["edge"] for k in a["links"]):
+                feeds.append((ga, gb))
+    base = [row[:] for row in full]
+    for ga, gb in feeds:
+        for x in range(n):
+            if x != ga and base[gb][x]:
+                full[ga][x] = full[x][ga] = True
 
     # stages: groups that may be green together (make_stages), each filled with every group that conflicts with none
     # of it (a group may be green in several stages); ordered below for the least lost time
@@ -642,9 +659,6 @@ def tl_logic_xml(prog, program_id="dutch"):
     """A <tlLogic> element for a programme (design() or signaldata.program_from_log())."""
     el = ET.Element("tlLogic", {"id": prog["id"], "type": prog.get("type", "static"), "programID": program_id,
                                 "offset": f"{prog.get('offset', 0.0):g}"})
-    if prog.get("type") == "actuated":
-        for k, v in ACTUATED_PARAMS.items():
-            ET.SubElement(el, "param", {"key": k, "value": v})
     for p in prog["phases"]:
         at = {"duration": f"{p['duration']:g}", "state": p["state"]}
         if prog.get("type") == "actuated" and p.get("maxDur"):
@@ -795,7 +809,7 @@ def tls_states_additional(net_file, work):
 
 def _key(map_dir, cfg_part):
     st = (Path(map_dir) / "map.net.xml").stat()
-    raw = json.dumps([VERSION, st.st_size, int(st.st_mtime), cfg_part], sort_keys=True)
+    raw = json.dumps([VERSION, FEEDERS, st.st_size, int(st.st_mtime), cfg_part], sort_keys=True)
     return hashlib.sha1(raw.encode()).hexdigest()[:12]
 
 
@@ -835,8 +849,9 @@ def prepare(cfg, map_dir, work, when=None, log=_log):
         write_net(map_dir / "map.net.xml", net_out, progs)
         out_dir.mkdir(parents=True, exist_ok=True)
         plan_out.write_text(json.dumps({"summary": summary, "programs": [_public(p) for p in progs]}, indent=0))
-        for old in out_dir.glob("*.net.xml"):          # older designs of this map
-            if old.name != net_out.name:
+        import time as _time
+        for old in out_dir.glob("*.net.xml"):          # older designs of this map (a week old: trials may run them)
+            if old.name != net_out.name and _time.time() - old.stat().st_mtime > 7 * 86400:
                 old.unlink()
                 (out_dir / old.name.replace(".net.xml", ".plan.json")).unlink(missing_ok=True)
         net = True

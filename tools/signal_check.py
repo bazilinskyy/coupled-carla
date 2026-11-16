@@ -15,12 +15,18 @@ second its halting vehicles. Reports per mode:
 - green conflicts: link pairs of a junction a phase shows green at once while they cross or merge and neither
   yields (junctions.green_conflicts on the net SUMO runs: 0 is wanted).
 Writes summary.json per mode and compare.json in the output folder and prints the comparison.
+
+    python tools/signal_check.py --trial logs/<experiment>/<trial> [...]
+
+measures the same from CARLA trials' SUMO outputs (with simulation.traffic_lights.log: true also whether the drawn
+heads showed SUMO's states).
 """
 import argparse
 import json
 import re
 import sys
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import yaml
@@ -166,7 +172,92 @@ def run_mode(a, mode, out):
     return out_d
 
 
+def analyse_trial(trial, warmup=60.0):
+    """The same measures from a CARLA trial's SUMO outputs (sumo/: trial.sumocfg, sumo_fcd.xml.gz every 0.1 s,
+    sumo_tripinfo.xml, tls_states.xml, sumo.log), plus the participants' collisions (summary.json) and whether the
+    drawn heads showed SUMO's states (signal_heads.py)."""
+    import gzip
+    from bisect import bisect_right
+    import signal_heads
+    trial = Path(trial)
+    sd = trial / "sumo"
+    text = (sd / "trial.sumocfg").read_text()
+    net = junctions.read_net(re.search(r'<net-file value="([^"]+)"', text).group(1))
+    lane_links = {}                     # signalised approach lane -> [(tls, link index)]
+    for c in net.conns:
+        if c.get("tl") and not c["from"].startswith(":"):
+            lane_links.setdefault(f"{c['from']}_{c['fromLane']}", []).append((c["tl"], int(c["linkIndex"])))
+    rec = signal_heads.sumo_record(sd / "tls_states.xml") if (sd / "tls_states.xml").exists() else {}
+
+    def red(lane, t):
+        for tls, k in lane_links[lane]:
+            times, states = rec.get(tls, ([], []))
+            i = bisect_right(times, t + 1e-6) - 1
+            if i < 0 or k >= len(states[i]) or states[i][k] not in "rRyYs":
+                return False
+        return True
+    queues, halted, stops = {}, {}, 0
+    with gzip.open(sd / "sumo_fcd.xml.gz", "rt") as f:
+        t = None
+        for ev, el in ET.iterparse(f, events=("start", "end")):
+            if ev == "start" and el.tag == "timestep":
+                t = float(el.get("time"))
+                if abs(t - round(t)) > 1e-6:
+                    t = None                # one sample a second
+                count = {}
+            elif ev == "end" and el.tag == "vehicle" and t is not None and t >= warmup:
+                lane, v = el.get("lane", ""), float(el.get("speed", 0))
+                if lane in lane_links:
+                    vid = el.get("id")
+                    if v < 0.1:
+                        count[lane] = count.get(lane, 0) + 1
+                        near = net.lanes[lane]["length"] - float(el.get("pos", 0)) < 60.0
+                        if not halted.get(vid) and near and red(lane, t):
+                            stops += 1
+                        halted[vid] = True
+                    elif v > 1.0:
+                        halted[vid] = False
+            elif ev == "end" and el.tag == "timestep":
+                if t is not None and t >= warmup:
+                    for ln in lane_links:
+                        queues.setdefault(ln, []).append(count.get(ln, 0))
+                el.clear()
+    allq = [q for v in queues.values() for q in v]
+    trips = {}
+    if (sd / "sumo_tripinfo.xml").exists():
+        for el in ET.parse(sd / "sumo_tripinfo.xml").getroot().iter("tripinfo"):
+            if float(el.get("depart")) < warmup:
+                continue
+            tid = el.get("vType", "")
+            k = "bike" if "bike" in tid or "gazelle" in tid or "diamondback" in tid or "bh." in tid else \
+                "bus" if "bus" in tid or "fusorosa" in tid else "car"
+            d = trips.setdefault(k, {"n": 0, "wait": 0.0, "loss": 0.0})
+            d["n"] += 1
+            d["wait"] += float(el.get("waitingTime"))
+            d["loss"] += float(el.get("timeLoss"))
+    for d in trips.values():
+        d["wait"], d["loss"] = round(d["wait"] / max(1, d["n"]), 1), round(d["loss"] / max(1, d["n"]), 1)
+    log = (sd / "sumo.log").read_text(errors="replace") if (sd / "sumo.log").exists() else ""
+    summ = json.loads((trial / "summary.json").read_text()) if (trial / "summary.json").exists() else {}
+    heads = signal_heads.compare(trial) if (trial / "signal_heads.csv").exists() and rec else None
+    return {"trial": str(trial), "lights": len(net.tls), "signalised_lanes": len(lane_links),
+            "queue_mean_veh": round(sum(allq) / max(1, len(allq)), 3),
+            "queue_p95_veh": drivecheck.pct(allq, 95) if allq else 0, "queue_max_veh": max(allq) if allq else 0,
+            "red_light_stops": stops, "trips": trips,
+            "teleports": len(re.findall(r"Teleporting vehicle", log)),
+            "sumo_collisions": len(re.findall(r"collision with", log)),
+            "emergency_braking": len(re.findall(r"emergency braking", log)),
+            "participant_collisions": summ.get("collisions"), "sumo_vehicles_spawned":
+            summ.get("sumo_vehicles_spawned"), "rtf": summ.get("rtf"),
+            "heads": {k: heads[k] for k in ("samples", "agree", "share", "agree_at_switch_step", "heads_lights")}
+            if heads else None}
+
+
 def main():
+    if len(sys.argv) > 2 and sys.argv[1] == "--trial":     # a CARLA trial's outputs
+        sys.path.insert(0, str(ROOT / "tools"))
+        print(json.dumps({t: analyse_trial(t) for t in sys.argv[2:]}, indent=1))
+        return
     ap = argparse.ArgumentParser()
     ap.add_argument("experiment")
     ap.add_argument("--modes", default="sumo,dutch")

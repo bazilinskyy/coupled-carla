@@ -1795,9 +1795,23 @@ in a world built from OpenDRIVE: they have no OpenDRIVE id, so they cannot be li
 - each participant's **next light** (id, distance, state) comes from the lane their SUMO twin is on; it drives
   the autopilot, the HUD, the per-frame log (`next_tl*` columns) and a `next_light` event whenever it changes.
 
-The signal programs are CARLA's converter defaults for now (per approach 42 s green, 3 s yellow, 3 s red), not
-the coordinated programs SUMO derives from OSM ([Known limits](#known-limits)).
+**Programmes** (`traffic.signals`, `coupledcarla/signalplan.py`; details, sources and formats in
+[docs/signals.md](docs/signals.md)):
 
+| `traffic.signals` | What runs |
+|---|---|
+| `dutch` (`auto` in the Netherlands) | one controller per junction, matched to the city's list of signalised junctions (Eindhoven: the 180 of [`locaties-verkeerlichten`](https://data.eindhoven.nl/explore/dataset/locaties-verkeerlichten/), public domain, with the VRI numbers of the Nota Verkeerslichten 2024); Dutch signal groups (a protected left from its own lane, through and right, cyclists, buses), conflict-free stages from SUMO's own conflict matrix (a turning stream may share a green it yields in, as a 'g'), CROW 2022 amber (3.5 s at 50 km/h to 5.0 s at 80, turning and cyclists 3.0 s), all-red from the paths' distances to the conflict point (rounded up to 0.5 s), vehicle-actuated greens within the Nota's cycles (at most 90 s inside the Ring, 120 s on main roads) |
+| `real` (`auto` when `traffic.signal_data` is set) | recorded phases of a chosen date and hour (a phase log of state changes plus the junction's signal groups): per junction its cycle, splits and offset, actuated where the cycles vary, or every recorded state at its time (`replay: exact`); or a live feed of the same rows through TraCI. Junctions without data run `dutch` |
+| `sumo` (`auto` elsewhere) | netconvert's: one light per OpenDRIVE signal, 42 s green, 3 s amber, 3 s red, all in step (every stream of a junction green together) |
+
+**Real data.** None is open for Eindhoven: the city publishes where its 180 signals are, not their timings, and
+none of the 13 Eindhoven iVRIs (all on the Ring; 2 at the TU/e campus, none in `eindhoven_centre`) streams openly.
+Recorded phases (V-Log) and control programmes (CCOL) are the municipality's (ask data@eindhoven.nl; a Woo request
+is the formal route); live SPaT/MAP comes through UDAP (Talking Traffic) with the municipality's permission and an
+account from the Ministerie van IenW (info@talking-traffic.com). Exactly what to ask for: [docs/signals.md](docs/signals.md#what-you-would-have-to-request-nothing-has-been-requested).
+Nothing has been requested.
+
+SIGNAL_RESULTS
 ## Logging and data
 
 Each trial writes to `logs/<experiment>/<YYYYmmdd-HHMMSS>_trial<k>/`:
@@ -1925,7 +1939,7 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 | AI cars on waypoint circuits with speed/yield triggers | scripted agents on lat/lon routes with triggers (speed, accel, yield, blinker, eHMI) + SUMO traffic | done |
 | AI pedestrians on waypoint circuits | scripted walkers on lat/lon paths (no navigation mesh needed) | done; SUMO persons as walkers: to do |
 | eHMI on the AV (top, windshield, hood) | light bar + line-font text on the front or rear, a roof ring, text projected on the road, or "eyes" that look at the nearest pedestrian; set by passenger, triggers or automatically | done |
-| Traffic lights, switchable | SUMO signal programs, drawn in the world | done (default programs) |
+| Traffic lights, switchable | SUMO signal programs, drawn in the world | done (Dutch programmes per junction; real phase data when available) |
 | Day/night | weather presets, sun altitude | done |
 | Networking host + 3 clients | host + one station per human on the LAN, no fixed limit | done; multi-GPU secondaries: to do |
 | Binary log 50 Hz + CSV conversion | `frames.csv` at 50 Hz directly | done |
@@ -1968,8 +1982,10 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
   machine.
 - **Remote stations** receive their camera as raw images (about one full-HD station per gigabit link) and need a
   wired LAN; multi-GPU secondaries are not used yet.
-- **Signal programs:** CARLA's converter replaces SUMO's OSM-derived, junction-coordinated programs with one
-  default program per approach (green 42 s, yellow 3 s, red 3 s). Real programs are a follow-up.
+- **Signal programs:** Dutch maps run a Dutch programme per junction ([Traffic lights](#traffic-lights)); real
+  timings need the municipality's data (none is open). Not modelled: green waves on the Ring, public-transport
+  priority, a second green for cyclists, night programmes, skipping a stage without demand. Other countries run
+  CARLA's converter defaults (per approach green 42 s, yellow 3 s, red 3 s).
 - **Public transport** is buses only (no trams or trains), with frequencies per hour rather than the exact
   departures; cities without a free GTFS feed (London, Taipei, Kigali, ...) use OSM intervals or a default.
 - **Traffic:** SUMO still logs junction collisions at a few junctions with faulty internal lanes from netconvert's
@@ -2175,6 +2191,8 @@ coupledcarla/
   bridge/            SUMO <-> CARLA bridge, vendored from CARLA 0.9.16 (MIT) with fixes (batching,
                      level of detail, traffic lights, offsets, TM port); util/netconvert_carla.py
   signals.py         SUMO traffic lights drawn in CARLA, next light per participant
+  signalplan.py      a programme per junction: controllers matched to the city's signals, Dutch timings
+  signaldata.py      real signal data: phase logs replayed (programme or exact), live feeds through TraCI
   inputs/            keyboard, G25 wheel (steering_wheel.py), autopilot
   display.py         participant view (pygame window or saved frames)
   logger.py          frames.csv, events.csv, UDP
@@ -2186,8 +2204,8 @@ experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhove
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, test_towns.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
                      render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py,
-                     crowdpeds_check.py, crowd_table.py, speeds_check.py
-docs/                city_tests.md, town_tests.md, make_a_map.md (the map maker, step by step), img/
+                     crowdpeds_check.py, crowd_table.py, speeds_check.py, signal_check.py, signal_heads.py
+docs/                city_tests.md, town_tests.md, make_a_map.md (the map maker, step by step), signals.md, img/
 make_map.bat, make_map.sh, "Make a map.command"   double-click launchers of the map maker (Windows, Linux, macOS)
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
@@ -2214,11 +2232,15 @@ just as much; how to report bugs, propose features and run the tests: [CONTRIBUT
   vendored from CARLA 0.9.16 `Co-Simulation/Sumo` (MIT, © CVC) and modified.
 - [Eclipse SUMO](https://eclipse.dev/sumo/) (EPL-2.0), used as a separate program and through TraCI.
 - Vehicle registers: [RDW open data](https://opendata.rdw.nl) (CC0), [NY DMV registrations](https://data.ny.gov/d/w4pv-hbkt)
-  (NY Open Data). City registers: [Gemeente Eindhoven open data](https://data.eindhoven.nl) (public domain),
+  (NY Open Data). City registers: [Gemeente Eindhoven open data](https://data.eindhoven.nl) (public domain; trees,
+  street lights, signalised junctions),
   [NYC 2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) (NYC Open Data).
 - More registers: [Waka Kotahi Motor Vehicle Register](https://opendata-nzta.opendata.arcgis.com) (CC BY 4.0),
   [Senatran frota de veículos](https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran) (gov.br,
   CC BY-ND 3.0 site terms; only aggregate counts are used, nothing is redistributed).
+- Traffic lights: Gemeente Eindhoven, Nota Verkeerslichten 2024 (VRI numbers, cycle times, maximum waits); CROW,
+  Handboek verkeerslichtenregelingen 2022 (amber times); the iVRI list of [map.udap.nl](https://map.udap.nl) (UDAP,
+  NDW / Ministerie van IenW; no licence stated, used only to mark which junctions publish SPaT).
 - Traffic counts: [NYC DOT Automated Traffic Volume Counts](https://data.cityofnewyork.us/d/7ym2-wayt) (NYC Open
   Data), [DfT road traffic statistics](https://roadtraffic.dft.gov.uk) (OGL v3.0), [Métropole de Lyon
   Criter](https://data.grandlyon.com) (Licence Ouverte 2.0), [Intendencia de Montevideo](https://catalogodatos.gub.uy)

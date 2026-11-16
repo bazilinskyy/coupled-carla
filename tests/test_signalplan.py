@@ -90,7 +90,8 @@ def test_write_net_keeps_geometry(net, prog, tmp_path):
     assert sorted(int(c["linkIndex"]) for c in tl) == list(range(len(prog["links"])))
     assert n2.junctions["C"]["type"] == "traffic_light"
     text = out.read_text()
-    assert 'type="actuated"' in text and 'minDur=' in text and 'key="max-gap"' in text
+    assert 'type="actuated"' in text and 'minDur=' in text
+    assert "<param" not in text          # the bridge reads tlLogic params as CARLA landmarks
 
 
 def test_controllers_match_listed_junctions(net):
@@ -345,3 +346,6 @@ def test_signal_heads_compare(tmp_path):
         "time,head,links,state\n5.00,0,A:0,G\n11.00,0,A:0,y\n14.00,0,A:0,r\n14.00,1,A:1 2,G\n15.00,0,A:0,G\n")
     out = signal_heads.compare(tmp_path)
     assert out["samples"] == 5 and out["agree"] == 4 and out["disagree_examples"][0]["sumo"] == "r"
+    (tmp_path / "signal_heads.csv").write_text("time,head,links,state\n10.00,0,A:0,G\n")    # drawn as it switched
+    out = signal_heads.compare(tmp_path)
+    assert out["agree"] == 1 and out["agree_at_switch_step"] == 1
