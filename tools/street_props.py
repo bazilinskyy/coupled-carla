@@ -590,7 +590,7 @@ def _disc_xz(m, mat, centre, r, seg=20):
         m.add(mat, v @ R.T + np.asarray(centre, float), n @ R.T, uv, ix - ix.min())
 
 
-SURFACE_WIDTHS = (2, 3, 4, 6, 8)
+SURFACE_WIDTHS = (2, 3, 4, 6, 8, 12)
 BIKE_COLOURS = {"Black": "FrameBlack", "Navy": "FrameNavy", "Grey": "FrameGrey", "Green": "FrameGreen",
                 "Red": "FrameRed"}
 

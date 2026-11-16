@@ -9,9 +9,9 @@ tools/street_props.py in /Game/CoupledCarla/Street; a server without them spawns
 
 - clinker roads: the BGT's carriageways of "open verharding" (Dutch roads of bricks or concrete pavers) and OSM
   roads tagged surface=paving_stones/bricks/clinker (in the Netherlands) get red-brown clay clinkers in herringbone;
-  surface=sett/cobblestone/unhewn_cobblestone (anywhere) grey granite setts. Strips of the lane's width (2, 3, 4, 6
-  or 8 m meshes at about scale 1, so the stones keep their 200 x 100 mm) every 1.9 widths along each lane, 9 mm
-  above the road.
+  surface=sett/cobblestone/unhewn_cobblestone (anywhere) grey granite setts. One strip across the carriageway (2,
+  3, 4, 6, 8 or 12 m meshes at about scale 1, so the stones keep their 200 x 100 mm) every 1.9 widths along the
+  road, 9 mm above it.
 - grime and litter: a dirt band in the gutter along the kerb (more on shopping streets), litter (cigarette butts,
   paper, cans) and chewing-gum stains near bins, benches, cafes, snack bars and stations, puddles in the gutters
   shown only when the trial's road is wet (Scenery: weather wetness or rain).
@@ -39,7 +39,7 @@ STAND_OCCUPANCY = {"station": 0.95, "shop": 0.75, "home": 0.5}
 LAMP_BIKE = 0.05           # share of lamp posts near shops with a bike leaning against them
 CLINKER_OSM = {"paving_stones", "bricks", "brick", "clinker", "paved:bricks"}
 SETT_OSM = {"sett", "cobblestone", "unhewn_cobblestone", "cobblestone:flattened"}
-SURFACE_WIDTHS = (2, 3, 4, 6, 8)
+SURFACE_WIDTHS = (2, 3, 4, 6, 8, 12)
 SIGN_OF = {   # (OSM key, value) -> sign key (tools/street_props.SIGN_WORDS)
     ("shop", "bakery"): "bakkerij", ("amenity", "cafe"): "cafe", ("amenity", "bar"): "cafe",
     ("amenity", "pub"): "cafe", ("amenity", "restaurant"): "restaurant", ("shop", "hairdresser"): "kapper",
@@ -192,19 +192,48 @@ def stone_roads(pl, cat, cmap, carla, geo, xodr, bgt_data, ways, region):
     if not shapes:
         return {}
     tree = STRtree(shapes)
+    # one strip across the whole carriageway (all its driving, parking and bidirectional lanes) per step along the
+    # road's first right lane (else its first left one): a quarter of the actors of one strip per lane
+    allowed = (carla.LaneType.Driving, carla.LaneType.Parking, carla.LaneType.Bidirectional)
     lanes = xodr_lanes(xodr, ("driving", "parking", "bidirectional"))
+    firsts = {}
+    for rid, lid, s0, s1 in lanes:
+        if abs(lid) == 1:
+            k = (rid, s0)
+            if k not in firsts or lid == -1:
+                firsts[k] = (rid, lid, s0, s1)
     out = {}
-    for wp in along(cmap, lanes, lambda w: 1.9 * max(1.5, w.lane_width)):
+
+    def width_of(wp):
+        tf = wp.transform
+        r = tf.get_right_vector()
+        o = tf.location
+        lo, hi = [], []
+        for start, step_ in ((wp, "get_right_lane"), (wp, "get_left_lane")):
+            w, seen = start, 0
+            while w is not None and seen < 8 and w.lane_type in allowed:
+                c, half = w.transform.location, w.lane_width / 2
+                d = (c.x - o.x) * r.x + (c.y - o.y) * r.y
+                lo.append(d - half)
+                hi.append(d + half)
+                w = getattr(w, step_)()
+                seen += 1
+        return (min(lo), max(hi)) if lo else (-wp.lane_width / 2, wp.lane_width / 2)
+    for wp in along(cmap, list(firsts.values()), lambda w: 1.9 * max(1.5, sum(map(abs, width_of(w))))):
         loc = wp.transform.location
-        p = Point(loc.x, loc.y)
+        a, b = width_of(wp)
+        W = b - a
+        r = wp.transform.get_right_vector()
+        cx, cy = loc.x + r.x * (a + b) / 2, loc.y + r.y * (a + b) / 2
+        p = Point(cx, cy)
         hit = [kinds[i] for i in tree.query(p) if shapes[i].contains(p)]
         if not hit:
             continue
         kind = "sett" if "sett" in hit else "clinker"
-        got = strip_mesh(kind, wp.lane_width, cat)
+        got = strip_mesh(kind, W, cat)
         if got is None:
             continue
-        pl.add("surface", got[0], loc.x, loc.y, wp.transform.rotation.yaw, got[1], z=loc.z)
+        pl.add("surface", got[0], cx, cy, wp.transform.rotation.yaw, got[1], z=loc.z)
         out[kind] = out.get(kind, 0) + 1
     return out
 

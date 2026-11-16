@@ -35,6 +35,7 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_Any_RoofACLarge | `/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofACLarge` | 2.30 x 1.20 x 1.30 | 216 | - | roof_ac_large | MIT (procedural) |
 | SM_CC_Any_RoofBulkhead | `/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofBulkhead` | 3.10 x 2.70 x 2.66 | 36 | - | roof_bulkhead | MIT (procedural) |
 | SM_CC_Any_RoofVent | `/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofVent` | 0.44 x 0.44 x 0.82 | 160 | - | roof_vent | MIT (procedural) |
+| SM_CC_Any_Sett_W12 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W12` | 24.00 x 12.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Sett_W2 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W2` | 4.00 x 2.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Sett_W3 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W3` | 6.00 x 3.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Sett_W4 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W4` | 8.00 x 4.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
@@ -63,6 +64,7 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_NL_BinSquare_Grey | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinSquare_Grey` | 0.47 x 0.45 x 1.00 | 56 | SM_TrashCan02 | bin | MIT (procedural) |
 | SM_CC_NL_BlockMarking | `/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_BlockMarking` | 0.30 x 0.30 x 0.00 | 2 | - | block_marking | MIT (procedural) |
 | SM_CC_NL_Bollard | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bollard` | 0.10 x 0.10 x 0.90 | 384 | SM_Bollard_Grey | bollard | MIT (procedural) |
+| SM_CC_NL_Clinker_W12 | `/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W12` | 24.00 x 12.00 x 0.00 | 2 | - | clinker_road | MIT (procedural) |
 | SM_CC_NL_Clinker_W2 | `/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W2` | 4.00 x 2.00 x 0.00 | 2 | - | clinker_road | MIT (procedural) |
 | SM_CC_NL_Clinker_W3 | `/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W3` | 6.00 x 3.00 x 0.00 | 2 | - | clinker_road | MIT (procedural) |
 | SM_CC_NL_Clinker_W4 | `/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W4` | 8.00 x 4.00 x 0.00 | 2 | - | clinker_road | MIT (procedural) |

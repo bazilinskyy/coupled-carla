@@ -14678,6 +14678,32 @@
 0.009
 ]
 },
+"/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W12.SM_CC_NL_Clinker_W12": {
+"cat": "marking",
+"ext": [
+12.0,
+6.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W12.SM_CC_Any_Sett_W12": {
+"cat": "marking",
+"ext": [
+12.0,
+6.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
 "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Grime_A.SM_CC_Any_Grime_A": {
 "cat": "marking",
 "ext": [

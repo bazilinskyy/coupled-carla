@@ -2720,6 +2720,54 @@
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
   },
+  "SM_CC_NL_Clinker_W12": {
+   "path": "/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W12.SM_CC_NL_Clinker_W12",
+   "region": "NL",
+   "folder": "Road",
+   "role": "clinker_road",
+   "ext": [
+    12.0,
+    6.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Clinker"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Sett_W12": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W12.SM_CC_Any_Sett_W12",
+   "region": "Any",
+   "folder": "Road",
+   "role": "sett_road",
+   "ext": [
+    12.0,
+    6.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Sett"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
   "SM_CC_Any_Grime_A": {
    "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Grime_A.SM_CC_Any_Grime_A",
    "region": "Any",
