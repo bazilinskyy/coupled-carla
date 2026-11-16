@@ -1,6 +1,8 @@
 """Fleet from vehicle registers: body types to CARLA blueprints, colours on SUMO cars (no network)."""
 import re
 
+import pytest
+
 from coupledcarla import fleet
 
 
@@ -117,3 +119,25 @@ def test_register_offline_falls_back(monkeypatch, tmp_path):
     assert fleet.registry([-36.855, 174.755, -36.842, 174.771]) is None
     assert fleet.registry([-23.555, -46.64, -23.54, -46.625]) is None
     assert fleet.registry([-1.96, 30.05, -1.94, 30.07]) is None   # Kigali: no register
+
+
+def test_carla10_mix_follows_brands_within_body_types():
+    reg = {"body": {"hatchback": 60, "mpv": 30, "van": 10},
+           "brand_body": {"hatchback": {"mini": 6, "volkswagen": 30, "renault": 24},
+                          "mpv": {"kia": 15, "bmw": 3, "opel": 12}}}
+    w = fleet.car_types(reg, major=1)
+    assert set(w) <= {bp for bps in fleet.BODY_BLUEPRINTS_10.values() for bp in bps}
+    assert abs(sum(w.values()) - 100) < 0.1
+    # hatchbacks: the Mini gets MINI's 10 % plus half of the 90 % no CARLA car stands for, the Niro the other half
+    assert w["vehicle.mini.cooper"] == pytest.approx(60 * (0.1 + 0.45), abs=0.01)
+    # people carriers: KIA's half to the Niro, BMW's tenth to the Grand Tourer, the rest evenly
+    assert w["vehicle.kia.niro"] == pytest.approx(60 * 0.45 + 30 * (0.5 + 0.2), abs=0.01)
+    assert w["vehicle.ue4.bmw.grandtourer"] == pytest.approx(30 * (0.1 + 0.2), abs=0.01)
+    assert w["vehicle.sprinter.mercedes"] == pytest.approx(10.0)
+    assert fleet.brand("MERCEDES-BENZ") == "mercedes"
+    # every CARLA 1.0 car named here was measured and drives (data/blueprint_sizes_1.0.json)
+    import json
+    sizes = json.loads((fleet.Path(fleet.__file__).parent / "data" / "blueprint_sizes_1.0.json").read_text())
+    for bp in {bp for bps in fleet.BODY_BLUEPRINTS_10.values() for bp in bps}:
+        assert sizes["blueprints"][bp]["drives"], bp
+    assert fleet.car_types(reg, major=0) == fleet.car_types({"body": reg["body"]})     # 0.9.16 unchanged

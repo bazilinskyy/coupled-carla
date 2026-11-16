@@ -39,6 +39,32 @@ BODY_BLUEPRINTS = {
 # a register that does not tell hatchbacks from saloons (Brazil's "automovel")
 BODY_BLUEPRINTS["car"] = list(dict.fromkeys(BODY_BLUEPRINTS["hatchback"] + BODY_BLUEPRINTS["sedan"]))
 
+# CARLA 1.0: the cars that drive (data/blueprint_sizes_1.0.json "drives"; vehicle.ue4.bmw.grandtourer comes from the
+# CoupledCarla pack's VehicleParameters.json; the other old UE4 cars spawn there but do not drive). 1.0 has no small
+# hatchback or estate of its own: the nearest by size and shape stand in (a Kia Niro for the estates and people
+# carriers, which the RDW files as "MPV" anyway)
+BODY_BLUEPRINTS_10 = {
+    "hatchback": ["vehicle.mini.cooper", "vehicle.kia.niro"],
+    "estate": ["vehicle.ue4.bmw.grandtourer", "vehicle.kia.niro"],
+    "mpv": ["vehicle.kia.niro", "vehicle.ue4.bmw.grandtourer"],
+    "suv": ["vehicle.nissan.patrol", "vehicle.kia.niro"],
+    "sedan": ["vehicle.tesla.model3", "vehicle.lincoln.mkz", "vehicle.ue4.mercedes.ccc"],
+    "us_sedan": ["vehicle.lincoln.mkz", "vehicle.dodge.charger", "vehicle.ue4.chevrolet.impala", "vehicle.tesla.model3"],
+    "coupe": ["vehicle.ue4.audi.tt", "vehicle.ue4.mercedes.ccc", "vehicle.ue4.ford.mustang"],
+    "pickup": ["vehicle.nissan.patrol"],
+    "van": ["vehicle.sprinter.mercedes"],
+    "taxi": ["vehicle.taxi.ford"],
+}
+BODY_BLUEPRINTS_10["car"] = list(dict.fromkeys(BODY_BLUEPRINTS_10["hatchback"] + BODY_BLUEPRINTS_10["sedan"]))
+# the make each CARLA 1.0 car stands for (the register's brand names, lower case)
+MAKES_10 = {
+    "vehicle.mini.cooper": "mini", "vehicle.kia.niro": "kia", "vehicle.ue4.bmw.grandtourer": "bmw",
+    "vehicle.nissan.patrol": "nissan", "vehicle.tesla.model3": "tesla", "vehicle.lincoln.mkz": "lincoln",
+    "vehicle.ue4.mercedes.ccc": "mercedes", "vehicle.dodge.charger": "dodge", "vehicle.ue4.chevrolet.impala":
+    "chevrolet", "vehicle.ue4.audi.tt": "audi", "vehicle.ue4.ford.mustang": "ford", "vehicle.sprinter.mercedes":
+    "mercedes", "vehicle.taxi.ford": "ford",
+}
+
 # register colour -> RGB (CARLA's color attribute), with a shade spread for each
 COLORS = {
     "grey": (128, 128, 128), "black": (18, 18, 20), "white": (236, 236, 234), "blue": (30, 60, 140),
@@ -153,8 +179,23 @@ def _rdw():
         b = RDW_BODY.get(r.get("inrichting"))
         if b:
             body[b] = body.get(b, 0) + int(r["n"])
+    # brand x body type: within a body type, CARLA 1.0's cars of a registered make get that make's share
+    brand_body = {}
+    for r in _soda(url, {"$select": "merk,inrichting,count(*) as n", "$where": where, "$group": "merk,inrichting",
+                         "$order": "n DESC", "$limit": 400}):
+        b = RDW_BODY.get(r.get("inrichting"))
+        if b and r.get("merk"):
+            m = brand(r["merk"])
+            brand_body.setdefault(b, {})
+            brand_body[b][m] = brand_body[b].get(m, 0) + int(r["n"])
     return {"source": "RDW open data, insured passenger cars (Netherlands)", "licence": "CC0 1.0",
-            "colors": colors, "body": body}
+            "colors": colors, "body": body, "brand_body": brand_body}
+
+
+def brand(name):
+    """A register's brand name as MAKES_10 spells makes: MERCEDES-BENZ -> mercedes."""
+    n = (name or "").strip().lower()
+    return {"mercedes-benz": "mercedes", "mercedes benz": "mercedes", "vw": "volkswagen"}.get(n, n)
 
 
 def _nyc():
@@ -331,7 +372,7 @@ def registry(bbox):
     """The register's fleet for the box, or None where there is none (cached for a month)."""
     try:
         if realworld.in_netherlands(bbox):
-            return _cached("rdw_nl", _rdw)
+            return _cached("rdw_nl_v2", _rdw)
         if _in_nyc(bbox):
             return _cached("ny_dmv_manhattan", _nyc)
         if _in_nz(bbox):
@@ -345,14 +386,41 @@ def registry(bbox):
     return None
 
 
-def car_types(reg):
-    """Body-type shares -> weights over CARLA blueprints."""
+def carla_major():
+    """1 when the installed CARLA client is 1.0 (UE 5.8), else 0 (the client must match the server)."""
+    try:
+        from importlib.metadata import version
+        return 1 if version("carla").split(".")[0] == "1" else 0
+    except Exception:  # noqa: BLE001 - no carla package (map building, tests)
+        return 0
+
+
+def car_types(reg, major=0):
+    """Body-type shares -> weights over CARLA blueprints (major 1: CARLA 1.0's cars). Within a body type, a car whose
+    make is in the register (reg["brand_body"]) gets that make's share of the body type; what the register's other
+    makes hold is shared out evenly, so the mix is the register's as far as CARLA's few models allow."""
+    table = BODY_BLUEPRINTS_10 if major >= 1 else BODY_BLUEPRINTS
+    makes = MAKES_10 if major >= 1 else {}
     total = sum(reg["body"].values()) or 1
     out = {}
     for body, n in reg["body"].items():
-        bps = BODY_BLUEPRINTS.get(body, [])
+        bps = table.get(body, [])
+        if not bps:
+            continue
+        by_brand = (reg.get("brand_body") or {}).get(body) or {}
+        n_body = max(n, sum(by_brand.values())) or 1
+        per_make = {}
         for bp in bps:
-            out[bp] = out.get(bp, 0) + n / total / len(bps)
+            m = makes.get(bp)
+            if m in by_brand:
+                per_make.setdefault(m, []).append(bp)
+        w = {bp: 0.0 for bp in bps}
+        for m, owners in per_make.items():
+            for bp in owners:
+                w[bp] += by_brand[m] / n_body / len(owners)
+        rest = max(0.0, 1.0 - sum(w.values()))
+        for bp in bps:
+            out[bp] = out.get(bp, 0) + n / total * (w[bp] + rest / len(bps))
     return {bp: round(100 * w, 2) for bp, w in out.items() if w > 0}
 
 

@@ -64,7 +64,7 @@ def sizes(version="0.9.16"):
 
 def size_attrs(bp, vclass):
     """length/width/height attributes of a SUMO vType for a CARLA blueprint ("" when the size is unknown)."""
-    s = sizes().get(bp)
+    s = sizes().get(bp) or sizes("1.0").get(bp)     # a CARLA 1.0 blueprint (fleet.py names them on 1.0 levels)
     if not s:
         return ""
     width = min(s["width"], MAX_WIDTH.get(vclass, s["width"]))
