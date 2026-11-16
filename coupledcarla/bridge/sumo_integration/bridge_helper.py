@@ -122,7 +122,8 @@ class BridgeHelper(object):
         Returns an appropriate blueprint based on the received sumo actor.
         """
         blueprint_library = BridgeHelper.blueprint_library
-        type_id = sumo_actor.type_id
+        # coupled-carla: a type's variant (drivers.RED_RUNNER) or a vehicle's own copy (drivermix.py: <type>@<id>)
+        type_id = sumo_actor.type_id.split('@')[0].split('#')[0]
 
         if type_id in [bp.id for bp in blueprint_library]:
             blueprint = blueprint_library.filter(type_id)[0]

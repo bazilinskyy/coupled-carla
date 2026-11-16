@@ -31,6 +31,11 @@ CURVE_ACC = 3.0       # m/s^2: a lane's speed is cut to sqrt(CURVE_ACC * its tig
 CURVE_WINDOW = 6.0    # m: the radius over this much of the lane's shape
 CURVE_MIN_SPEED = 4.0 # m/s
 NET_ARGS = ["--junctions.limit-turn-speed", f"{TURN_ACC:g}"]
+KINK_DEG = 8.0        # a junction lane with a corner sharper than this (at its ends or inside) is redrawn
+BEZIER_STEP = 1.0     # m between the points of a redrawn junction lane
+FILLET_R = 25.0       # m: corners of a road's lane line are rounded with this radius ...
+FILLET_MAX_M = 0.5    # ... or a smaller one, so the line moves at most this far from the corner (CARLA's road)
+FILLET_MIN_DEG = 4.0  # corners gentler than this are left alone
 
 
 def shift_of(shape, before, after):
@@ -174,6 +179,157 @@ def edge_xml(slow):
     return "\n".join(lines) + "\n"
 
 
+def _parse_shape(text):
+    return [tuple(float(v) for v in p.split(",")) for p in text.split()]
+
+
+def _fmt_shape(pts):
+    return " ".join(",".join(f"{v:.2f}" for v in p) for p in pts)
+
+
+def _heading(a, b):
+    return math.atan2(b[1] - a[1], b[0] - a[0])
+
+
+def _angle(a, b):
+    return abs(math.degrees((a - b + math.pi) % (2 * math.pi) - math.pi))
+
+
+def bezier(p0, d0, p3, d1, step=BEZIER_STEP):
+    """A cubic Bezier from p0 leaving along unit d0 to p3 arriving along unit d1 (3D points: z linear), sampled
+    every ~step metres. Its handles are a third of the chord, so the curve meets both lanes with their direction
+    (no kink) and bends as evenly as a cubic can."""
+    c = math.dist(p0[:2], p3[:2]) / 3.0
+    p1 = (p0[0] + d0[0] * c, p0[1] + d0[1] * c)
+    p2 = (p3[0] - d1[0] * c, p3[1] - d1[1] * c)
+    n = max(2, int(math.ceil(3.0 * c / step)) + 1)
+    z0, z3 = (p0[2] if len(p0) > 2 else None), (p3[2] if len(p3) > 2 else None)
+    out = []
+    for i in range(n + 1):
+        u = i / n
+        a, b, cc, d = (1 - u) ** 3, 3 * u * (1 - u) ** 2, 3 * u * u * (1 - u), u ** 3
+        x = a * p0[0] + b * p1[0] + cc * p2[0] + d * p3[0]
+        y = a * p0[1] + b * p1[1] + cc * p2[1] + d * p3[1]
+        out.append((x, y) if z0 is None else (x, y, z0 + (z3 - z0) * u))
+    return out
+
+
+def polyline_length(pts):
+    return sum(math.dist(a[:2], b[:2]) for a, b in zip(pts, pts[1:]))
+
+
+def fillet(shape, radius=FILLET_R, max_move=FILLET_MAX_M, min_deg=FILLET_MIN_DEG, step=BEZIER_STEP):
+    """A polyline with its corners rounded into circular arcs (tangent to both segments). Each arc's radius is
+    `radius`, or smaller where the line would move more than max_move from the corner or the arc would need more
+    than half of a neighbouring segment. The ends stay where they are. Points may be 2D or 3D (z interpolated)."""
+    if len(shape) < 3:
+        return list(shape)
+    out = [shape[0]]
+    for i in range(1, len(shape) - 1):
+        a, b, c = shape[i - 1], shape[i], shape[i + 1]
+        la, lc = math.dist(a[:2], b[:2]), math.dist(b[:2], c[:2])
+        if la < 1e-6 or lc < 1e-6:
+            continue
+        ua = ((b[0] - a[0]) / la, (b[1] - a[1]) / la)
+        uc = ((c[0] - b[0]) / lc, (c[1] - b[1]) / lc)
+        turn = math.acos(max(-1.0, min(1.0, ua[0] * uc[0] + ua[1] * uc[1])))
+        if math.degrees(turn) < min_deg or turn > math.radians(170):
+            out.append(b)
+            continue
+        half = turn / 2.0
+        r = min(radius, max_move / (1.0 / math.cos(half) - 1.0) if half > 1e-6 else radius)
+        t = r * math.tan(half)                      # from the corner to where the arc starts
+        t_max = 0.5 * min(la, lc)
+        if t > t_max:
+            t, r = t_max, t_max / math.tan(half)
+        if t < 0.05:
+            out.append(b)
+            continue
+        p0 = (b[0] - ua[0] * t, b[1] - ua[1] * t)
+        p1 = (b[0] + uc[0] * t, b[1] + uc[1] * t)
+        n = max(2, int(math.ceil(r * turn / step)), int(math.ceil(math.degrees(turn) / 10.0)))
+        side = 1.0 if ua[0] * uc[1] - ua[1] * uc[0] > 0 else -1.0
+        cx, cy = p0[0] - side * ua[1] * r, p0[1] + side * ua[0] * r
+        a0 = math.atan2(p0[1] - cy, p0[0] - cx)
+        z = b[2] if len(b) > 2 else None
+        for k in range(n + 1):
+            ang = a0 + side * turn * k / n
+            q = (cx + r * math.cos(ang), cy + r * math.sin(ang))
+            out.append(q if z is None else (q[0], q[1], z))
+    out.append(shape[-1])
+    clean = [out[0]]
+    for q in out[1:]:                   # SUMO turns a zero-length segment into a NaN heading
+        if math.dist(q[:2], clean[-1][:2]) >= 0.05:
+            clean.append(q)
+    if len(clean) < 2 or math.dist(clean[-1][:2], shape[-1][:2]) > 1e-6:
+        clean = clean[:-1] + [shape[-1]] if len(clean) >= 2 else [shape[0], shape[-1]]
+    return clean
+
+
+def round_lane_corners(root):
+    """Rounds the corners of every normal lane's shape (fillet()); the lane keeps its length (SUMO scales positions
+    onto the shape), so routes, positions and the bridge's lane mapping are unchanged. Returns how many changed."""
+    n = 0
+    for edge in root.iter("edge"):
+        if edge.get("function") in ("internal", "walkingarea", "crossing"):
+            continue
+        for ln in edge.iter("lane"):
+            shape = _parse_shape(ln.get("shape", ""))
+            new = fillet(shape)
+            if len(new) != len(shape):
+                ln.set("shape", _fmt_shape(new))
+                n += 1
+    return n
+
+
+def redraw_junction_lanes(net_path, log=print):
+    """Junction (internal) lanes that meet their lanes with a kink get a smooth cubic Bezier shape, a length to
+    match and a speed for their tightest bend (TURN_ACC). netconvert draws some of them as straight chords
+    (Eindhoven's station junction: a 120 deg right turn as a 37 m straight line, so a bus's front swung round 120
+    deg in one step). Edits the XML in place (netconvert would draw them again); returns how many were redrawn."""
+    import xml.etree.ElementTree as ET
+    net_path = Path(net_path)
+    tree = ET.parse(net_path)
+    root = tree.getroot()
+    rounded = round_lane_corners(root)
+    lanes = {}
+    for edge in root.iter("edge"):
+        for ln in edge.iter("lane"):
+            lanes[ln.get("id")] = ln
+    n = 0
+    for c in root.iter("connection"):
+        via = c.get("via")
+        if not via or via not in lanes:
+            continue
+        lin, lout = lanes.get(f'{c.get("from")}_{c.get("fromLane")}'), lanes.get(f'{c.get("to")}_{c.get("toLane")}')
+        if lin is None or lout is None:
+            continue
+        vs, ins, outs = (_parse_shape(x.get("shape", "")) for x in (lanes[via], lin, lout))
+        if len(vs) < 2 or len(ins) < 2 or len(outs) < 2:
+            continue
+        h_in, h_out = _heading(ins[-2], ins[-1]), _heading(outs[0], outs[1])
+        pts = [vs[0]] + [q for a, q in zip(vs, vs[1:]) if math.dist(a[:2], q[:2]) > 0.05]
+        hs = [h_in] + [_heading(a, b) for a, b in zip(pts, pts[1:])] + [h_out]
+        kink = max(_angle(a, b) for a, b in zip(hs, hs[1:]))       # at the joins and inside
+        if kink <= KINK_DEG or math.dist(vs[0][:2], vs[-1][:2]) < 1.0:
+            continue
+        new = bezier(vs[0], (math.cos(h_in), math.sin(h_in)), vs[-1], (math.cos(h_out), math.sin(h_out)))
+        ln = lanes[via]
+        ln.set("shape", _fmt_shape(new))
+        ln.set("length", f"{max(0.1, polyline_length(new)):.2f}")
+        r = min_radius([p[:2] for p in new], window=4.0)
+        if r is not None:
+            v = max(CURVE_MIN_SPEED, math.sqrt(TURN_ACC * r))
+            if v < float(ln.get("speed", 99)):
+                ln.set("speed", f"{v:.2f}")
+        n += 1
+    if n or rounded:
+        tree.write(net_path, encoding="UTF-8", xml_declaration=True)
+    log(f"lanes: {rounded} with rounded corners; junctions: {n} junction lanes redrawn as smooth curves "
+        f"(kinks over {KINK_DEG:g} deg)")
+    return n
+
+
 def connection_xml(deletes, slowed):
     lines = ["<connections>"]
     for c in deletes:
@@ -186,19 +342,38 @@ def connection_xml(deletes, slowed):
 
 
 def smooth(net_path, extra=(), log=print):
-    """Rewrites net_path without its sharp lane shifts, with sharp bends and S-bends slowed (see the module doc);
-    returns the counts. extra: the net's own netconvert options (applied again when netconvert rewrites it)."""
+    """Rewrites net_path: sharp lane shifts dropped or slowed (netconvert, with the net's own options `extra`
+    applied again), then in the XML: lane corners rounded, kinked junction lanes redrawn, bends slowed (see the
+    module doc). Returns the counts."""
     net_path = Path(net_path)
     deletes, slowed = plan(connections(net_path))
-    slow = curves(net_path)
     with tempfile.TemporaryDirectory() as tmp:
-        con, edg = Path(tmp) / "smooth.con.xml", Path(tmp) / "smooth.edg.xml"
+        con = Path(tmp) / "smooth.con.xml"
         con.write_text(connection_xml(deletes, slowed))
-        edg.write_text(edge_xml(slow))
         out = Path(tmp) / "smoothed.net.xml"
         subprocess.check_call(["netconvert", "--no-warnings", "--sumo-net-file", str(net_path),
-                               "--connection-files", str(con), "--edge-files", str(edg), *extra, "-o", str(out)])
+                               "--connection-files", str(con), *extra, "-o", str(out)])
         net_path.write_bytes(out.read_bytes())
+    redrawn = redraw_junction_lanes(net_path, log)
+    slow = slow_bends(net_path)
     log(f"junctions: {len(deletes)} sharp lane shifts dropped (a straighter connection to the same road exists), "
-        f"{len(slowed)} slowed to stay under {A_LAT:g} m/s^2; {len(slow)} lanes slowed for their bends")
-    return {"deleted": len(deletes), "slowed": len(slowed), "curves": len(slow)}
+        f"{len(slowed)} slowed to stay under {A_LAT:g} m/s^2; {slow} lanes slowed for their bends")
+    return {"deleted": len(deletes), "slowed": len(slowed), "curves": slow, "redrawn": redrawn}
+
+
+def slow_bends(net_path):
+    """Normal lanes get the speed of their tightest bend (curve_speed, on the shapes as they are now); in place."""
+    import xml.etree.ElementTree as ET
+    tree = ET.parse(net_path)
+    n = 0
+    for edge in tree.getroot().iter("edge"):
+        if edge.get("function") in ("internal", "walkingarea", "crossing"):
+            continue
+        for ln in edge.iter("lane"):
+            v = curve_speed(min_radius([q[:2] for q in _parse_shape(ln.get("shape", ""))]), float(ln.get("speed", 99)))
+            if v is not None:
+                ln.set("speed", f"{v:.2f}")
+                n += 1
+    if n:
+        tree.write(net_path, encoding="UTF-8", xml_declaration=True)
+    return n

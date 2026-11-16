@@ -7,7 +7,9 @@ Prepares the trial's traffic (coupledcarla.traffic.prepare), runs SUMO through T
 sublane model, junction collision checks) with collisions only warned (so each one is counted, not hidden by a
 teleport), and reports (coupledcarla/drivecheck.py): SUMO's teleports, collisions, emergency braking; red-light
 entries; vehicles standing inside junctions; accelerations, jerk, time gaps and free-flow speed / limit per vehicle
-class; lane changes per vehicle-km. Writes summary.json in the output folder and prints it.
+class; lane changes per vehicle-km; bodies (side clearance of buses, lateral accelerations); and each measure
+against its target from the literature or open data (drivecheck.TARGETS: value, range, ok, source). Writes
+summary.json in the output folder and prints it, then the targets as a Markdown table.
 """
 import argparse
 import json
@@ -21,7 +23,7 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from coupledcarla import config, drivecheck, traffic  # noqa: E402
+from coupledcarla import config, drivecheck, drivermix, traffic  # noqa: E402
 
 
 def _set(cfg, item):
@@ -103,12 +105,16 @@ def main():
            "--end", str(a.duration), "--no-step-log", "--log", str(work / "sumo.log")]
     traci.start(cmd)
     lanes, reds, entries, ambers = {}, [], 0, 0
+    kinds, entries_by, reds_by = {}, {}, {}
     VAR = traci.constants.VAR_LANE_ID
     while traci.simulation.getTime() < a.duration:
         traci.simulationStep()
         now = traci.simulation.getTime()
         for vid in traci.simulation.getDepartedIDList():
             traci.vehicle.subscribe(vid, [VAR])
+            kinds[vid] = kind_of(traci.vehicle.getTypeID(vid))
+            if cfg["traffic"].get("driver_mix", True):
+                drivermix.apply(vid, traci.vehicle.getVehicleClass(vid), cfg["traffic"].get("seed", 42))
         for vid in traci.simulation.getArrivedIDList():
             lanes.pop(vid, None)
         for vid, res in traci.vehicle.getAllSubscriptionResults().items():
@@ -120,8 +126,11 @@ def main():
                 if state is None or state not in drivecheck.TLS_STATES:
                     continue      # not a signalised link
                 entries += 1
+                k = kinds.get(vid, "car")
+                entries_by[k] = entries_by.get(k, 0) + 1
                 if drivecheck.is_red(state):
                     reds.append((round(now, 2), vid, prev, lane))
+                    reds_by[k] = reds_by.get(k, 0) + 1
                 elif state in ("y", "Y"):
                     ambers += 1
     traci.close()
@@ -166,11 +175,14 @@ def main():
         "log_teleports": len(re.findall(r"Teleporting vehicle", log)),
         "tls_entries": entries, "red_light_entries": len(reds), "amber_entries": ambers,
         "red_light_examples": reds[:10],
+        "red_light_share_by_class": {k: round(reds_by.get(k, 0) / n, 4) for k, n in entries_by.items()},
         "lane_changes": lc,
         "fcd": fcd,
     }
+    out["targets"] = drivecheck.against_targets(out)
     (work / "summary.json").write_text(json.dumps(out, indent=1))
     print(json.dumps(out, indent=1))
+    print(drivecheck.targets_table(out["targets"]))
 
 
 if __name__ == "__main__":

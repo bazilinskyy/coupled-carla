@@ -93,8 +93,8 @@ def test_sumo_net_without_internal_junctions(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(mapbuild.subprocess, "check_call", lambda cmd: calls.append(cmd))
     (tmp_path / "geo.net.xml").write_text('<net version="1.20">')
-    mapbuild.sumo_net(tmp_path)
-    mapbuild.sumo_net(tmp_path, internal_junctions=True)
+    mapbuild.sumo_net(tmp_path, smooth=False)
+    mapbuild.sumo_net(tmp_path, internal_junctions=True, smooth=False)
     assert "--netconvert-args=--default.connection.cont-pos 0" in calls[0]
     assert not any(c.startswith("--netconvert-args") for c in calls[1])
     assert config.DEFAULTS["map"]["internal_junctions"] is False
@@ -104,10 +104,10 @@ def test_lefthand_sumo_net(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(mapbuild.subprocess, "check_call", lambda cmd: calls.append(cmd))
     (tmp_path / "geo.net.xml").write_text('<net version="1.20" lefthand="true">')
-    mapbuild.sumo_net(tmp_path)          # geo.net.xml re-written without internal junctions
+    mapbuild.sumo_net(tmp_path, smooth=False)          # geo.net.xml re-written without internal junctions
     assert calls[0][0] == "netconvert" and "--sumo-net-file" in calls[0] and "--default.connection.cont-pos" in calls[0]
     calls.clear()
-    mapbuild.sumo_net(tmp_path, internal_junctions=True)     # a plain copy, as before
+    mapbuild.sumo_net(tmp_path, internal_junctions=True, smooth=False)     # a plain copy, as before
     assert calls == [] and (tmp_path / "map.net.xml").read_text() == '<net version="1.20" lefthand="true">'
 
 
@@ -121,7 +121,18 @@ def test_mapbuild_sumo_net_only(tmp_path, monkeypatch):
     out.mkdir(parents=True)
     (out / "meta.json").write_text("{}")
     seen = []
-    monkeypatch.setattr(mapbuild, "sumo_net", lambda o, guess_tls=True, internal_junctions=False:
+    monkeypatch.setattr(mapbuild, "sumo_net", lambda o, guess_tls=True, internal_junctions=False, smooth=True:
                         seen.append((o, guess_tls, internal_junctions)))
     mapbuild.build(cfg, sumo_only=True)
     assert seen == [(out, True, False)]
+
+
+def test_sumo_net_smoothing_passes_the_turn_speed_and_smooths(tmp_path, monkeypatch):
+    from coupledcarla import netsmooth
+    calls, smoothed = [], []
+    monkeypatch.setattr(mapbuild.subprocess, "check_call", lambda cmd: calls.append(cmd))
+    monkeypatch.setattr(netsmooth, "smooth", lambda path, extra, log: smoothed.append((path, list(extra))))
+    (tmp_path / "geo.net.xml").write_text('<net version="1.20">')
+    mapbuild.sumo_net(tmp_path)
+    assert any("--junctions.limit-turn-speed" in c for c in calls[0])
+    assert smoothed and smoothed[0][0] == tmp_path / "map.net.xml" and "--default.connection.cont-pos" in smoothed[0][1]

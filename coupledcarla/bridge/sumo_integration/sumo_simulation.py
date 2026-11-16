@@ -362,6 +362,11 @@ class SumoSimulation(object):
 
         # Retrieving net from configuration file.
         self.net = _get_sumo_net(cfg_file)
+        try:      # coupled-carla: the net file, for the lane shapes ahead of a vehicle (bridge/animate.LaneShapes)
+            self.net_file = os.path.join(os.path.dirname(os.path.abspath(cfg_file)),
+                                         ET.parse(cfg_file).find('.//net-file').get('value'))
+        except (AttributeError, ET.ParseError, OSError):
+            self.net_file = None
         # coupled-carla: convertRoad + convert2D for the lane snap below, in Python (coupledcarla/lanesnap.py)
         self.lane_index = None
         try:
@@ -407,8 +412,20 @@ class SumoSimulation(object):
             traci.constants.VAR_TYPE, traci.constants.VAR_VEHICLECLASS, traci.constants.VAR_COLOR,
             traci.constants.VAR_LENGTH, traci.constants.VAR_WIDTH, traci.constants.VAR_HEIGHT,
             traci.constants.VAR_POSITION3D, traci.constants.VAR_ANGLE, traci.constants.VAR_SLOPE,
-            traci.constants.VAR_SPEED, traci.constants.VAR_SPEED_LAT, traci.constants.VAR_SIGNALS
+            traci.constants.VAR_SPEED, traci.constants.VAR_SPEED_LAT, traci.constants.VAR_SIGNALS,
+            # coupled-carla: where on which lane, for the smoothed path's look-ahead (animate.path_point)
+            traci.constants.VAR_LANE_ID, traci.constants.VAR_LANEPOSITION, traci.constants.VAR_LATERAL_LANE_POSITION
         ])
+
+    @staticmethod
+    def get_lane_state(actor_id):
+        """coupled-carla: (lane id, lane position, lateral position) of a vehicle subscribed with subscribe(), or
+        None."""
+        r = traci.vehicle.getSubscriptionResults(actor_id)
+        lane = r.get(traci.constants.VAR_LANE_ID)
+        if not lane:
+            return None
+        return lane, r.get(traci.constants.VAR_LANEPOSITION, 0.0), r.get(traci.constants.VAR_LATERAL_LANE_POSITION, 0.0)
 
     # coupled-carla: a SUMO vehicle that is not (yet) in CARLA is only needed for where it is (the level-of-detail
     # check); all twelve variables of every vehicle in the network cost 3 ms of parsing per tick in the twin.

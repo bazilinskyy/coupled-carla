@@ -20,6 +20,9 @@ DEFAULTS = {
         "internal_junctions": False,  # SUMO's net with netconvert's internal junctions (turning vehicles wait inside
                                      # the junction); off: they wait at the stop line, as the waiting points of the
                                      # re-made junctions lay in other lanes (mapbuild.NO_INTERNAL_JUNCTIONS)
+        "smooth_net": True,          # SUMO's net without sideways jumps and kinks: sharp lane shifts in junctions
+                                     # dropped or slowed, junction lanes redrawn as smooth curves, lane corners
+                                     # rounded (<= 0.5 m), turns and bends slowed to ~3 m/s^2 (netsmooth.py)
         "buildings": True,           # also fetch building footprints (trial viewer, figures)
         "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
         "overture": True,            # Overture Maps buildings (needs duckdb), else OSM
@@ -146,6 +149,8 @@ DEFAULTS = {
                                      # "off", or false (left to the server)
     },
     "traffic": {
+        "driver_mix": True,          # every SUMO driver and rider their own time gap, gaps, acceleration, lane
+                                     # changing; e-bikes and red-light running cyclists (drivermix.py)
         "seed": 42,
         "cars_per_hour": "auto",     # cars entering per hour, or "auto": from the map's lane-km by road class and
                                      # the trial's hour (coupledcarla/counts.py)

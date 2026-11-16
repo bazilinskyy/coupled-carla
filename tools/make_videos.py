@@ -9,6 +9,10 @@
     python tools/make_videos.py table                         # Markdown table of the encoded clips
     python tools/make_videos.py watchdog --port 2500          # only the memory watchdog (other tools' servers)
 
+Before a clip is encoded, the clip QA (tools/clip_check.py) checks its trial: overlapping bodies, vehicles in
+buildings, swerves, jumps, SUMO teleports and collisions in view, camera jitter. A blocking problem in the camera
+window stops the encode (work/<clip>/qa.json says what and when); --force encodes anyway.
+
 A clip (experiments/videos/clips.yaml) names an experiment and trial, overrides (time, weather, traffic, participants via
 `set` and `patch`), a camera (coupledcarla/film.py: attach, follow, tripod, orbit, path, drone) or `kind: stations`
 (the host plus one bot station per view, composed into a grid), the start in trial time and the length. The trial
@@ -40,6 +44,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tools"))      # clip_check (the QA before encoding)
 
 from coupledcarla import config as ccconfig  # noqa: E402  (yaml only, no CARLA)
 
@@ -671,6 +676,8 @@ def encode_clip(ctx, clip, rec=None, crf=None, out_name=None, frames=None):
     rec = rec or json.loads((wd / "run.json").read_text())
     if frames is None:
         frames = collect_frames(ctx, clip, rec)
+    if out_name is None:
+        qa_gate(ctx, clip)
     fdir, info = frames
     ctx.out.mkdir(parents=True, exist_ok=True)
     name = out_name or clip["name"]
@@ -722,6 +729,31 @@ def encode_clip(ctx, clip, rec=None, crf=None, out_name=None, frames=None):
     return res
 
 
+class QAFailed(RuntimeError):
+    pass
+
+
+def qa_gate(ctx, clip):
+    """The clip QA (tools/clip_check.py, coupledcarla/clipcheck.py) on the trial: written to work/<clip>/qa.json;
+    a blocking problem in the camera window stops the encode unless --force (then it is only logged, loudly)."""
+    import clip_check
+    from coupledcarla import clipcheck
+    rep, trial = clip_check.check_clip(clip, ctx.work)
+    if rep is None:
+        ctx.log(f"{clip['name']}: QA skipped ({trial})")
+        return None
+    (ctx.work / clip["name"] / "qa.json").write_text(json.dumps(rep, indent=1, default=str))
+    for line in clipcheck.summary_lines(clip["name"], rep):
+        ctx.log(line)
+    if not rep["ok"]:
+        msg = f"{clip['name']}: QA found {rep['blocking']} blocking problem(s) in the camera window"
+        if getattr(ctx.args, "force", False):
+            ctx.log(f"WARNING {msg}; encoding anyway (--force)")
+        else:
+            raise QAFailed(msg + " (see qa.json; --force encodes anyway)")
+    return rep
+
+
 def ssim_of(ctx, mp4, fdir, fps):
     cmd = [ctx.ffmpeg, "-hide_banner", "-i", str(mp4), "-framerate", f"{fps:g}", "-i", str(fdir / "%06d.jpg"),
            "-lavfi", "[0:v]format=yuv420p[a];[1:v]format=yuv420p[b];[a][b]ssim", "-f", "null", "-"]
@@ -769,6 +801,8 @@ def main(argv=None):
     ap.add_argument("--start", type=float, help="render: override start_s")
     ap.add_argument("--duration", type=float, help="render: override duration_s")
     ap.add_argument("--no-encode", action="store_true", help="render: run and keep the frames only")
+    ap.add_argument("--force", action="store_true",
+                    help="render/encode: encode even when the clip QA (tools/clip_check.py) finds blocking problems")
     args = ap.parse_args(argv)
     ctx = Ctx(args)
     if args.command == "watchdog":         # on its own, for servers started by other tools (scenery_shots.py)

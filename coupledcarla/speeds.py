@@ -77,9 +77,11 @@ SOURCES = {
     "taipei": ("Taipei City Traffic Control Center, vehicle detector sections (GetVD.xml.gz, data.taipei)",
                "Open Government Data License, version 1.0 (Taiwan)"),
     "ndw": ("NDW, travel times of floating-car-data segments (opendata.ndw.nu, traveltime.xml.gz)", "CC0 1.0"),
+    "tomtom": ("TomTom Traffic Flow Segment Data, free-flow speeds (api.tomtom.com; needs tomtom_api_key: "
+               "tomtomspeeds.py)", "TomTom terms of use (derived speeds only, not redistributed)"),
 }
 LIVE = {"taipei", "ndw"}
-SPOT = {"pbot", "montevideo", "taipei"}     # spot speeds: a desired speed in free flow; NDW: segment speeds
+SPOT = {"pbot", "montevideo", "taipei"}     # spot speeds: a desired speed in free flow; NDW, TomTom: segment speeds
 DAYS = ("weekday", "saturday", "sunday")
 COMPASS = {"N": 0.0, "NE": 45.0, "E": 90.0, "SE": 135.0, "S": 180.0, "SW": 225.0, "W": 270.0, "NW": 315.0}
 MVD_FILL = {45.0, 90.0}
@@ -352,6 +354,10 @@ FETCHERS = [   # (source, covers(bbox), fetch(bbox, real dir))
     ("montevideo", _within(-34.95, -34.70, -56.45, -56.00), _montevideo),
     ("taipei", _within(24.96, 25.21, 121.45, 121.67), _taipei),
     ("ndw", realworld.in_netherlands, _ndw),
+    # anywhere else, with the user's key: TomTom's free-flow speeds at sampled edges (tomtomspeeds.py); the map
+    # folder (real_dir's parent) gives the sample points
+    ("tomtom", lambda bbox: not realworld.in_netherlands(bbox),
+     lambda bbox, real_dir: __import__("coupledcarla.tomtomspeeds", fromlist=["fetch"]).fetch(Path(real_dir).parent)),
 ]
 
 

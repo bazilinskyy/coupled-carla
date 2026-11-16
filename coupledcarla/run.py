@@ -386,6 +386,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             radius=tc["simulation"]["lod_radius_m"],
             animate_radius=tc["simulation"].get("animate_radius_m", 0.0),   # wheels roll, cyclists pedal (animate.py)
             smooth_paths=tc["simulation"].get("smooth_paths", True),        # no swerves at SUMO's kinks (animate.py)
+            driver_mix_seed=(tc["traffic"].get("seed", 42) if tc["traffic"].get("driver_mix", True) else None),
             focus=lambda: [a.get_location() for a in focus_actors] or None)
         if town:      # the town's traffic-light actors, run by SUMO through the bridge
             both = sync.sumo.traffic_light_ids & sync.carla.traffic_light_ids

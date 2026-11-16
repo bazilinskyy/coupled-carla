@@ -58,6 +58,12 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     random_trips = Path(sumo.SUMO_HOME) / "tools" / "randomTrips.py"
     end = int(duration_s) + 60
     routes, additional = [], [vss] if vss else []
+    if tc.get("driver_mix", True):     # the red-light running cyclists' types (drivermix.py), taken on departure
+        from . import drivers
+        (work / "variants.add.xml").write_text("<additional>\n" + "".join(
+            "    " + drivers.bike_red_runner(bp, tc["car_following"]) + "\n" for bp in tc["bike_types"]) +
+            "</additional>\n")
+        additional.append("variants.add.xml")
     try:     # scramble crossings: an all-pedestrian phase in their signal programmes (pedsignals.py)
         from . import pedsignals
         scramble = pedsignals.prepare(map_dir, net, work, log)

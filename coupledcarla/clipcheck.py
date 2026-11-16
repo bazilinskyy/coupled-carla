@@ -13,7 +13,8 @@ participant for station clips):
               walker stands inside a vehicle
   building    a vehicle inside a building footprint (buildings.json)
   swerve      a participant's car, or a vehicle in view, with lateral acceleration beyond human driving
-              (LAT_ACC m/s^2, from positions over 0.2 s at speed) or a heading jump (HEADING_JUMP deg in 0.1 s)
+              (LAT_ACC m/s^2, from positions over 0.2 s at speed; a vehicle in view blocks from TRAFFIC_LAT_ACC) or a
+              heading jump (HEADING_JUMP deg in 0.1 s)
   jump        an actor moving farther in one tick than its speed allows (JUMP_MARGIN m), or appearing / vanishing in
               view closer than POP_M (a SUMO teleport, a level-of-detail spawn in plain sight)
   teleport    SUMO teleported a vehicle ("waited too long", jam, wrong lane), from sumo.log
@@ -35,7 +36,9 @@ from pathlib import Path
 
 from . import drivecheck
 
-LAT_ACC = 4.0           # m/s^2: urban drivers stay under ~3-4 (e.g. Xu et al. 2015, comfort in curves)
+LAT_ACC = 4.0           # m/s^2: urban drivers stay under ~3-4 (e.g. Xu et al. 2015, comfort in curves): reported
+TRAFFIC_LAT_ACC = 6.0   # m/s^2: a vehicle in view (not a participant) blocks a clip from here (a sharp turn shows)
+BUILDING_VIEW_M = 50.0  # a vehicle inside a building blocks a clip when in view this close
 HEADING_JUMP = 45.0     # deg within 0.1 s
 SWERVE_MIN_SPEED = 2.0  # m/s: slower than this, turning on the spot is normal
 JUMP_MARGIN = 0.3       # m beyond speed * dt in one tick
@@ -90,7 +93,7 @@ def sumo_ids(events_csv):
     return out
 
 
-TELEPORT = re.compile(r"Teleporting vehicle '([^']+)'; ([^,]+), lane='([^']*)', time=([0-9.]+)")
+TELEPORT = re.compile(r"Teleporting vehicle '([^']+)'; ([^,]+), lane='([^']*)', time=([0-9]+(?:\.[0-9]+)?)")
 
 
 def sumo_teleports(log_text):
@@ -226,13 +229,16 @@ def dynamics(series):
     return out
 
 
-def _episodes(items, gap):
-    """[(t, key, detail)] -> [(t_first, t_last, key, detail of the worst/first)] grouped per key with gaps <= gap."""
+def _episodes(items, gap, severity=None):
+    """[(t, key, detail)] -> [(t_first, t_last, key, detail)] grouped per key with gaps <= gap; the detail kept is
+    the worst by severity(detail) (default: the first)."""
     out, open_ = [], {}
     for t, key, detail in sorted(items, key=lambda x: (str(x[1]), x[0])):
         cur = open_.get(key)
         if cur is not None and t - cur[1] <= gap:
             cur[1] = t
+            if severity is not None and severity(detail) > severity(cur[3]):
+                cur[3] = detail
         else:
             cur = open_[key] = [t, t, key, detail]
             out.append(cur)
@@ -373,7 +379,9 @@ def check_trial(trial, t0, t1, camera="main", fov=None, map_dir=None, viewers=()
         rep.add("overlap", t, t_e, what, visible=visible(t, r["x"], r["y"]))
     for t, t_e, key, what in _episodes(inside, gap):
         r = frames[t][key]
-        rep.add("building", t, t_e, what, visible=visible(t, r["x"], r["y"]))
+        c = cam_at(t)
+        near = c is None or math.hypot(r["x"] - c[1], r["y"] - c[2]) <= BUILDING_VIEW_M
+        rep.add("building", t, t_e, what, visible=visible(t, r["x"], r["y"]) and near)
     rep.metrics["large_vehicle_min_clearance"] = clear
 
     # motion: swerves, heading and position jumps, pop-ins
@@ -435,14 +443,15 @@ def check_trial(trial, t0, t1, camera="main", fov=None, map_dir=None, viewers=()
         if last[0] < times[-1] - step and math.hypot(last[1]["x"] - _cam_xy(cam_at(last[0]), frames, last[0])[0],
                                                       last[1]["y"] - _cam_xy(cam_at(last[0]), frames, last[0])[1]) < POP_M:
             pops.append((last[0], aid, ("vanishes", last[1])))
-    for t, t_e, aid, (is_part, x, y, lat, extra) in _episodes(swerves, 0.5):
+    for t, t_e, aid, (is_part, x, y, lat, extra) in _episodes(swerves, 0.5, lambda d: 99.0 if d[3] is None else d[3]):
         r = series[aid][0][1]
         what = (f"{r['role'] or r['kind']} {aid} ({r['type']}): lateral acceleration {lat:.1f} m/s^2 at "
                 f"{extra * 3.6:.0f} km/h" if lat is not None else
                 f"{r['role'] or r['kind']} {aid} ({r['type']}): heading jumped {extra:.0f} deg in 0.1 s")
         vis = visible(t, x, y)
-        rep.add("swerve", t, t_e, what, visible=vis or is_part, blocking=(is_part or vis))
-    for t, t_e, aid, (x, y, d, sp, kind, typ) in _episodes(jumps, 0.3):
+        hard = lat is None or lat > TRAFFIC_LAT_ACC
+        rep.add("swerve", t, t_e, what, visible=vis or is_part, blocking=(is_part or (vis and hard)))
+    for t, t_e, aid, (x, y, d, sp, kind, typ) in _episodes(jumps, 0.3, lambda d: d[2]):
         rep.add("jump", t, t_e, f"{kind} {aid} ({typ}) moved {d:.2f} m in one tick (speed allows {sp:.2f} m)",
                 visible=visible(t, x, y))
     for t, aid, (how, r) in pops:

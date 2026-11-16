@@ -95,3 +95,14 @@ def bike(bp, cf, probability):
 def bus(bp, cf):
     return (f'<vType id="{bp}" vClass="bus" carFollowModel="{cf}" {attrs(BUS)} '
             f'{size_attrs(bp, "bus")}').rstrip() + "/>"
+
+
+RED_RUNNER = "#red"     # suffix of a bike type whose riders ride on through red (drivermix.py); the bridge strips it
+
+
+def bike_red_runner(bp, cf):
+    """The red-light running variant of a bike type: SUMO's junction model lets it go on through a red light at
+    walking pace (jmDriveAfterRedTime, jmDriveRedSpeed), still giving way to vehicles on conflicting links."""
+    from .drivermix import RED_RUNNER as RR
+    xml = bike(bp, cf, 1.0).replace(f'id="{bp}"', f'id="{bp}{RED_RUNNER}"').replace(' probability="1.0"', "")
+    return xml.replace("/>", " " + " ".join(f'{k}="{v}"' for k, v in RR.items()) + "/>")

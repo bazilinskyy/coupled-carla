@@ -353,6 +353,7 @@ class PathWalker:
     def step(self, t):
         if self.done or t < self.start_s or not self.points:
             self.apply(carla.WalkerControl(speed=0.0))
+            self._hist = None
             return
         loc = self.walker.get_location()
         target = self.points[self.i]
@@ -370,6 +371,42 @@ class PathWalker:
             return
         self.apply(carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0),
                                                       speed=self.speed))
+        self._step_up(t, loc, dx / d, dy / d)
+
+    def _step_up(self, t, loc, ux, uy):
+        """A walker that pushes against a kerb higher than it can step (CARLA's walkers climb ~0.45 m; the road
+        of an OSM map can lie 0.5 m above the ground tiles beside it: Eindhoven pedestrian clip, the walker
+        bounced in place for 14 s and the head camera shook) is lifted onto it, as a person steps up: only when
+        it made no headway for STUCK_S and the road surface just ahead (OpenDRIVE) is above its feet by less than
+        STEP_MAX_M."""
+        hist = getattr(self, "_hist", None)
+        if hist is None or t < hist[0]:
+            self._hist = (t, loc.x, loc.y)
+            return
+        if math.hypot(loc.x - hist[1], loc.y - hist[2]) > 0.25:
+            self._hist = (t, loc.x, loc.y)
+            return
+        if t - hist[0] < STUCK_S:
+            return
+        self._hist = (t, loc.x, loc.y)
+        try:
+            cmap = getattr(self, "_cmap", None) or self.walker.get_world().get_map()
+            self._cmap = cmap
+            ahead = carla.Location(loc.x + 0.6 * ux, loc.y + 0.6 * uy, loc.z)
+            wp = cmap.get_waypoint(ahead, project_to_road=False, lane_type=carla.LaneType.Any)
+            feet = loc.z - self.walker.bounding_box.extent.z
+            if wp is None or not 0.1 < wp.transform.location.z - feet < STEP_MAX_M:
+                return
+            tf = self.walker.get_transform()
+            tf.location = carla.Location(ahead.x, ahead.y, wp.transform.location.z + self.walker.bounding_box.extent.z + 0.05)
+            self.walker.set_transform(tf)
+            self.steps_up = getattr(self, "steps_up", 0) + 1
+        except RuntimeError:
+            pass
+
+
+STUCK_S = 0.6        # PathWalker: no headway for this long while walking ...
+STEP_MAX_M = 0.8     # ... and a road surface ahead at most this much above its feet: lifted onto it
 
 
 class ScriptedWalker:
