@@ -601,6 +601,12 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             city = livingcity.make(tc, world, client, geo, mdir, crowd if hasattr(crowd, "add") else None, sync,
                                    carla_sim, parked, parts, duration, wx, log)
             if city is not None:
+                # what anyone sees: the participants, free cameras (focus_actors) and the film's cameras; the city's
+                # walkers and cars appear and vanish only out of their sight (clip QA)
+                city.viewers = lambda: list(focus_actors) + [r.camera for r in (film.rigs if film is not None else [])
+                                                             if getattr(r, "camera", None) is not None]
+                if city.crowd is not None:
+                    city.crowd.hidden = city.hidden
                 log(f"living city: {city.start()}")
                 react = reactions.make(city, parts, sync, city.crowd, cmap, sumo_yield)
         except Exception as err:  # noqa: BLE001 - the trial without it rather than no trial
@@ -861,6 +867,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 sumo_signals[cid] = sa.signals if sa else 0
             for w in (crowd.walkers if crowd is not None else []) + (navw.walkers if navw is not None else []):
                 ai[w.id] = ("walker", w.type_id)
+            for vid, v in (city.vehicles.items() if city is not None else ()):    # vans, parking cars (not SUMO's)
+                if v.get("actor") is not None and vid not in ai:
+                    ai[vid] = ("car", v["actor"].type_id)
             for part in parts:   # an event whenever the light a participant faces changes
                 key = (part.light[0], part.light[2]) if part.light else None
                 if key != part.light_key:

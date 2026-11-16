@@ -300,3 +300,65 @@ def test_sound_events_reach_the_soundscape():
     ha.sound_event({"name": "door", "actor_id": 7})                # not a sound the soundscape makes of others
     assert got == [("horn", 7, "double")]
     assert "horn" in stationux.SOUND_EVENTS and "bell" in stationux.SOUND_EVENTS
+
+
+def test_sumo_car_crossing_a_participants_path_is_found():
+    # the participant heads east at 9 m/s from (0, 0); a SUMO car heads north (CARLA -y) at 7 m/s, 20 m to its east
+    got = rx.crossing(0, 0, 9.0, 0, 20.0, 14.0, 0, -7.0)
+    assert got is not None
+    tp, ts, b = got
+    assert tp == pytest.approx(20 / 9) and b == pytest.approx(14.0) and ts == pytest.approx(2.0)
+    assert rx.crossing(0, 0, 9.0, 0, -20.0, 3.5, 9.0, 0) is None          # the next lane, same way: SUMO's job
+    assert rx.crossing(0, 0, 9.0, 0, 20.0, -14.0, 0, -7.0) is None        # driving away from the crossing
+
+
+def test_segment_box_occlusion():
+    bus = (10.0, 0.0, 0.0, 6.0, 1.3)                       # a bus at x 4..16, y -1.3..1.3
+    assert lc._segment_hits_box(10.0, -20.0, 10.0, 2.0, bus)          # seen through the bus: hidden
+    assert not lc._segment_hits_box(10.0, -20.0, 20.0, 2.0, bus)      # past its end: seen
+    assert not lc._segment_hits_box(10.0, 20.0, 10.0, 2.0, bus)       # from the walker's side: seen
+
+
+def test_walkers_leave_only_unseen(monkeypatch):
+    plan = [{"xy": (0.0, 0.0), "speed": 1.5, "legs": [("to", [(2.0, 0.0)]), ("vanish", "door")]}]
+    sim, _ = _sim(monkeypatch, plan)
+    seen = {"on": True}
+    sim.hidden = lambda x, y, occ=None: not seen["on"]
+    t = 0.0
+    for _ in range(40):
+        _tick(sim, t)
+        t += 0.1
+    assert len(sim.walkers) == 1 and sim.state[0]["leaving"] == ("door", None)    # at the door, waiting
+    seen["on"] = False
+    _tick(sim, t)
+    assert sim.walkers == []
+
+
+def test_autopilot_slows_before_a_turn(monkeypatch):
+    if "carla" not in sys.modules:
+        try:
+            import carla  # noqa: F401
+        except ImportError:
+            monkeypatch.setitem(sys.modules, "carla", _fake_carla())
+    from coupledcarla import inputs
+    ap = inputs.Autopilot.__new__(inputs.Autopilot)
+    ap.target_speed = 40.0
+
+    def wp(x, y, yaw):
+        return (types.SimpleNamespace(transform=types.SimpleNamespace(location=_V(x, y), rotation=types.SimpleNamespace(yaw=yaw))), None)
+
+    straight = [wp(2.0 * i, 0.0, 0.0) for i in range(1, 40)]
+    # 20 m straight, then a 90 deg left turn of 10 m radius (CARLA yaw falls to the left)
+    turn = [wp(2.0 * i, 0.0, 0.0) for i in range(1, 11)] + \
+        [wp(20 + 10 * math.sin(a), -10 + 10 * math.cos(a), -math.degrees(a)) for a in
+         [k * math.pi / 2 / 8 for k in range(1, 9)]]
+    car = types.SimpleNamespace(get_location=lambda: _V(0.0, 0.0))
+    ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=straight))
+    assert ap._curve_speed(car) == 40.0
+    # 10 m before the turn: braking at 2.5 m/s^2 to 5 m/s at its start allows sqrt(25 + 50) m/s = 31 km/h
+    car10 = types.SimpleNamespace(get_location=lambda: _V(10.0, 0.0))
+    ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=turn[5:]))
+    assert 27.0 <= ap._curve_speed(car10) <= 34.0
+    # at the turn itself: sqrt(2.5 m/s^2 x 10 m) = 5 m/s = 18 km/h
+    ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=turn[10:]))
+    assert ap._curve_speed(types.SimpleNamespace(get_location=lambda: _V(20.0, 0.0))) < 23.0

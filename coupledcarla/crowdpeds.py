@@ -943,6 +943,9 @@ class CrowdSim:
         self.poses = None        # the bridge's SUMO vehicle poses: walkers on the road wait for a car in their way
         self.decider = None      # embodiedped.EmbodiedCrossing: crossing decisions from what each walker sees
         self.on_stand = self.on_walk = self.on_vanish = None
+        # hidden(x, y, occluder actor id or None) -> bool: whether a walker may vanish there unseen (livingcity.py:
+        # beyond every participant's and camera's sight, or behind a bus or car); None: at once
+        self.hidden = None
         self._ids = []           # actor ids of the vehicles of the last _vehicles()
         import carla
         self.carla, self.world = carla, world
@@ -994,7 +997,7 @@ class CrowdSim:
             elif leg[0] == "wait":
                 route.append(("wait", [], 0.0, leg[1]))
             elif leg[0] == "vanish":
-                route.append(("vanish", [], 0.0, leg[1] if len(leg) > 1 else ""))
+                route.append(("vanish", [], leg[2] if len(leg) > 2 else None, leg[1] if len(leg) > 1 else ""))
         return route
 
     def add(self, w):
@@ -1040,11 +1043,21 @@ class CrowdSim:
         st["route"] = self.route_of({"legs": legs})
         st["leg"], st["pt"], st["crossing"], st["wait_from"], st["stop_until"] = 0, 0, False, None, None
 
-    def remove(self, k, reason=""):
-        """Takes walker k off the street (through a door, onto a bus, into a car)."""
+    def remove(self, k, reason="", occluder=None, force=False):
+        """Takes walker k off the street (through a door, onto a bus, into a car) once nobody sees it go (hidden(),
+        unless force): until then it stands where it is. True when it is gone."""
         st = self.state[k]
         if not st["alive"]:
-            return
+            return True
+        if not force and self.hidden is not None:
+            x, y = st["pos"]
+            try:
+                unseen = self.hidden(x, y, occluder)
+            except Exception:  # noqa: BLE001 - when in doubt, let it go
+                unseen = True
+            if not unseen:
+                st["leaving"], st["crossing"] = (reason, occluder), False
+                return False
         st["alive"], st["crossing"] = False, False
         actor = self.actors[k]
         try:
@@ -1053,6 +1066,7 @@ class CrowdSim:
             pass
         if self.on_vanish is not None:
             self.on_vanish(k, actor, reason)
+        return True
 
     def on_road(self):
         return [a for a, st in zip(self.actors, self.state) if st["alive"] and st["crossing"]]
@@ -1157,6 +1171,10 @@ class CrowdSim:
             if not st["alive"]:
                 continue
             try:
+                if st.get("leaving") is not None:      # waits, standing, until it can go unseen
+                    self._stand(k, actor, st, "leaving", send)
+                    self.remove(k, *st["leaving"])
+                    continue
                 if st["follow"] is not None:
                     self._follow(k, actor, st, t, send)
                     continue
@@ -1165,7 +1183,7 @@ class CrowdSim:
                     continue
                 kind, pts, width, marked = st["route"][st["leg"]]
                 if kind == "vanish":
-                    self.remove(k, marked)
+                    self.remove(k, marked, width)
                     continue
                 if kind == "wait":
                     if st["released"]:

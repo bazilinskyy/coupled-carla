@@ -140,6 +140,7 @@ EVENTS = {   # events.csv names written by the living city (and reactions.py)
     "door": "a vehicle door opens or closes (sound)", "horn": "a vehicle sounds its horn (sound)",
     "bell": "a cyclist rings the bell (sound)", "lc_yield_flash": "a driver lets the participant in, flashing",
     "lc_blocked": "a SUMO driver stands behind a participant who could go (honks may follow)",
+    "lc_yield_to_participant": "a SUMO driver brakes for a participant crossing its path (times, distance, deceleration)",
     "lc_cut_in": "the participant changed lanes in front of a SUMO driver (gap, headway, deceleration needed)",
     "lc_look": "a pedestrian looks at an approaching vehicle", "lc_hurry": "a crossing pedestrian hurries",
     "lc_step_back": "a pedestrian steps back to the kerb", "near_miss": "a near miss with its kinematics",
@@ -693,6 +694,7 @@ class LivingCity:
         self.lib = world.get_blueprint_library()
         self.cmap = world.get_map()
         self.poser = Poser(carla, log)
+        self.viewers = None         # () -> actors whose view counts (participants, film and free cameras): run.py
         self.poser.failed = not lc.get("poses", True)       # off: people stand (and sit) without poses
         self.radius = float(lc.get("radius_m", 150.0))
         self.extra = set()          # crowd indices of the walkers the living city added (sitters, waiters, ...)
@@ -750,6 +752,48 @@ class LivingCity:
     def far_from_participants(self, x, y, r=35.0):
         return all((x - c.x) ** 2 + (y - c.y) ** 2 > r * r for c in self._focus)
 
+    HIDE_M = 45.0          # a walker or car appears or vanishes only beyond this from every viewer (clip QA: 40 m)
+
+    def _viewer_transforms(self):
+        actors = list(self.viewers()) if self.viewers is not None else [p.actor for p in self.parts]
+        out, seen = [], set()
+        for a in actors:
+            if a is None or a.id in seen:
+                continue
+            seen.add(a.id)
+            try:
+                out.append(a.get_transform())
+            except RuntimeError:
+                pass
+        return out
+
+    def hidden(self, x, y, occluder=None):
+        """Whether something can appear or vanish at (x, y) without anyone seeing it: for every viewer (participant,
+        film or free camera) it is farther than HIDE_M, behind it (over 110 deg off its heading), or behind the
+        occluder (an actor id: the bus or car a walker gets into or out of) on the line of sight."""
+        box = None
+        if occluder:
+            a = self.world.get_actor(int(occluder))
+            if a is not None:
+                try:
+                    tf, ext = a.get_transform(), a.bounding_box.extent
+                    box = (tf.location.x, tf.location.y, math.radians(tf.rotation.yaw), ext.x + 0.1, ext.y + 0.1)
+                except RuntimeError:
+                    box = None
+        for tf in self._viewer_transforms():
+            vx, vy = tf.location.x, tf.location.y
+            dx, dy = x - vx, y - vy
+            d = math.hypot(dx, dy)
+            if d > self.HIDE_M:
+                continue
+            yaw = math.radians(tf.rotation.yaw)
+            if d > 2.0 and (dx * math.cos(yaw) + dy * math.sin(yaw)) / d < -0.34:
+                continue
+            if box is not None and _segment_hits_box(vx, vy, x, y, box):
+                continue
+            return False
+        return True
+
     def at(self, t, fn, *args):
         self.todo.append((t, fn, args))
         self.todo.sort(key=lambda e: e[0])
@@ -762,9 +806,15 @@ class LivingCity:
     def room(self):
         return self.n_extra() < int(self.lc.get("max_extra_walkers", 30))
 
-    def spawn_walker(self, plan, tag):
-        """A walker of the living city (into the crowd, so it walks, waits and logs like the crowd)."""
+    def spawn_walker(self, plan, tag, occluder=None, retry_s=0.0):
+        """A walker of the living city (into the crowd, so it walks, waits and logs like the crowd); after the first
+        second only where nobody sees it appear (hidden(); occluder: the vehicle it gets out of), else tried again
+        every second for retry_s seconds."""
         if self.crowd is None or not self.room():
+            return None
+        if self.t > 1.0 and "xy" in plan and not self.hidden(*plan["xy"], occluder):
+            if retry_s >= 1.0:
+                self.at(self.t + 1.0, self.spawn_walker, plan, tag, occluder, retry_s - 1.0)
             return None
         plan = {"speed": 1.3, "tag": tag, **plan}
         k = self.crowd.add(plan)
@@ -865,7 +915,7 @@ class LivingCity:
         for b in new:
             self.seen_benches.add((round(b[0], 1), round(b[1], 1)))
             rng = rng_for(self.lc, "bench", round(b[0], 1), round(b[1], 1))      # the same bench, the same draw
-            if rng.random() >= p or (not initial and not self.far_from_participants(b[0], b[1], 40.0)):
+            if rng.random() >= p or (not initial and not self.hidden(b[0], b[1])):
                 continue
             seats = bench_seats([b], toward_road)
             both = rng.random() < 0.3                     # a bench with two people (assumption)
@@ -947,7 +997,7 @@ class LivingCity:
                 continue
             rng = rng_for(self.lc, "stop", stop["id"])
             n = poisson(stop_waiting(stop["headway_min"], self.lc, self.density), rng)
-            if initial or self.far_from_participants(*stop["kerb"], 40.0):
+            if initial or self.hidden(*stop["kerb"]):
                 for _ in range(n):
                     if self._waiter(stop, rng, initial=True) is not None:
                         self._count("planned_waiting")
@@ -972,7 +1022,7 @@ class LivingCity:
         else:     # comes walking along the kerb from 25-45 m away, out of the participants' close view
             d = rng.choice((-1, 1)) * rng.uniform(25.0, 45.0)
             sx, sy = kx + hx * d + nx * 0.8, ky + hy * d + ny * 0.8
-            if not self.far_from_participants(sx, sy):
+            if not self.hidden(sx, sy):
                 return None
             plan = {"xy": (sx, sy), "legs": [("to", [(x, y)]), ("stop", None, 0.5, face), ("wait", stop["id"])]}
         if rng.random() < rate(self.lc, "phone_share") * 2:   # waiting people look at their phones more (assumption)
@@ -1077,7 +1127,7 @@ class LivingCity:
         """A van at a free kerb stall, or double-parked beside a taken one (double_park_share, only where a second
         lane in its direction lets traffic pass); new ones beyond 40 m of the participants."""
         stalls = [s for s in self._stalls_near() if not s.get("used") and
-                  (initial or self.far_from_participants(s["x"], s["y"], 40.0))]
+                  (initial or self.hidden(s["x"], s["y"]))]
         double = rng.random() < rate(self.lc, "double_park_share")
         taken = [s for s in stalls if s["taken"]]
         free = [s for s in stalls if not s["taken"]]
@@ -1085,7 +1135,7 @@ class LivingCity:
         rng.shuffle(free)
         cands = ([(s, True) for s in taken[:20]] if double else []) + [(s, False) for s in free[:20]]
         lanes = [w for w in self._kerb_lanes() if self.near_participants(w["x"], w["y"]) and not w.get("used") and
-                 (initial or self.far_from_participants(w["x"], w["y"], 40.0))]
+                 (initial or self.hidden(w["x"], w["y"]))]
         rng.shuffle(lanes)
         cands += [(w, "lane") for w in lanes[:20]]      # no stall: stopped in the kerb lane of a two-lane street
         for s, double in cands:
@@ -1198,7 +1248,7 @@ class LivingCity:
         stay = rng.uniform(20.0, 60.0)
         k = self.spawn_walker({"xy": (bx, by), "speed": 1.4,
                                "legs": [("to", [door]), ("stop", None, stay, None), ("to", [(bx, by)]),
-                                        ("vanish", "van")]}, "courier")
+                                        ("vanish", "van", van.id)]}, "courier", occluder=van.id)
         if k is not None:
             try:
                 van.open_door(carla.VehicleDoor.RR if not self.lefthand else carla.VehicleDoor.RL)
@@ -1290,7 +1340,7 @@ class LivingCity:
         pulls out into SUMO's traffic."""
         rng = rng_for(self.lc, "park_out", round(self.t, 1))
         cands = [s for s in self._stalls_near() if s["taken"] and not s.get("used") and
-                 self.near_participants(s["x"], s["y"], 110.0) and not self.near_participants(s["x"], s["y"], 12.0)]
+                 self.near_participants(s["x"], s["y"], 110.0) and self.hidden(s["x"], s["y"])]
         rng.shuffle(cands)
         carla = self.carla
         for s in cands[:10]:
@@ -1314,7 +1364,8 @@ class LivingCity:
             door = self._nearest_door(s["x"], s["y"], 25.0)
             driver_side = self._driver_door_xy(car)
             if door is not None and self.room():
-                k = self.spawn_walker({"xy": door, "legs": [("to", [driver_side]), ("vanish", "car")]}, "driver")
+                k = self.spawn_walker({"xy": door, "legs": [("to", [driver_side]), ("vanish", "car", car.id)]},
+                                      "driver")
                 walk_s = math.hypot(door[0] - driver_side[0], door[1] - driver_side[1]) / 1.3 + 1.0
             else:
                 k, walk_s = None, 0.0
@@ -1604,7 +1655,8 @@ class LivingCity:
         dx, dy = self._driver_door_xy(car)
         door = self._nearest_door(dx, dy, 30.0)
         legs = [("to", [door]), ("vanish", "door")] if door else [("stop", None, 3.0, None)]
-        self.at(self.t + 1.5, lambda: self.spawn_walker({"xy": (dx, dy), "legs": legs}, "driver"))
+        self.at(self.t + 1.5, lambda: self.spawn_walker({"xy": (dx, dy), "legs": legs}, "driver", occluder=cid,
+                                                        retry_s=20.0))
         self.ev("lc_park_in", cid, state="parked")
 
     def _traffic_at_door(self, car):
@@ -1727,12 +1779,12 @@ class LivingCity:
                     k = v.get("passenger")
                     if k is not None and self.crowd.state[k]["alive"]:
                         self.poser.clear(self.crowd.actors[k])
-                        self.crowd.redirect(k, [("to", [(dx, dy)]), ("vanish", "car")])
+                        self.crowd.redirect(k, [("to", [(dx, dy)]), ("vanish", "car", cid)])
                     elif v["mode"] == "drop_off":
                         door = self._nearest_door(kx, ky, 30.0)
                         legs = [("to", [(kx, ky)])] + ([("to", [door]), ("vanish", "door")] if door else
                                                        [("stop", None, 20.0, None)])
-                        self.spawn_walker({"xy": (dx, dy), "legs": legs}, "passenger")
+                        self.spawn_walker({"xy": (dx, dy), "legs": legs}, "passenger", occluder=cid, retry_s=10.0)
 
                 self.ev("lc_pickup", cid, state="stopped", mode=v["mode"])
             if v["stopped"] and pose[3] > 0.5:
@@ -1794,9 +1846,9 @@ class LivingCity:
                 rear = (tf.location.x - f.x * 0.5 + r.x * side * (ext.y + 0.6),
                         tf.location.y - f.y * 0.5 + r.y * side * (ext.y + 0.6))
                 for j, k in enumerate(waiting):              # board at the front door, one after the other
-                    self.at(self.t + j * rate(self.lc, "board_s") * 0.5, self._board, k, front)
+                    self.at(self.t + j * rate(self.lc, "board_s") * 0.5, self._board, k, front, cid)
                 for j in range(alight):
-                    self.at(self.t + 1.0 + j * rate(self.lc, "alight_s"), self._alight, rear, stop, rng)
+                    self.at(self.t + 1.0 + j * rate(self.lc, "alight_s"), self._alight, rear, stop, rng, cid)
                 stop["waiting"] = []
                 self.ev("lc_bus", cid, state="at_stop", stop=stop["id"], board=len(waiting), alight=alight,
                         dwell_s=round(dwell, 1), sumo=sid)
@@ -1816,14 +1868,14 @@ class LivingCity:
         for sid in [s for s, b in self.buses.items() if b.get("gone") and b["cid"] not in poses]:
             self.buses.pop(sid)
 
-    def _board(self, k, door):
+    def _board(self, k, door, bus=None):
         if not self.crowd.state[k]["alive"]:
             return
-        self.crowd.redirect(k, [("to", [door]), ("vanish", "bus")])
+        self.crowd.redirect(k, [("to", [door]), ("vanish", "bus", bus)])
         self.crowd.release(k)
         self._boarding = getattr(self, "_boarding", set()) | {k}
 
-    def _alight(self, rear, stop, rng):
+    def _alight(self, rear, stop, rng, bus=None):
         (nx, ny) = stop["normal"]
         kx, ky = rear[0] + nx * 2.5, rear[1] + ny * 2.5
         door = self._nearest_door(kx, ky, 60.0)
@@ -1832,7 +1884,7 @@ class LivingCity:
             legs += [("to", [door]), ("vanish", "door")]
         else:
             legs += self._kerb_walk(kx, ky, rng)
-        self.spawn_walker({"xy": rear, "legs": legs}, "alighting")
+        self.spawn_walker({"xy": rear, "legs": legs}, "alighting", occluder=bus)
 
     def _kerb_walk(self, x, y, rng):
         """Legs of a crowd walk from the kerb sample nearest (x, y) (CARLA), or [] without the crowd's plan."""
@@ -1852,7 +1904,11 @@ class LivingCity:
         return [("to", [self.crowd.xy(k, side, i)])] + w["legs"]
 
     # -- doors and bikes ----------------------------------------------------------------------------------------------
-    def _door_out(self, plan):
+    def _door_out(self, plan, tries=0):
+        if self.t > 1.0 and not self.hidden(*plan["xy"]):     # someone is looking: a little later
+            if tries < 60:
+                self.at(self.t + 2.0, self._door_out, plan, tries + 1)
+            return
         k = self.spawn_walker(plan, "door")
         if k is not None:
             self.ev("lc_door_out", self.crowd.actors[k].id)
@@ -2040,3 +2096,29 @@ def make(tc, world, client, geo, mdir, crowd, sync, carla_sim, parked, parts, du
             json.loads((Path(mdir) / "buildings.json").read_text()))).values())
     log(f"living city: on ({lc['why']}), seed {lc['seed']}")
     return city
+
+
+def _segment_hits_box(ax, ay, bx, by, box):
+    """Whether the segment a-b crosses the rectangle box = (cx, cy, yaw rad, half length, half width)."""
+    cx, cy, yaw, hl, hw = box
+    c, sn = math.cos(yaw), math.sin(yaw)
+
+    def local(x, y):
+        dx, dy = x - cx, y - cy
+        return dx * c + dy * sn, -dx * sn + dy * c
+
+    (x0, y0), (x1, y1) = local(ax, ay), local(bx, by)
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-(x1 - x0), x0 + hl), (x1 - x0, hl - x0), (-(y1 - y0), y0 + hw), (y1 - y0, hw - y0)):
+        if abs(p) < 1e-12:
+            if q < 0:
+                return False
+            continue
+        r = q / p
+        if p < 0:
+            t0 = max(t0, r)
+        else:
+            t1 = min(t1, r)
+        if t0 > t1:
+            return False
+    return True

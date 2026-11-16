@@ -461,8 +461,8 @@ DEFAULTS = {
         "activities": {"enabled": True, "groups": True, "children": True, "phones": True, "wheelchairs": True,
                        "shops": True, "doors": True, "benches": True, "stops": True, "bikes": True},
         "kerbside": {"enabled": True, "deliveries": True, "pickups": True, "buses": True, "parking": True},
-        "reactions": {"enabled": True, "horns": True, "courtesy": True, "looks": True, "hurry": True, "bells": True,
-                      "near_misses": True},
+        "reactions": {"enabled": True, "yield_to_participants": True, "horns": True, "courtesy": True,
+                      "looks": True, "hurry": True, "bells": True, "near_misses": True},
         "rates": {},                 # {name: value} over livingcity.RATES and reactions.RATES (e.g. honk_p12: 0.5)
     },
     "pois": [],

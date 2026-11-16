@@ -66,7 +66,8 @@ RATES = {
     "near_miss_ttc_s": (1.5, "s", "vanderhorst1990", "measured", "time to collision of a near miss"),
 }
 
-DEFAULTS = {"enabled": True, "horns": True, "courtesy": True, "looks": True, "hurry": True, "bells": True,
+DEFAULTS = {"enabled": True, "yield_to_participants": True, "horns": True, "courtesy": True, "looks": True,
+            "hurry": True, "bells": True,
             "near_misses": True}
 
 RADIUS = {"bike": 0.5, "car": 1.0, "bus": 1.3, "walker": 0.3}     # discs for near misses (half widths + a margin)
@@ -122,6 +123,24 @@ def closest(ax, ay, avx, avy, bx, by, bvx, bvy):
     return t, math.hypot(px + vx * t, py + vy * t)
 
 
+def crossing(px, py, pvx, pvy, sx, sy, svx, svy, reach=45.0, min_deg=25.0):
+    """Where a participant's path (p, moving at pv) and a SUMO car's (s, sv) cross at min_deg-180 deg: (participant's
+    time to the crossing point s, the car's time s, the car's distance m), or None (parallel, apart, beyond reach). A
+    participant already up to 3 m past the point still counts (time 0)."""
+    vp, vs = math.hypot(pvx, pvy), math.hypot(svx, svy)
+    if vp < 1.0 or vs < 0.5:
+        return None
+    hpx, hpy, hsx, hsy = pvx / vp, pvy / vp, svx / vs, svy / vs
+    if abs(hpx * hsx + hpy * hsy) > math.cos(math.radians(min_deg)):
+        return None                       # one behind the other: SUMO's car following handles it
+    den = hpx * hsy - hpy * hsx
+    a = ((sx - px) * hsy - (sy - py) * hsx) / den
+    b = ((sx - px) * hpy - (sy - py) * hpx) / den
+    if a < -3.0 or a > reach or b < 0.0 or b > reach:
+        return None
+    return max(0.0, a) / vp, b / vs, b
+
+
 def behind(pose_x, pose_y, yaw_deg, ox, oy, oyaw, reach=15.0, lat=1.7):
     """Distance (m) of (ox, oy) heading oyaw behind a vehicle at (pose_x, pose_y) heading yaw_deg in the same
     direction and lane, or None."""
@@ -152,6 +171,7 @@ class Reactions:
         self.speeds = {}         # actor id -> [(t, speed)] for decelerations
         self.t = 0.0
         self.queue_wait = {}
+        self.giving_way = {}     # sumo id -> last t it was held for a participant crossing its path
 
     # -- helpers --
     def _sumo_ids(self):
@@ -540,10 +560,64 @@ class Reactions:
         self.recent = [r for r in self.recent if t - r[0] <= 3.0]
 
     # -- the tick --
+    def _yield_to_participants(self, t, poses, ids):
+        """SUMO drivers do not drive into a participant: a SUMO car whose path crosses a participant's car (at a
+        junction, an exit) and would reach the crossing point at about the same time or after it brakes to stop
+        before it (at the deceleration that needs, as SumoYield does for walkers) until the participant has passed.
+        SUMO itself only knows the participant's twin by its pose (no route, so no right of way): without this a
+        SUMO car crossed an automated participant's path in New York and hit it (a 30 m/s^2 jolt in the clip)."""
+        import traci
+        from .yielding import braking
+        vel = getattr(self.sync, "velocity", {}) or {}
+        conflicts = {}
+        for p in self.parts:
+            if not p.actor.type_id.startswith("vehicle.") or p.kind == "av_passenger":
+                continue
+            try:
+                loc, v = p.actor.get_location(), p.actor.get_velocity()
+            except RuntimeError:
+                continue
+            pvx, pvy = vel.get(p.actor.id, (v.x, v.y))
+            for cid, (x, y, yaw, sp, hl, *_r) in poses.items():
+                sid = ids.get(cid)
+                if sid is None or (x - loc.x) ** 2 + (y - loc.y) ** 2 > 60.0 ** 2:
+                    continue
+                svx, svy = vel.get(cid, (sp * math.cos(math.radians(yaw)), sp * math.sin(math.radians(yaw))))
+                got = crossing(loc.x, loc.y, pvx, pvy, x, y, svx, svy)
+                if got is None:
+                    continue
+                tp, ts, b = got
+                if abs(ts - tp) < 2.5 and ts >= tp - 0.8:          # about together, or the SUMO car later: it waits
+                    room = b - hl - 3.5                             # its front stops 2.5 m short of the car's side
+                    conflicts[sid] = (cid, p.role, tp, ts, b, sp, room)
+        for sid, (cid, role, tp, ts, b, sp, room) in conflicts.items():
+            a, emergency = braking(sp, room + 2.5)
+            try:
+                if sid not in self.giving_way:
+                    self.city.ev("lc_yield_to_participant", cid, target=role, t_participant=round(tp, 2),
+                                 t_car=round(ts, 2), d_m=round(b, 1), speed=round(sp, 1), decel=round(a, 2),
+                                 emergency=emergency)
+                    self.recent.append((t, cid, "yield_to_participant"))
+                if sp < 0.1 or room <= 0.3:
+                    traci.vehicle.setSpeed(sid, 0.0)
+                else:
+                    traci.vehicle.slowDown(sid, max(0.0, sp - max(a, 2.0) * 0.1), 0.1)
+                self.giving_way[sid] = t
+            except traci.TraCIException:
+                pass
+        for sid in [s_ for s_, since in self.giving_way.items() if s_ not in conflicts and t - since > 1.0]:
+            self.giving_way.pop(sid)
+            try:
+                traci.vehicle.setSpeed(sid, -1)
+            except traci.TraCIException:
+                pass
+
     def step(self, t, dt, types):
         self.t, self.dt = t, dt
         poses = self.sync.poses or {}
         ids = self._sumo_ids()
+        if self.opts.get("yield_to_participants", True):
+            self._yield_to_participants(t, poses, ids)
         if self.opts.get("horns", True) or self.opts.get("courtesy", True):
             for p in self.parts:
                 if not p.actor.type_id.startswith("vehicle.") or p.kind == "av_passenger":

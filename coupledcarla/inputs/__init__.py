@@ -16,11 +16,25 @@ from .. import compat
 
 
 class Autopilot:
+    """CARLA's BasicAgent with two changes for clips and studies: its junction choices come from its own random
+    generator seeded by the car's role (the same lanes in every run of an experiment; the global one, unseeded, sent
+    the Lyon clip's car left at one render and straight at the next), and it slows before curves and turns so its
+    lateral acceleration stays under A_LAT (it took a junction turn at 39 km/h: 13 m/s^2)."""
     needs_display = False
+    A_LAT = 2.5         # m/s^2: the most lateral acceleration in a curve or turn
+    B_PLAN = 2.5        # m/s^2: the deceleration it plans with to be slow enough at a curve ahead
 
-    def __init__(self, vehicle, target_speed=40.0):
+    def __init__(self, vehicle, target_speed=40.0, seed=None):
         sys.path.append(os.path.join(os.environ["CARLA_ROOT"], "PythonAPI", "carla"))
+        import random
+        import zlib
         import agents.navigation.basic_agent as basic_agent
+        import agents.navigation.local_planner as local_planner
+        if seed is None:
+            seed = zlib.crc32(str(vehicle.attributes.get("role_name", "autopilot")).encode())
+        self.rng = random.Random(seed)
+        local_planner.random = self.rng       # the local planner's junction choices (it calls random.choice)
+        self.target_speed = float(target_speed)
         # CARLA's GlobalRoutePlanner can loop forever on OSM-derived maps; without it BasicAgent follows
         # random lanes, which is what a background test drive needs.
         basic_agent.GlobalRoutePlanner = lambda *a, **k: None
@@ -32,7 +46,38 @@ class Autopilot:
         self.quit = False
         self.stuck = False
 
+    def _curve_speed(self, vehicle):
+        """km/h the car may go now so that, braking at B_PLAN, it takes every curve within the next waypoints of
+        its plan at no more than A_LAT."""
+        import math
+        try:
+            queue = list(self.agent.get_local_planner()._waypoints_queue)[:60]
+            loc = vehicle.get_location()
+        except (AttributeError, RuntimeError):
+            return self.target_speed
+        best = self.target_speed / 3.6
+        s, prev = 0.0, None
+        px, py = loc.x, loc.y
+        for wp, _opt in queue:
+            tf = wp.transform
+            s += math.hypot(tf.location.x - px, tf.location.y - py)
+            px, py = tf.location.x, tf.location.y
+            yaw = tf.rotation.yaw
+            if prev is not None:
+                ds = max(0.5, math.hypot(tf.location.x - prev[0], tf.location.y - prev[1]))
+                dyaw = abs((yaw - prev[2] + 180.0) % 360.0 - 180.0)
+                k = math.radians(dyaw) / ds
+                if k > 1e-3:
+                    v_curve = math.sqrt(self.A_LAT / k)
+                    best = min(best, math.sqrt(v_curve * v_curve + 2.0 * self.B_PLAN * max(0.0, s - ds)))
+            prev = (tf.location.x, tf.location.y, yaw)
+        return max(10.0, min(self.target_speed, best * 3.6))
+
     def control(self, vehicle, events=()):
+        try:
+            self.agent.set_target_speed(self._curve_speed(vehicle))
+        except AttributeError:
+            pass
         try:
             ctl = self.agent.run_step()
         except (IndexError, AttributeError):
@@ -52,7 +97,6 @@ class Autopilot:
         return self._plan_from(wp)
 
     def _plan_from(self, wp):
-        import random
         from agents.navigation.local_planner import RoadOption
         for cand in (wp, compat.left_lane(wp), compat.right_lane(wp)):
             if cand is None or cand.lane_type != carla.LaneType.Driving or cand.lane_id * wp.lane_id < 0:
@@ -62,7 +106,7 @@ class Autopilot:
                 nxt = w.next(2.0)
                 if not nxt:
                     break
-                w = random.choice(nxt)
+                w = self.rng.choice(nxt)
                 plan.append((w, RoadOption.LANEFOLLOW))
             if len(plan) > 10:
                 self.agent.set_global_plan(plan, stop_waypoint_creation=False, clean_queue=True)
