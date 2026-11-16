@@ -353,8 +353,13 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # scenery.json names the meshes of one CARLA version's catalogue: rebuilt first when made for the other
         has_scenery = tc["map"].get("scenery", {}).get("enabled", True) and \
             mapbuild.scenery_for_server(tc, mdir, compat.server_major(client), log)
-        world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery,
-                           keep_lights=tc["simulation"]["tls_manager"] == "carla")
+        if tc["map"].get("standin"):   # the roads around the start only, generated in seconds (standin.py)
+            from .standin import standin_xodr
+            world = load_world(client, standin_xodr(mdir, tc, log), dict(tc["map"], carla_level=None),
+                               slab=has_scenery, keep_lights=tc["simulation"]["tls_manager"] == "carla")
+        else:
+            world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery,
+                               keep_lights=tc["simulation"]["tls_manager"] == "carla")
         if town:      # the town's buildings and trees from its environment objects (sound, drones)
             towns.environment(world, mdir, client.get_server_version(), log)
         wx = set_weather(world, tc["simulation"], config.place(tc), mdir / "real", log)

@@ -49,6 +49,9 @@ DEFAULTS = {
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
+        "standin": False,            # {radius_m: 800}: a quick stand-in world, the OpenDRIVE's roads within that
+                                     # distance of the first participant generated in seconds instead of the
+                                     # level or the whole map (standin.py)
         "carla_level": None,         # load this CARLA level (by name) instead of generating an OpenDRIVE-only world
         "carla_town": None,          # a CARLA standard map (Town01..Town07, Town10HD, their _Opt variants; on 1.0 the
                                      # _Opt towns, Mine_01): its level, its OpenDRIVE for SUMO (maps/<town>/) and

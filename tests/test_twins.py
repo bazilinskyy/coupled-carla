@@ -53,3 +53,10 @@ def test_city_real_is_the_city_twin_under_google_tiles_with_live_data():
     assert real["simulation"]["time"] == "now" and real["simulation"]["weather"] == "real"
     assert real["traffic"]["cars_per_hour"] == "auto"
     assert [t.get("patch") for t in real["trials"]] == [t.get("patch") for t in twin["trials"]]
+
+
+def test_city_quick_is_the_city_twin_as_a_stand_in():
+    quick = config.load(EXP / "eindhoven_city_quick.yaml")
+    twin = config.load(EXP / "eindhoven_city_twin.yaml")
+    assert quick["map"]["name"] == "eindhoven_city_twin" and not quick["map"].get("carla_level")
+    assert quick["map"]["opendrive"] == twin["map"]["opendrive"] and quick["map"]["standin"]["radius_m"] == 800
