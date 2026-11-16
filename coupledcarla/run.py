@@ -278,6 +278,20 @@ def welcome_for(part, geo, tc):
     return out
 
 
+def signal_region(tc, mdir, major):
+    """The region whose signal heads the drawn traffic lights use (signals.py): CARLA 1.0 with the street content
+    (streetlook.py) in the Netherlands, the UK or Japan, unless map.scenery.street_props is off; else None."""
+    if major < 1 or (tc["map"].get("scenery") or {}).get("street_props", "auto") in (False, "off", None):
+        return None
+    try:
+        from . import crowdpeds, streetlook
+        bbox = tc["map"].get("bbox") or json.loads((mdir / "meta.json").read_text())["bbox"]
+        iso3 = crowdpeds.locate(tc, bbox, mdir / "real" / "crowdpeds_country.json")[0]
+        return streetlook.region(iso3)
+    except Exception:  # noqa: BLE001 - country unknown: CARLA's heads
+        return None
+
+
 def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     log = Log()
     trial = cfg["trials"][trial_idx]
@@ -410,7 +424,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         signals = Signals(world, sumo.net, BridgeHelper.offset, step=step, debug=side.debug,
                           style=(tc["simulation"].get("traffic_lights") or {}).get("style", "head"),
                           lefthand=bool(tc["map"].get("lefthand")), log=log,
-                          surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None)
+                          surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None,
+                          region=signal_region(tc, mdir, compat.server_major(client)))
         if signals.style != "none":
             log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
                 f"{', meshes' if signals.meshes else ''}) drawn near participants")

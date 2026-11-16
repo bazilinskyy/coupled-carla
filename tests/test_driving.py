@@ -303,15 +303,30 @@ def test_crossing_links_and_all_red():
 
 def test_scramble_programs(tmp_path):
     from coupledcarla import pedsignals as P
-    phase = lambda d, s: types.SimpleNamespace(duration=d, state=s)   # noqa: E731
-    prog = types.SimpleNamespace(getPhases=lambda: [phase(30, "GGrr"), phase(3, "yyrr"), phase(30, "rrGg")])
-    tls = types.SimpleNamespace(getPrograms=lambda: {"0": prog})
-    net = types.SimpleNamespace(getTLS=lambda tid: tls)
-    assert P.scramble_programs(net, ["J"], tmp_path / "s.add.xml", seconds=25) == 1
+    programs = {"J": {"0": [(30.0, "GGrr"), (3.0, "yyrr"), (30.0, "rrGg")]}}
+    assert P.scramble_programs(programs, ["J"], tmp_path / "s.add.xml", seconds=25) == 1
     root = ET.parse(tmp_path / "s.add.xml").getroot()
     states = [(p.get("duration"), p.get("state")) for p in root.iter("phase")]
     assert states[-1] == ("25", "rrrr") and root.find("tlLogic").get("id") == "J"
     assert states[-2] == ("3", "rryy") and len(states) == 5            # amber first for the streams still green
+
+
+def test_tls_programs_read_a_net_sumolib_failed_on(tmp_path):
+    # a <param> before the first tlLogic (our nets have them on edges) made sumolib's readNet(withPrograms=True)
+    # raise AttributeError '_currentProgram': scramble crossings were off
+    from coupledcarla import pedsignals as P
+    net = tmp_path / "n.net.xml"
+    net.write_text('<net><edge id="a" from="A" to="J"><param key="origId" value="7"/>'
+                   '<lane id="a_0" index="0" length="10" shape="0,0 10,0"/></edge>'
+                   '<tlLogic id="J" type="static" programID="0" offset="0"><param key="x" value="y"/>'
+                   '<phase duration="30" state="Gr"/><phase duration="3" state="yr"/></tlLogic>'
+                   '<tlLogic id="J" type="static" programID="night" offset="0"><phase duration="60" state="rG"/>'
+                   '</tlLogic><junction id="J" type="traffic_light" x="10" y="0" incLanes="a_0" intLanes=""/></net>')
+    progs = P.tls_programs(net)
+    assert progs == {"J": {"0": [(30.0, "Gr"), (3.0, "yr")], "night": [(60.0, "rG")]}}
+    assert P.scramble_programs(progs, ["J", "K"], tmp_path / "s.add.xml", seconds=20) == 2
+    ids = [(t.get("id"), t.get("programID")) for t in ET.parse(tmp_path / "s.add.xml").getroot().iter("tlLogic")]
+    assert ids == [("J", "0_scramble"), ("J", "night_scramble")]
 
 
 def test_scramble_points(tmp_path):

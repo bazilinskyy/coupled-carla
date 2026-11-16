@@ -12,6 +12,12 @@ red. SUMO is therefore the only source of truth for signals here:
 - next_light() gives a participant's next light (id, distance, state) from its SUMO twin, for the autopilot,
   the log and the HUD.
 
+On CARLA 1.0 with the CoupledCarla street content (streetlook.py, data/street_props.json) the heads are the
+region's own (region: "NL", "UK", "JP"): the Dutch black-and-white banded pole with a car head (three 300 mm lenses
+on a yellow back plate) or, over a cycle lane, the cyclist head; the UK's and Japan's car heads (Japan's horizontal)
+on CARLA's pole. The lit lens is drawn on the mesh's own lens (its centre from street_props.json). Where the server
+lacks the content (CARLA 0.9.16, a 1.0 package without it) CARLA's pole and backboard as before.
+
 Debug colours go through look.debug_colour: CARLA 0.9.16 shows a debug channel of 1 as about 200 of 255 and
 saturates from 3, so the old (0, 255, 0) was a blinding square with a bloom halo.
 """
@@ -41,6 +47,64 @@ LAMP_DZ = (0.33, 0.08, -0.17)            # top, middle, bottom lamp from the bac
 LAMP_FRONT = 0.28                        # in front of the pole, on the backboard's face (its local +y)
 LAMP_SIZE = 0.2                          # the lit lamp: a 0.2 x 0.2 m square in the world (a thick debug line;
                                          # a debug point keeps its size on screen, so far lamps were big blobs)
+
+
+# regional heads (CARLA 1.0 street content): the head's origin (its pole's axis, at the back plate) this high above the
+# road, so a car head's plate (1.44 m) spans 2.0-3.5 m on the 3.6 m pole and a cyclist head's (1.14 m) 1.9-3.0 m
+REGION_HEAD_Z = {"car": 2.75, "bike": 2.45, "ped": 2.3}
+REGION_LAMP = {"car": 0.24, "bike": 0.16, "ped": 0.16}      # the lit square (m), inside the lens and its visor
+LENS_FRONT = 0.03                                          # drawn this far in front of the lens (m)
+
+
+def regional_style(region, mode, props=None):
+    """How a region's head of a mode looks on CARLA 1.0: {"pole": mesh path or None (CARLA's), "head": mesh path,
+    "head_z", "lenses": [(x, y, z) of each lens from the head's origin, red first], "lamp": lit square (m)}, or None
+    (no such head: CARLA's). props: streetlook.props()."""
+    if not region:
+        return None
+    if props is None:
+        from . import streetlook
+        props = streetlook.props()
+    name = {"bike": "SignalBike", "ped": "SignalPed"}.get(mode, "SignalCar")
+    head = props.get(f"SM_CC_{region}_{name}")
+    if not head and mode != "car":          # no cyclist head in this region: the car head
+        head, mode = props.get(f"SM_CC_{region}_SignalCar"), "car"
+    if not head or not head.get("lenses"):
+        return None
+    pole = props.get(f"SM_CC_{region}_SignalPole")
+    return {"pole": pole["path"] if pole else None, "head": head["path"], "head_z": REGION_HEAD_Z[mode],
+            "lenses": [tuple(v) for v in head["lenses"]], "lamp": REGION_LAMP[mode], "mode": mode}
+
+
+def regional_points(x, y, z, travel_yaw, style, ground=None):
+    """head_points for a regional head: {"yaw", "pole" (its foot on the ground), "head" (origin), "lamps" (each
+    lens's centre, a little in front of it)}. The head and its lenses face +y of the mesh, towards the traffic."""
+    yaw = (travel_yaw + 90.0) % 360.0
+    r = math.radians(yaw)
+    c, sn = math.cos(r), math.sin(r)
+    hz = z + style["head_z"]
+    lamps = [(x + lx * c - (ly + LENS_FRONT) * sn, y + lx * sn + (ly + LENS_FRONT) * c, hz + lz)
+             for lx, ly, lz in style["lenses"]]
+    return {"yaw": yaw, "pole": (x, y, z if ground is None else ground), "head": (x, y, hz), "lamps": lamps}
+
+
+def lens_of(row, n_lenses):
+    """The lens that shows a lamp row (0 red, 1 amber, 2 green) on a head of n lenses (a two-lens pedestrian head:
+    red, green; no amber), or None."""
+    if row is None:
+        return None
+    if n_lenses == 2:
+        return {0: 0, 2: 1}.get(row)
+    return row if row < n_lenses else None
+
+
+def lane_mode(lane):
+    """"bike" for a sumolib lane only cyclists use, else "car"."""
+    try:
+        return "bike" if lane.allows("bicycle") and not lane.allows("passenger") and not lane.allows("bus") \
+            else "car"
+    except Exception:  # noqa: BLE001
+        return "car"
 
 
 def lamp_row(state):
@@ -139,11 +203,12 @@ def head_spot(k, groups, by_index, place, on_road):
 
 class Signals:
     def __init__(self, world, net, offset, radius=120.0, every=5, step=0.02, debug=None, style="head",
-                 lefthand=False, log=print, surface=None):
+                 lefthand=False, log=print, surface=None, region=None):
         """net: the sumolib net SUMO runs (map.net.xml); offset: the bridge's SUMO->CARLA shift; debug: where to
         draw (the runner passes the side connection's, see side.py), else world.debug; style: "head" or
         "marker" (or "none": no drawing, next_light only); lefthand: the kerb is on the left of the lanes; surface:
-        placement.GroundSurface of the scenery's ground tiles (the poles stand on them)."""
+        placement.GroundSurface of the scenery's ground tiles (the poles stand on them); region: "NL", "UK", "JP"
+        (streetlook.region) for the region's heads on a CARLA 1.0 server with the street content, None: CARLA's."""
         self.debug = world.debug if debug is None else debug
         cmap = world.get_map()
         self.surface = surface
@@ -158,6 +223,9 @@ class Signals:
         self.style = style if style in ("head", "marker", "none") else "head"
         self.heads = []   # (tls_id, [link indices], carla Location at the stop line, travel yaw): the first light
         self.head_links = []    # per head every (tls_id, [link indices]) it shows (several lights per approach)
+        self.head_modes = []    # per head "car" or "bike" (its lanes are cyclists' only)
+        self.region = region
+        self.styles = []        # per head its regional_style once spawned, else None (CARLA's head)
         self.lanes = {}   # SUMO lane id -> [(tls_id, [link indices], lane length, {edges the links lead to})]
         self.actors = []
         approaches = {}   # edge id -> {lane index: (lane, [(tls, link index)])}
@@ -207,18 +275,19 @@ class Signals:
             yaw = math.degrees(math.atan2(-(y1 - y0), x1 - x0))           # CARLA yaw of travel (y flipped)
             return loc, yaw
 
-        def add(links, loc, yaw):
+        def add(links, loc, yaw, mode="car"):
             by = {}
             for tls, i in links:
                 by.setdefault(tls, []).append(i)
             pairs = [(tls, sorted(set(idxs))) for tls, idxs in sorted(by.items())]
             self.heads.append((pairs[0][0], pairs[0][1], loc, yaw))
             self.head_links.append(pairs)
+            self.head_modes.append(mode)
 
         for _edge, lanes in approaches.items():
             if self.style == "marker":          # one marker per signalled lane, as before
                 for _index, (lane, links) in sorted(lanes.items()):
-                    add(links, *place(lane, True))
+                    add(links, *place(lane, True), lane_mode(lane))
                 continue
             phases = {}
             for tls in sorted({t for _lane, links in lanes.values() for t, _ in links}):
@@ -230,7 +299,8 @@ class Signals:
             groups = group_links([(index, links) for index, (_lane, links) in lanes.items()], phases)
             for k, group in enumerate(groups):
                 links = [lk for index in group for lk in lanes[index][1]]
-                add(links, *head_spot(k, groups, by_index, place, on_road))
+                mode = "bike" if all(lane_mode(lanes[index][0]) == "bike" for index in group) else "car"
+                add(links, *head_spot(k, groups, by_index, place, on_road), mode)
         self.meshes = self.style == "head" and self._spawn_heads(world, log)
         self._tick = 0
 
@@ -240,7 +310,17 @@ class Signals:
             bp = world.get_blueprint_library().find("static.prop.mesh")
         except (RuntimeError, IndexError):
             return False
-        for tls, idxs, loc, yaw in self.heads:
+        self.styles = [None] * len(self.heads)
+        regional = self.region is not None
+        for h, (tls, idxs, loc, yaw) in enumerate(self.heads):
+            st = regional_style(self.region, self.head_modes[h]) if regional else None
+            if st is not None:
+                ok = self._spawn_regional(world, bp, h, loc, yaw, st)
+                if ok:
+                    continue
+                if ok is None:          # the server lacks the content: CARLA's heads from here on
+                    log(f"traffic lights: no {self.region} signal meshes on this server; CARLA's heads")
+                    regional = False
             p = head_points(loc.x, loc.y, loc.z, yaw, self._ground(loc))
             for mesh, scale, at in ((POLE_MESH, p["pole_scale"], p["pole"]), (HEAD_MESH, HEAD_SCALE, p["head"])):
                 bp.set_attribute("mesh_path", mesh)
@@ -252,6 +332,34 @@ class Signals:
                         return False
                     continue
                 self.actors.append(a)
+        n = sum(st is not None for st in self.styles)
+        if n:
+            log(f"traffic lights: {n} of {len(self.heads)} heads are {self.region} ones "
+                f"({sum(st is not None and st['mode'] == 'bike' for st in self.styles)} for cyclists)")
+        return True
+
+    def _spawn_regional(self, world, bp, h, loc, yaw, st):
+        """The region's pole and head at head h: True; False when one did not spawn here (blocked: CARLA's head);
+        None when the server has no such mesh (no regional head spawned yet)."""
+        p = regional_points(loc.x, loc.y, loc.z, yaw, st, self._ground(loc))
+        parts = [(st["head"], 1.0, p["head"], p["yaw"])]
+        if st["pole"]:
+            parts.insert(0, (st["pole"], 1.0, p["pole"], p["yaw"]))
+        else:                   # CARLA's pole, the head on it
+            c = head_points(loc.x, loc.y, loc.z, yaw, self._ground(loc))
+            parts.insert(0, (POLE_MESH, c["pole_scale"], c["pole"], c["yaw"]))
+        spawned = []
+        for mesh, scale, at, myaw in parts:
+            bp.set_attribute("mesh_path", mesh)
+            bp.set_attribute("scale", str(scale))
+            a = world.try_spawn_actor(bp, carla.Transform(carla.Location(*at), carla.Rotation(yaw=myaw)))
+            if a is None:
+                for b in spawned:
+                    b.destroy()
+                return None if not any(s is not None for s in self.styles) else False
+            spawned.append(a)
+        self.actors += spawned
+        self.styles[h] = st
         return True
 
     def _ground(self, loc):
@@ -310,6 +418,16 @@ class Signals:
                 a, b = lamp_segment((loc.x, loc.y, loc.z + 3.3), yaw + 90.0, 0.35)     # world-sized, not a
                 self.debug.draw_line(carla.Location(*a), carla.Location(*b), thickness=0.35,  # screen-sized point
                                      color=COLOURS.get(st, COLOURS["o"]), life_time=self.life)
+                continue
+            rst = self.styles[h] if h < len(self.styles) else None
+            if rst is not None:     # the region's head: its own lens lit
+                p = regional_points(loc.x, loc.y, loc.z, yaw, rst)
+                lens = lens_of(lamp_row(st), len(rst["lenses"]))
+                if lens is not None:
+                    a, b = lamp_segment(p["lamps"][lens], p["yaw"], rst["lamp"])
+                    self.debug.draw_line(carla.Location(*a), carla.Location(*b), thickness=rst["lamp"],
+                                         color=carla.Color(*look.debug_colour(LAMP_RGB[lamp_row(st)])),
+                                         life_time=self.life)
                 continue
             p = head_points(loc.x, loc.y, loc.z, yaw)
             if not self.meshes:     # no meshes on this server: a dark pole and housing, drawn
