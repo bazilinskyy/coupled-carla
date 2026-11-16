@@ -356,7 +356,7 @@ class Reactions:
                     continue
                 c, s = math.cos(math.radians(pose[2])), math.sin(math.radians(pose[2]))
                 along = (loc.x - pose[0]) * c + (loc.y - pose[1]) * s
-                if 0 < along < pose[4] + 6.0 and abs(-(loc.x - pose[0]) * s + (loc.y - pose[1]) * c) < 2.0:
+                if 0 < along < pose[4] + 15.0 and abs(-(loc.x - pose[0]) * s + (loc.y - pose[1]) * c) < 2.0:
                     b = self.block.setdefault(("ped", sid), {"since": t, "last": -1e9})
                     rng = rng_for(self.lc, "ped_horn", sid, round(t, 2))
                     if t - b["since"] > 4.0 and t - b["last"] > 5.0 and rng.random() < lam * self.dt:
