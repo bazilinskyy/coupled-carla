@@ -785,22 +785,18 @@ class LivingCity:
         elif reason == "rack":
             self._bike_on(k, actor)
 
-    # -- set-up ----------------------------------------------------------------------------------------------------
+    # -- set-up and the planning windows -----------------------------------------------------------------------------
+    WINDOW_S = 60.0
+
     def start(self):
-        """Everything placed at the start of the trial (sitters, waiters, standing vans); returns the plan info."""
+        """Places what stands there at the start (sitters, waiters, vans) and plans the first window; then every
+        WINDOW_S around wherever the participants are (new things appear only beyond 40 m of them). Returns the plan
+        info."""
         self._focus = self.focus()
         act, kerb = self.lc["activities"], self.lc["kerbside"]
-        if act.get("enabled", True) and act.get("benches", True):
-            self._benches()
-        if act.get("enabled", True) and act.get("stops", True) or kerb.get("enabled", True) and kerb.get("buses", True):
-            self._stops_setup()
+        self.seen_benches, self.seen_stops, self.windows = set(), set(), 0
         if act.get("enabled", True) and act.get("bikes", True):
-            self.racks = [(x, y) for x, y, *_ in scenery_points(self.mdir, RACK_MESHES)
-                          if self.near_participants(x, y, self.radius + 50)]
-        if kerb.get("enabled", True) and kerb.get("deliveries", True):
-            self._deliveries_setup()
-        if kerb.get("enabled", True) and kerb.get("parking", True):
-            self._parking_setup()
+            self.racks = [(x, y) for x, y, *_ in scenery_points(self.mdir, RACK_MESHES)]
         if kerb.get("enabled", True) and kerb.get("pickups", True):
             rng = rng_for(self.lc, "pickups")
             lam = rate(self.lc, "pickups_h") * self.density / 3600.0
@@ -809,13 +805,39 @@ class LivingCity:
         if act.get("enabled", True) and act.get("doors", True) and getattr(self, "door_plan", None):
             for t, plan in self.door_plan:
                 self.at(t, self._door_out, plan)
+        self._window(initial=True)
+        self.plan_info.update({k: self.counts.get(k, 0) for k in ("planned_sitting", "planned_waiting",
+                                                                   "planned_deliveries")})
         self.ev("lc_plan", "", **{k: v for k, v in self.plan_info.items()})
         return self.plan_info
 
-    def _benches(self):
+    def _window(self, initial=False):
+        act, kerb = self.lc["activities"], self.lc["kerbside"]
+        t0, t1 = self.t, min(self.duration, self.t + self.WINDOW_S)
+        self.next_window = self.t + self.WINDOW_S
+        self.windows += 1
+        self._focus = self.focus()
+        parts = (("benches", act.get("enabled", True) and act.get("benches", True), self._benches, (initial,)),
+                 ("stops", act.get("enabled", True) and act.get("stops", True) or
+                  kerb.get("enabled", True) and kerb.get("buses", True), self._stops_window, (initial, t0, t1)),
+                 ("deliveries", kerb.get("enabled", True) and kerb.get("deliveries", True), self._deliveries_window,
+                  (initial, t0, t1)),
+                 ("parking", kerb.get("enabled", True) and kerb.get("parking", True), self._parking_window, (t0, t1)))
+        for name, on, fn, args in parts:
+            if not on:
+                continue
+            try:
+                fn(*args)
+            except Exception as err:  # noqa: BLE001 - one part's failure does not end the others
+                self.log(f"living city: {name} window failed ({type(err).__name__}: {err})")
+
+    def _benches(self, initial):
         carla = self.carla
-        benches = [b for b in scenery_points(self.mdir, BENCH_MESHES) if self.near_participants(b[0], b[1])]
-        benches.sort(key=lambda b: min(((b[0] - c.x) ** 2 + (b[1] - c.y) ** 2 for c in self._focus), default=0.0))
+        if not hasattr(self, "_all_benches"):
+            self._all_benches = scenery_points(self.mdir, BENCH_MESHES)
+        new = [b for b in self._all_benches if (round(b[0], 1), round(b[1], 1)) not in self.seen_benches and
+               self.near_participants(b[0], b[1])]
+        new.sort(key=lambda b: min(((b[0] - c.x) ** 2 + (b[1] - c.y) ** 2 for c in self._focus), default=0.0))
         cmap = self.cmap
 
         def toward_road(x, y, fa, fb):
@@ -827,18 +849,18 @@ class LivingCity:
             da = math.cos(math.radians(fa)) * rx + math.sin(math.radians(fa)) * ry
             return fa if da >= 0 else fb
 
-        seats = bench_seats(benches, toward_road)
-        rng = rng_for(self.lc, "benches")
         p = bench_share(self.lc, self.night_factor, self.wet, self.night) * min(2.0, self.density)
-        n = 0
-        for b in range(0, len(seats), 2):
-            if rng.random() >= p:
+        for b in new:
+            self.seen_benches.add((round(b[0], 1), round(b[1], 1)))
+            rng = rng_for(self.lc, "bench", round(b[0], 1), round(b[1], 1))      # the same bench, the same draw
+            if rng.random() >= p or (not initial and not self.far_from_participants(b[0], b[1], 40.0)):
                 continue
+            seats = bench_seats([b], toward_road)
             both = rng.random() < 0.3                     # a bench with two people (assumption)
-            for x, y, z, face in seats[b:b + (2 if both else 1)]:
+            for x, y, z, face in seats[:2 if both else 1]:
                 if self._sit(x, y, z, face):
-                    n += 1
-        self.plan_info.update(benches=len(benches), sitting=n)
+                    self._count("planned_sitting")
+        self.plan_info["benches_seen"] = len(self.seen_benches)
 
     def _sit(self, x, y, z, face):
         """Someone sits on a bench seat: spawned standing 1 m in front of it (not on the bench), then, settled on the
@@ -864,13 +886,16 @@ class LivingCity:
         self.poser.hold(actor, SIT_POSE)
         self.ev("lc_sit", actor.id, x=round(x, 1), y=round(y, 1))
 
-    def _stops_setup(self):
-        """Bus stops near the participants (transit.json busStops placed on SUMO's lanes) and their waiting people."""
+    def _all_stops(self):
+        """Every bus stop of the map (transit.json busStops placed on SUMO's lanes), in CARLA x, y, once."""
+        if hasattr(self, "_stops_all"):
+            return self._stops_all
         import traci
         from .bridge.sumo_integration.bridge_helper import BridgeHelper
+        self._stops_all = []
         p = self.mdir / "transit.json"
         if not p.exists():
-            return
+            return self._stops_all
         data = json.loads(p.read_text())
         heads = {}
         for line in data.get("lines", []):
@@ -879,39 +904,50 @@ class LivingCity:
                                                ((self.tc["traffic"].get("public_transport") or {})
                                                 .get("default_headway_min", 10)))
         off = BridgeHelper.offset
-        rng = rng_for(self.lc, "stops")
         for st in data.get("stops", []):
             try:
                 shape = traci.lane.getShape(st["lane"])
                 width = traci.lane.getWidth(st["lane"])
             except Exception:  # noqa: BLE001 - a stop on a lane this trial's net has not got
                 continue
-            pos = (st["start"] + st["end"]) / 2
-            (x, y), (hx, hy) = _along(shape, pos)
+            (x, y), (hx, hy) = _along(shape, (st["start"] + st["end"]) / 2)
             cx, cy = _sumo_to_carla(x, y, off)
-            if not self.near_participants(cx, cy, self.radius + 30):
-                continue
             hx, hy = hx, -hy                                           # heading in CARLA
             side = -1.0 if self.lefthand else 1.0                      # the kerb: right of the lane (left: left)
             nx, ny = -hy * side, hx * side                             # CARLA right normal is (-hy, hx)
             d = width / 2 + 1.6
-            kx, ky = cx + nx * d, cy + ny * d
             lines = heads.get(st["id"]) or [10]
-            # several lines: a combined headway 1 / sum(1 / h)
-            hw = 1.0 / sum(1.0 / max(1.0, h) for h in lines)
-            stop = {"id": st["id"], "lane": st["lane"], "xy": (cx, cy), "kerb": (kx, ky), "heading": (hx, hy),
-                    "normal": (nx, ny), "headway_min": round(hw, 1), "waiting": []}
+            hw = 1.0 / sum(1.0 / max(1.0, h) for h in lines)          # several lines: 1 / sum(1 / h)
+            self._stops_all.append({"id": st["id"], "lane": st["lane"], "xy": (cx, cy),
+                                    "kerb": (cx + nx * d, cy + ny * d), "heading": (hx, hy), "normal": (nx, ny),
+                                    "headway_min": round(hw, 1), "waiting": []})
+        return self._stops_all
+
+    def _stops_window(self, initial, t0, t1):
+        """Stops that came within reach: their waiting people (at the start, or when out of close view); arrivals
+        of passengers at every stop within reach during the window."""
+        for stop in self._all_stops():
+            if stop["id"] in self.seen_stops or not self.near_participants(*stop["xy"], self.radius + 30):
+                continue
+            self.seen_stops.add(stop["id"])
             self.stops.append(stop)
             if not self.lc["activities"].get("stops", True):
                 continue
-            n = poisson(stop_waiting(hw, self.lc, self.density), rng)
-            for j in range(n):
-                self._waiter(stop, rng, initial=True)
-            lam = rate(self.lc, "stop_arrivals_h") * self.density / 3600.0
-            for t in poisson_times(lam, self.duration, rng):
-                self.at(t, self._stop_arrival, stop)
-        self.plan_info.update(bus_stops=len(self.stops),
-                              waiting=sum(len(s["waiting"]) for s in self.stops))
+            rng = rng_for(self.lc, "stop", stop["id"])
+            n = poisson(stop_waiting(stop["headway_min"], self.lc, self.density), rng)
+            if initial or self.far_from_participants(*stop["kerb"], 40.0):
+                for _ in range(n):
+                    if self._waiter(stop, rng, initial=True) is not None:
+                        self._count("planned_waiting")
+        if not self.lc["activities"].get("stops", True):
+            return
+        lam = rate(self.lc, "stop_arrivals_h") * self.density / 3600.0
+        for stop in self.stops:
+            if self.near_participants(*stop["xy"], self.radius + 30):
+                rng = rng_for(self.lc, "stop_arrivals", stop["id"], self.windows)
+                for t in poisson_times(lam, t1, rng, start=t0):
+                    self.at(t, self._stop_arrival, stop)
+        self.plan_info["bus_stops"] = len(self.stops)
 
     def _waiter(self, stop, rng, initial=False):
         (kx, ky), (hx, hy), (nx, ny) = stop["kerb"], stop["heading"], stop["normal"]
@@ -938,57 +974,58 @@ class LivingCity:
     def _stop_arrival(self, stop):
         self._waiter(stop, rng_for(self.lc, "stop_arrival", stop["id"], round(self.t, 1)))
 
-    def _deliveries_setup(self):
-        """Delivery vans standing at the kerb at the start (in free stalls, double-parked beside taken ones where a
-        second lane lets traffic pass), and new ones arriving out of the participants' close view."""
-        stalls = self._stalls()
-        if not stalls:
-            self.plan_info["deliveries"] = 0
-            return
-        free = [s for s in stalls if not s["taken"]]
-        taken = [s for s in stalls if s["taken"]]
-        # street km within the radius: the kerb stalls' streets, about half the crowd's kerb length
-        km = float((getattr(self.crowd, "stats", None) or {}).get("kerb_km", 0.0)) / 2.0 or \
-            max(0.3, len(stalls) * 6.0 / 1000.0)
+    def _street_km(self):
+        """km of street (a two-way street once) within radius_m of the participants, from the SUMO net."""
+        if not hasattr(self, "_edges_mid"):
+            out = {}
+            for e in self.geo.net.getEdges():
+                if not any(l.allows("passenger") for l in e.getLanes()):
+                    continue
+                shape = e.getShape()
+                mx, my = shape[len(shape) // 2]
+                out[e.getID().lstrip("-")] = (mx, -my, e.getLength())     # geo -> CARLA
+            self._edges_mid = list(out.values())
+        return sum(L for x, y, L in self._edges_mid if self.near_participants(x, y)) / 1000.0
+
+    def _deliveries_window(self, initial, t0, t1):
+        """Delivery vans standing at the kerb at the start (stationary: rate x km x mean dwell), and arrivals during
+        the window at rate x km (out of the participants' close view)."""
+        stalls = self._stalls_near()
+        km = self._street_km()
         res = sum(1 for s in stalls if s["zone"] == "residential") / max(1, len(stalls))
-        lam = deliveries_present(km, res, self.lc)
-        rng = rng_for(self.lc, "deliveries")
-        n0 = poisson(lam, rng)
+        present = deliveries_present(km, res, self.lc)
         mu, sg = lognormal_from_quartiles(*rate(self.lc, "delivery_dwell"))
-        arrivals = poisson_times(lam / (60.0 * math.exp(mu + sg * sg / 2)), self.duration, rng, start=10.0)
-        placed = 0
-        for j in range(n0):
-            if self._delivery(stalls, free, taken, rng, remaining_dwell_s(rng, self.lc), initial=True):
-                placed += 1
-        for t in arrivals:
-            self.at(t, self._delivery_arrival, stalls, free, taken)
-        self.plan_info.update(deliveries=placed, delivery_arrivals=len(arrivals), street_km=round(km, 2))
+        rng = rng_for(self.lc, "deliveries", self.windows)
+        if initial:
+            for _ in range(poisson(present, rng)):
+                if self._delivery(rng, remaining_dwell_s(rng, self.lc), initial=True):
+                    self._count("planned_deliveries")
+        for t in poisson_times(present / (60.0 * math.exp(mu + sg * sg / 2)), t1, rng, start=t0 + 1.0):
+            self.at(t, self._delivery_arrival)
+        self.plan_info["street_km"] = round(km, 2)
 
     def _stalls(self):
-        """Kerb stalls (parked.json, parallel to the road) near the participants: {x, y, z, yaw, zone, taken, mesh,
-        item}."""
+        """Every kerb stall of the map (parked.json, not car parks): {x, y, z, yaw, zone, taken, mesh, slot}."""
         if hasattr(self, "_stall_cache"):
             return self._stall_cache
         out = []
         p = self.mdir / "parked.json"
-        if not p.exists():
-            self._stall_cache = out
-            return out
-        from . import parking
-        data = json.loads(p.read_text())
-        occ = self._occupancy(parking)
-        lots = {data["sources"].index(s) for s in ("lot_osm", "lot_bgt") if s in data["sources"]}
-        for s in data["slots"]:
-            if len(s) > 8 or s[7] in lots:
-                continue
-            x, y = s[1], s[2]
-            if not self.near_participants(x, y, self.radius):
-                continue
-            zone = parking.ZONES[s[5]]
-            out.append({"x": x, "y": y, "z": s[3], "yaw": s[4], "zone": zone, "taken": s[6] < occ[zone],
-                        "mesh": data["meshes"][s[0]].rsplit(".", 1)[-1], "slot": s})
+        if p.exists():
+            from . import parking
+            data = json.loads(p.read_text())
+            occ = self._occupancy(parking)
+            lots = {data["sources"].index(s) for s in ("lot_osm", "lot_bgt") if s in data["sources"]}
+            for s in data["slots"]:
+                if len(s) > 8 or s[7] in lots:
+                    continue
+                zone = parking.ZONES[s[5]]
+                out.append({"x": s[1], "y": s[2], "z": s[3], "yaw": s[4], "zone": zone, "taken": s[6] < occ[zone],
+                            "mesh": data["meshes"][s[0]].rsplit(".", 1)[-1], "slot": s})
         self._stall_cache = out
         return out
+
+    def _stalls_near(self, r=None):
+        return [s for s in self._stalls() if self.near_participants(s["x"], s["y"], r)]
 
     def _occupancy(self, parking):
         from . import transit
@@ -1018,19 +1055,25 @@ class LivingCity:
                 two = True
         return wp, two
 
-    def _delivery_arrival(self, stalls, free, taken):
+    def _delivery_arrival(self):
         rng = rng_for(self.lc, "delivery_arrival", round(self.t, 1))
         mu, sg = lognormal_from_quartiles(*rate(self.lc, "delivery_dwell"))
-        self._delivery(stalls, free, taken, rng, 60.0 * math.exp(rng.gauss(mu, sg)), initial=False)
+        if self._delivery(rng, 60.0 * math.exp(rng.gauss(mu, sg)), initial=False):
+            self._count("planned_deliveries")
 
-    def _delivery(self, stalls, free, taken, rng, dwell_s, initial):
+    def _delivery(self, rng, dwell_s, initial):
+        """A van at a free kerb stall, or double-parked beside a taken one (double_park_share, only where a second
+        lane in its direction lets traffic pass); new ones beyond 40 m of the participants."""
         carla = self.carla
+        stalls = [s for s in self._stalls_near() if not s.get("used") and
+                  (initial or self.far_from_participants(s["x"], s["y"], 40.0))]
         double = rng.random() < rate(self.lc, "double_park_share")
-        pool = taken if double else free
-        rng.shuffle(pool)
-        for s in pool[:20]:
-            if s.get("used") or (not initial and not self.far_from_participants(s["x"], s["y"], 40.0)):
-                continue
+        taken = [s for s in stalls if s["taken"]]
+        free = [s for s in stalls if not s["taken"]]
+        rng.shuffle(taken)
+        rng.shuffle(free)
+        cands = ([(s, True) for s in taken[:20]] if double else []) + [(s, False) for s in free[:20]]
+        for s, double in cands:
             wp, two = self._lane_beside(s["x"], s["y"])
             if wp is None:
                 continue
@@ -1144,33 +1187,32 @@ class LivingCity:
         return best[1] if best else None
 
     # -- parking turnover ----------------------------------------------------------------------------------------
-    def _parking_setup(self):
-        stalls = self._stalls()
-        if not stalls or self.parked is None:
-            self.plan_info.update(park_out=0, park_in=0)
+    def _parking_window(self, t0, t1):
+        """Parked cars leaving and SUMO cars parking during the window, near the participants: departures at the
+        occupied stalls' 1 / mean parking duration (by zone), arrivals as many plus the hour's change of occupancy."""
+        if self.parked is None:
             return
-        occ = {}
-        for s in stalls:
-            if s["taken"]:
-                occ[s["zone"]] = occ.get(s["zone"], 0) + 1
-        rng = rng_for(self.lc, "parking")
-        dep = departures_per_h(occ, self.lc)
+        stalls = self._stalls_near()
+        if not stalls:
+            return
         from . import parking
-        # arrivals: departures plus the change of occupancy over the hour (stalls filling or emptying)
-        nxt = {z: parking.occupancy(z, self.day, (self.hour + 1) % 24) for z in parking.ZONES}
-        now = {z: parking.occupancy(z, self.day, self.hour) for z in parking.ZONES}
-        n_zone = {}
+        occ, n_zone = {}, {}
         for s in stalls:
             n_zone[s["zone"]] = n_zone.get(s["zone"], 0) + 1
+            if s["taken"]:
+                occ[s["zone"]] = occ.get(s["zone"], 0) + 1
+        dep = departures_per_h(occ, self.lc)
+        nxt = {z: parking.occupancy(z, self.day, (self.hour + 1) % 24) for z in parking.ZONES}
+        now = {z: parking.occupancy(z, self.day, self.hour) for z in parking.ZONES}
         arr = max(0.0, dep + sum((nxt[z] - now[z]) * n for z, n in n_zone.items()))
-        outs = poisson_times(dep / 3600.0, self.duration, rng, start=8.0)
-        ins = poisson_times(arr / 3600.0, self.duration, rng, start=8.0)
-        for t in outs:
+        rng = rng_for(self.lc, "parking", self.windows)
+        for t in poisson_times(dep / 3600.0, t1, rng, start=t0 + 1.0):
             self.at(t, self._park_out_start)
-        for t in ins:
+            self._count("planned_park_out")
+        for t in poisson_times(arr / 3600.0, t1, rng, start=t0 + 1.0):
             self.at(t, self._park_in_start)
-        self.plan_info.update(park_out=len(outs), park_in=len(ins), departures_h=round(dep, 1),
-                              arrivals_h=round(arr, 1), stalls=len(stalls),
+            self._count("planned_park_in")
+        self.plan_info.update(departures_h=round(dep, 1), arrivals_h=round(arr, 1), stalls_near=len(stalls),
                               stalls_taken=sum(1 for s in stalls if s["taken"]))
 
     def _car_bp(self, mesh):
@@ -1187,7 +1229,7 @@ class LivingCity:
         """A parked car leaves: the static mesh becomes the car, its driver walks up from a door, gets in, and it
         pulls out into SUMO's traffic."""
         rng = rng_for(self.lc, "park_out", round(self.t, 1))
-        cands = [s for s in self._stalls() if s["taken"] and not s.get("used") and
+        cands = [s for s in self._stalls_near() if s["taken"] and not s.get("used") and
                  self.near_participants(s["x"], s["y"], 110.0) and not self.near_participants(s["x"], s["y"], 12.0)]
         rng.shuffle(cands)
         carla = self.carla
@@ -1378,7 +1420,7 @@ class LivingCity:
         CARLA actor is kept); then the driver's door opens and the driver walks off."""
         import traci
         poses = getattr(self.sync, "poses", {}) or {}
-        free = [s for s in self._stalls() if not s["taken"] and not s.get("used")]
+        free = [s for s in self._stalls_near() if not s["taken"] and not s.get("used")]
         if not free:
             return
         ids = {cid: sid for sid, cid in self.sync.sumo2carla_ids.items() if sid not in self.sync.adopted}
@@ -1815,6 +1857,8 @@ class LivingCity:
             except Exception as err:  # noqa: BLE001 - one behaviour's failure does not end the trial
                 self.log(f"living city: {getattr(fn, '__name__', fn)} failed ({type(err).__name__}: {err})")
         self._move_kinematic()
+        if t >= getattr(self, "next_window", 1e18):
+            self._window()
         if self.tick_n % 10 == 5:
             for fn, args in ((self._park_in_watch, ()), (self._pickup_watch, ()), (self._bus_watch, (types,)),
                              (self._bike_watch, (types,))):

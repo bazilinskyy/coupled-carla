@@ -180,6 +180,8 @@ def test_reaction_rules():
     t, d = rx.ttc(0, 0, 10, 0, 20, 0, 0, 0, 2.0)
     assert t == pytest.approx(1.8) and d == 20
     assert rx.ttc(0, 0, -10, 0, 20, 0, 0, 0, 2.0)[0] is None
+    assert rx.ttc(0, 0, 10, 0, 20, 3.5, -10, 0, 2.0)[0] is None       # oncoming in the next lane: passes clear
+    assert rx.ttc(0, 0, 10, 0, 20, 1.0, -10, 0, 2.0)[0] < 1.0
     assert rx.behind(0, 0, 0, -8, 0.5, 5) == 8 and rx.behind(0, 0, 0, 8, 0, 0) is None
     assert rx.behind(0, 0, 0, -8, 0, 180) is None
 

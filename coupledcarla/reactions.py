@@ -91,15 +91,20 @@ def look_probability(p, phone=False, odds_ratio=4.0):
 
 
 def ttc(ax, ay, avx, avy, bx, by, bvx, bvy, radius):
-    """(time to collision s or None, distance m): closing along the line between two discs of combined radius."""
-    dx, dy = bx - ax, by - ay
-    d = math.hypot(dx, dy)
-    rvx, rvy = bvx - avx, bvy - avy
-    closing = -(dx * rvx + dy * rvy) / (d or 1.0)
-    gap = d - radius
-    if closing <= 0.3:
+    """(time to collision s or None, distance m): when, moving on as now, the two discs (combined radius) first
+    touch; None when they pass clear of each other (an oncoming car in its own lane) or move apart."""
+    px, py = bx - ax, by - ay
+    vx, vy = bvx - avx, bvy - avy
+    d = math.hypot(px, py)
+    if d <= radius:
+        return 0.0, d
+    a = vx * vx + vy * vy
+    b = 2.0 * (px * vx + py * vy)
+    c = px * px + py * py - radius * radius
+    disc = b * b - 4.0 * a * c
+    if a < 1e-6 or b >= 0.0 or disc < 0.0:
         return None, d
-    return max(0.0, gap) / closing, d
+    return (-b - math.sqrt(disc)) / (2.0 * a), d
 
 
 def behind(pose_x, pose_y, yaw_deg, ox, oy, oyaw, reach=15.0, lat=1.7):
@@ -339,7 +344,10 @@ class Reactions:
         """[(id, x, y, vx, vy, is participant)] of the vehicles: SUMO's (poses, velocities) and the participants'."""
         out = []
         vel = getattr(self.sync, "velocity", {}) or {}
+        mine = {p.actor.id for p in self.parts}          # a participant driven by SUMO is in the poses too
         for cid, (x, y, *_r) in (self.sync.poses or {}).items():
+            if cid in mine:
+                continue
             vx, vy = vel.get(cid, (0.0, 0.0))
             out.append((cid, x, y, vx, vy, False))
         for p in self.parts:
@@ -455,7 +463,7 @@ class Reactions:
     def _near_misses(self, t, vehicles, types):
         thr = rate(self.lc, "near_miss_ttc_s")
         users = [(vid, x, y, vx, vy, "participant:" + part if part else (types.get(vid) or ("vehicle",))[0], 1.0)
-                 for vid, x, y, vx, vy, part in vehicles]
+                 for vid, x, y, vx, vy, part in vehicles]      # radius 1.0: a car's half width and a margin
         if self.crowd is not None:
             for k, st in enumerate(self.crowd.state):
                 if st["alive"] and (st["crossing"] or st["standing"] in ("kerb",)):
