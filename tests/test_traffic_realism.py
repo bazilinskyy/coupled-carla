@@ -211,3 +211,14 @@ def test_tomtom_answer_to_site():
     s = tomtomspeeds.parse(ans, 45.76, 4.83, 90.0, "Rue X")
     assert s["v50"] == 31.0 and s["heading"] == 90.0 and s["kind"] == "spot"
     assert tomtomspeeds.parse({"flowSegmentData": {"freeFlowSpeed": 30, "roadClosure": True}}, 0, 0, 0, "") is None
+
+
+def test_bridge_subscribes_to_lane_variables_traci_has():
+    import pytest
+    traci = pytest.importorskip("traci")
+    import re
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent / "coupledcarla" / "bridge" / "sumo_integration" /
+           "sumo_simulation.py").read_text()
+    for name in set(re.findall(r"traci\.constants\.(VAR_[A-Z0-9_]+)", src)):
+        assert hasattr(traci.constants, name), name

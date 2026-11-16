@@ -414,7 +414,7 @@ class SumoSimulation(object):
             traci.constants.VAR_POSITION3D, traci.constants.VAR_ANGLE, traci.constants.VAR_SLOPE,
             traci.constants.VAR_SPEED, traci.constants.VAR_SPEED_LAT, traci.constants.VAR_SIGNALS,
             # coupled-carla: where on which lane, for the smoothed path's look-ahead (animate.path_point)
-            traci.constants.VAR_LANE_ID, traci.constants.VAR_LANEPOSITION, traci.constants.VAR_LATERAL_LANE_POSITION
+            traci.constants.VAR_LANE_ID, traci.constants.VAR_LANEPOSITION, traci.constants.VAR_LANEPOSITION_LAT
         ])
 
     @staticmethod
@@ -425,7 +425,7 @@ class SumoSimulation(object):
         lane = r.get(traci.constants.VAR_LANE_ID)
         if not lane:
             return None
-        return lane, r.get(traci.constants.VAR_LANEPOSITION, 0.0), r.get(traci.constants.VAR_LATERAL_LANE_POSITION, 0.0)
+        return lane, r.get(traci.constants.VAR_LANEPOSITION, 0.0), r.get(traci.constants.VAR_LANEPOSITION_LAT, 0.0)
 
     # coupled-carla: a SUMO vehicle that is not (yet) in CARLA is only needed for where it is (the level-of-detail
     # check); all twelve variables of every vehicle in the network cost 3 ms of parsing per tick in the twin.
