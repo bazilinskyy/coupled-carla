@@ -247,8 +247,7 @@ class _BP:
 class _World:
     def __init__(self):
         self.lib = {"static.prop.mesh": _BP("static.prop.mesh"),
-                    "blueprint.cc_streetlight06_a": _BP("blueprint.cc_streetlight06_a"),
-                    "blueprint.cc_streetlight03": _BP("blueprint.cc_streetlight03")}
+                    **{bp: _BP(bp) for bp in season.LAMP_LIGHTS.values()}}     # the pack's lamp blueprints
 
     def get_blueprint_library(self):
         lib = self.lib
@@ -354,3 +353,28 @@ def test_for_trial_lights_only_at_night(monkeypatch, tmp_path):
     msgs = []
     seas, _ = season.for_trial(cfg, tmp_path, world, msgs.append)
     assert seas["lights"] == {} and any("-carla-packs" in m for m in msgs)
+
+
+def test_regional_lamp_lit_as_itself(monkeypatch, tmp_path):
+    # streetlook's lamps carry their own light blueprint (tools/ue_lamp_lights.py): lit at their placed scale; a
+    # server without it gets CARLA's lit lamp in their place (scenery.json "lamp_night")
+    _fake_carla(monkeypatch)
+    meshes = ["/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampArm9.SM_CC_NL_LampArm9",
+              "/Game/Carla/Static/Static/Streetlights/SM_StreetLight06_A.SM_StreetLight06_A"]
+    items = [[0, 10.0, 10.0, 0.0, 90.0, 0.9, "lamp"]]
+    (tmp_path / "scenery.json").write_text(json.dumps({"meshes": meshes, "items": items, "cell_m": 100.0,
+                                                       "lamp_night": [[0, 1, 0.5, 0.0, 0.0, 45.0]]}))
+    seas = {"state": "leaf", "lights": dict(season.LAMP_LIGHTS), "lights_radius_m": 150.0}
+    client, msgs = _Client(), []
+    sc = scenery.Scenery(client, _World(), tmp_path, {"radius_m": 600.0}, msgs.append, season=seas)
+    sc.update([SimpleNamespace(x=0.0, y=0.0)])
+    assert [(c.bp, round(c.tf.location.x, 1)) for c in client.spawned] == [("blueprint.cc_nl_lamparm9", 10.0)]
+    assert sc.n_lights == 1 and any("1 lit as themselves, 0 as CARLA's" in m for m in msgs)
+    world = _World()
+    del world.lib["blueprint.cc_nl_lamparm9"]
+    client, msgs = _Client(), []
+    seas = dict(seas, lights=season.light_blueprints(world))      # what this server has (season.for_trial)
+    sc = scenery.Scenery(client, world, tmp_path, {"radius_m": 600.0}, msgs.append, season=seas)
+    sc.update([SimpleNamespace(x=0.0, y=0.0)])
+    assert [(c.bp, round(c.tf.location.x, 1)) for c in client.spawned] == [("blueprint.cc_streetlight06_a", 10.5)]
+    assert any("0 lit as themselves, 1 as CARLA's" in m for m in msgs)

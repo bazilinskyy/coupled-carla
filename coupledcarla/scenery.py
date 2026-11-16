@@ -416,6 +416,58 @@ def _tree(cat, fam, height, key):
     return mesh, max(0.5, min(1.6, target / cat.size(mesh)[2]))
 
 
+CANOPY_GAP_M = 6.0      # a crown of the canopy map gets a tree when no tree stands within this (canopy_trees)
+
+
+class _PointHash:
+    """Points on a grid of cell metres, for "is there one within r" (r <= cell)."""
+
+    def __init__(self, cell, pts=()):
+        self.cell, self.cells = float(cell), defaultdict(list)
+        for x, y in pts:
+            self.add(x, y)
+
+    def add(self, x, y):
+        self.cells[(int(x // self.cell), int(y // self.cell))].append((x, y))
+
+    def any_within(self, x, y, r):
+        cx, cy = int(x // self.cell), int(y // self.cell)
+        return any(math.hypot(px - x, py - y) < r for i in (-1, 0, 1) for j in (-1, 0, 1)
+                   for px, py in self.cells.get((cx + i, cy + j), ()))
+
+
+def canopy_family(height, lat):
+    """Tree families for an unmapped tree by its height: the big ones (oak, beech, ash) over 18 m, small garden trees
+    (maple, sassafras: the small meshes) under 10 m, the place's usual mix between."""
+    if abs(lat) < 35:
+        return _tree_family({}, lat)
+    if height >= 18.0:
+        return ["oak", "beech", "ash"]
+    if height < 10.0:
+        return ["maple", "sassafras", "maple", "oak"]
+    return _tree_family({}, lat)
+
+
+def canopy_cover(can, bbox, geo, trees, inside_building, sample=20000, radius=5.0):
+    """% of the canopy over 3 m outside buildings with a tree within radius m (trees: a _PointHash), from a sample of
+    its pixels; None without canopy there."""
+    import numpy as np
+    from . import canopy as canopy_mod
+    pts = canopy_mod.crowns(can, bbox, block_m=1.0)
+    if not pts:
+        return None
+    rng = np.random.default_rng(7)
+    pick = rng.choice(len(pts), size=min(sample, len(pts)), replace=False)
+    seen = hit = 0
+    for i in pick:
+        x, y = geo.to_carla(pts[i][0], pts[i][1])
+        if inside_building(x, y):
+            continue
+        seen += 1
+        hit += trees.any_within(x, y, radius)
+    return round(100.0 * hit / seen, 1) if seen else None
+
+
 def _number(text):
     import re
     m = re.match(r"\s*([0-9]+(?:\.[0-9]+)?)", str(text or ""))
@@ -971,6 +1023,33 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     season.record(pl, cat, {}, fam, mesh, s, (round(x), round(y)), x, y)
                     planted += 1
         pl.counts["tree_planted"] = planted
+        if can is not None and can.z.size and sc.get("canopy_trees", True):
+            # trees nobody maps (gardens, courtyards, private ground): one at each crown of the canopy map with no
+            # tree within canopy_tree_gap_m (canopy.py)
+            from . import canopy as canopy_mod
+            gap = float(sc.get("canopy_tree_gap_m", CANOPY_GAP_M))
+            near = _PointHash(gap, [(it[1], it[2]) for it in pl.items if it[6] == "tree"])
+            cover0 = canopy_cover(can, mc["bbox"], geo, near, inside_building)
+            added = 0
+            for lat, lon, c in canopy_mod.crowns(can, mc["bbox"]):
+                x, y = geo.to_carla(lat, lon)
+                if near.any_within(x, y, gap) or not free(x, y, 0.6, pl.tree_masks):
+                    continue
+                h = min(canopy_mod.MAX_M, canopy_mod.CALIBRATION[0] + canopy_mod.CALIBRATION[1] * c)
+                fam = canopy_family(h, lat0)
+                key = (round(x), round(y), "canopy")
+                mesh, s_ = _tree(cat, fam, h, key)
+                pl.add("tree", mesh, x, y, _h(key) % 360, s_, sink=0.1)
+                season.record(pl, cat, {}, fam, mesh, s_, key, x, y)
+                near.add(x, y)
+                added += 1
+            pl.counts["tree_canopy_planted"] = added
+            cover1 = canopy_cover(can, mc["bbox"], geo, near, inside_building)
+            if cover0 is not None:
+                pl.counts["canopy_cover_pct_before"], pl.counts["canopy_cover_pct"] = cover0, cover1
+            log(f"scenery: {added} trees where the canopy map sees a crown and nothing is mapped (no tree within "
+                f"{gap:.0f} m)" + (f"; canopy over 3 m outside buildings with a tree within 5 m: {cover0} % -> "
+                                    f"{cover1} %" if cover0 is not None else ""))
         log(f"scenery: {pl.counts['tree']} trees ({pl.counts['tree_osm']} street trees (OSM and registers), "
             f"{pl.counts['tree_row']} in rows, {planted} planted in parks and woods), {pl.counts['bush']} bushes"
             + (f"; {pl.counts['tree_canopy']} sized by the canopy height map" if can is not None else "")
@@ -1025,7 +1104,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 stock, syaw = ms.PARK_LAMP if far else ms.LAMP, 0.0 if far or towards is None else towards + ms.LAMP_YAW
                 if own:
                     item = pl.add("lamp", own[0], x, y, (towards or 0.0) if own[2] else _h(el["id"]) % 360, own[1])
-                    # at night CARLA's lamp with its light stands in for it (our meshes carry none)
+                    pl.lamp_specs.append((item, spec))      # lit as itself (its blueprint, ue_lamp_lights.py)
+                    # else at night CARLA's lamp with its light stands in for it
                     item = streetlook.night_stand_in(pl, cat, item, stock, x, y, syaw) or item
                 else:
                     item = pl.add("lamp", stock, x, y, syaw, 1.0)
@@ -1359,17 +1439,26 @@ class Scenery:
         self.lamp_scale = float(season.get("lamp_lumen_scale", 1.0))
         self.lamp_colours = bool(season.get("lamp_colours", True))
         self.n_lamp_specs = 0
+        # regional lamps light at any placed scale: the blueprint stands at its mesh's size (within streetlook's
+        # SCALE_LIMITS of the mast it stands for)
+        self.light_any_scale = {i for i in self.light_bp if self.meshes[i].rsplit(".", 1)[-1].startswith("SM_CC_")}
         if self.light_bp:
             lib = world.get_blueprint_library()
             self.light_bp = {i: lib.find(bp) for i, bp in self.light_bp.items()}
-            if data.get("lamp_night"):     # regional lamps (streetlook.py) have no light: CARLA's lit lamp instead
-                items = list(items)
+            if data.get("lamp_night"):     # regional lamps (streetlook.py) without a lit blueprint of their own
+                items = list(items)        # on this server: CARLA's lit lamp instead
+                swapped = own = 0
                 for i, m, dx, dy, dz, yaw in data["lamp_night"]:
                     it = items[i]
-                    if it is not None:
-                        items[i] = [m, round(it[1] + dx, 2), round(it[2] + dy, 2), round(it[3] + dz, 2), yaw,
-                                    1.0] + it[6:]
-                log(f"scenery: {len(data['lamp_night'])} regional lamps stand as CARLA's lit lamps tonight")
+                    if it is None:
+                        continue
+                    if it[0] in self.light_bp:      # the regional lamp's own lit blueprint (ue_lamp_lights.py)
+                        own += 1
+                        continue
+                    items[i] = [m, round(it[1] + dx, 2), round(it[2] + dy, 2), round(it[3] + dz, 2), yaw,
+                                1.0] + it[6:]
+                    swapped += 1
+                log(f"scenery: regional lamps tonight: {own} lit as themselves, {swapped} as CARLA's lit lamps")
         for it in items:
             if it is None:
                 continue
@@ -1394,7 +1483,8 @@ class Scenery:
             pitch, roll = (it[7] if len(it) > 7 else (0.0, 0.0))
             tf = carla.Transform(carla.Location(x=it[1], y=it[2], z=it[3]),
                                  carla.Rotation(pitch=pitch, yaw=it[4], roll=roll))
-            light = lit and it[6] == "lamp" and it[0] in self.light_bp and abs(it[5] - 1.0) < 0.01
+            light = lit and it[6] == "lamp" and it[0] in self.light_bp and (abs(it[5] - 1.0) < 0.01
+                                                                          or it[0] in self.light_any_scale)
             if light:       # the street-light blueprint: the same mesh and pivot, plus its light (no scale)
                 # spawned where it stands: its root mesh is Static, so it cannot be moved after the spawn
                 # (a lamp spawned 100 m up and moved down stayed up there, light and all)
