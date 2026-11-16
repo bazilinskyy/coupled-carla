@@ -1266,9 +1266,11 @@ labels for sensors, sun and shadows baked in, so they double when relit by day).
 level data the trial runs on the normal twin. Status (2026-11-16, with a key on the Windows package): the
 Development and Shipping builds load the tiles and a full trial runs with them. From the air (drone and overview
 cameras) the city looks real. At street level it does not yet beat the plain twin: the mesh is soft close up,
-blue holes show where the twin is hidden before its tiles arrive, and the mesh sits a little too high. Cesium
-loads tiles for the spectator's view, so the spectator now follows the active camera (not yet re-tested). Until
-these are fixed, use it for aerial and drone views. Shareable open alternatives:
+blue holes show where the twin is hidden before its tiles arrive, and the mesh sits a little too high (a drone
+on the ground sees under it). Cesium loads tiles for the spectator's view, so the spectator follows the active
+camera; with that, a drone's camera gets the tiles as soon as it climbs. Streaming them is costly: a drone flight
+ran at a real-time factor of 0.05 and a street-level trial at 0.24, so for now use it for recorded aerial and
+drone views rather than live studies. Shareable open alternatives:
 [PLATEAU](https://www.mlit.go.jp/plateau/)'s textured LoD2 buildings for Japan (used by the twin of any place),
 [Helsinki's reality mesh](https://hel.fi/3d) and Espoo's (CC BY 4.0), [Rotterdam 3D](https://data.overheid.nl/dataset/10230-rotterdam-3d)
 (public domain, LoD2 textured from aerial photos).
@@ -1361,11 +1363,18 @@ Tools for running studies with participants, ported from coupled-sim (#80, #88, 
   `--list-devices`, `--camera-hz`. A remote station's camera crosses the LAN as raw pixels: 1280x720 at 50 Hz is
   184 MB/s against 117 MB/s measured from win5090 to lin4080, so remote stations need `--camera-hz 25` or a smaller
   `--size`. Stations send their controls, lights and camera moves in one batch per tick (CARLA 1.0's RPC stall).
-- **Multi-GPU secondaries (CARLA 1.0, untested on GPUs)** (`server.multigpu`, `coupledcarla/multigpu.py`): secondary
+- **Multi-GPU secondaries (CARLA 1.0)** (`server.multigpu`, `coupledcarla/multigpu.py`): secondary
   servers render the cameras of a `-nullrhi` primary, on another GPU or on a station's own PC. CARLA hands cameras
   to secondaries in turn and gives stream tokens no address, so a station takes a camera turn and respawns its camera
   until it lands on its own secondary, and reaches secondaries on other machines through a relay on 127.0.0.1.
   Debug drawings are not mirrored: use `ehmi.render: station` with secondaries.
+  Tested on win5090 (2026-11-16, `tools/multigpu_win5090.ps1`): a `-nullrhi` primary and one rendering
+  secondary on the same RTX 5090, three bot stations at 1280x720, 40 s of the crossing study. The protocol works:
+  the secondary switches the primary to synchronous 0.05 s, and `guard_settings` puts 0.02 s back. The trial
+  ran at a real-time factor of 0.75 against 0.36 on the single server, but only because rendering no longer held
+  the tick back. The secondary could not keep up on the same GPU: the stations got 44 % of their images, a median of
+  4.4 s late (single server: all images, 90 ms). So a secondary helps only on a GPU of its own (another card, or a
+  station's PC); that is not yet tested.
 - **Analysis**: `python -m coupledcarla.analysis` also summarises responses and take-overs per trial and writes
   `study_responses.csv` and `study_takeovers.csv` per experiment; the viewer shows the responses.
 

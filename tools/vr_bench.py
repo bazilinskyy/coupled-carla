@@ -147,7 +147,8 @@ def main(argv=None):
     world.apply_settings(st)
     tm = client.get_trafficmanager(args.tm_port)
     tm.set_synchronous_mode(True)
-    bp = world.get_blueprint_library().find(args.vehicle)
+    from coupledcarla import compat
+    bp = compat.find(world, args.vehicle, "passenger")       # a stand-in when this server lacks it
     vehicle = None
     for sp in world.get_map().get_spawn_points():
         vehicle = world.try_spawn_actor(bp, sp)
