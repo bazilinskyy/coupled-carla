@@ -165,7 +165,7 @@ clips:
     role: driver (autopilot), chase camera
     when: weekday 17:00
     agents: SUMO cars, buses and cyclists, a pedestrian crowd
-    notice: a map made by typing "Chernihiv" into the map maker; the tree-lined prospekt Myru towards the centre
+    notice: a map made by typing "Chernihiv" into the map maker; prospekt Myru towards the centre, a bus stopping, people boarding
     experiment: experiments/chernihiv.yaml
     time: "2026-09-16 17:00"
     set: {traffic: {walkers: {count: 40, radius_m: 150}}}
