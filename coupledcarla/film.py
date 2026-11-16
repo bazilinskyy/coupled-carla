@@ -409,6 +409,11 @@ class Rig:
                     p_a, y_a = look_rotation(pos, look)
                     p_b, y_b = look_rotation(pos, self.look)
                     lw = float(c.get("look_weight", 1.0))
+                    # nobody looks backwards over their shoulder: the eyes leave a target that passes behind
+                    # (between 90 and 150 deg off straight ahead), else the short way round flips from one side
+                    # to the other as it crosses behind (a car passing behind the pedestrian: 300 deg/s)
+                    behind = abs((y_b - y_a + 180.0) % 360.0 - 180.0)
+                    lw *= max(0.0, min(1.0, (150.0 - behind) / 60.0))
                     yaw, pitch = angle_lerp(y_a, y_b, lw), p_a + (p_b - p_a) * lw
                     d = 10.0
                     look = (pos[0] + d * math.cos(math.radians(yaw)) * math.cos(math.radians(pitch)),
