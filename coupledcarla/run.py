@@ -408,6 +408,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
                 f"{', meshes' if signals.meshes else ''}) drawn near participants")
         carla_sim._kinds.update({a.id: False for a in signals.actors})     # static: never looked up per tick
+        if (tc["simulation"].get("traffic_lights") or {}).get("log"):   # drawn states, for tools/signal_heads.py
+            import traci
+            signals.start_log(out / "signal_heads.csv", traci.simulation.getTime)
         from . import signaldata      # real phases replayed exactly, or a live feed, through TraCI (signaldata.py)
         sig_driver = signaldata.driver(out / "sumo", log)
         try:

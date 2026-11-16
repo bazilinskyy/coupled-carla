@@ -166,7 +166,9 @@ def test_prepare_writes_and_caches(tmp_path):
     cfg = {"traffic": {"signals": "dutch"}, "_root": str(tmp_path)}
     msgs = []
     net, add, info = signalplan.prepare(cfg, m, tmp_path / "w", None, msgs.append)
-    assert net and Path(net).exists() and add == [] and info["controllers"] == 1
+    assert net and Path(net).exists() and add == ["tls_states.add.xml"] and info["controllers"] == 1
+    ev = (tmp_path / "w" / "tls_states.add.xml").read_text()
+    assert 'type="SaveTLSSwitchStates" source="tlsC"' in ev            # SUMO's own record of the light
     assert json.loads((tmp_path / "w" / "signals.json").read_text())["mode"] == "dutch"
     net2, _, _ = signalplan.prepare(cfg, m, tmp_path / "w2", None, msgs.append)
     assert net2 == net and "(cached)" in msgs[-1]
@@ -328,3 +330,18 @@ def test_real_programs_written(prog, tmp_path):
     text = (tmp_path / name).read_text()
     assert 'programID="real"' in text and 'id="vri1"' in text
     assert signaldata.Source({}, tmp_path).available() is False
+
+
+def test_signal_heads_compare(tmp_path):
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+    import signal_heads
+    (tmp_path / "sumo").mkdir()
+    (tmp_path / "sumo" / "tls_states.xml").write_text(
+        '<tlsStates><tlsState time="0.00" id="A" programID="dutch" phase="0" state="Grr"/>'
+        '<tlsState time="10.00" id="A" programID="dutch" phase="1" state="yrr"/>'
+        '<tlsState time="13.00" id="A" programID="dutch" phase="2" state="rGg"/></tlsStates>')
+    (tmp_path / "signal_heads.csv").write_text(
+        "time,head,links,state\n5.00,0,A:0,G\n11.00,0,A:0,y\n14.00,0,A:0,r\n14.00,1,A:1 2,G\n15.00,0,A:0,G\n")
+    out = signal_heads.compare(tmp_path)
+    assert out["samples"] == 5 and out["agree"] == 4 and out["disagree_examples"][0]["sumo"] == "r"

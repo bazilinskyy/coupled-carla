@@ -94,9 +94,10 @@ DEFAULTS = {
                                      # above ~60 CARLA 0.9.16 draws an OpenDRIVE world's sky dark grey to black)
         "sun_altitude": None,
         "tls_manager": "sumo",       # who runs the traffic lights: sumo | carla | none
-        "traffic_lights": {"style": "head"},   # how SUMO's lights show in CARLA (signals.py): "head" (a signal
+        "traffic_lights": {"style": "head",    # how SUMO's lights show in CARLA (signals.py): "head" (a signal
                                      # head on a kerb pole per approach, CARLA's meshes, the lit lamp drawn) or
                                      # "marker" (a line pole and a big glowing point per lane, as before)
+                           "log": False},   # true: every drawn head's state to signal_heads.csv (tools/signal_heads.py)
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
         "animate_radius_m": 60.0,    # ... and within this distance move with physics on (bridge/animate.py): wheels
                                      # roll and steer, cyclists pedal; 0: all placed with physics off as before

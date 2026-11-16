@@ -35,7 +35,7 @@ from pathlib import Path
 
 from . import junctions as J
 
-VERSION = 8                       # bump when the design changes: the cached nets are rebuilt
+VERSION = 9                       # bump when the design changes: the cached nets are rebuilt
 DATA = Path(__file__).parent / "data" / "signals"
 
 # --- Dutch timings ----------------------------------------------------------------------------------------------
@@ -174,7 +174,8 @@ def locations(bbox, real_dir=None, fetch=True, log=_log):
     for r in rows:
         if not (s - pad <= r["lat"] <= n + pad and w - pad <= r["lon"] <= e + pad):
             continue
-        num = by_name.get(_norm(r["name"]))
+        key = _norm(r["name"])
+        num = by_name.get(key) or next((v for k, v in by_name.items() if key and k.startswith(key)), None)
         if num is None:
             near = [v for la, lo, v in by_pos if _geo_m((la, lo), (r["lat"], r["lon"])) < 5.0]
             num = near[0] if near else None
@@ -773,6 +774,25 @@ def plan(map_dir, bbox, inner=True, fetch=True, log=_log, xy_of=None):
     return progs, summary
 
 
+def tls_states_additional(net_file, work):
+    """[an additional file that makes SUMO write every light's state changes to tls_states.xml] (SUMO's own record,
+    to check the drawn heads and analyse a trial), or [] when the net has no lights."""
+    ids = []
+    for _, el in ET.iterparse(str(net_file), events=("end",)):
+        if el.tag == "tlLogic":
+            ids.append(el.get("id"))
+        elif el.tag == "junction":
+            break
+    if not ids:
+        return []
+    Path(work).mkdir(parents=True, exist_ok=True)
+    root = ET.Element("additional")
+    for tid in sorted(set(ids)):          # one event per light (source takes one id), all into one file
+        ET.SubElement(root, "timedEvent", {"type": "SaveTLSSwitchStates", "source": tid, "dest": "tls_states.xml"})
+    ET.ElementTree(root).write(str(Path(work) / "tls_states.add.xml"), encoding="UTF-8", xml_declaration=True)
+    return ["tls_states.add.xml"]
+
+
 def _key(map_dir, cfg_part):
     st = (Path(map_dir) / "map.net.xml").stat()
     raw = json.dumps([VERSION, st.st_size, int(st.st_mtime), cfg_part], sort_keys=True)
@@ -798,7 +818,7 @@ def prepare(cfg, map_dir, work, when=None, log=_log):
     info = {"mode": mode}
     if mode == "sumo":
         log("traffic lights: SUMO's (netconvert's programmes)")
-        return None, [], info
+        return None, tls_states_additional(map_dir / "map.net.xml", work), info
     inner = sd.get("inner_ring", "auto")
     key = _key(map_dir, {"inner": inner})
     out_dir = map_dir / "signals"
@@ -826,7 +846,7 @@ def prepare(cfg, map_dir, work, when=None, log=_log):
         f"list, {summary['added']} added from it, {summary['osm_only']} from OSM only; {summary['listed_matched']} of "
         f"{summary['listed_in_box']} listed junctions in the box), {summary['links']} links, replacing "
         f"{summary['old_lights']} netconvert lights" + ("" if net else " (cached)"))
-    additional = []
+    additional = tls_states_additional(net_out, work)
     if mode == "real":
         add, rinfo = data.programs(progs, work, when, log)
         info["real"] = rinfo

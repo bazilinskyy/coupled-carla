@@ -48,13 +48,13 @@ vri,name,lat,lon
 3008,Aalsterweg - Boutenslaan,51.423970,5.485610
 3009,Leenderweg - Leostraat,51.424210,5.492700
 3010,Heezerweg - Piuslaan,51.425440,5.495270
-3011,Petrus Donderstraat - Bonefaciuslaan,,
+3011,Petrus Donderstraat - Bonefaciuslaan,51.427520,5.499230
 3012,Geldropseweg - Piuslaan,51.431280,5.502740
 3029,Limburglaan - Beemdstraat,51.431820,5.454390
 3086,Mathildelaan - Anton Philipslaan,,
 3087,Mathildelaan - Glaslaan,51.445100,5.463030
 3089,Philitelaan (busbaan Strijp S),51.446590,5.459770
-2115,Boschdijk - Pastoor Petersstraat Auto binnen,,
+2115,Boschdijk - Pastoor Petersstraat,51.444500,5.471810
 4012,Boschdijk - Rijnstraat,51.479470,5.436970
 4013,Anthony Fokkerweg - Verzetsheldenweg,51.472960,5.439780
 4014,Anthony Fokkerweg - Cor. Gehrelsweg,,
@@ -141,7 +141,7 @@ vri,name,lat,lon
 8002,Noord Brabantlaan - Hurksestraat,51.437020,5.427180
 8004,Noord Brabantlaan - Zeelsterstraat,51.438750,5.431620
 7039,Prof. Holstlaan - Toegang zuid HTC,51.406810,5.462270
-8025,Heistraat - Zoom Auto buiten,,
+8025,Heistraat - Zoom,,
 8006,Noord Brabantlaan - Vander Muydenstr.,51.442480,5.440380
 8007,Noord Brabantlaan - J.C. Oppenheimstr.,51.443280,5.442250
 8008,Noord Brabantlaan - Tilburgseweg,51.443550,5.443150
