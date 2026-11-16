@@ -157,11 +157,16 @@ class Reactions:
     def _sumo_ids(self):
         return {cid: sid for sid, cid in self.sync.sumo2carla_ids.items() if sid not in self.sync.adopted}
 
+    HORN_KIND = {"blocked": "short", "queued": "short", "cut_in": "long", "pedestrian_blocking": "double"}
+
     def _honk(self, cid, reason, **kin):
         actor = self.city.world.get_actor(cid)
-        self.city.ev("horn", cid, reason=reason, **kin)
+        kind = self.HORN_KIND.get(reason, "short")
+        if reason == "blocked" and (self.block.get(kin.get("target")) or {}).get("honks", 0) > 1:
+            kind = "long"                     # a driver honking again holds it longer
+        self.city.ev("horn", cid, reason=reason, kind=kind, **kin)
         if actor is not None:
-            self.city.sound("horn", actor, reason=reason)
+            self.city.sound("horn", actor, reason=reason, kind=kind)
             loc = actor.get_location()
             self._startle(loc.x, loc.y)
         self.recent.append((self.t, cid, "horn"))
@@ -480,7 +485,7 @@ class Reactions:
                 actor = self.city.world.get_actor(cid)
                 self.city.ev("bell", cid, walker_m=round(d, 1), speed=round(pose[3], 1))
                 if actor is not None:
-                    self.city.sound("bell", actor)
+                    self.city.sound("bell", actor, kind="double" if rng.random() < 0.3 else None)
                 self.recent.append((t, cid, "bell"))
 
     # -- near misses --

@@ -23,9 +23,8 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, inputs, livingcity, mapbuild, parking, photoreal, reactions, \
-    realworld, season, soundrec, study, \
-    towns, traffic
+from . import analysis, compat, config, crowdpeds, drivermix, inputs, livingcity, mapbuild, nightlights, parking, \
+    photoreal, reactions, realworld, season, soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from . import ehmi_design, ehmi_inside, levels, livemap, multigpu, placement, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
@@ -144,6 +143,7 @@ def set_weather(world, sc, latlon=None, cache_dir=None, log=print):
     w = sc["weather"]
     info = {"weather": w}
     real = w == "real"
+    rec = None
     if isinstance(w, str) and not real:
         weather = getattr(carla.WeatherParameters, w)
     else:
@@ -183,6 +183,8 @@ def set_weather(world, sc, latlon=None, cache_dir=None, log=print):
         weather.sun_altitude_angle = sc["sun_altitude"]
     world.set_weather(weather)
     info["night"] = weather.sun_altitude_angle < 3.0
+    # cars' lights by the Dutch rules: dipped beam and rear lights at night, in fog and in rain (nightlights.py)
+    info["lights"] = nightlights.weather_lights(weather, rec if real else None, sc.get("headlights", "auto"))
     return info
 
 
@@ -276,6 +278,20 @@ def welcome_for(part, geo, tc):
     return out
 
 
+def signal_region(tc, mdir, major):
+    """The region whose signal heads the drawn traffic lights use (signals.py): CARLA 1.0 with the street content
+    (streetlook.py) in the Netherlands, the UK or Japan, unless map.scenery.street_props is off; else None."""
+    if major < 1 or (tc["map"].get("scenery") or {}).get("street_props", "auto") in (False, "off", None):
+        return None
+    try:
+        from . import crowdpeds, streetlook
+        bbox = tc["map"].get("bbox") or json.loads((mdir / "meta.json").read_text())["bbox"]
+        iso3 = crowdpeds.locate(tc, bbox, mdir / "real" / "crowdpeds_country.json")[0]
+        return streetlook.region(iso3)
+    except Exception:  # noqa: BLE001 - country unknown: CARLA's heads
+        return None
+
+
 def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     log = Log()
     trial = cfg["trials"][trial_idx]
@@ -364,7 +380,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         (out / "weather.json").write_text(json.dumps(wx, indent=2))
         tc["_sound_env"] = soundrec.sound_env(wx, mdir, world.get_weather(),
                                               (tc.get("sound") or {}).get("weather")).as_dict()   # stations' sound
-        BridgeHelper.night = wx["night"]
+        BridgeHelper.night = wx["lights"]["low_beam"]         # SUMO cars: dipped beam and rear lights
+        BridgeHelper.fog = wx["lights"]["fog_rear"]
+        if wx["lights"]["low_beam"]:
+            log(f"cars drive with dipped beam and rear lights ({wx['lights']['why']})"
+                + ("; rear fog lights on" if wx["lights"]["fog_rear"] else ""))
         photo = photoreal.attach(world, tc, wx["night"], log)    # map.photoreal: Google's 3D tiles (photoreal.py)
         look.ATTRIBUTION = photoreal.attribution_text(photo.s) if photo else None
         if tc["server"].get("offscreen", True):
@@ -386,6 +406,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             tm_port=tc["server"]["tm_port"] if tc["simulation"].get("traffic_manager") else None,
             radius=tc["simulation"]["lod_radius_m"],
             animate_radius=tc["simulation"].get("animate_radius_m", 0.0),   # wheels roll, cyclists pedal (animate.py)
+            smooth_paths=tc["simulation"].get("smooth_paths", True),        # no swerves at SUMO's kinks (animate.py)
+            driver_mix_seed=(tc["traffic"].get("seed", 42) if tc["traffic"].get("driver_mix", True) else None),
+            red_running=drivermix.red_running(tc),
+            depart_hide_m=tc["simulation"].get("depart_hide_m", 60.0),   # no car appears out of nowhere nearby
             focus=lambda: [a.get_location() for a in focus_actors] or None)
         if town:      # the town's traffic-light actors, run by SUMO through the bridge
             both = sync.sumo.traffic_light_ids & sync.carla.traffic_light_ids
@@ -404,11 +428,21 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         signals = Signals(world, sumo.net, BridgeHelper.offset, step=step, debug=side.debug,
                           style=(tc["simulation"].get("traffic_lights") or {}).get("style", "head"),
                           lefthand=bool(tc["map"].get("lefthand")), log=log,
-                          surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None)
+                          surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None,
+                          region=signal_region(tc, mdir, compat.server_major(client)))
         if signals.style != "none":
             log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
                 f"{', meshes' if signals.meshes else ''}) drawn near participants")
         carla_sim._kinds.update({a.id: False for a in signals.actors})     # static: never looked up per tick
+        if (tc["simulation"].get("traffic_lights") or {}).get("log"):   # drawn states, for tools/signal_heads.py
+            import traci
+            signals.start_log(out / "signal_heads.csv", traci.simulation.getTime)
+        from . import signaldata      # real phases replayed exactly, or a live feed, through TraCI (signaldata.py)
+        sig_driver = signaldata.driver(out / "sumo", log)
+        try:
+            summary["signals"] = json.loads((out / "sumo" / "signals.json").read_text())
+        except (OSError, ValueError):
+            pass
         world.tick()
 
         # AI agents (scripted cars and walkers); an AV passenger rides in one of them
@@ -484,8 +518,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if isinstance(ag, ScriptedCar):
                 watch_collisions(ag.vehicle, ag.id)
 
-        if wx["night"]:      # headlights on after dark (SUMO cars: BridgeHelper.night)
-            lights = carla.VehicleLightState.LowBeam | carla.VehicleLightState.Position
+        if wx["lights"]["low_beam"]:      # headlights on after dark, in fog and rain (SUMO cars: BridgeHelper.night)
+            lights = nightlights.light_bits(wx["lights"], carla)
             for a in [p.actor for p in parts if p.actor.type_id.startswith("vehicle.")] + \
                      [ag.vehicle for ag in agents if isinstance(ag, ScriptedCar)]:
                 a.set_light_state(carla.VehicleLightState(int(a.get_light_state()) | int(lights)))
@@ -502,7 +536,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             scenery.update([a.get_location() for a in focus_actors])
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
-                                                  f"{scenery.lights_radius:.0f} m" if scenery.light_bp else ""))
+                                                  f"{scenery.lights_radius:.0f} m" if scenery.light_bp else "")
+                + (f", {scenery.n_lamp_specs} with their register colour and lumens" if scenery.n_lamp_specs else ""))
             if not town or towns.own_parked(world, tc, mdir, log):     # a town may keep its own parked cars
                 parked = parking.scenery(client, world, mdir, tc, log,
                                          on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
@@ -551,7 +586,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 part.bot.apply = lambda c, i=part.actor.id: queue(walker_cmd(i, c))
         for ag in agents:
             if isinstance(ag, ScriptedCar):
-                ag.apply = lambda c, i=ag.vehicle.id: queue(carla.command.ApplyVehicleControl(i, c))
+                bl = nightlights.BrakeLight(ag.vehicle, queue)      # its brake lights follow its control
+                ag.apply = lambda c, i=ag.vehicle.id, bl=bl: (queue(carla.command.ApplyVehicleControl(i, c)),
+                                                             bl.update(c, carla))
             else:
                 ag.follow.apply = lambda c, i=ag.walker.id: queue(walker_cmd(i, c))
         for f in getattr(crowd, "follow", None) or []:        # ai.Crowd (behaviour off)
@@ -661,6 +698,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     if ctl is not None:
                         queue(carla.command.ApplyVehicleControl(part.actor.id, ctl))
                         part.ctl = ctl
+                        if not hasattr(part.input, "_send_lights"):      # the bot driver: brake lights from here
+                            if getattr(part, "brake_light", None) is None:
+                                part.brake_light = nightlights.BrakeLight(part.actor, queue)
+                            part.brake_light.update(ctl, carla)
                 elif part.bot is not None:
                     part.bot.step(t)
                 while part.ehmi_schedule and part.ehmi_schedule[0][0] <= t:
@@ -682,6 +723,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 laps("drones")
             t_a = time.time()
             sync.tick()
+            if sig_driver is not None:
+                import traci
+                sig_driver.step(traci.simulation.getTime(), traci)
             t_b = time.time()
             prof["sync"] += t_b - t_a
             laps.start()      # sync.tick() timed its own parts
@@ -700,8 +744,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 scenery.update([a.get_location() for a in focus_actors])
             if parked is not None and summary["ticks"] % 50 == 35:
                 parked.update([a.get_location() for a in focus_actors])
-            if photo is not None and summary["ticks"] % 5 == 0:
+            if photo is not None and photo.s.get("cameras") == "spectator" and summary["ticks"] % 5 == 0:
                 # Cesium streams the photo tiles for the spectator's view: keep it where the saved or shown view is
+                # (with cameras: sensors the plugin hands CARLA's camera sensors to Cesium instead)
                 # (a film camera, the drone pilot's camera, the participant's view), else just behind the participant
                 cams = ([r.camera for r in film.rigs if r.camera is not None] if film is not None else []) + \
                     ([drone_world.view.camera] if drone_world is not None and getattr(drone_world, "view", None)

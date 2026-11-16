@@ -54,7 +54,11 @@ class SimulationSynchronization(object):
                  tm_port=8000,
                  focus=None,
                  radius=None,
-                 animate_radius=0.0):
+                 animate_radius=0.0,
+                 smooth_paths=True,
+                 driver_mix_seed=None,
+                 red_running=False,
+                 depart_hide_m=0.0):
 
         self.sumo = sumo_simulation
         self.carla = carla_simulation
@@ -80,6 +84,21 @@ class SimulationSynchronization(object):
         # speed, half length, half width)}, refilled in place every tick
         self.animate_radius = float(animate_radius or 0.0)
         self.velocity, self.poses, self._prev_yaw = {}, {}, {}
+        # coupled-carla: each SUMO vehicle in CARLA drives a smoothed copy of its SUMO path (animate.PathSmoother:
+        # lateral acceleration and steering rate of a human driver, a short lag), so a kink in a SUMO lane or a
+        # sharp junction shape is not shown as a swerve; a participant on the SUMO driver gets the gentler limits
+        # coupled-carla: each new SUMO vehicle gets its own driver (drivermix.py); None: the vTypes' values for all
+        self.driver_mix_seed = driver_mix_seed
+        self.red_running = red_running
+        self.depart_hide_m = depart_hide_m
+        self.smooth_paths = bool(smooth_paths)
+        self.smoothers = {}
+        self.lane_shapes = None
+        if self.smooth_paths and getattr(self.sumo, "net_file", None):
+            try:
+                self.lane_shapes = animate.LaneShapes(self.sumo.net_file)
+            except Exception as err:  # noqa: BLE001 - no look-ahead: kinks are smoothed over the body only
+                logging.warning("lane shapes for the look-ahead not read (%s)", err)
         # coupled-carla: CARLA actors whose SUMO vehicle drives them (a participant on the SUMO driver, inputs.py):
         # {sumo id: carla id}; mapped like SUMO's own vehicles once SUMO has inserted them, never spawned, despawned
         # or destroyed by the bridge. arrived_adopted: those SUMO took off the network this tick.
@@ -129,6 +148,18 @@ class SimulationSynchronization(object):
             self.sumo.subscribe(sumo_actor_id)
             self.sumo2carla_ids[sumo_actor_id] = self.adopted[sumo_actor_id]
         sumo_spawned_actors -= self.adopted.keys()
+        sumo_spawned_actors = self._drop_departures_in_sight(sumo_spawned_actors)
+        if getattr(self, "driver_mix_seed", None) is not None:
+            import traci  # pylint: disable=import-outside-toplevel
+            from coupledcarla import drivermix  # pylint: disable=import-outside-toplevel
+            for sumo_actor_id in sumo_spawned_actors:
+                if sumo_actor_id.startswith("carla"):      # a CARLA actor's twin: driven by CARLA
+                    continue
+                try:
+                    drivermix.apply(sumo_actor_id, traci.vehicle.getVehicleClass(sumo_actor_id), self.driver_mix_seed,
+                                    red_running=getattr(self, "red_running", False))
+                except traci.TraCIException:
+                    pass
         for sumo_actor_id in sumo_spawned_actors:
             if lod:
                 self.sumo.subscribe_pose(sumo_actor_id)
@@ -227,8 +258,19 @@ class SimulationSynchronization(object):
                 carla_transform.rotation.yaw = yaw
             yaw_rate = animate.yaw_rate(self._prev_yaw.get(carla_actor_id, yaw), yaw, self.carla.step_length)
             self._prev_yaw[carla_actor_id] = yaw
-            self.velocity[carla_actor_id] = animate.velocity(sumo_actor.speed, yaw)
-            self.poses[carla_actor_id] = (loc.x, loc.y, yaw, sumo_actor.speed, sumo_actor.extent.x,
+            speed = sumo_actor.speed
+            if getattr(self, "smooth_paths", False):
+                sm = self.smoothers.get(carla_actor_id)
+                if sm is None:
+                    sm = self.smoothers[carla_actor_id] = (animate.PathSmoother.participant()
+                                                           if sumo_actor_id in self.adopted else animate.PathSmoother())
+                aim = self._aim(sumo_actor_id, sumo_actor.speed)
+                loc.x, loc.y, yaw, yaw_rate, speed = sm.step((loc.x, loc.y, yaw), sumo_actor.speed,
+                                                             2.0 * sumo_actor.extent.x, self.carla.step_length,
+                                                             aim=aim)
+                carla_transform.rotation.yaw = yaw
+            self.velocity[carla_actor_id] = animate.velocity(speed, yaw)
+            self.poses[carla_actor_id] = (loc.x, loc.y, yaw, speed, sumo_actor.extent.x,
                                           sumo_actor.extent.y)
             animated = False
             if self.animate_radius > 0 and (centres or sumo_actor_id in self.adopted):
@@ -244,12 +286,18 @@ class SimulationSynchronization(object):
                 carla_lights = None
 
             if animated:
-                self.carla.follow_vehicle(carla_actor_id, carla_transform, sumo_actor.speed, yaw_rate,
+                self.carla.follow_vehicle(carla_actor_id, carla_transform, speed, yaw_rate,
                                           2.0 * sumo_actor.extent.x, carla_lights)
             else:
                 self.carla.place_vehicle(carla_actor_id, carla_transform, carla_lights)
         for gone in [i for i in self._prev_yaw if i not in self.velocity]:
             del self._prev_yaw[gone]
+        for gone in [i for i in getattr(self, "smoothers", {}) if i not in self.velocity]:
+            del self.smoothers[gone]
+        if getattr(self, "lane_shapes", None) is not None and len(self.lane_shapes.cache) > 2 * len(self.sumo2carla_ids) + 50:
+            live = set(self.sumo2carla_ids)
+            for vid in [v for v in self.lane_shapes.cache if v not in live]:
+                self.lane_shapes.forget(vid)
         laps("sumo_to_carla")
 
         # Updates traffic lights in carla based on sumo information.
@@ -328,6 +376,57 @@ class SimulationSynchronization(object):
                 # Updates all the sumo links related to this landmark.
                 self.sumo.synchronize_traffic_light(landmark_id, sumo_tl_state)
         laps("carla_to_sumo")
+
+    def _drop_departures_in_sight(self, departed):
+        """coupled-carla: a car or bike that SUMO inserts within depart_hide_m of a participant or free camera (a
+        trip starting on an inner street) would appear out of nowhere in front of them (Tokyo clip: a car 40 m from
+        the camera): it is taken out of SUMO before it is shown. Buses (their line's first stop) and CARLA actors'
+        twins stay. Returns the departures that remain."""
+        hide = float(getattr(self, "depart_hide_m", 0.0) or 0.0)
+        if hide <= 0 or not departed or not self.focus:
+            return departed
+        centres = self.focus() or []
+        if not centres:
+            return departed
+        import traci  # pylint: disable=import-outside-toplevel
+        off = BridgeHelper.offset
+        keep = set()
+        for vid in departed:
+            try:
+                if vid.startswith("carla") or traci.vehicle.getVehicleClass(vid) == "bus":
+                    keep.add(vid)
+                    continue
+                x, y = traci.vehicle.getPosition(vid)
+            except traci.TraCIException:
+                keep.add(vid)
+                continue
+            cx, cy = x - off[0], -(y - off[1])
+            if any((cx - c.x) ** 2 + (cy - c.y) ** 2 < hide * hide for c in centres):
+                try:
+                    traci.vehicle.remove(vid)
+                    self.departures_hidden = getattr(self, "departures_hidden", 0) + 1
+                    continue
+                except traci.TraCIException:
+                    pass
+            keep.add(vid)
+        return keep
+
+    def _aim(self, sumo_actor_id, speed):
+        """coupled-carla: the CARLA point on the vehicle's SUMO path animate.look_ahead(speed) beyond its front
+        bumper (its lane, then the lanes it takes next), or None."""
+        if getattr(self, "lane_shapes", None) is None:
+            return None
+        st = self.sumo.get_lane_state(sumo_actor_id)
+        if st is None:
+            return None
+        lane, pos, lat = st
+        import traci  # pylint: disable=import-outside-toplevel
+        shapes = self.lane_shapes.ahead(sumo_actor_id, lane, lambda: traci.vehicle.getNextLinks(sumo_actor_id))
+        q = animate.path_point(shapes, pos, animate.look_ahead(speed), lat)
+        if q is None:
+            return None
+        off = BridgeHelper.offset
+        return q[0] - off[0], -(q[1] - off[1])
 
     def adopt(self, sumo_actor_id, carla_actor_id):
         """

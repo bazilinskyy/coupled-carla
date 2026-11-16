@@ -44,7 +44,8 @@ clips:
     local: true
     time: "2026-09-20 12:30"
     start_s: 11
-    duration_s: 18
+    duration_s: 9.5          # the walker steps off at 12 s, crosses in front of the yielding AV and reaches the far
+    # pavement at 20 s; later the view is the wall of the house there
     attributes: {bloom_intensity: 0.08}      # the eHMI's light lines bloom otherwise
     camera: {kind: follow, target: pedestrian, offset: [0.22, 0, 0.72], look_ahead_m: 6, look_up_m: 0.7,
              smooth_s: 0.4, look_at: av1, look_weight: 0.8, look_smooth_s: 0.4, look_max_m: 160, fov: 80}

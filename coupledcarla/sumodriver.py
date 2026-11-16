@@ -15,6 +15,11 @@ end a new random destination (the car never arrives, so it never leaves CARLA). 
 SUMO only when the hold ends, at its spawn lane (the traffic built up meanwhile does not queue behind a parked car);
 until then the CARLA car waits below the road.
 
+The CARLA car does not copy SUMO's pose: it drives a smoothed copy of it (bridge/animate.PathSmoother, the gentle
+participant limits: 3 m/s^2 lateral, a slow steering rate, up to 8 m off SUMO's path for a moment), so a kink or a
+sideways jump in a SUMO junction lane (Eindhoven rush hour: 8 m across in an 8.8 m junction, 22 m/s^2) is driven as
+a curve; the nets avoid such lanes too (netsmooth.py).
+
 Keyboard and wheel participants are unchanged. simulation.autopilot: sumo (default) | carla picks this or BasicAgent
 for `input: autopilot`; a participant's own `autopilot:` wins.
 """
@@ -105,18 +110,33 @@ def drivable_lane(net, x, y, rng, yaw=None, vclass="passenger", radius=80.0, z=N
     return None
 
 
+def has_u_turn(path):
+    """Whether a path (sumolib edges) turns back onto the road it came on (an edge followed by the edge between the
+    same two junctions the other way): at a dead end SUMO's turnaround lane swings round beyond the road's surface
+    (Zurich HB twin: the participant's car turned through a building for 4 s at -231 -> 231)."""
+    try:
+        return any(b.getFromNode() == a.getToNode() and b.getToNode() == a.getFromNode()
+                   for a, b in zip(path, path[1:]))
+    except AttributeError:          # edges without their junctions (tests' stand-ins): none found
+        return False
+
+
 def random_destination(net, start_edge, rng, vclass="passenger", lo=600.0, hi=1500.0, tries=60):
-    """A route (edge ids) from start_edge to a random edge lo-hi m away (straight line), or None."""
+    """A route (edge ids) from start_edge to a random edge lo-hi m away (straight line) without a U-turn, or None
+    (with a U-turn only when no destination can be reached without one)."""
     sx, sy = start_edge.getToNode().getCoord()
     edges = [e for e in net.getEdges() if e.allows(vclass) and e.getFunction() != "internal"]
     far = [e for e in edges if lo <= math.hypot(e.getToNode().getCoord()[0] - sx,
                                                e.getToNode().getCoord()[1] - sy) <= hi] or edges
+    fallback = None
     for _ in range(tries):
         dest = rng.choice(far)
         path, _ = net.getShortestPath(start_edge, dest, vClass=vclass)
         if path and len(path) > 2:
-            return [e.getID() for e in path]
-    return None
+            if not has_u_turn(path):
+                return [e.getID() for e in path]
+            fallback = fallback or [e.getID() for e in path]
+    return fallback
 
 
 class SumoDriver:

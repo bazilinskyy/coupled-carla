@@ -20,6 +20,11 @@ DEFAULTS = {
         "internal_junctions": False,  # SUMO's net with netconvert's internal junctions (turning vehicles wait inside
                                      # the junction); off: they wait at the stop line, as the waiting points of the
                                      # re-made junctions lay in other lanes (mapbuild.NO_INTERNAL_JUNCTIONS)
+        "smooth_net": True,          # SUMO's net without sideways jumps and kinks: sharp lane shifts in junctions
+                                     # dropped or slowed, junction lanes redrawn as smooth curves, lane corners
+                                     # rounded (<= 0.5 m), turns and bends slowed to ~3 m/s^2 (netsmooth.py)
+        "drop_uturns": False,        # with smooth_net: no U-turns on the spot away from dead ends (more teleports
+                                     # where routes need them: netsmooth.turnarounds)
         "buildings": True,           # also fetch building footprints (trial viewer, figures)
         "elevation": True,           # real terrain heights on the roads (AHN in NL, AWS Terrain Tiles elsewhere)
         "overture": True,            # Overture Maps buildings (needs duckdb), else OSM
@@ -34,6 +39,8 @@ DEFAULTS = {
             "bgt": "auto",           # the Dutch BGT (bgt.py): ground surfaces (grass, bricks/tiles, asphalt,
                                      # gravel) and municipal street furniture, for maps in the Netherlands; false: off
             "canopy": True,          # trees without a mapped height: sized by Meta/WRI's 1 m canopy height map
+            "canopy_trees": True,    # ... and a tree at each crown of that map with no tree within
+            "canopy_tree_gap_m": 6.0,    # this distance (gardens, courtyards: trees no register or OSM lists)
             "ndw_signs": "auto",     # the Dutch national traffic sign register (NDW, ndwsigns.py): every official
                                      # sign at its position, for maps in the Netherlands; false: OSM's signs only
             "ndw_faces": True,       # CARLA 1.0: register signs show their Dutch design (data/nl_sign_faces.json,
@@ -44,8 +51,23 @@ DEFAULTS = {
             "shared": True,          # shared bikes and scooters at their GBFS positions (gbfs.py); a trial at
                                      # simulation.time "now" puts them where they are at its start
             "shared_per_station": 10,    # at most this many bikes shown per dock
+            "photo_corrections": False,  # street photos' evidence of lamps, signs and furniture (a list of sources,
+                                         # e.g. ["mapillary"]: real/streetphotos/evidence_<source>.json, saved by
+                                         # tools/realism_check.py objects) moves and adds them after the scenery is
+                                         # built; registers (city lamps, NDW signs) are never moved. Off: unvalidated
             "park_shoulders_m": None,    # [min, max]: OpenDRIVE shoulders this wide count as parking strips (the
                                          # CARLA towns: [2.0, 3.0], their kerb shoulders; highways' are 3.5 m)
+            # CARLA 1.0 with the CoupledCarla content (/Game/CoupledCarla/Street, streetlook.py); CARLA's own
+            # props where the server lacks it (or on 0.9.16):
+            "street_props": "auto",      # the country's lamp posts (NL: by the register's mast type), benches,
+                                         # bins, bollards, bike stands (NL, UK, JP); false: CARLA's props
+            "shark_teeth": "auto",       # NL: give-way triangles at NDW B6 signs and OSM give-way points
+            "red_cycle": "auto",         # NL: red asphalt on the OpenDRIVE's cycle lanes
+            "road_wear": "auto",         # cracks, repair patches, potholes (more on roads OSM tags with a bad
+                                         # smoothness) and oil spots; a number scales the amount (1 = auto)
+            "leaf_litter": "auto",       # leaves under deciduous street trees, shown only in autumn trials
+            "roof_clutter": "auto",      # AC units, bulkheads, vents on flat measured roofs: "auto" on baked
+                                         # twins (map.carla_level) only; true: also over CARLA's building meshes
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
@@ -94,12 +116,18 @@ DEFAULTS = {
                                      # above ~60 CARLA 0.9.16 draws an OpenDRIVE world's sky dark grey to black)
         "sun_altitude": None,
         "tls_manager": "sumo",       # who runs the traffic lights: sumo | carla | none
-        "traffic_lights": {"style": "head"},   # how SUMO's lights show in CARLA (signals.py): "head" (a signal
+        "traffic_lights": {"style": "head",    # how SUMO's lights show in CARLA (signals.py): "head" (a signal
                                      # head on a kerb pole per approach, CARLA's meshes, the lit lamp drawn) or
                                      # "marker" (a line pole and a big glowing point per lane, as before)
+                           "log": False},   # true: every drawn head's state to signal_heads.csv (tools/signal_heads.py)
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
         "animate_radius_m": 60.0,    # ... and within this distance move with physics on (bridge/animate.py): wheels
                                      # roll and steer, cyclists pedal; 0: all placed with physics off as before
+        "depart_hide_m": 60.0,       # a car or bike whose trip SUMO starts this close to a participant or free camera
+                                     # is dropped (it would appear out of nowhere in front of them); 0: off
+        "smooth_paths": True,        # SUMO vehicles in CARLA drive a smoothed copy of their SUMO path (lateral
+                                     # acceleration and steering rate of a human driver, bridge/animate.py
+                                     # PathSmoother): a kink in a SUMO junction lane is a curve, not a swerve
         "autopilot": "sumo",         # input autopilot: "sumo" (SUMO drives the car with the traffic's rules,
                                      # sumodriver.py; route: [[lat, lon], ...] or destination: {lat, lon} on the
                                      # participant) or "carla" (CARLA's BasicAgent on random lanes); a participant's
@@ -132,7 +160,11 @@ DEFAULTS = {
                                          # size), "drop" (left out) or "keep" (in leaf)
                     "lamp_lights": "auto",   # CARLA 1.0: lamps spawned as street lights, which the server lights
                                              # when the sun is at or below the horizon; true: always; false: never
-                    "lights_radius_m": 200.0},   # ... only within this distance of a participant (0: all)
+                    "lights_radius_m": 200.0,   # ... only within this distance of a participant (0: all)
+                    "lamp_colours": True,       # CARLA 1.0: lit lamps take the colour temperature of their lamp
+                                                # (city register or OSM lamp_type; nightlights.py)
+                    "lamp_lumen_scale": 1.0},   # ... and its lumens times this (register lamps; the rest keep
+                                                # CARLA's 27,000 lm)
         "parked": {"enabled": True,  # parked cars (map.scenery.parked) in the stalls taken at the trial's hour
                    "radius_m": 250.0,     # streamed within this distance of the participants
                    "occupancy": "auto",   # "auto": by zone and local hour (parking.PRESENCE), or a share 0-1
@@ -141,8 +173,15 @@ DEFAULTS = {
                                           # level with cars of its own keeps them); true: the level's only; false: ours
         "town_lights": "auto",       # CARLA towns: street and building lights on at night (LightManager); "on",
                                      # "off", or false (left to the server)
+        "headlights": "auto",        # cars' dipped beam and rear lights (nightlights.py, RVV 1990 art. 32/34):
+                                     # "auto" at night, in fog under 1 km and rain from 2.5 mm/h (rear fog light
+                                     # under 50 m of fog), "on", or "off"
     },
     "traffic": {
+        "driver_mix": True,          # every SUMO driver and rider their own time gap, gaps, acceleration, lane
+                                     # changing; e-bikes and red-light running cyclists (drivermix.py)
+        "cyclist_red_running": "auto",   # a quarter of the cyclists ride on through red when clear: auto = in the
+                                     # Netherlands only (SWOV's observations; drivermix.py)
         "seed": 42,
         "cars_per_hour": "auto",     # cars entering per hour, or "auto": from the map's lane-km by road class and
                                      # the trial's hour (coupledcarla/counts.py)
@@ -170,10 +209,27 @@ DEFAULTS = {
             "max_bikes_per_hour": 3000,   # cap on the counted demand (a cyclist in CARLA costs ~3 ms per tick)
             "dock_weight": 2.0,      # bike edges within 30 m of a shared-bike dock (GBFS, gbfs.py) draw 1 + this
                                      # times the trip starts and ends; 0: off
+            "weather": "auto",       # "auto": fewer cyclists in rain (the hour's and the 3 hours before, from the
+                                     # weather or Open-Meteo; Wessel 2020, nightlights.bike_rain_factor); false: off
         },
         "fleet": "auto",             # "auto": car body types and colours from the open vehicle register where
                                      # there is one (fleet.py: RDW for NL, NY DMV for New York, Waka Kotahi
                                      # for New Zealand, Senatran for Brazilian cities); else car_types
+        "signals": "auto",           # traffic-light programmes (signalplan.py): "dutch" (a controller per junction,
+                                     # matched to the city's list of signalised junctions; CROW 2022 amber, all-red
+                                     # from the conflict distances, Nota Verkeerslichten 2024 cycles, vehicle-
+                                     # actuated), "real" (recorded phases or a live feed: signal_data; Dutch where
+                                     # it has none), "sumo" (netconvert's, one light per OpenDRIVE signal, all in
+                                     # step), "auto": real where signal_data is set, dutch in NL, else sumo
+        "signal_data": {             # real phase data for "real" (signaldata.py; none is open for Eindhoven: README)
+            "log": None,             # phase log: CSV time,controller,signal_group,state (or NDJSON), file or folder
+            "groups": None,          # JSON {controller: {signal_group: {from: bearing, turns: "lsr", mode}}}
+            "replay": "program",     # "program": each junction's programme of the recorded hour (cycle, splits,
+                                     # offset; actuated when the cycles vary); "exact": every state at its time
+            "date": None,            # recorded day "YYYY-MM-DD" and hour (0-23.99) to replay; else simulation.time
+            "hour": None,
+            "live": None,            # a live feed of the same rows: NDJSON file, http(s) stream or tcp://host:port
+        },
         "car_following": "EIDM",
         "speed_limits": "auto",      # "auto": roads without an OSM maxspeed (netconvert gives them 80-100 km/h)
                                      # get the country's urban default limit (speeds.py); false: as built
@@ -288,6 +344,14 @@ DEFAULTS = {
         "road_surface": "DEF",       # CNOSSOS surface: DEF (dense asphalt/SMA), NL01 (porous), NL05 (SMA 8),
                                      # NL10 / NL11 (paving blocks, herring-bone / not)
         "diesel_cars": 0.2,          # share of combustion cars with a diesel (by actor id)
+        "engine_sound": "recorded",  # recorded: loops of real engines resampled to the rpm (data/sounds/engines:
+                                     # petrol, diesel for vans, buses and trucks, motorbike); synth: the additive model
+        "engine_part_load_db": 6.0,  # engines up to this much quieter than CNOSSOS's average when cruising or
+                                     # coasting (load under 0.4), so steady urban traffic is mostly tyres; 0: off
+        "own_diesel": False,         # the participant's own combustion car has a diesel (else petrol)
+        "ev_motor_db": 38.0,         # an electric own car's motor whine at the driver's ears at 50 km/h, dB(A)
+                                     # (+20 lg v, louder with torque); 0: none
+        "ev_motor_rpm_per_kmh": 72.0,    # its motor speed per km/h (the single fixed gear; a Tesla Model 3)
         "electric": "auto",          # electric cars (no engine): "auto" (CARLA's EVs and the scripted agents),
                                      # true, false, a share 0-1, or blueprint patterns
         "doppler": 1.0,              # 0: none, 1: physical
@@ -305,7 +369,9 @@ DEFAULTS = {
                                      # cached in ~/.cache/coupled-carla/sounds (else synthesised)
         "distant_traffic_db": 50.0,  # the city beyond the map at the peak hour, dB(A) (follows the hour)
         "birds_dawn_db": 58.0, "birds_day_db": 47.0,   # in spring among trees; scaled by season, trees, rain, wind
-        "walkers": True, "footstep_db": 58.0,          # footsteps (dB(A) at 1 m per step)
+        "walkers": True, "footstep_db": 61.0,          # footsteps: dB(A) at 1 m of a step's loudest 100 ms with hard
+                                     # soles on paving (~60 dB(A) at the walker's own ears; trainers 9 dB, grass 6 dB less)
+        "footsteps": "shoes",        # recorded steps (data/sounds/footsteps): shoes | trainers | grass; synth: modelled
         "aps": True, "aps_db": 65.0, # accessible pedestrian signals near a pedestrian (dB(A) at 1 m per tick)
         "bicycles": {"bells": 0.03}, # bell rate (per second, when a pedestrian is ahead)
         "sirens": "lights",          # emergency vehicles: lights (with their special lights) | always | off

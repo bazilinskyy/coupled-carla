@@ -582,6 +582,11 @@ class Output:
         self.running = False
         self.thread = None
         self.blocks = 0
+        from .settings import mute
+        if device and mute():
+            log("sound: muted (COUPLED_CARLA_MUTE or config mute_sound): nothing is played on the speakers"
+                + (" (recording only)" if record else ""))
+            device = None
         if device:
             try:
                 import pygame

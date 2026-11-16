@@ -48,7 +48,7 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     bbox = json.loads((Path(map_dir) / "meta.json").read_text())["bbox"]
     reg = fleet.registry(bbox) if tc.get("fleet", "auto") == "auto" else None
     if reg:
-        tc["car_types"] = fleet.car_types(reg)
+        tc["car_types"] = fleet.car_types(reg, fleet.carla_major())    # CARLA 1.0's own cars on a 1.0 client
         log(f"fleet: {reg['source']}: " + ", ".join(f"{k} {100 * v / sum(reg['body'].values()):.0f}%"
                                                   for k, v in sorted(reg["body"].items(), key=lambda x: -x[1])[:5]))
     from . import speeds   # urban limits on roads OSM gives none; drivers' speeds / limit from measured speeds
@@ -58,18 +58,35 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     random_trips = Path(sumo.SUMO_HOME) / "tools" / "randomTrips.py"
     end = int(duration_s) + 60
     routes, additional = [], [vss] if vss else []
+    from . import transit
+    when = transit.trial_time(cfg["simulation"].get("time"), ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2),
+                              Path(map_dir) / "real")
+    sumo_net = net
+    try:     # the traffic lights: a programme per junction, Dutch or from real data (signalplan.py, traffic.signals)
+        from . import signalplan
+        sig_net, sig_add, _ = signalplan.prepare(cfg, map_dir, work, when, log)
+        if sig_net:
+            sumo_net = sig_net
+        additional += sig_add
+    except Exception as err:  # noqa: BLE001 - netconvert's programmes still run
+        import traceback
+        traceback.print_exc()
+        log(f"traffic lights: SUMO's programmes ({type(err).__name__}: {err})")
+    if tc.get("driver_mix", True):     # the red-light running cyclists' types (drivermix.py), taken on departure
+        from . import drivers
+        (work / "variants.add.xml").write_text("<additional>\n" + "".join(
+            "    " + drivers.bike_red_runner(bp, tc["car_following"]) + "\n" for bp in tc["bike_types"]) +
+            "</additional>\n")
+        additional.append("variants.add.xml")
     try:     # scramble crossings: an all-pedestrian phase in their signal programmes (pedsignals.py)
         from . import pedsignals
-        scramble = pedsignals.prepare(map_dir, net, work, log)
+        scramble = pedsignals.prepare(map_dir, sumo_net, work, log)
         if scramble:
             additional.append(scramble)
     except Exception as err:  # noqa: BLE001 - a refinement: never fail the trial for it
         log(f"scramble crossings: not used ({type(err).__name__}: {err})")
     pc = tc.get("public_transport") or {}
     pt = None
-    from . import transit
-    when = transit.trial_time(cfg["simulation"].get("time"), ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2),
-                              Path(map_dir) / "real")
     if pc.get("enabled", True):
         import sumolib
         live = pc.get("live", "auto")
@@ -90,12 +107,14 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     except Exception as err:  # noqa: BLE001 - counts are a refinement: never fail the trial for them
         log(f"counts: not used ({type(err).__name__}: {err})")
         cars_per_hour = 2400 if cars_per_hour == "auto" else cars_per_hour
-    from . import cycling
+    from . import cycling, nightlights
+    tc["_bike_weather"] = cfg["traffic"]["_bike_weather"] = nightlights.bike_weather_factor(cfg, map_dir, log)
     bikes = cycling.demand(cfg, map_dir, work, types, end, log)   # along the cycle network, at counted volumes
     routes += bikes or []
     for name, per_hour, vclass, vtype, extra in (
             ("car", cars_per_hour, "passenger", "cars", ["--fringe-factor", "5"]),
-            ("bike", 0 if bikes is not None else tc["bikes_per_hour"], "bicycle", "bikes", ["--fringe-factor", "3"]),
+            ("bike", 0 if bikes is not None else tc["bikes_per_hour"] * tc["_bike_weather"], "bicycle", "bikes",
+             ["--fringe-factor", "3"]),
             ("bus", 0 if pt else tc["buses_per_hour"], "bus", tc["bus_type"],
              ["--min-distance", str(tc.get("bus_min_distance_m", 1000))])):
         if not per_hour:
@@ -130,7 +149,7 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     stop_xml = '\n    <stop-output value="sumo_stops.xml"/>' if pt else ""
     cfg_file.write_text(f"""<configuration>
   <input>
-    <net-file value="{net}"/>
+    <net-file value="{sumo_net}"/>
     <route-files value="{','.join(routes)}"/>{additional_xml}
   </input>
   <processing>
@@ -143,6 +162,7 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     <fcd-output.signals value="true"/>
     <device.fcd.period value="0.1"/>
     <tripinfo-output value="sumo_tripinfo.xml"/>{stop_xml}
+    <collision-output value="sumo_collisions.xml"/>
   </output>
   <random_number><seed value="{tc['seed']}"/></random_number>
 </configuration>

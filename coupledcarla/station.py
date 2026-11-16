@@ -184,7 +184,7 @@ class Station:
                         return EXIT_HOST_CLOSED
                 elif kind == "flash":
                     self.flash_until = time.time() + 1.0
-                elif kind in ("ehmi_state", "drones") and self.ux is not None:
+                elif kind in ("ehmi_state", "drones", "sound_event") and self.ux is not None:
                     self.ux.on_message(msg)
                 elif kind == "drone_hud":
                     self.drone_hud = msg.get("lines") or []

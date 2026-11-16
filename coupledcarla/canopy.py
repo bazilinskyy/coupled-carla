@@ -4,6 +4,11 @@ The map is a set of cloud-optimised GeoTIFFs on AWS open data (s3://dataforgood-
 zoom-9 quadkey: 65,536 x 65,536 pixels of about 1.2 m (Web Mercator), canopy height in whole metres, stored in
 deflate-compressed rows. Only the rows of the map's box are read (HTTP range requests); the crop is cached in
 maps/<name>/real/canopy.npz and the scenery samples it where OSM gives a tree no height (scenery._tree).
+
+Trees nobody maps. City registers list public trees and OSM adds some more, but gardens, courtyards and private
+ground are full of trees neither lists: in Eindhoven centre only 44 % of the canopy over 3 m outside buildings had a
+placed tree within 5 m (about 160,000 m2 without). crowns() finds the map's crowns (the tallest pixel of every 5 m
+square over 3 m) and the scenery plants a tree at each one that has no tree within 6 m (scenery canopy_trees).
 """
 import io
 import math
@@ -177,6 +182,43 @@ class Canopy:
     def load(cls, path):
         d = np.load(path)
         return cls(d["z"], *d["geo"])
+
+
+def latlon(x, y):
+    """Web Mercator metres -> (lat, lon)."""
+    return math.degrees(2 * math.atan(math.exp(y / R)) - math.pi / 2), math.degrees(x / R)
+
+
+def crowns(grid, bbox, block_m=5.0, min_m=SEEN_M):
+    """Tree crowns the canopy map sees in the box: [(lat, lon, canopy height m)], the tallest pixel of each block_m
+    square (ground metres) where it reaches min_m, tallest first. The scenery keeps those with no tree near."""
+    if grid is None or grid.z.size == 0:
+        return []
+    s, w, n, e = bbox
+    k = 1 / math.cos(math.radians((s + n) / 2))
+    x0, y0 = mercator(s, w)
+    x1, y1 = mercator(n, e)
+    c0, c1 = max(0, int((x0 - grid.left) / grid.res)), min(grid.z.shape[1], int((x1 - grid.left) / grid.res) + 1)
+    r0, r1 = max(0, int((grid.top - y1) / grid.res)), min(grid.z.shape[0], int((grid.top - y0) / grid.res) + 1)
+    if c1 <= c0 or r1 <= r0:
+        return []
+    b = max(1, int(round(block_m * k / grid.res)))
+    z = grid.z[r0:r1, c0:c1]
+    H, W = -(-z.shape[0] // b) * b, -(-z.shape[1] // b) * b
+    pad = np.zeros((H, W), z.dtype)
+    pad[:z.shape[0], :z.shape[1]] = z
+    blocks = pad.reshape(H // b, b, W // b, b).transpose(0, 2, 1, 3).reshape(H // b, W // b, b * b)
+    idx = blocks.argmax(axis=2)
+    top = np.take_along_axis(blocks, idx[..., None], axis=2)[..., 0]
+    out = []
+    for bi, bj in zip(*np.nonzero(top >= min_m)):
+        r = r0 + bi * b + idx[bi, bj] // b
+        c = c0 + bj * b + idx[bi, bj] % b
+        lat, lon = latlon(grid.left + (c + 0.5) * grid.res, grid.top - (r + 0.5) * grid.res)
+        if s <= lat <= n and w <= lon <= e:
+            out.append((lat, lon, float(top[bi, bj])))
+    out.sort(key=lambda t: -t[2])
+    return out
 
 
 def canopy(bbox, path, margin_m=30.0):

@@ -59,6 +59,38 @@
 		{
 			"Name": "cc_photoreal_google",
 			"Path": "/Script/CoupledPhotoreal.CCPhotorealTiles_C"
+		},
+		{
+			"Name": "cc_nl_lampposttop4",
+			"Path": "/Game/CoupledCarla/Street/Lights/BP_CC_NL_LampPostTop4.BP_CC_NL_LampPostTop4"
+		},
+		{
+			"Name": "cc_nl_lamptopled6",
+			"Path": "/Game/CoupledCarla/Street/Lights/BP_CC_NL_LampTopLed6.BP_CC_NL_LampTopLed6"
+		},
+		{
+			"Name": "cc_nl_lamparm9",
+			"Path": "/Game/CoupledCarla/Street/Lights/BP_CC_NL_LampArm9.BP_CC_NL_LampArm9"
+		},
+		{
+			"Name": "cc_nl_lamparm12",
+			"Path": "/Game/CoupledCarla/Street/Lights/BP_CC_NL_LampArm12.BP_CC_NL_LampArm12"
+		},
+		{
+			"Name": "cc_nl_lampdouble10",
+			"Path": "/Game/CoupledCarla/Street/Lights/BP_CC_NL_LampDouble10.BP_CC_NL_LampDouble10"
+		},
+		{
+			"Name": "cc_nl_lampheritage4",
+			"Path": "/Game/CoupledCarla/Street/Lights/BP_CC_NL_LampHeritage4.BP_CC_NL_LampHeritage4"
+		},
+		{
+			"Name": "cc_uk_lampcolumn8",
+			"Path": "/Game/CoupledCarla/Street/Lights/BP_CC_UK_LampColumn8.BP_CC_UK_LampColumn8"
+		},
+		{
+			"Name": "cc_jp_lampgooseneck8",
+			"Path": "/Game/CoupledCarla/Street/Lights/BP_CC_JP_LampGooseneck8.BP_CC_JP_LampGooseneck8"
 		}
 	]
 }

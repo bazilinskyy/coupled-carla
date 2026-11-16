@@ -1,9 +1,12 @@
 # Sounds, models, recordings and their sources
 
-coupled-carla ships **no audio files**. Every sound is synthesised in code (`coupledcarla/synth.py`, `audio.py`,
-MIT licence) from published acoustic models, except a few ambience recordings and an HRTF set that a station or the
-host fetches at run time from their open sources and caches in `~/.cache/coupled-carla/sounds/` (never committed).
-Offline, everything falls back to synthesis.
+coupled-carla ships a few openly licensed recordings in [`data/sounds/`](sounds/) (engines, footsteps, horns,
+bicycle bells, the blinker relay, wipers, rain in a car, city ambience; CC0 and CC BY from Freesound, each listed with
+its author, licence and cut in [sounds/SOURCES.md](sounds/SOURCES.md)). They give the timbre; every level comes from
+the models below. Everything else is synthesised in code (`coupledcarla/synth.py`, `audio.py`, MIT licence) from
+published acoustic models, except a few ambience recordings and an HRTF set that a station or the host fetches at
+run time from their open sources and caches in `~/.cache/coupled-carla/sounds/` (never committed). Without a
+decoder (ffmpeg or pygame) for the shipped Ogg files, or offline, everything falls back to synthesis.
 
 ## Models (all synthesised)
 
@@ -12,14 +15,18 @@ Offline, everything falls back to synthesis.
 | Vehicle sound power (cars, vans, buses/trucks, mopeds, motorbikes) | rolling A_R + B_R lg(v/70) and propulsion A_P + B_P (v-70)/70 per octave band 63 Hz-8 kHz; road surface, temperature and junction corrections | CNOSSOS-EU, Commission Directive (EU) 2015/996 Annex II as amended by Commission Delegated Directive (EU) 2021/1226 (EU legislation, reusable under Commission Decision 2011/833/EU) |
 | Acceleration and wet roads | Delta L_P = C_P a (a clipped to -1..a_max); Delta L_wet = max(15 lg f - 12 lg(v/70) - 48, 0) | IMAGINE Deliverable D11 (M+P, 2007), sections 4.3.1 and 4.3.5 |
 | Tyre-road noise | octave bands of looped pink noise at the CNOSSOS band levels | Pieren, Bütler & Heutschi (2016), Applied Sciences 6(1):5 (tyre noise as broadband noise) |
-| Engine | firing frequency (cylinders/2 x rpm/60) and its orders and half orders, load-dependent tilt, exhaust and intake formants, silencer roll-off, cycle-to-cycle speed and amplitude jitter, firing-pulsed residual noise; gearbox model for rpm | Pieren et al. (2016); Baldan, Lachambre, Delle Monache & Boussard (2015), IEEE SIVE; Jagla, Maillard & Martin (2012), JASA 132(5) |
+| Engine (recorded, default) | loops of real engines at steady speeds resampled to the gearbox rpm and cross-faded, band-split so each octave plays at CNOSSOS's level; part-load reduction up to 6 dB | data/sounds/SOURCES.md |
+| Electric car (own) | motor and gear whine: orders 6, 12, 25, 36, 50, 72 of the motor speed (72 rpm per km/h), 38 dB(A) at 50 km/h + 20 lg v, up to +6 dB with torque; the AVAS through the cabin | synthesised |
+| Engine (synth) | firing frequency (cylinders/2 x rpm/60) and its orders and half orders, load-dependent tilt, exhaust and intake formants, silencer roll-off, cycle-to-cycle speed and amplitude jitter, firing-pulsed residual noise; gearbox model for rpm | Pieren et al. (2016); Baldan, Lachambre, Delle Monache & Boussard (2015), IEEE SIVE; Jagla, Maillard & Martin (2012), JASA 132(5) |
 | Air absorption | per band from temperature, humidity, pressure | ISO 9613-1:1993 |
 | Ground, buildings | ground factor G; barrier D_z = 10 lg(3 + 20 z C3/lambda) over the roofs and round the sides | ISO 9613-2:1996 (Maekawa-type barrier law) |
 | Reflections, reverberation | first-order image sources off the nearest facades; diffuse tail sized by street width and height (Sabine on a canyon segment, open top and ends) | Kang (2000), JASA 107(3) for street-canyon reverberation |
 | Inside the car | own tyres and engine through a cabin insertion loss rising with frequency; wind noise 60 lg v; rain on the roof | interior levels of mid-size cars (~40 dB(A) idle, ~60 at 50 km/h, ~67 at 100 km/h); dipole sound power ~v^6 |
 | Drones | blade-passing tones and harmonics (two detuned rotor pairs) over broadband noise, at the EU 2019/945 class sound power | Cabell et al. (2016), NASA; Schäffer et al. (2021), IJERPH 18:5940 |
 | AVAS | tonal hum rising with speed, 56 dB(A) at 2 m up to 20 km/h | UN Regulation No. 138, EU 540/2014 |
-| Footsteps | heel and toe impacts filtered by the surface, cadence from walking speed | Cook (2002), Modeling Bill's gait, AES 22nd Int. Conf. |
+| Footsteps | recorded single steps (shoes, trainers, grass), cadence from walking speed, 61 dB(A) at 1 m for hard soles; synthesised heel and toe impacts as the fallback | data/sounds; Cook (2002), Modeling Bill's gait, AES 22nd Int. Conf. |
+| Horns, bells, shout, relay, wipers | recorded one-shots; horns 95 (car), 100 (bus), 108 (air horn) dB(A) at 7 m (UN R28: 87-112), bell 72 dB(A) at 2 m, shout 85 dB(A) at 1 m, wipers 50 dB(A) at the driver | data/sounds |
+| City ambience | recorded loops at real places (cafes, construction, fountains, church bells, voices near people, crickets, cicadas, leaves) at levels given at a reference distance, gated by hour, weekday, season and temperature | data/sounds; OSM, Overture places |
 | Pedestrian signal ticking | a ~1.6 kHz 'tok', 1/s while red, ~8/s while green (Dutch rateltikker, German Akustischer Signalgeber) | synthesised |
 | Bicycle freewheel, bell | pawl clicks at 24 per wheel turn while coasting; inharmonic struck-dome partials (fallback for the recorded bell) | synthesised |
 | Sirens, horn, bus air | two-tone 440/587 Hz (Europe) or wail (North America); two-tone 420/500 Hz horn; high-passed air burst | synthesised |

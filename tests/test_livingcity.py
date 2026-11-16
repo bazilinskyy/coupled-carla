@@ -289,3 +289,14 @@ def test_honk_draws_give_the_measured_share_within_12_s():
                 break
             t += 0.1
     assert 0.62 < honked / 600 < 0.78
+
+
+def test_sound_events_reach_the_soundscape():
+    from coupledcarla import soundrec, stationux
+    got = []
+    ha = soundrec.HostAudio.__new__(soundrec.HostAudio)
+    ha.scape = types.SimpleNamespace(event=lambda *a: got.append(a))
+    ha.sound_event({"name": "horn", "actor_id": 7, "kind": "double"})
+    ha.sound_event({"name": "door", "actor_id": 7})                # not a sound the soundscape makes of others
+    assert got == [("horn", 7, "double")]
+    assert "horn" in stationux.SOUND_EVENTS and "bell" in stationux.SOUND_EVENTS

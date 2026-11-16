@@ -27,7 +27,7 @@ def test_clip_list_parses():
     assert len(names) == len(set(names))
     for c in clips:
         assert (ROOT / c["experiment"]).exists(), c["experiment"]
-        assert 15 <= c["duration_s"] <= 25, c["name"]
+        assert 9 <= c["duration_s"] <= 25, c["name"]      # the pedestrian crossing is told in 9.5 s
         assert c["frames"] == round(c["duration_s"] * c["fps"])
         assert c["kind"] in ("film", "stations")
 

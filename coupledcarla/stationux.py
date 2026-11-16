@@ -15,6 +15,8 @@ from pathlib import Path
 from . import designs, ehmi_design, ehmi_inside
 from .soundscape import Soundscape, WorldBodies, body_of
 
+SOUND_EVENTS = ("horn", "bell", "shout")     # other road users' sounds the soundscape renders (Soundscape.event)
+
 
 def welcome_extras(tc, pcfg, kind=None, base=None, log=print, default_states=(), default_ehmi=None):
     """What the host adds to a station's welcome: the `sound`, `displays` and `haptics` settings (the participant's
@@ -262,6 +264,10 @@ class StationUX:
         if msg.get("type") == "drones":       # the drones' sound sources (drones.py, 10 a second)
             self.drones = msg.get("d") or []
             return
+        if msg.get("type") == "sound_event":  # the living city's horns and bells (livingcity.py, reactions.py)
+            if self.scape is not None and msg.get("name") in SOUND_EVENTS:
+                self.scape.event(msg["name"], msg.get("actor_id"), msg.get("kind"))
+            return
         if msg.get("type") == "drone_hud":    # a drone pilot hears from where they stand, not at the drone
             self.ears = msg.get("ears")
             return
@@ -376,6 +382,8 @@ class StationUX:
             dt = t - getattr(self, "_t_prev", t)
             self._t_prev = t
             auto, left = self._automation(tor, t)
+            if own is not None:
+                self.incar.set_electric(own.electric)
             self.incar.update(t, kmh, own.lights if own is not None else 0, ctl, limit, dt, automation=auto,
                               time_left=left)
         if self.haptics is not None:

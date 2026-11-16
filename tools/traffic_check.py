@@ -7,7 +7,9 @@ Prepares the trial's traffic (coupledcarla.traffic.prepare), runs SUMO through T
 sublane model, junction collision checks) with collisions only warned (so each one is counted, not hidden by a
 teleport), and reports (coupledcarla/drivecheck.py): SUMO's teleports, collisions, emergency braking; red-light
 entries; vehicles standing inside junctions; accelerations, jerk, time gaps and free-flow speed / limit per vehicle
-class; lane changes per vehicle-km. Writes summary.json in the output folder and prints it.
+class; lane changes per vehicle-km; bodies (side clearance of buses, lateral accelerations); and each measure
+against its target from the literature or open data (drivecheck.TARGETS: value, range, ok, source). Writes
+summary.json in the output folder and prints it, then the targets as a Markdown table.
 """
 import argparse
 import json
@@ -21,7 +23,7 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from coupledcarla import config, drivecheck, traffic  # noqa: E402
+from coupledcarla import config, drivecheck, drivermix, traffic  # noqa: E402
 
 
 def _set(cfg, item):
@@ -99,16 +101,21 @@ def main():
            "--statistic-output", str(work / "statistics.xml"),
            "--lanechange-output", str(work / "lanechanges.xml"),
            "--fcd-output.acceleration", "--fcd-output.max-leader-distance", "100",
-           "--fcd-output.attributes", "id,type,speed,lane,acceleration,leaderID,leaderGap",
+           "--fcd-output.attributes", "id,type,speed,lane,acceleration,leaderID,leaderGap,x,y,angle,pos,posLat",
            "--end", str(a.duration), "--no-step-log", "--log", str(work / "sumo.log")]
     traci.start(cmd)
     lanes, reds, entries, ambers = {}, [], 0, 0
+    kinds, entries_by, reds_by = {}, {}, {}
     VAR = traci.constants.VAR_LANE_ID
     while traci.simulation.getTime() < a.duration:
         traci.simulationStep()
         now = traci.simulation.getTime()
         for vid in traci.simulation.getDepartedIDList():
             traci.vehicle.subscribe(vid, [VAR])
+            kinds[vid] = kind_of(traci.vehicle.getTypeID(vid))
+            if cfg["traffic"].get("driver_mix", True):
+                drivermix.apply(vid, traci.vehicle.getVehicleClass(vid), cfg["traffic"].get("seed", 42),
+                                red_running=drivermix.red_running(cfg))
         for vid in traci.simulation.getArrivedIDList():
             lanes.pop(vid, None)
         for vid, res in traci.vehicle.getAllSubscriptionResults().items():
@@ -120,18 +127,43 @@ def main():
                 if state is None or state not in drivecheck.TLS_STATES:
                     continue      # not a signalised link
                 entries += 1
+                k = kinds.get(vid, "car")
+                entries_by[k] = entries_by.get(k, 0) + 1
                 if drivecheck.is_red(state):
                     reds.append((round(now, 2), vid, prev, lane))
+                    reds_by[k] = reds_by.get(k, 0) + 1
                 elif state in ("y", "Y"):
                     ambers += 1
     traci.close()
     wall = time.time() - t0
 
     stats = drivecheck.FcdStats(lane_speed, kind_of)
+    from coupledcarla import drivers
+    vt = {}
+    for tf in [p for p in work.glob("*.xml") if p.name.endswith((".rou.xml", "types.add.xml"))]:
+        for el in drivecheck.ET.parse(tf).getroot().iter("vType"):
+            vt[el.get("id")] = (float(el.get("length", 5.0)), float(el.get("width", 1.8)), el.get("vClass", ""))
+
+    def size_of(type_id):           # CARLA's bodies (what is seen), large: buses and anything over 7 m
+        t = type_id.split("@")[0].replace("ego:", "")
+        length, width, vclass = vt.get(type_id) or vt.get(t) or (4.5, 1.8, "")
+        width = drivers.BODY_WIDTH.get(t, width)
+        return length, width, vclass == "bus" or length > 7.0
+
+    bodies = drivecheck.BodyStats(size_of)
+    step_t, step_recs = None, []
     for t, rec in drivecheck.iter_fcd(work / "check_fcd.xml.gz"):
         if t >= a.warmup:
             stats.add(t, rec)
+            if t != step_t:
+                if step_recs:
+                    bodies.add_step(step_t, step_recs)
+                step_t, step_recs = t, []
+            step_recs.append(rec)
+    if step_recs:
+        bodies.add_step(step_t, step_recs)
     fcd = stats.result()
+    fcd["bodies"] = bodies.result()
     lc = sum(1 for _ in drivecheck.ET.parse(work / "lanechanges.xml").getroot().iter("change")) \
         if (work / "lanechanges.xml").exists() else None
     log = (work / "sumo.log").read_text(errors="replace")
@@ -144,11 +176,15 @@ def main():
         "log_teleports": len(re.findall(r"Teleporting vehicle", log)),
         "tls_entries": entries, "red_light_entries": len(reds), "amber_entries": ambers,
         "red_light_examples": reds[:10],
+        "red_light_share_by_class": {k: round(reds_by.get(k, 0) / n, 4) for k, n in entries_by.items()},
+        "signal_entries_by_class": entries_by,
         "lane_changes": lc,
         "fcd": fcd,
     }
+    out["targets"] = drivecheck.against_targets(out)
     (work / "summary.json").write_text(json.dumps(out, indent=1))
     print(json.dumps(out, indent=1))
+    print(drivecheck.targets_table(out["targets"]))
 
 
 if __name__ == "__main__":

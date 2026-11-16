@@ -36,6 +36,8 @@ from types import SimpleNamespace
 
 import numpy as np
 
+from . import nightlights
+
 DATA = Path(__file__).parent / "data"
 CELL = 100.0          # streaming cell size (m)
 TILE_M = 40.0         # ground tile size (m); 20 m on maps with more than 40 m of relief
@@ -279,6 +281,15 @@ class Catalog:
         return cx - wx, cy - wy, z - wz - sink, yaw
 
 
+def _wet_road(world):
+    """The trial's road is wet: CARLA weather with wetness, puddles or rain (False when it cannot be read)."""
+    try:
+        w = world.get_weather()
+        return max(w.wetness, w.precipitation, getattr(w, "precipitation_deposits", 0.0)) >= 20.0
+    except Exception:  # noqa: BLE001 - a stand-in world (tests)
+        return False
+
+
 def _axes(pitch, yaw, roll):
     """The local x, y, z axes in world coordinates for an Unreal FRotator (degrees)."""
     p, y, r = (math.radians(v) for v in (pitch, yaw, roll))
@@ -414,6 +425,58 @@ def _tree(cat, fam, height, key):
     return mesh, max(0.5, min(1.6, target / cat.size(mesh)[2]))
 
 
+CANOPY_GAP_M = 6.0      # a crown of the canopy map gets a tree when no tree stands within this (canopy_trees)
+
+
+class _PointHash:
+    """Points on a grid of cell metres, for "is there one within r" (r <= cell)."""
+
+    def __init__(self, cell, pts=()):
+        self.cell, self.cells = float(cell), defaultdict(list)
+        for x, y in pts:
+            self.add(x, y)
+
+    def add(self, x, y):
+        self.cells[(int(x // self.cell), int(y // self.cell))].append((x, y))
+
+    def any_within(self, x, y, r):
+        cx, cy = int(x // self.cell), int(y // self.cell)
+        return any(math.hypot(px - x, py - y) < r for i in (-1, 0, 1) for j in (-1, 0, 1)
+                   for px, py in self.cells.get((cx + i, cy + j), ()))
+
+
+def canopy_family(height, lat):
+    """Tree families for an unmapped tree by its height: the big ones (oak, beech, ash) over 18 m, small garden trees
+    (maple, sassafras: the small meshes) under 10 m, the place's usual mix between."""
+    if abs(lat) < 35:
+        return _tree_family({}, lat)
+    if height >= 18.0:
+        return ["oak", "beech", "ash"]
+    if height < 10.0:
+        return ["maple", "sassafras", "maple", "oak"]
+    return _tree_family({}, lat)
+
+
+def canopy_cover(can, bbox, geo, trees, inside_building, sample=20000, radius=5.0):
+    """% of the canopy over 3 m outside buildings with a tree within radius m (trees: a _PointHash), from a sample of
+    its pixels; None without canopy there."""
+    import numpy as np
+    from . import canopy as canopy_mod
+    pts = canopy_mod.crowns(can, bbox, block_m=1.0)
+    if not pts:
+        return None
+    rng = np.random.default_rng(7)
+    pick = rng.choice(len(pts), size=min(sample, len(pts)), replace=False)
+    seen = hit = 0
+    for i in pick:
+        x, y = geo.to_carla(pts[i][0], pts[i][1])
+        if inside_building(x, y):
+            continue
+        seen += 1
+        hit += trees.any_within(x, y, radius)
+    return round(100.0 * hit / seen, 1) if seen else None
+
+
 def _number(text):
     import re
     m = re.match(r"\s*([0-9]+(?:\.[0-9]+)?)", str(text or ""))
@@ -439,6 +502,7 @@ class Placer:
         self.junctions = junctions      # placement.JunctionAreas: a generated map's paved junctions count as lanes
         self.lane_points = None         # placement.LanePoints of the blocking lanes, for footprints
         self.items, self.counts = [], defaultdict(int)
+        self.lamp_specs = []      # (lamp item, nightlights.lamp_spec) per placed lamp
         self.bases = []          # per item (x, y, z) of the ground it was placed on (placement.settle)
         self.surface = None      # placement.GroundSurface once the ground tiles are laid
         self.mesh_index = {}
@@ -801,6 +865,19 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                                         and dup(el))]
     if m_lamps:
         els = [el for el in els if el.get("tags", {}).get("highway") != "street_lamp"]
+    # the register's benches and bins (Eindhoven) replace OSM's within 4 m (streetlook.py dresses them by model)
+    m_furn = {k: [Point(geo.to_carla(e["lat"], e["lon"])) for e in m_els if e["tags"].get("amenity") == k]
+              for k in ("bench", "waste_basket")}
+    m_furn = {k: (STRtree(v), v) for k, v in m_furn.items() if v}
+    if m_furn:
+        def furn_dup(el):
+            k = el.get("tags", {}).get("amenity")
+            if el["type"] != "node" or k not in m_furn:
+                return False
+            tree_, pts_ = m_furn[k]
+            p = Point(geo.to_carla(el["lat"], el["lon"]))
+            return any(pts_[i].distance(p) < 4.0 for i in tree_.query(p.buffer(4.0)))
+        els = [el for el in els if not furn_dup(el)]
     els = els + m_els
     for src in muni.get("sources", []):
         sources.add(src)
@@ -809,7 +886,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     if bgt_data:
         from . import bgt
         n_osm = len(els)
-        els, st = bgt.merge(els, bgt_data, geo, skip_lamps=m_lamps, skip_trees=bool(m_trees))
+        els, st = bgt.merge(els, bgt_data, geo, skip_lamps=m_lamps, skip_trees=bool(m_trees),
+                            skip_kinds=tuple(f"amenity={k}" for k in m_furn))
         surf = bgt.Surfaces(bgt_data, geo)
         sources.add("bgt")
         pl.counts["bgt_surfaces"], pl.counts["bgt_objects"] = len(surf), st["bgt_objects"]
@@ -954,10 +1032,47 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     season.record(pl, cat, {}, fam, mesh, s, (round(x), round(y)), x, y)
                     planted += 1
         pl.counts["tree_planted"] = planted
+        if can is not None and can.z.size and sc.get("canopy_trees", True):
+            # trees nobody maps (gardens, courtyards, private ground): one at each crown of the canopy map with no
+            # tree within canopy_tree_gap_m (canopy.py)
+            from . import canopy as canopy_mod
+            gap = float(sc.get("canopy_tree_gap_m", CANOPY_GAP_M))
+            near = _PointHash(gap, [(it[1], it[2]) for it in pl.items if it[6] == "tree"])
+            cover0 = canopy_cover(can, mc["bbox"], geo, near, inside_building)
+            added = 0
+            for lat, lon, c in canopy_mod.crowns(can, mc["bbox"]):
+                x, y = geo.to_carla(lat, lon)
+                if near.any_within(x, y, gap) or not free(x, y, 0.6, pl.tree_masks):
+                    continue
+                h = min(canopy_mod.MAX_M, canopy_mod.CALIBRATION[0] + canopy_mod.CALIBRATION[1] * c)
+                fam = canopy_family(h, lat0)
+                key = (round(x), round(y), "canopy")
+                mesh, s_ = _tree(cat, fam, h, key)
+                pl.add("tree", mesh, x, y, _h(key) % 360, s_, sink=0.1)
+                season.record(pl, cat, {}, fam, mesh, s_, key, x, y)
+                near.add(x, y)
+                added += 1
+            pl.counts["tree_canopy_planted"] = added
+            cover1 = canopy_cover(can, mc["bbox"], geo, near, inside_building)
+            if cover0 is not None:
+                pl.counts["canopy_cover_pct_before"], pl.counts["canopy_cover_pct"] = cover0, cover1
+            log(f"scenery: {added} trees where the canopy map sees a crown and nothing is mapped (no tree within "
+                f"{gap:.0f} m)" + (f"; canopy over 3 m outside buildings with a tree within 5 m: {cover0} % -> "
+                                    f"{cover1} %" if cover0 is not None else ""))
         log(f"scenery: {pl.counts['tree']} trees ({pl.counts['tree_osm']} street trees (OSM and registers), "
             f"{pl.counts['tree_row']} in rows, {planted} planted in parks and woods), {pl.counts['bush']} bushes"
             + (f"; {pl.counts['tree_canopy']} sized by the canopy height map" if can is not None else "")
             + f"; {pl.counts['tree_moved']} mapped trees moved off a lane, {pl.counts['tree_dropped']} left out")
+
+    # the country (placement.sign_fits for signs CARLA has only in another country's design; streetlook.py's
+    # regional props)
+    try:
+        from . import crowdpeds
+        iso3 = crowdpeds.locate(cfg, mc["bbox"], rdir / "crowdpeds_country.json")[0]
+    except Exception:  # noqa: BLE001 - unknown: CARLA's give-way plate (US YIELD) is left out, CARLA's props
+        iso3 = None
+    from . import streetlook
+    look = streetlook.Chooser(cat, iso3, mc["bbox"], sc.get("street_props", "auto") not in (False, "off", None))
 
     # street furniture and lamps
     if sc.get("furniture", True):
@@ -980,6 +1095,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             t = el.get("tags", {})
             x, y = geo.to_carla(el["lat"], el["lon"])
             if t.get("highway") == "street_lamp":
+                spec = nightlights.lamp_spec(t)
+                if spec["mount"] != "pole":     # on a wall, under a canopy, on a wire, in the paving: no pole
+                    pl.counts["lamp_not_pole"] += 1
+                    continue
                 if not free(x, y, 0.3):
                     continue
                 if lamp_twin(x, y):
@@ -990,8 +1109,16 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
                 far = wp is None or wp.transform.location.distance(carla.Location(x=x, y=y)) > 9
                 far = far or (_number(t.get("height")) or 99) <= 4.5      # a low mast (register): a park lamp
-                pl.add("lamp", ms.PARK_LAMP if far else ms.LAMP, x, y,
-                       0.0 if far or towards is None else towards + ms.LAMP_YAW, 1.0)
+                own = look.street_lamp(t, not far)     # the region's mast for the register's type (streetlook.py)
+                stock, syaw = ms.PARK_LAMP if far else ms.LAMP, 0.0 if far or towards is None else towards + ms.LAMP_YAW
+                if own:
+                    item = pl.add("lamp", own[0], x, y, (towards or 0.0) if own[2] else _h(el["id"]) % 360, own[1])
+                    pl.lamp_specs.append((item, spec))      # lit as itself (its blueprint, ue_lamp_lights.py)
+                    # else at night CARLA's lamp with its light stands in for it
+                    item = streetlook.night_stand_in(pl, cat, item, stock, x, y, syaw) or item
+                else:
+                    item = pl.add("lamp", stock, x, y, syaw, 1.0)
+                pl.lamp_specs.append((item, spec))      # its colour and flux for CARLA 1.0's lights
                 lamps += 1
                 continue
             meshes = None
@@ -1000,7 +1127,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     in ("yes", "true") else None
             for (k, v), fm in ms.FURNITURE.items():
                 if t.get(k) == v:
-                    meshes = fm
+                    own = look.furniture(k, v, t, el["id"])
+                    meshes = [own] if own else fm
             if not meshes:
                 continue
             meshes = [m for m in meshes if m in cat]
@@ -1028,11 +1156,19 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 seen.add(key)
                 if not free(x, y, 0.3):
                     continue
-                pl.add("lamp", ms.LAMP, x, y, yaw + ms.LAMP_YAW, 1.0)   # arm over road
+                own = look.street_lamp({}, True)
+                if own:
+                    streetlook.night_stand_in(pl, cat, pl.add("lamp", own[0], x, y, yaw, own[1]), ms.LAMP, x, y,
+                                              yaw + ms.LAMP_YAW)
+                else:
+                    pl.add("lamp", ms.LAMP, x, y, yaw + ms.LAMP_YAW, 1.0)   # arm over road
                 done += 1
             log(f"scenery: OSM maps {lamps} street lamps; {done} more along the roads")
         elif m_lamps:
             log(f"scenery: {lamps} street lamps from the city's register")
+        if pl.counts["lamp_not_pole"]:
+            log(f"scenery: {pl.counts['lamp_not_pole']} lamps left out that are not on a pole of their own (on "
+                "walls, under canopies, on span wires, in the paving)")
         if pl.counts["lamp_twin"]:
             log(f"scenery: {pl.counts['lamp_twin']} lamps left out within {LAMP_MIN_M} m of another (mapped twice)")
         log(f"scenery: {pl.counts['furniture']} pieces of street furniture, {pl.counts['lamp']} lamps")
@@ -1047,6 +1183,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             log(f"scenery: no shared bikes ({type(err).__name__}: {err})")
 
     # road signs
+    ndw = None
     if sc.get("signs", True) and ms.POST in cat:
         import re
         lefthand = bool(mc.get("lefthand"))
@@ -1063,22 +1200,18 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 f"{c_['sign_ndw_offroad']} of them on streets without a lane in the map; {c_['sign_ndw_skipped']} "
                 f"without a mesh, {c_['sign_ndw_far']} far from the map's roads, {c_['sign_ndw_unplaced']} without "
                 f"a free spot")
-        try:        # the country, for signs CARLA has only in another country's design (placement.sign_fits)
-            from . import crowdpeds
-            iso3 = crowdpeds.locate(cfg, mc["bbox"], rdir / "crowdpeds_country.json")[0]
-        except Exception:  # noqa: BLE001 - unknown: CARLA's give-way plate (US YIELD) is left out
-            iso3 = None
-        speed_re = re.compile(r"(?:maxspeed|A1|274|B14|C43|R2-1|C14|R5)\D{0,3}(\d{2,3})", re.I)
+        speed_re = re.compile(r"(?:maxspeed|A1|274|B14|C43|R2-1|C14|R5|3\.29)\D{0,3}(\d{2,3})", re.I)
         for el in els:
             if el["type"] != "node":
                 continue
             t = el.get("tags", {})
-            sign = None
+            sign, v = None, None
             ts = t.get("traffic_sign", "")
             # NL B7 / DE 206 / FR AB4 / US R1-1: stop; NL B6 / DE 205 / FR AB3 / US R1-2: give way
-            if t.get("highway") == "stop" or re.search(r"stop|R1-1|:B7\b|:206\b|AB4", ts, re.I):
+            if t.get("highway") == "stop" or re.search(r"stop|R1-1|:B7\b|:206\b|AB4|UA:2\.2\b", ts, re.I):
                 sign = ms.STOP
-            elif t.get("highway") == "give_way" or re.search(r"give_way|R1-2|:B6\b|:205\b|AB3", ts, re.I):
+            elif t.get("highway") == "give_way" or re.search(r"give_way|R1-2|:B6\b|:205\b|AB3|UA:2\.1\b", ts,
+                                                             re.I):
                 sign = ms.GIVE_WAY
             else:
                 m = speed_re.search(ts) or (re.match(r"(\d{2,3})", t.get("maxspeed", "")) if ts else None)
@@ -1088,13 +1221,18 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             if sign is None or sign not in cat:
                 continue
             kind_ = "stop" if sign == ms.STOP else "give_way" if sign == ms.GIVE_WAY else "speed"
-            if not placement.sign_fits(kind_, iso3):
+            # CARLA 1.0 with the Dutch faces: the Vienna Convention's give-way triangle and speed roundel, the same
+            # design in most countries, instead of CARLA's US plates (streetlook.osm_face)
+            face = streetlook.osm_face(kind_, v, iso3, cat) if sc.get("ndw_faces", True) else None
+            if face is None and not placement.sign_fits(kind_, iso3):
                 pl.counts["sign_osm_wrong_country"] += 1
                 continue
             x, y = geo.to_carla(el["lat"], el["lon"])
             if ndw_placed and ndwsigns.near_same(ndw_placed, x, y, ndwsigns.osm_kind(sign, ms)):
                 pl.counts["sign_osm_replaced"] += 1
                 continue
+            if face:
+                sign = face
             wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
             if wp is None or wp.transform.location.distance(carla.Location(x=x, y=y, z=wp.transform.location.z)) > 25:
                 continue
@@ -1124,12 +1262,24 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             pl.add("sign", sign, px, py, face + ms.SIGN_YAW, 1.0,
                    z=gz + cat.size(ms.POST)[2] - H - 0.05, base=(px, py, gz))
             pl.counts["sign_osm"] += 1
+            pl.counts["sign_osm_face"] += bool(face)
         if pl.counts["sign_osm_wrong_country"]:
             log(f"scenery: {pl.counts['sign_osm_wrong_country']} OSM stop/give-way signs left out: CARLA has them only "
                 f"in another country's design ({iso3 or 'country unknown'})")
         log(f"scenery: {pl.counts['sign_osm']} road signs from OSM"
+            + (f" ({pl.counts['sign_osm_face']} with the Vienna Convention face instead of CARLA's US plate)"
+               if pl.counts["sign_osm_face"] else "")
             + (f"; {pl.counts['sign_osm_replaced']} left out near a register sign of the same kind" if ndw_placed
                else ""))
+
+    # markings, red cycle lanes, road wear and rooftop clutter (streetlook.py; CARLA 1.0 with our content)
+    try:
+        streetlook.add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log,
+                                  ndw=ndw, bgt_data=bgt_data, free=free)
+    except Exception as err:  # noqa: BLE001 - the scenery stands without them
+        log(f"scenery: street look extras failed ({type(err).__name__}: {err})")
+    if look.counts:
+        log("scenery: regional props: " + ", ".join(f"{k} {v}" for k, v in sorted(look.counts.items())))
 
     # ground tiles: tilted to the terrain, and always below the road surface (which follows the terrain
     # model only at the road nodes) and below the pavements
@@ -1180,7 +1330,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     z += gap - 0.15
                     lowered += 1
             tilt = (math.degrees(math.atan(zx)), -math.degrees(math.atan(zy)))
-            mesh = ms.GROUND_MESH.get(kind, ms.PAVING)
+            mesh = streetlook.ground_mesh(kind, T, cat, look.region) or ms.GROUND_MESH.get(kind, ms.PAVING)
             if mesh not in cat:
                 mesh, kind = ms.PAVING, "open"
             dz = {"water": -0.5, "open": -0.02}.get(kind, 0.0)
@@ -1242,11 +1392,18 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
     out = {"version": 1, "catalog": cat.version, "cell_m": CELL, "meshes": [cat.path(m) for m in meshes],
            "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources), "leaf": leaf}
+    specs = nightlights.spec_rows([it for it, _ in pl.lamp_specs], [sp for _, sp in pl.lamp_specs])
+    if specs:           # register lamps' colour temperature and lumens (nightlights.py), by position
+        out["lamp_specs"] = specs
     if pl.surface is not None and len(pl.surface):      # the ground's top, for signals.py's poles
         out["ground_planes"] = pl.surface.to_list()
     from .ndwsigns import fallbacks
-    if fallbacks(meshes, cat):      # Dutch sign faces: the blank plate where the server lacks our content
-        out["fallbacks"] = fallbacks(meshes, cat)
+    night = streetlook.night_rows(pl)
+    if night:       # regional lamps -> CARLA's lit lamp for trials with lamp lights (Scenery)
+        out["lamp_night"] = night
+    fb = dict(fallbacks(meshes, cat), **streetlook.fallbacks(meshes, cat))
+    if fb:      # Dutch sign faces and regional props: CARLA's mesh where the server lacks our content
+        out["fallbacks"] = fb
     (mdir / "scenery.json").write_text(json.dumps(out, separators=(",", ":")))
     log(f"scenery: {len(pl.items)} placements -> {mdir / 'scenery.json'}")
     return out
@@ -1268,6 +1425,12 @@ class Scenery:
         self.meshes = data["meshes"]
         kinds = set(sc.get("kinds") or ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water",
                                         "shared"])
+        if kinds & {"furniture", "ground"}:     # streetlook.py's markings, surfaces, wear and roofs come with them
+            kinds |= {"marking", "surface", "wear", "roof"}
+        if (season or {}).get("state") == "autumn" and "tree" in kinds:
+            kinds.add("leaves")         # leaf litter under deciduous trees only in autumn
+        if "ground" in kinds and _wet_road(world):
+            kinds.add("puddle")         # puddles in the gutters only on a wet road (streetlife.py)
         self.radius = float(sc.get("radius_m", 400.0))
         self.cell = float(data.get("cell_m", CELL))
         self.cells = defaultdict(list)
@@ -1282,9 +1445,31 @@ class Scenery:
         self.light_bp = {by_name[m]: bp for m, bp in (season.get("lights") or {}).items() if m in by_name}
         self.lights_radius = float(season.get("lights_radius_m", 200.0))
         self.lit, self.lamps, self.n_lights = set(), {}, 0
+        # register lamps' colour and lumens (scenery.json "lamp_specs"), given to their lights at a lit spawn
+        self.lamp_index = nightlights.SpecIndex(data.get("lamp_specs")) if self.light_bp else None
+        self.lamp_scale = float(season.get("lamp_lumen_scale", 1.0))
+        self.lamp_colours = bool(season.get("lamp_colours", True))
+        self.n_lamp_specs = 0
+        # regional lamps light at any placed scale: the blueprint stands at its mesh's size (within streetlook's
+        # SCALE_LIMITS of the mast it stands for)
+        self.light_any_scale = {i for i in self.light_bp if self.meshes[i].rsplit(".", 1)[-1].startswith("SM_CC_")}
         if self.light_bp:
             lib = world.get_blueprint_library()
             self.light_bp = {i: lib.find(bp) for i, bp in self.light_bp.items()}
+            if data.get("lamp_night"):     # regional lamps (streetlook.py) without a lit blueprint of their own
+                items = list(items)        # on this server: CARLA's lit lamp instead
+                swapped = own = 0
+                for i, m, dx, dy, dz, yaw in data["lamp_night"]:
+                    it = items[i]
+                    if it is None:
+                        continue
+                    if it[0] in self.light_bp:      # the regional lamp's own lit blueprint (ue_lamp_lights.py)
+                        own += 1
+                        continue
+                    items[i] = [m, round(it[1] + dx, 2), round(it[2] + dy, 2), round(it[3] + dz, 2), yaw,
+                                1.0] + it[6:]
+                    swapped += 1
+                log(f"scenery: regional lamps tonight: {own} lit as themselves, {swapped} as CARLA's lit lamps")
         for it in items:
             if it is None:
                 continue
@@ -1310,7 +1495,8 @@ class Scenery:
             pitch, roll = (it[7] if len(it) > 7 else (0.0, 0.0))
             tf = carla.Transform(carla.Location(x=it[1], y=it[2], z=it[3]),
                                  carla.Rotation(pitch=pitch, yaw=it[4], roll=roll))
-            light = lit and it[6] == "lamp" and it[0] in self.light_bp and abs(it[5] - 1.0) < 0.01
+            light = lit and it[6] == "lamp" and it[0] in self.light_bp and (abs(it[5] - 1.0) < 0.01
+                                                                          or it[0] in self.light_any_scale)
             if light:       # the street-light blueprint: the same mesh and pivot, plus its light (no scale)
                 # spawned where it stands: its root mesh is Static, so it cannot be moved after the spawn
                 # (a lamp spawned 100 m up and moved down stayed up there, light and all)
@@ -1347,6 +1533,10 @@ class Scenery:
                         lm.turn_on(lm.get_all_lights(carla.LightGroup.Street))
                     except Exception as err:  # noqa: BLE001 - lamps without light still stand
                         self.log(f"scenery: street lights not switched on ({err})")
+                    if self.lamp_index:
+                        self.n_lamp_specs += nightlights.apply_lamp_lights(
+                            self.world, self.lamps[key], self.lamp_index, self.lamp_scale, self.lamp_colours,
+                            self.log)
         self.loaded.setdefault(key, []).extend(ids)
         self.n += len(ids)
         if self.on_spawn:
@@ -1369,8 +1559,8 @@ class Scenery:
         n = sum(m in self.fallbacks for m in self.meshes)
         self.meshes = [self.fallbacks.get(m, m) for m in self.meshes]
         self.fallbacks = {}
-        self.log(f"scenery: the server has no Dutch sign faces (the CoupledCarla content is not cooked in): "
-                 f"{n} face meshes spawn as blank plates")
+        self.log(f"scenery: the server lacks the CoupledCarla content (Dutch sign faces, regional props): "
+                 f"{n} meshes spawn as CARLA's own (blank plates, stock props)")
         res = list(res)
         again = []
         for k in redo:

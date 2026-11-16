@@ -13,6 +13,7 @@ Now:
   light nearest to the tagged crossings; walkers then cross while it lasts, in any direction.
 """
 import math
+import types
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -134,16 +135,30 @@ def scramble_tls(net, xy_points, reach=SCRAMBLE_REACH_M):
     return sorted(out)
 
 
-def scramble_programs(net, tls_ids, path, seconds=SCRAMBLE_S):
+def tls_programs(net_file):
+    """{tls id: {programID: [(duration, state)]}} of a SUMO net, read as XML. (sumolib's readNet(withPrograms=True)
+    failed on our nets: a <param> outside a tlLogic hit its parser before any programme, AttributeError
+    '_currentProgram', so scramble crossings were silently off.)"""
+    out = {}
+    for _, el in ET.iterparse(str(net_file), events=("end",)):
+        if el.tag == "tlLogic":
+            out.setdefault(el.get("id"), {})[el.get("programID", "0")] = [
+                (float(p.get("duration")), p.get("state")) for p in el.findall("phase")]
+            el.clear()
+        elif el.tag in ("edge", "junction", "connection"):
+            el.clear()
+    return out
+
+
+def scramble_programs(programs, tls_ids, path, seconds=SCRAMBLE_S):
     """Writes an additional file with each programme of the given traffic lights plus an all-red phase at its end
-    (SUMO runs the programme loaded last); returns the number of programmes written."""
+    (SUMO runs the programme loaded last); returns the number of programmes written. programs: tls_programs()."""
     rows, n = ["<additional>"], 0
     for tid in tls_ids:
-        tls = net.getTLS(tid)
-        for pid, prog in tls.getPrograms().items():
-            phases = prog.getPhases()
+        for pid, phases in (programs.get(tid) or {}).items():
             if not phases:
                 continue
+            phases = [types.SimpleNamespace(duration=d, state=st) for d, st in phases]
             size = len(phases[0].state)
             rows.append(f'  <tlLogic id="{tid}" type="static" programID="{pid}_scramble" offset="0">')
             for ph in phases:
@@ -166,13 +181,13 @@ def prepare(map_dir, net_file, work, log=print):
     if not pts:
         return None
     import sumolib
-    net = sumolib.net.readNet(str(net_file), withPrograms=True)
+    net = sumolib.net.readNet(str(net_file))          # the lights' links; their programmes: tls_programs
     xy = [net.convertLonLat2XY(lon, lat) for lat, lon in pts]
     tls = scramble_tls(net, xy)
     if not tls:
         log(f"scramble crossings: {len(pts)} OSM points, no traffic light near them")
         return None
-    n = scramble_programs(net, tls, Path(work) / "scramble.add.xml")
+    n = scramble_programs(tls_programs(net_file), tls, Path(work) / "scramble.add.xml")
     log(f"scramble crossings: {len(pts)} OSM points -> all-pedestrian phase of {SCRAMBLE_S} s at {len(tls)} traffic "
         f"lights ({n} programmes)")
     return "scramble.add.xml"

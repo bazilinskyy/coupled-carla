@@ -280,6 +280,12 @@ class HostAudio:
         self.ticks += 1
         self.cost += time.perf_counter() - c0
 
+    def sound_event(self, se):
+        """A sound event of the living city (horn, bell, from livingcity.py and reactions.py): the soundscape renders
+        it from that actor (Soundscape.event)."""
+        if se.get("name") in ("horn", "bell", "shout"):
+            self.scape.event(se["name"], se.get("actor_id"), se.get("kind"))
+
     def close(self, summary=None):
         try:
             self.wav.close()
@@ -292,7 +298,7 @@ class HostAudio:
             lines.append(f"{role}: " + (info["line"] if "line" in info else soundfetch.credit_line(info)))
         if lines:
             (self.out / "audio_credits.txt").write_text(
-                "Recordings and data used in audio.wav (Wikimedia Commons; licences as given):\n"
+                "Recordings and data used in audio.wav (Wikimedia Commons, Freesound; licences as given):\n"
                 + "\n".join(lines) + "\nEverything else in audio.wav is synthesised by coupled-carla (MIT licence).\n")
         rec = {"file": self.path.name, "rate": RATE, "channels": 2, "sample_format": "s16le",
                "start_sim_s": 0.0, "start_frame": self.frame0, "start_elapsed_s": self.elapsed0,

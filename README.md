@@ -60,7 +60,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Citation](#citation) · [License](#license) · [Support](#support-coupled-carla)
 - [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
 - [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
-- [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
+- [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [night and rain](#night-and-rain), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
 - [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [VR stations](docs/lab_guide.md#vr-stations), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
 - [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
 - [Traffic](#traffic) · [Traffic lights](#traffic-lights)
@@ -230,20 +230,20 @@ participant hears (`--record-audio`), outside cameras what can be heard where th
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_shibuya.mp4"><img src="docs/img/videos/twin_shibuya.jpg" alt="Shibuya crossing twin"></a><br><b>Shibuya crossing twin</b><br><sub>Tokyo, Japan, CARLA 1.0 twin (left-hand) · driver (autopilot), chase camera · 20 s, 3.2 MB<br>across the scramble crossing in a twin from Japan's open data: PLATEAU buildings with their photo textures, GSI photo and terrain</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_rush_hour.mp4"><img src="docs/img/videos/eindhoven_rush_hour.jpg" alt="Rush hour in Eindhoven"></a><br><b>Rush hour in Eindhoven</b><br><sub>Eindhoven centre, Netherlands · driver (autopilot), chase camera · 20 s, 3.3 MB<br>dense mixed traffic around the station, buses of the real lines, cyclists sharing the road</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_pedestrian_ehmi.mp4"><img src="docs/img/videos/eindhoven_pedestrian_ehmi.jpg" alt="Crossing in front of an automated car"></a><br><b>Crossing in front of an automated car</b><br><sub>Eindhoven, east of the station · pedestrian · 18 s, 2.2 MB<br>the AV slows, shows I'M STOPPING, then GO AHEAD; its eyes follow the pedestrian</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_rush_hour.mp4"><img src="docs/img/videos/eindhoven_rush_hour.jpg" alt="Rush hour in Eindhoven"></a><br><b>Rush hour in Eindhoven</b><br><sub>Eindhoven centre, Netherlands · driver (autopilot), chase camera · 20 s, 2.6 MB<br>dense mixed traffic around the station, buses of the real lines, cyclists sharing the road</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_pedestrian_ehmi.mp4"><img src="docs/img/videos/eindhoven_pedestrian_ehmi.jpg" alt="Crossing in front of an automated car"></a><br><b>Crossing in front of an automated car</b><br><sub>Eindhoven, east of the station · pedestrian · 9.5 s, 2.0 MB<br>the AV slows, shows I'M STOPPING, then GO AHEAD; its eyes follow the pedestrian</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/crossing_four_views.mp4"><img src="docs/img/videos/crossing_four_views.jpg" alt="Four people, one street"></a><br><b>Four people, one street</b><br><sub>Eindhoven, east of the station · pedestrian, AV passenger, driver, drone pilot (four bot stations) · 20 s, 4.2 MB<br>the same moment from four stations, frame-locked in simulation time</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/robotaxi_passenger.mp4"><img src="docs/img/videos/robotaxi_passenger.jpg" alt="Riding in a robotaxi"></a><br><b>Riding in a robotaxi</b><br><sub>Eindhoven, east of the station · AV passenger (bot station) · 18 s, 4.2 MB<br>the centre screen's message and the eHMI as the AV stops and lets the pedestrian cross</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/crossing_four_views.mp4"><img src="docs/img/videos/crossing_four_views.jpg" alt="Four people, one street"></a><br><b>Four people, one street</b><br><sub>Eindhoven, east of the station · pedestrian, AV passenger, driver, drone pilot (four bot stations) · 20 s, 3.5 MB<br>the same moment from four stations, frame-locked in simulation time</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/robotaxi_passenger.mp4"><img src="docs/img/videos/robotaxi_passenger.jpg" alt="Riding in a robotaxi"></a><br><b>Riding in a robotaxi</b><br><sub>Eindhoven, east of the station · AV passenger (bot station) · 18 s, 4.6 MB<br>the centre screen's message and the eHMI as the AV stops and lets the pedestrian cross</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_cyclist.mp4"><img src="docs/img/videos/eindhoven_cyclist.jpg" alt="Riding with Dutch cyclists"></a><br><b>Riding with Dutch cyclists</b><br><sub>Eindhoven, Vestdijk cycle path · chase camera on a SUMO cyclist · 20 s, 2.8 MB<br>cyclists on the cycle track and the street beside it, overtaking each other</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_cyclist.mp4"><img src="docs/img/videos/eindhoven_cyclist.jpg" alt="Riding with Dutch cyclists"></a><br><b>Riding with Dutch cyclists</b><br><sub>Eindhoven, Vestdijk cycle path · chase camera on a SUMO cyclist · 20 s, 4.0 MB<br>cyclists on the cycle track and the street beside it, overtaking each other</sub></td>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/tokyo_shibuya.mp4"><img src="docs/img/videos/tokyo_shibuya.jpg" alt="Shibuya crossing, left-hand traffic"></a><br><b>Shibuya crossing, left-hand traffic</b><br><sub>Tokyo (Shibuya), Japan · orbiting camera above the crossing · 20 s, 2.4 MB<br>traffic keeps left, Toei buses, pedestrians crossing at the junction (80 walkers calibrated for Tokyo)</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/new_york_avenue.mp4"><img src="docs/img/videos/new_york_avenue.jpg" alt="Up Sixth Avenue"></a><br><b>Up Sixth Avenue</b><br><sub>New York (Midtown), USA · automated driver, chase camera · 20 s, 3.8 MB<br>Midtown's towers at their real heights (NYC Open Data), the avenue's five lanes</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/kigali_hills.mp4"><img src="docs/img/videos/kigali_hills.jpg" alt="Kigali's hills"></a><br><b>Kigali's hills</b><br><sub>Kigali, Rwanda · crane camera over the road · 20 s, 3.2 MB<br>the roads climb and fall with the real terrain (AWS Terrain Tiles); Overture buildings on the slopes</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/new_york_avenue.mp4"><img src="docs/img/videos/new_york_avenue.jpg" alt="Up Sixth Avenue"></a><br><b>Up Sixth Avenue</b><br><sub>New York (Midtown), USA · automated driver, chase camera · 20 s, 3.7 MB<br>Midtown's towers at their real heights (NYC Open Data), the avenue's five lanes</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/kigali_hills.mp4"><img src="docs/img/videos/kigali_hills.jpg" alt="Kigali's hills"></a><br><b>Kigali's hills</b><br><sub>Kigali, Rwanda · crane camera over the road · 20 s, 3.1 MB<br>the roads climb and fall with the real terrain (AWS Terrain Tiles); Overture buildings on the slopes</sub></td>
 </tr>
 <tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/lyon_night_rain.mp4"><img src="docs/img/videos/lyon_night_rain.jpg" alt="Rainy night in Lyon"></a><br><b>Rainy night in Lyon</b><br><sub>Lyon (Bellecour), France · driver, chase camera · 20 s, 4.7 MB<br>night after sunset with rain, headlights and lit shop windows (0.9.16's street lamps give no light)</sub></td>
@@ -342,6 +342,33 @@ export CARLA_ROOT=~/carla-eindhoven/CARLA_0.9.16          # the extracted CARLA 
 export SUMO_HOME=$(.venv/bin/python -c "import sumo; print(sumo.SUMO_HOME)")
 export PATH=$SUMO_HOME/bin:$PATH PROJ_LIB=$SUMO_HOME/data/proj
 ```
+
+### The `config` and `secret` files
+
+The machine's own settings and API keys live in two JSON files in the root of the project, `config` and `secret`.
+Both are ignored by git, so they are never committed; the templates `default.config` and `default.secret` are. Copy
+them once and fill in only what you use (every entry may stay empty; a feature that needs a key says so):
+
+```bash
+cp default.config config && cp default.secret secret && chmod 600 secret
+.venv/bin/python -m coupledcarla.settings          # which keys are set (names and lengths only, never the keys)
+```
+
+| `secret` entry | Used for | Free key from |
+|---|---|---|
+| `google_maps_api_key` | Google Photorealistic 3D Tiles ([Photorealistic tiles](#photorealistic-tiles-optional)) | console.cloud.google.com (billing on; 1,000 tile sessions a month free) |
+| `mapillary_token` | street photos and their detected signs, poles and lamps, to compare and correct the twins | mapillary.com/dashboard/developers |
+| `sketchfab_api_token` | openly licensed 3D models of street furniture | sketchfab.com, Settings, Password & API |
+| `freesound_api_key` | recordings for the soundscape (engines, horns, rain, city ambience) | freesound.org/apiv2/apply |
+| `opentopography_api_key` | elevation outside the countries with national data (Copernicus 30 m, lidar) | portal.opentopography.org |
+| `tomtom_api_key` | traffic speeds where no open counts exist | developer.tomtom.com |
+
+An environment variable with the entry's name in capitals (`GOOGLE_MAPS_API_KEY`, `MAPILLARY_TOKEN`, ...) wins over
+`secret`. The CARLA server's photorealistic-tiles plugin runs inside the server and reads its key on the server
+machine from `GOOGLE_MAPS_API_KEY` or `~/.config/coupled-carla/google_maps_key` (Windows:
+`%USERPROFILE%\.config\coupled-carla\google_maps_key`). `config` holds `mute_sound` (true: nothing is played on
+the speakers, as `COUPLED_CARLA_MUTE=1`; recordings still work) and `config_dir` (where the tiles ledger and credits
+live).
 
 Build a map once, then run its trials:
 
@@ -468,9 +495,9 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | Road signs (NL) | [NDW Verkeersborden](https://docs.ndw.nu/en/data-uitwisseling/interface-beschrijvingen/verkeersborden-api/), the national traffic sign register (CC0); sign faces: the RVV drawings on [Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:Diagrams_of_road_signs_of_the_Netherlands) (public domain / CC0, 13 CC BY-SA 4.0) | every official sign at its position, facing the traffic it governs, plates stacked on posts: CARLA's own stop, give-way and no-entry meshes; on CARLA 1.0 every other sign with its Dutch face on a plate of its shape (248 designs; Eindhoven: 779 of 955 plates), else a blank plate; OSM signs of the same kind within 8 m are dropped |
 | Shared bikes and scooters | [GBFS](https://gbfs.org) feeds from [MobilityData's systems catalogue](https://github.com/MobilityData/gbfs/blob/master/systems.csv) (CC BY 3.0), TfL BikePoint, Taipei's YouBike | the bikes at each dock and free-floating bikes, scooters and mopeds where they stand (CARLA's road bike and Vespa meshes); a trial at `time: now` takes a fresh snapshot (9 maps have a system) |
 | Tree heights | [Meta/WRI 1 m canopy height map](https://registry.opendata.aws/dataforgood-fb-forests/) (Tolan et al. 2024) | the size of trees without a mapped height (OSM nodes and rows, park planting), corrected against Eindhoven's register |
-| City registers | Eindhoven's open data ([bomen](https://data.eindhoven.nl/explore/dataset/bomen/): 127,911 trees with species and height class; [openbare verlichting](https://data.eindhoven.nl/explore/dataset/data-openbare-verlichting/): 58,430 lamps with mast height); NYC's [2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) | every public tree and street light where the city lists them (OSM trees within 3 m of one are dropped; register lamps replace OSM and guessed ones) |
+| City registers | Eindhoven's open data ([bomen](https://data.eindhoven.nl/explore/dataset/bomen/): 127,911 trees with species and height class; [openbare verlichting](https://data.eindhoven.nl/explore/dataset/data-openbare-verlichting/): 58,507 lights with mast, arm, lamp, wattage and lumens); NYC's [2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) | every public tree and street light where the city lists them (OSM trees within 3 m of one are dropped; register lamps replace OSM and guessed ones; lights on walls, under canopies, on span wires or in the paving get no pole; [night lights](#night-and-rain)) |
 | Weather | [Open-Meteo](https://open-meteo.com) forecast and ERA5 archive (back to 1940) | clouds, rain, wet roads, wind and fog of that hour |
-| Sun | computed (NOAA solar position) | the sun's altitude and direction for the place and local time; headlights on after dark |
+| Sun | computed (NOAA solar position) | the sun's altitude and direction for the place and local time; headlights on after dark ([night and rain](#night-and-rain)) |
 
 ```yaml
 map:
@@ -511,6 +538,16 @@ How it is placed (`coupledcarla/scenery.py`, `coupledcarla/realworld.py`):
   The map reads urban trees about 6.5 m low and misses most under 8 m, so its values are corrected with a line
   fitted to Eindhoven's tree register (6 m + 1.1 x canopy, r = 0.34: a rough guide, unproven outside Europe).
   Where it sees no tree, the size stays a guess. `map.scenery.canopy: false` turns it off.
+- **Trees nobody maps.** Registers and OSM list public trees; gardens, courtyards and private ground hold many more.
+  In central Eindhoven only 44.7 % of the canopy map's cover over 3 m outside buildings had a placed tree within 5 m
+  (street-photo comparisons found "missing trees" at 221-307 of 350 spots). The canopy map's crowns (the tallest
+  pixel of each 5 m square over 3 m) now get a tree where none stands within 6 m (`map.scenery.canopy_trees`,
+  `canopy_tree_gap_m`), sized by the same calibration; over 18 m an oak, beech or ash, under 10 m a small maple or
+  sassafras, between the place's usual mix. Eindhoven centre on 0.9.16: 2,511 trees added (6,062 -> 8,573), cover
+  44.7 % -> 82.9 %; the twin's scenery with CARLA 1.0's meshes: 2,467 added (5,883 -> 8,350), 43.1 % -> 80.6 %. Cost
+  on a headless 0.9.16 trial (90 s, two runs each): 4,510 -> 5,176 meshes within 400 m, 12.1 -> 13.4 ms per tick in
+  the bridge's sync, real-time factor 1.47 -> 1.34. In parks without OSM planting (the Dommel valley north of the
+  station) the canopy now makes a wood where there was lawn; a tree may stand on a park path (paths are not lanes).
 - **Nothing on the lanes.** Every placement is checked against CARLA's map: nothing stands on a lane that is
   driven, ridden, parked or walked; a building that would reach into one is shrunk or dropped.
 - **Ground.** 40 m tiles (20 m on maps with more than 40 m of relief), tilted to the terrain and kept under
@@ -536,7 +573,7 @@ Built from these sources (the test maps of central Eindhoven, Lyon, Kigali and N
 | New York (Midtown) | 1,406 (NYC Open Data) | 801 (719) | 1,153 (103) | 339 | 2 | 14 m |
 
 Where OSM maps few street lamps, lamps line the roads every 32 m (on by default, `guess_lamps`). The lamp
-meshes give no light at night: CARLA 0.9.16 cannot add lights at run time.
+meshes give no light at night on CARLA 0.9.16, which cannot add lights at run time ([night and rain](#night-and-rain)).
 
 **Seasons.** With `simulation.time` set, deciduous trees follow the date at the place (`coupledcarla/season.py`):
 in leaf, in autumn colour (a growing share take CARLA's autumn sugar maple and red Japanese maples) or bare. A bare
@@ -585,6 +622,98 @@ Output: counts per kind and problem, the worst examples and camera frames in `lo
 300 m of the centre it found and the fixes removed, in Eindhoven: 168 of CARLA's own traffic lights hanging at 5 m
 (0 left), 45 duplicate signal heads (0), 867 floating objects (20), 35 signs, lamps or poles on a lane or in a
 junction (7); New York and Tokyo alike.
+
+#### Street furniture that looks like the place (CARLA 1.0)
+
+With the CoupledCarla content cooked into the server (`/Game/CoupledCarla/Street`, made by `tools/street_props.py`
+and `tools/ue_street_props.py`), the scenery uses a country's own props instead of CARLA's generic ones. In the
+Netherlands, lamp posts follow the street-light register's mast type and height (Eindhoven: 4 m post-top lamps, 6 m
+top-LED masts, 9 and 12 m arms, double arms, cast-iron lanterns). The scenery also places "Model Eindhoven" benches
+and bins in the register's colours, steel bollards (Amsterdammertjes in Amsterdam), rows of bike stands by capacity,
+shark-teeth give-way lines at NDW B6 signs, red asphalt on BGT cycle paths and cycle lanes, and grey concrete pavers
+on BGT open paving. The UK and Japan get their own lamp columns, and the UK cast litter bins. Everywhere there are
+cracks, repair patches, potholes (more where OSM tags a bad smoothness), oil spots in parking, autumn leaves under
+deciduous trees, and AC units and bulkheads on flat measured roofs of baked twins. OSM give-way and speed signs in
+Vienna-convention countries show the Dutch faces (the same design). Options in `map.scenery`: `street_props`,
+`shark_teeth`, `red_cycle`, `road_wear`, `leaf_litter`, `roof_clutter` (all on). A server without the content spawns
+CARLA's props in their place; CARLA 0.9.16 keeps CARLA's props. At night the regional lamps light as themselves:
+`tools/ue_lamp_lights.py` makes a street-light blueprint per lamp (`/Game/CoupledCarla/Street/Lights/BP_CC_<...>`,
+CARLA's lit lamp BP_StreetLight06_A with our mesh, its spot light moved to our luminaire, a second one on the double
+arm, CARLA's lamp glass on our glass), listed in the content pack as `blueprint.cc_nl_lamparm9` and so on; they light
+at the register's colour and lumens like CARLA's lamps ([night and rain](#night-and-rain)). On a -nullrhi server all
+eight spawn and register as street lights, on at night. A server without these blueprints gets CARLA's lit lamp in
+a regional lamp's place, as before. All meshes are procedural (MIT;
+`unreal/StreetProps/SOURCES.md`). Ideas from [BeamNG.Earth](https://github.com/TecnaGamer/BeamNG.Earth) (MIT,
+TecnaGamer).
+
+
+**Street life (CARLA 1.0, the Netherlands first).** Roads the BGT lists as open paving and OSM roads tagged with
+bricks or paving stones get red-brown clay clinkers in herringbone (setts for `sett`/`cobblestone`, any country), as
+strips across the carriageway at the stones' real size. Gutters get a dirt band, more on shopping streets; litter and
+gum stains lie around bins, benches, cafes and stations; puddles stand in the gutters only when the road is wet. Dutch
+city bikes (step-through and diamond frames, five colours, 12 % Swapfiets with the blue front tyre) stand in the bike
+stands, in rows against facades near shops, cafes and stations, and against lamp posts (at most 4,000 per map). OSM's
+advertising columns become Morris columns with posters, and on baked twins each shop and cafe gets a fascia sign with
+its trade in Dutch. Options in `map.scenery`: `stone_roads`, `grime`, `parked_bikes`, `shop_signs`. All procedural
+(MIT), from OSM and the BGT; nothing from Street View.
+
+## Night and rain
+
+`coupledcarla/nightlights.py` gives the street lamps the light their city lists, drives cars with the lights the Dutch
+rules ask for and sends fewer cyclists out in the rain.
+
+**Lamps from the register.** Eindhoven's lighting register lists per light point its mast or bracket, its arm, the
+height of the light, the lamp (`SON-T PIA PLUS 150W`, `CorePro LED Urban PLL Mains 13W 830`), its wattage and its
+lumens. In the centre (3,129 lights in the map's box) 1,013 are not on a pole of their own: on the walls of the
+road tunnels and underpasses (about 350: Kruisstraat, Vestdijk, Boschdijk, Dommel, Elisabeth), in car parks, on facades and
+columns, under canopies (the station's), on span wires over shopping streets or set in the paving. Each of them used
+to stand as a street lamp on its own pole, rows of them on the streets above the tunnels; now only lamps on masts are
+placed (2,343 lamp poles before, 1,816 now). Each placed lamp keeps its colour temperature and flux in `scenery.json` (`lamp_specs`):
+the colour from the lamp model's code (LED `830` = 3,000 K, `740` = 4,000 K, `3000K`, `WW`), else from the kind of
+lamp (high-pressure sodium 2,000 K, low-pressure sodium 1,800 K, CosmoPolis 2,800 K, ceramic metal halide 3,000 K,
+fluorescent and mercury 4,000 K, LED 3,000 K), else the colour word (geel, oranje); the flux from the listed lumens
+(median 3,500 lm; 10-90 % 1,800-17,000 lm), else watts times the kind's efficacy, capped at 40,000 lm. In the
+centre's lamps: 910 at 3,000 K, 481 sodium at 2,000 K, 347 at 4,000 K, 75 at 2,800 K. OSM lamps with `lamp_type`
+(sodium, LED, mercury) and `support` (wall_mounted, suspended, ceiling, ground) are read the same way elsewhere.
+
+On CARLA 1.0 the lit lamps get that colour and flux through the LightManager (`simulation.scenery.lamp_colours`,
+`lamp_lumen_scale`, default 1: the real lumens). This needs a fix in CARLA: ue58-dev applies a client's
+`set_intensity`/`set_color` to its own record only, not to the light (the lamp blueprints' `UpdateLights` graphs
+never reach their light components; only on/off was enforced), so without it every lamp keeps CARLA's 27,000 lm
+and warm white. The fix is three lines in `UCarlaLight::SetLightState`:
+[`unreal/patches/CarlaLight_SetLightState.patch`](unreal/patches/CarlaLight_SetLightState.patch) (not yet built
+into the lin5080 editor or the win5090 package). Lamps under 1,000 lm are sent as 1,000: CARLA reads smaller
+street-light values as kilolumens. Why the lamps were dark before: they were spawned 100 m up and moved down, which
+a Static root mesh ignores (fixed by spawning them in place, above); CARLA's own fixes in ue58-dev made old
+UE4-unit lamps, switched-off light components, light-masking IES profiles and lamp heads that shadowed their own
+light render. CARLA 0.9.16 cannot add lights: its lamps stay dark poles, and night there is lit by headlights,
+lit shop windows and the sky.
+
+**Vehicle lights** (`simulation.headlights: auto`), after the Dutch traffic rules (RVV 1990): dipped beam at night
+and by day when visibility is seriously impaired (art. 32(1)), rear lights whenever the dipped beam is on (art.
+32(3)), the rear fog light only in fog or snow under 50 m (art. 34(2)), never for rain. The law gives no number for
+seriously impaired; here it is visibility under 1 km (fog) or rain from 2.5 mm/h (the start of moderate rain). Night
+is the sun below 3°, as before. This holds for the participants' cars, scripted cars and every SUMO car (before,
+SUMO cars at night drove with headlights but dark rear lights: the bridge switched the rear lights only for open
+doors). The autopilot driver and scripted cars now light their brake lights while braking (keyboard and wheel did
+already; SUMO cars follow SUMO's brake signal). `weather.json` says which lights and why.
+
+**Wet roads and rain.** Rain of the real hour sets CARLA's precipitation (1 mm/h = 20), the rain of the last three hours
+its wetness and puddles ([weather](#real-world-scenery-terrain-and-weather) above). CARLA 1.0 also puts rain
+on the camera lens and around every camera and makes the roads look wet; 0.9.16 darkens and mirrors wet roads.
+Neither CARLA has spray behind vehicles, wipers (no vehicle has a wiper mesh or animation, so the cabin view shows
+none; a drawn overlay is not used) or umbrellas (no hand-held umbrella mesh, and walkers cannot hold props through
+the API), and its cyclists have no rain gear.
+
+**Fewer cyclists in rain** (`traffic.cycling.weather: auto`). Bike demand (counted or set) is multiplied by the hourly factors of
+[Wessel (2020)](https://www.wiwi.uni-muenster.de/ivm/sites/ivm/files/documents/forschung/diskussionspapiere/workingpaper32v2.pdf) from 188 German counting stations: drizzle under 0.5 mm/h 0.85, 0.5-1 mm/h 0.82, 1-2 mm/h
+0.77, 2-5 mm/h 0.74, 5 mm/h and more 0.75, times 0.79 when it rained in the three hours before. The rain comes from
+Open-Meteo with `weather: real`, else from the preset or the weather's precipitation (MidRainy: 3 mm/h, x 0.74).
+
+`tools/scenery_shots.py --chase NAME:LAT,LON,HEADING --ahead 3 --brake --lights rules|old` renders a car with three
+cars ahead in its lane, lit as the rules say or as before (`--scenery-json` spawns another scenery.json, e.g. one
+built before a change); `tools/lamp_check.py --scenery MAPDIR` reports the lit lamps and their colour and lumens on
+a CARLA 1.0 server.
 
 ### Parked cars
 
@@ -1239,6 +1368,25 @@ What each change did:
 Use it on CARLA 1.0 by copying `coupledcarla/data/postprocess/*.json` into the server's
 `Content/Carla/Config/PostProcess`, then setting `simulation.camera_profile: CoupledReal`.
 
+**Street photos: Mapillary, a score per spot and street objects ([docs/street_photos.md](docs/street_photos.md)).**
+The check takes Mapillary as a fourth source when the `mapillary_token` key is set: its photos, and its map
+features (lamps, signs, poles, bins, benches) placed from many photos. It scores every spot:
+
+- an edge alignment (boundary F-score of road, building, tree and sky outlines);
+- a perceptual similarity (DINOv2, the whole view and patch by patch);
+- a spot score from those and the layout IoU;
+- the main differences in words, such as "missing building on the left", "road too wide" or "skyline 6° too low".
+
+Each spot gets a side-by-side image in `spots/`. Each map gets a score (median spot score × 100: about 50 is as
+alike as two photos of the same street, about 30 as a photo of somewhere else). `realism_check.py objects`
+matches the map's lamps, signs and furniture with Mapillary's features, or with poles found in Panoramax
+panoramas. It reports what a correction would move, add or remove, and `--apply` (or
+`map.scenery.photo_corrections`) does it. Registers (city lamps, NDW signs) are never touched.
+
+Tested against Eindhoven's lighting register, the photo evidence (Mapillary lamps lie a median 2.6 m from the
+register's) makes good positions worse. It helps only where the map's lamps are guesses, as in Chernihiv, so the
+corrections are off by default. Results per map are in the doc.
+
 **New York twin (`experiments/nyc_twin.yaml`).** The same pipeline baked NycMidtown, the box of
 `experiments/cities/new_york_midtown.yaml`: the NYC 3D Building Model's 1,761 buildings with facade styles from
 their PLUTO construction year and use, USGS 3DEP ground under the NYS orthophoto, and OSM roads with US lane
@@ -1319,6 +1467,23 @@ ground. The map maker ran the whole chain with `--twin` for a third place (Grote
 bake): the Flemish orthophoto, 849 Overture buildings, the experiment and its SUMO net in 29 minutes. Shibuya's large video screens and billboards (Q-Front, the 109 tower's signs) are not in any
 open data: PLATEAU models them as part of the facade photo at best; screens playing video would need emissive
 media-texture materials placed by hand or from a sign inventory.
+
+**Roads clear of buildings.** Open building models are solids down to the ground, so where a street runs under a
+building (Shibuya's bus terminal, station halls, the Park Avenue viaduct) or a footprint overlaps the carriageway,
+the baked walls stood on the lanes and SUMO's buses drove through them. The twin tool now cuts the building meshes
+clear of every driving lane (4.6 m, or OSM `maxheight`) and sidewalk lane (2.5 m), closes the cuts as passages
+(ceiling and side walls in the building's own wall material) or trims slivers back to the kerb, and checks CARLA's
+lane samples before the bake (carla-digitaltwins `tools/road_clearance.py`, results per twin in its README). It
+also writes `<Name>.buildings.json`, the solid footprints minus the passages: copy it next to the twin's OpenDRIVE in
+`twins/`; the map build copies it to `maps/<name>/twin_buildings.json`. Before publishing a clip, check its trial:
+
+```bash
+python tools/trial_buildings.py logs/shibuya_twin/<trial> [--start 30 --duration 20]   # exit 1: actors inside
+```
+
+It tests every vehicle (two corners of its body, shrunk by 0.3 m) and walker (its centre, 0.2 m inside) of
+`frames.csv` against those footprints (`buildings.json` for maps without them) and lists each stay with its time and
+place (`coupledcarla/inbuildings.py`; `footprints_path()` gives the clip checks the same file).
 
 **Download the Eindhoven twin.** The release
 [twin-eindhoven-2026-11-15](https://github.com/bazilinskyy/coupled-carla/releases/tag/twin-eindhoven-2026-11-15)
@@ -1508,10 +1673,15 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   power per octave band (63 Hz-8 kHz; Directive (EU) 2015/996 as amended in 2021) for its category (car, van,
   bus/truck, moped, motorbike): rolling noise with the road surface (`road_surface`, e.g. Dutch paving blocks), air
   temperature and, on wet roads, IMAGINE's wet-road increase, and propulsion noise with the acceleration and the
-  engine speed of a gearbox model (idling when stopped). The engine is synthesised from its firing frequency and
-  orders, load-dependent harmonics, intake and exhaust resonances and cycle-to-cycle jitter (after Pieren et al.
-  2016 and Baldan et al. 2015), carrying CNOSSOS's band levels: a car at 50 km/h measures 72.9 dB(A) at 7.5 m
-  (measured pass-bys 70-73). Electric cars have tyres and an AVAS (on by default: UN R138, 56 dB(A) at 2 m up to 20
+  engine speed of a gearbox model (idling when stopped). The engine is heard from recordings of real engines, the
+  game-audio way (`engine_sound: recorded`, `coupledcarla/soundsamples.py`): a few steady-rpm loops per engine type
+  (petrol for cars, diesel for vans, buses and trucks, a twin for motorbikes; `data/sounds/engines`, cut by
+  `tools/sound_samples.py`), the two around the wanted engine speed resampled to it and cross-faded, each split into
+  the octave bands so that it plays at exactly CNOSSOS's band levels (the recording gives the timbre only); a
+  cruising or coasting engine is up to 6 dB quieter than CNOSSOS's average (`engine_part_load_db`), so steady urban
+  traffic is mostly tyres. `engine_sound: synth` keeps the older additive model (firing orders, formants, jitter,
+  after Pieren et al. 2016 and Baldan et al. 2015), also the fallback when the loops cannot be decoded. A car at
+  50 km/h measures 72.9 dB(A) at 7.5 m (measured pass-bys 70-73). Electric cars have tyres and an AVAS (on by default: UN R138, 56 dB(A) at 2 m up to 20
   km/h); bicycles a freewheel and now and then a bell; emergency vehicles a siren with their special lights; buses
   an air hiss at stops; `horn: true` makes a car braking hard before a pedestrian sound its horn.
   Every source reaches the ears by a direct path and two first-order reflections off the nearest facades, each
@@ -1520,10 +1690,30 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   the sides; a reverberant tail is sized by the street canyon around the listener. Output is panned stereo, or
   binaural for headphones (`spatial: binaural`: MIT KEMAR HRTFs, fetched once; else a spherical head model). A
   limiter keeps the sum from clipping.
-  Inside a car (driver, AV passenger) the own tyres and engine come through the cabin's insertion loss (41 dB(A) at
-  idle, 60 at 50 km/h, 70 at 100 km/h), with wind noise, the indicator relay and rain on the roof. Pedestrians hear
-  footsteps and accessible pedestrian signals at signalised crossings (ticking once a second while red, eight a
-  second while green, as Dutch and German signals do). The ambience follows the trial's real conditions (`weather:
+  Inside a car (driver, AV passenger) the own tyres and engine come through the cabin's insertion loss (about 50
+  dB(A) at idle, 60 at 50 km/h, 70 at 100 km/h), with wind noise, the recorded indicator relay (also for the hazard
+  lights), rain on the roof and windscreen (a recording in a parked car under the synthesised drops) and the wipers
+  while it rains (intermittent below 1 mm/h, 45 sweeps a minute, 65 above 4 mm/h; `wipers: off`). An **electric own
+  car** (e.g. `vehicle: vehicle.tesla.model3`, [`experiments/eindhoven_ev_driver.yaml`](experiments/eindhoven_ev_driver.yaml))
+  has no engine: the traction motor and reduction gear whine at orders of the motor speed (72 rpm per km/h), rising
+  with speed and louder when accelerating (`ev_motor_db`, 38 dB(A) at 50 km/h), tyres and wind, and its own AVAS
+  faintly through the cabin below 20 km/h; its cluster shows a power meter (`cluster_ev`) instead of the rev counter.
+  Pedestrians hear recorded footsteps (`footsteps`: shoes, trainers or grass; heel and toe, a random step each time
+  with a little pitch and level variation; about 60 dB(A) at the ears with hard soles), rain on their umbrella
+  (`umbrella: true`) and accessible pedestrian signals at signalised crossings (ticking once a second while red,
+  eight a second while green, as Dutch and German signals do). Wet roads add IMAGINE's tyre hiss (up to +12 dB above
+  2 kHz).
+- **Sound events** (`Soundscape.event(name, body_id, kind=...)`): what other parts of the simulator ask for, heard
+  from where that actor is: `horn` (short, long, double, or `seconds=`; recorded car horns, one per car, bus horns
+  and a truck's air horn, 95-108 dB(A) at 7 m; `body_id` None is the participant's own horn in the cabin), `bell` (a
+  bicycle's, recorded), `shout` (a pedestrian's "hey!"), `hazard` (on/off: the own car's relay ticks) and
+  `indicator` (left/right/off). Each is logged as a `sound_event` cue.
+- **The city's own sounds** (`coupledcarla/soundplaces.py`, `places: true`): recordings at real places of the map,
+  through the same propagation (occlusion, reflections, the street's reverb): voices and cutlery at the nearest cafe
+  terrace (Overture places, 8-23 h), people talking around a pedestrian (by the walkers near), construction at OSM
+  construction sites (working days 7-17 h), fountains, church bells striking the hour from the nearest church (7-22
+  h), crickets on warm summer nights and cicadas on hot days near green, leaves in the wind among trees, and a long
+  echo inside tunnels and passages under buildings. Places are cached in `maps/<name>/sound_places.json`. The ambience follows the trial's real conditions (`weather:
   real`, `time`): birds by dawn, season and the trees around, wind in the leaves, rain from the rain rate, the far
   traffic as a distant hum. Bird, rain and bicycle-bell recordings come from Wikimedia Commons (CC0, public domain,
   CC BY, CC BY-SA; fetched at run time and cached, never in the repository, credited in `audio_credits.txt`);
@@ -1678,7 +1868,8 @@ a 0.9.16 server.
 - **Pedestrians**: SUMO vehicles brake for every walker in or entering their path, using SUMO's own speeds (CARLA
   reads 0 m/s for a vehicle placed with physics off), comfortably when possible and as an emergency stop otherwise
   (`yielding.py`). Crowd walkers cross at signals only when the cars crossing them have red; OSM scramble crossings get
-  an all-pedestrian phase (`pedsignals.py`). Tokyo, 2 runs: vehicle-walker contacts 25 → 0.
+  an all-pedestrian phase (`pedsignals.py`; Shibuya: 30 s a cycle at the crossing's light. The programmes are read
+  from the net as XML: sumolib's reader failed on our nets, and the phase was off until 2026-11-16). Tokyo, 2 runs: vehicle-walker contacts 25 → 0.
 
 - **Models.** SUMO's Extended IDM (EIDM) for car following (human-like reaction and drive-off) with
   `tau = 1.2 s`, `minGap = 2 m`, speed factor N(1.0, 0.1); the sublane model (`--lateral-resolution 0.25`)
@@ -1756,6 +1947,29 @@ a 0.9.16 server.
 - **Level of detail.** SUMO simulates the whole map; a SUMO vehicle exists in CARLA only within
   `simulation.lod_radius_m` (250 m) of a participant and is removed beyond 280 m.
 
+### Smooth traffic and clip QA
+
+SUMO moves each vehicle's front bumper along its lane's centre line, and netconvert's lanes have kinks, junction lanes
+drawn as straight chords and sideways jumps where a road widens, so CARLA vehicles copying that pose jerked (83 % of
+SUMO vehicles in 19 cities had a moment over 4 m/s²). `map.smooth_net` (netsmooth.py, map.net.xml only) redraws
+junction lanes as curves inside the junction, rounds lane corners (≤ 0.5 m), drops sharp lane shifts that have a
+straighter alternative, and slows turns and bends to about 3 m/s²; `python -m coupledcarla.mapbuild <experiment>
+--sumo-net` rebuilds a net. `simulation.smooth_paths` drives cars and bikes in CARLA along a smoothed copy of their
+SUMO path (a bicycle model aiming 0.6 s ahead on the lanes they will take); the participant on the SUMO driver gets
+gentler limits (in the Eindhoven rush hour clip its peak lateral acceleration fell from 22.2 to 1.4 m/s²). Buses keep
+SUMO's pose, with CARLA's measured 3.18 m width in SUMO. `traffic.driver_mix` gives every SUMO driver their own time
+gap, gaps, acceleration and lane-change eagerness, and Dutch bikes e-bike speeds (27 % e-bikes, KiM 2023).
+`tools/traffic_check.py` reports a SUMO-only run against targets from the literature; `tools/crowd_validate.py`
+compares the crowd's crossings with CROWD's. Demo clips are checked before encoding (`tools/clip_check.py`, also run by
+`make_videos.py`, `--force` to override): overlapping bodies, vehicles in buildings, swerves, jumps and pop-ins in
+view, SUMO teleports and collisions, camera shake. Follow cameras steady their target's position and view direction
+(`pos_smooth_s`, `turn_smooth_s`). A SUMO vehicle held back by something in CARLA (a kerb, a pole, another body) is placed with physics off for a
+while and slides back onto its SUMO pose (at most 0.2 m and 4° per tick) instead of jumping. Cars and bikes whose trip
+starts within `simulation.depart_hide_m` (60 m) of a participant or free camera are left out, so nothing appears out
+of nowhere in front of them. The clip QA counts a vehicle as inside a building only where the scenery shows one, holds
+a drone's own camera to 0.3° (it turns with the drone), and reports SUMO's collisions without blocking (their visible
+part is an overlap, which blocks).
+
 ## Traffic lights
 
 SUMO runs the signal programs (`simulation.tls_manager: sumo`). CARLA's own traffic-light actors are unusable
@@ -1764,13 +1978,58 @@ in a world built from OpenDRIVE: they have no OpenDRIVE id, so they cannot be li
 
 - each signalled lane's light is **drawn in the world** at its stop line (a pole with a lamp, right of the
   lane), coloured from SUMO, for lights near a participant; the drawing shows in every camera, so the driver
-  sees it;
+  sees it. On CARLA 1.0 with the street content (`map.scenery.street_props`), the heads are the country's: in the
+  Netherlands the black-and-white banded pole with a car head (300 mm lenses on a yellow back plate) or, over a cycle
+  lane, the cyclist head; the UK's and Japan's (horizontal) car heads on CARLA's pole; the lit lens is the mesh's
+  own. On eindhoven_centre all 148 heads were Dutch (70 for cyclists; lin5080, CARLA 1.0 -nullrhi). CARLA 0.9.16 and
+  servers without the content keep CARLA's pole and backboard;
 - each participant's **next light** (id, distance, state) comes from the lane their SUMO twin is on; it drives
   the autopilot, the HUD, the per-frame log (`next_tl*` columns) and a `next_light` event whenever it changes.
 
-The signal programs are CARLA's converter defaults for now (per approach 42 s green, 3 s yellow, 3 s red), not
-the coordinated programs SUMO derives from OSM ([Known limits](#known-limits)).
+**Programmes** (`traffic.signals`, `coupledcarla/signalplan.py`; details, sources and formats in
+[docs/signals.md](docs/signals.md)):
 
+| `traffic.signals` | What runs |
+|---|---|
+| `dutch` (`auto` in the Netherlands) | one controller per junction, matched to the city's list of signalised junctions (Eindhoven: the 180 of [`locaties-verkeerlichten`](https://data.eindhoven.nl/explore/dataset/locaties-verkeerlichten/), public domain, with the VRI numbers of the Nota Verkeerslichten 2024); Dutch signal groups (a protected left from its own lane, through and right, cyclists, buses), conflict-free stages from SUMO's own conflict matrix (a turning stream may share a green it yields in, as a 'g'), CROW 2022 amber (3.5 s at 50 km/h to 5.0 s at 80, turning and cyclists 3.0 s), all-red from the paths' distances to the conflict point (rounded up to 0.5 s), vehicle-actuated greens within the Nota's cycles (at most 90 s inside the Ring, 120 s on main roads) |
+| `real` (`auto` when `traffic.signal_data` is set) | recorded phases of a chosen date and hour (a phase log of state changes plus the junction's signal groups): per junction its cycle, splits and offset, actuated where the cycles vary, or every recorded state at its time (`replay: exact`); or a live feed of the same rows through TraCI. Junctions without data run `dutch` |
+| `sumo` (`auto` elsewhere) | netconvert's: one light per OpenDRIVE signal, 42 s green, 3 s amber, 3 s red, all in step (every stream of a junction green together) |
+
+**Real data.** None is open for Eindhoven: the city publishes where its 180 signals are, not their timings, and
+none of the 13 Eindhoven iVRIs (all on the Ring; 2 at the TU/e campus, none in `eindhoven_centre`) streams openly.
+Recorded phases (V-Log) and control programmes (CCOL) are the municipality's (ask data@eindhoven.nl; a Woo request
+is the formal route); live SPaT/MAP comes through UDAP (Talking Traffic) with the municipality's permission and an
+account from the Ministerie van IenW (info@talking-traffic.com). Exactly what to ask for: [docs/signals.md](docs/signals.md#what-you-would-have-to-request-nothing-has-been-requested).
+Nothing has been requested.
+
+**Checks on `eindhoven_centre`** (weekday 08:00, 2,400 cars and 1,200 bikes an hour). SUMO only
+(`tools/signal_check.py`), 900 s after a 120 s warm-up, mean of seeds 42, 7, 1 and 3:
+
+| | `sumo` (before) | `dutch` (after) |
+|---|---|---|
+| Lights / signalised approach lanes | 210 one-link lights / 76 | 18 junctions (13 matched to the city's list, 2 added from it, 3 OSM-only; 14 of the 16 listed in the box) / 178 |
+| Crossing links green at once, neither yielding | 10 | 0 |
+| Halting vehicles per signalised lane: mean, 95th pct, longest queue | 0.45, 1.25, 34 | 0.31, 2, 17 |
+| Stops at a red or amber light; mean wait per stop | 101; 26 s | 1,481; 31 s |
+| Waiting time per trip: car, bike, bus | 34 s, 25 s, 22 s | 74 s, 50 s, 39 s |
+| Trips ended (cars) | 302 | 244 |
+| Red-light entries; amber entries | 0; 6.5 | 0; 26.5 |
+| SUMO teleports; collisions; emergency braking | 38.5; 15.5; 134 | 62.8; 13.5; 162 |
+
+Before, the lights barely stopped anyone (every stream green 42 of 48 s, sorted out by right of way); now the
+traffic waits at reds as in the city: 31 s per stop, inside the Nota's targets of 20-45 s per junction, the longest
+queue halved, no conflicting greens. The price is SUMO's: more teleports (vehicles waiting over 120 s, mostly at
+unsignalised junctions behind the queues and at the net's known spots), as the signals cut the network's capacity.
+A round trip of the real-data path (the Dutch run's own record of its lights turned into a phase log and replayed as
+`real`, seed 3) gave the same traffic (stops 1,558 against 1,537, car wait 71 s against 67 s, teleports 52 against
+57).
+
+With CARLA (lin4080, CARLA 0.9.16, 300 s each, the driver on SUMO's autopilot through five signalised junctions,
+`simulation.traffic_lights.log: true`): before, 0 teleports, 2 SUMO collisions, 21 emergency brakes, 17 red-light
+stops, mean wait per car trip 5.5 s; after, 0 teleports, 2 SUMO collisions, 3 emergency brakes, 258 red-light stops,
+16.5 s; the participant had no collision in either. Every drawn head showed SUMO's state for its links
+(`tools/signal_heads.py` against SUMO's own record `tls_states.xml`: 16,483 of 16,483 and 32,941 of 32,941 samples;
+61 and 219 of them drawn at the very step their light switched, showing the step before).
 ## Logging and data
 
 Each trial writes to `logs/<experiment>/<YYYYmmdd-HHMMSS>_trial<k>/`:
@@ -1898,7 +2157,7 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 | AI cars on waypoint circuits with speed/yield triggers | scripted agents on lat/lon routes with triggers (speed, accel, yield, blinker, eHMI) + SUMO traffic | done |
 | AI pedestrians on waypoint circuits | scripted walkers on lat/lon paths (no navigation mesh needed) | done; SUMO persons as walkers: to do |
 | eHMI on the AV (top, windshield, hood) | light bar + line-font text on the front or rear, a roof ring, text projected on the road, or "eyes" that look at the nearest pedestrian; set by passenger, triggers or automatically | done |
-| Traffic lights, switchable | SUMO signal programs, drawn in the world | done (default programs) |
+| Traffic lights, switchable | SUMO signal programs, drawn in the world | done (Dutch programmes per junction; real phase data when available) |
 | Day/night | weather presets, sun altitude | done |
 | Networking host + 3 clients | host + one station per human on the LAN, no fixed limit | done; multi-GPU secondaries: to do |
 | Binary log 50 Hz + CSV conversion | `frames.csv` at 50 Hz directly | done |
@@ -1941,8 +2200,10 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
   machine.
 - **Remote stations** receive their camera as raw images (about one full-HD station per gigabit link) and need a
   wired LAN; multi-GPU secondaries are not used yet.
-- **Signal programs:** CARLA's converter replaces SUMO's OSM-derived, junction-coordinated programs with one
-  default program per approach (green 42 s, yellow 3 s, red 3 s). Real programs are a follow-up.
+- **Signal programs:** Dutch maps run a Dutch programme per junction ([Traffic lights](#traffic-lights)); real
+  timings need the municipality's data (none is open). Not modelled: green waves on the Ring, public-transport
+  priority, a second green for cyclists, night programmes, skipping a stage without demand. Other countries run
+  CARLA's converter defaults (per approach green 42 s, yellow 3 s, red 3 s).
 - **Public transport** is buses only (no trams or trains), with frequencies per hour rather than the exact
   departures; cities without a free GTFS feed (London, Taipei, Kigali, ...) use OSM intervals or a default.
 - **Traffic:** SUMO still logs junction collisions at a few junctions with faulty internal lanes from netconvert's
@@ -2127,7 +2388,8 @@ coupledcarla/
   soundscape.py      station sound: vehicles, own car, ambience, AVAS, auditory eHMIs (audio.py synthesises)
   incar.py           cluster, HUD, centre screen, timed messages; haptics.py: wheel/gamepad/UDP cues
   ehmi_design.py     eHMIs from design files (designs.py loads coupled-sim's format)
-  realism.py         street-level photos (Panoramax, KartaView, Commons), view matching and layout metrics
+  realism.py         street-level photos (Panoramax, KartaView, Commons, Mapillary), view matching and layout metrics
+  streetphotos.py    Mapillary (tiles, map features), edge/perceptual scores, differences, street objects + corrections
   labcheck.py        station readiness numbers and thresholds; multigpu.py: CARLA 1.0 secondaries
   data/              meshes_0.9.16.json, meshes_1.0.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
@@ -2148,6 +2410,8 @@ coupledcarla/
   bridge/            SUMO <-> CARLA bridge, vendored from CARLA 0.9.16 (MIT) with fixes (batching,
                      level of detail, traffic lights, offsets, TM port); util/netconvert_carla.py
   signals.py         SUMO traffic lights drawn in CARLA, next light per participant
+  signalplan.py      a programme per junction: controllers matched to the city's signals, Dutch timings
+  signaldata.py      real signal data: phase logs replayed (programme or exact), live feeds through TraCI
   inputs/            keyboard, G25 wheel (steering_wheel.py), autopilot
   display.py         participant view (pygame window or saved frames)
   logger.py          frames.csv, events.csv, UDP
@@ -2159,8 +2423,8 @@ experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhove
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, test_towns.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
                      render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py,
-                     crowdpeds_check.py, crowd_table.py, speeds_check.py
-docs/                city_tests.md, town_tests.md, make_a_map.md (the map maker, step by step), img/
+                     crowdpeds_check.py, crowd_table.py, speeds_check.py, signal_check.py, signal_heads.py
+docs/                city_tests.md, town_tests.md, make_a_map.md (the map maker, step by step), street_photos.md, signals.md, img/
 make_map.bat, make_map.sh, "Make a map.command"   double-click launchers of the map maker (Windows, Linux, macOS)
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
@@ -2180,6 +2444,11 @@ just as much; how to report bugs, propose features and run the tests: [CONTRIBUT
   [MyoSuite](https://github.com/MyoHub/myosuite) (Apache-2.0) on [MuJoCo](https://mujoco.org) (Apache-2.0), and
   [embodied-human](https://github.com/M-Colley/embodied-human) (Apache-2.0 AND MIT), used as separately installed packages.
 - Coupled CARLA's own code is released under the [MIT License](LICENSE).
+- Recorded sounds in `coupledcarla/data/sounds/` (engines, footsteps, horns, bells, wipers, rain in a car, city
+  ambience; 3.8 MB): openly licensed recordings from [Freesound](https://freesound.org), CC0 or CC BY. The CC BY ones:
+  Soundholder (Renault Master 2.8 dTi engine, CC BY 3.0), klankbeeld (pedestrian area, cafe terrace, construction
+  site, wind in trees, a shout; CC BY 4.0), arundasstp (bus horns, CC BY 4.0), dibko (a belfry's strike, CC BY
+  4.0). Every file, its source, author, licence and cut: [SOURCES.md](coupledcarla/data/sounds/SOURCES.md).
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL. Built maps and
   `buildings.json` are derived databases under the ODbL.
@@ -2187,11 +2456,15 @@ just as much; how to report bugs, propose features and run the tests: [CONTRIBUT
   vendored from CARLA 0.9.16 `Co-Simulation/Sumo` (MIT, © CVC) and modified.
 - [Eclipse SUMO](https://eclipse.dev/sumo/) (EPL-2.0), used as a separate program and through TraCI.
 - Vehicle registers: [RDW open data](https://opendata.rdw.nl) (CC0), [NY DMV registrations](https://data.ny.gov/d/w4pv-hbkt)
-  (NY Open Data). City registers: [Gemeente Eindhoven open data](https://data.eindhoven.nl) (public domain),
+  (NY Open Data). City registers: [Gemeente Eindhoven open data](https://data.eindhoven.nl) (public domain; trees,
+  street lights, signalised junctions),
   [NYC 2015 Street Tree Census](https://data.cityofnewyork.us/d/uvpi-gqnh) (NYC Open Data).
 - More registers: [Waka Kotahi Motor Vehicle Register](https://opendata-nzta.opendata.arcgis.com) (CC BY 4.0),
   [Senatran frota de veículos](https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran) (gov.br,
   CC BY-ND 3.0 site terms; only aggregate counts are used, nothing is redistributed).
+- Traffic lights: Gemeente Eindhoven, Nota Verkeerslichten 2024 (VRI numbers, cycle times, maximum waits); CROW,
+  Handboek verkeerslichtenregelingen 2022 (amber times); the iVRI list of [map.udap.nl](https://map.udap.nl) (UDAP,
+  NDW / Ministerie van IenW; no licence stated, used only to mark which junctions publish SPaT).
 - Traffic counts: [NYC DOT Automated Traffic Volume Counts](https://data.cityofnewyork.us/d/7ym2-wayt) (NYC Open
   Data), [DfT road traffic statistics](https://roadtraffic.dft.gov.uk) (OGL v3.0), [Métropole de Lyon
   Criter](https://data.grandlyon.com) (Licence Ouverte 2.0), [Intendencia de Montevideo](https://catalogodatos.gub.uy)

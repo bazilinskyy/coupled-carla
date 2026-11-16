@@ -15,7 +15,7 @@ ALIASES = {
     "vehicle.audi.a2": ["vehicle.mini.cooper", "vehicle.kia.niro"],
     "vehicle.audi.tt": ["vehicle.ue4.audi.tt"],
     "vehicle.audi.etron": ["vehicle.kia.niro", "vehicle.tesla.model3"],
-    "vehicle.bmw.grandtourer": ["vehicle.kia.niro"],
+    "vehicle.bmw.grandtourer": ["vehicle.ue4.bmw.grandtourer", "vehicle.kia.niro"],   # (the CoupledCarla pack)
     "vehicle.chevrolet.impala": ["vehicle.ue4.chevrolet.impala"],
     "vehicle.citroen.c3": ["vehicle.mini.cooper"],
     "vehicle.dodge.charger_2020": ["vehicle.dodge.charger"],

@@ -43,6 +43,11 @@ SUMO_ARGS = ["--lateral-resolution", "0.25",        # the sublane model: cyclist
              # which in CARLA made a car vanish or jump; mingap 0: only touching bodies count
              "--collision.action", "warn", "--collision.mingap-factor", "0"]
 MAX_WIDTH = {"bus": 2.55, "passenger": 2.1, "delivery": 2.3, "bicycle": 0.8}
+# CARLA bodies wider than their class's MAX_WIDTH, without mirrors: the collision box measured with World.cast_ray
+# across the middle of the vehicle on CARLA 0.9.16 (lin4080, 2026-11-16). CARLA's bus is a scaled-up minibus: 3.18 m
+# where a real city bus has 2.55. SUMO gets this width, so two of them never drive or turn side by side closer than
+# SUMO's minGapLat (bodies touched at a 0.45 m SUMO gap: Eindhoven rush hour, buses turning onto -6110).
+BODY_WIDTH = {"vehicle.mitsubishi.fusorosa": 3.18}
 
 CAR = {"accel": 2.6, "decel": 3.4, "emergencyDecel": 8.0, "apparentDecel": 3.4, "tau": 1.2, "minGap": 2.0,
        "jmIgnoreFoeProb": 0, "impatience": 0}
@@ -64,10 +69,10 @@ def sizes(version="0.9.16"):
 
 def size_attrs(bp, vclass):
     """length/width/height attributes of a SUMO vType for a CARLA blueprint ("" when the size is unknown)."""
-    s = sizes().get(bp)
+    s = sizes().get(bp) or sizes("1.0").get(bp)     # a CARLA 1.0 blueprint (fleet.py names them on 1.0 levels)
     if not s:
         return ""
-    width = min(s["width"], MAX_WIDTH.get(vclass, s["width"]))
+    width = BODY_WIDTH.get(bp) or min(s["width"], MAX_WIDTH.get(vclass, s["width"]))
     return f'length="{s["length"]:.2f}" width="{width:.2f}" height="{s["height"]:.2f}"'
 
 
@@ -90,3 +95,14 @@ def bike(bp, cf, probability):
 def bus(bp, cf):
     return (f'<vType id="{bp}" vClass="bus" carFollowModel="{cf}" {attrs(BUS)} '
             f'{size_attrs(bp, "bus")}').rstrip() + "/>"
+
+
+RED_RUNNER = "#red"     # suffix of a bike type whose riders ride on through red (drivermix.py); the bridge strips it
+
+
+def bike_red_runner(bp, cf):
+    """The red-light running variant of a bike type: SUMO's junction model lets it go on through a red light at
+    walking pace (jmDriveAfterRedTime, jmDriveRedSpeed), still giving way to vehicles on conflicting links."""
+    from .drivermix import RED_RUNNER as RR
+    xml = bike(bp, cf, 1.0).replace(f'id="{bp}"', f'id="{bp}{RED_RUNNER}"').replace(' probability="1.0"', "")
+    return xml.replace("/>", " " + " ".join(f'{k}="{v}"' for k, v in RR.items()) + "/>")
