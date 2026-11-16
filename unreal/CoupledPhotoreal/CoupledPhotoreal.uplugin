@@ -7,7 +7,7 @@
 	"Category": "Coupled CARLA",
 	"CreatedBy": "Coupled CARLA",
 	"CreatedByURL": "https://github.com/bazilinskyy/coupled-carla",
-	"CanContainContent": false,
+	"CanContainContent": true,
 	"EnabledByDefault": false,
 	"Modules": [
 		{

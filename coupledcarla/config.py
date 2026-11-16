@@ -299,6 +299,14 @@ DEFAULTS = {
         "road_surface": "DEF",       # CNOSSOS surface: DEF (dense asphalt/SMA), NL01 (porous), NL05 (SMA 8),
                                      # NL10 / NL11 (paving blocks, herring-bone / not)
         "diesel_cars": 0.2,          # share of combustion cars with a diesel (by actor id)
+        "engine_sound": "recorded",  # recorded: loops of real engines resampled to the rpm (data/sounds/engines:
+                                     # petrol, diesel for vans, buses and trucks, motorbike); synth: the additive model
+        "engine_part_load_db": 6.0,  # engines up to this much quieter than CNOSSOS's average when cruising or
+                                     # coasting (load under 0.4), so steady urban traffic is mostly tyres; 0: off
+        "own_diesel": False,         # the participant's own combustion car has a diesel (else petrol)
+        "ev_motor_db": 38.0,         # an electric own car's motor whine at the driver's ears at 50 km/h, dB(A)
+                                     # (+20 lg v, louder with torque); 0: none
+        "ev_motor_rpm_per_kmh": 72.0,    # its motor speed per km/h (the single fixed gear; a Tesla Model 3)
         "electric": "auto",          # electric cars (no engine): "auto" (CARLA's EVs and the scripted agents),
                                      # true, false, a share 0-1, or blueprint patterns
         "doppler": 1.0,              # 0: none, 1: physical
@@ -316,7 +324,9 @@ DEFAULTS = {
                                      # cached in ~/.cache/coupled-carla/sounds (else synthesised)
         "distant_traffic_db": 50.0,  # the city beyond the map at the peak hour, dB(A) (follows the hour)
         "birds_dawn_db": 58.0, "birds_day_db": 47.0,   # in spring among trees; scaled by season, trees, rain, wind
-        "walkers": True, "footstep_db": 58.0,          # footsteps (dB(A) at 1 m per step)
+        "walkers": True, "footstep_db": 61.0,          # footsteps: dB(A) at 1 m of a step's loudest 100 ms with hard
+                                     # soles on paving (~60 dB(A) at the walker's own ears; trainers 9 dB, grass 6 dB less)
+        "footsteps": "shoes",        # recorded steps (data/sounds/footsteps): shoes | trainers | grass; synth: modelled
         "aps": True, "aps_db": 65.0, # accessible pedestrian signals near a pedestrian (dB(A) at 1 m per tick)
         "bicycles": {"bells": 0.03}, # bell rate (per second, when a pedestrian is ahead)
         "sirens": "lights",          # emergency vehicles: lights (with their special lights) | always | off

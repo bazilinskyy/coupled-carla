@@ -77,6 +77,37 @@ def listener_at(track, t):
     return (a[1] + (b[1] - a[1]) * w, a[2] + (b[2] - a[2]) * w, a[3] + (b[3] - a[3]) * w, yaw)
 
 
+def trial_context(frames_csv, cfg, log=print):
+    """(map folder, Env, Buildings) of the trial that wrote frames_csv (its config.yaml and weather.json): the
+    trial's real weather and hour (rain, wind, wet roads, the bed of places by the hour), the map's buildings
+    (occlusion, reflections) and places; (None, None, None) when the trial or its map is not there."""
+    import json
+    from pathlib import Path
+    trial = Path(frames_csv).parent
+    try:
+        import yaml
+        tc = yaml.safe_load((trial / "config.yaml").read_text())
+        name = tc["map"]["name"]
+    except Exception:  # noqa: BLE001 - no config: the soundscape without map or weather
+        return None, None, None
+    mdir = Path(__file__).resolve().parent.parent / "maps" / name
+    if not mdir.exists():
+        return None, None, None
+    from .soundrec import sound_env
+    wx = {}
+    if (trial / "weather.json").exists():
+        try:
+            wx = json.loads((trial / "weather.json").read_text())
+        except ValueError:
+            pass
+    env = sound_env(wx, mdir, None, cfg.get("weather"))
+    b = None
+    if cfg.get("buildings", True):
+        from .soundgeo import Buildings
+        b = Buildings.from_map(mdir, log)
+    return mdir, env, b
+
+
 def samples_per_tick(times, t0, rate):
     """Samples to render for each tick time in `times` so that the total after tick i is round((t_i+1 - t0) * rate):
     no drift between the audio and simulation time."""
@@ -102,7 +133,12 @@ def render(frames_csv, t0, t1, listener=None, listener_role=None, own_role=None,
         raise ValueError(f"no rows between {t0} and {t1} s in {frames_csv}")
     order = sorted(frames)
     times = [frames[f][0] for f in order]
-    scape = Soundscape(cfg, kind=kind or ("driver" if own_role else "pedestrian"), log=log, rate=rate)
+    mdir, env, buildings = trial_context(frames_csv, cfg, log)
+    scape = Soundscape(cfg, kind=kind or ("driver" if own_role else "pedestrian"), log=log, rate=rate, env=env,
+                       buildings=buildings, map_dir=mdir)
+    if mdir is not None:
+        from .soundrec import trees_of
+        scape.trees = trees_of(mdir)
     counts = samples_per_tick(times, t0, rate)
     out = []
     started = False

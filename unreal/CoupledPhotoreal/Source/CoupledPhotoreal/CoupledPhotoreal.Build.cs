@@ -19,6 +19,8 @@ public class CoupledPhotoreal : ModuleRules
       "Engine",
       "Json",
       "HTTP",
+      "RenderCore",   // GGameThreadTime, GRenderThreadTime (the profile rows)
+      "RHI",          // RHIGetGPUFrameCycles
       "CesiumRuntime",
       "Carla",
       // what the Carla module's public headers include (CarlaEpisode.h -> vehicles, physics, navigation)

@@ -1,0 +1,43 @@
+{
+ "Vehicles": [
+  {
+   "Make": "UE4.bmw",
+   "Model": "grandtourer",
+   "Class": "/Game/Carla/Blueprints/Vehicles/BmwGrandTourer/BP_BmwGrandTourer.BP_BmwGrandTourer_C",
+   "NumberOfWheels": 4,
+   "Generation": 1,
+   "ObjectType": "",
+   "BaseType": "car",
+   "SpecialType": "",
+   "HasDynamicDoors": false,
+   "HasLights": true,
+   "RecommendedColors": [
+    {
+     "R": 30,
+     "G": 60,
+     "B": 140,
+     "A": 255
+    },
+    {
+     "R": 175,
+     "G": 178,
+     "B": 182,
+     "A": 255
+    },
+    {
+     "R": 18,
+     "G": 18,
+     "B": 20,
+     "A": 255
+    },
+    {
+     "R": 236,
+     "G": 236,
+     "B": 234,
+     "A": 255
+    }
+   ],
+   "SupportedDrivers": []
+  }
+ ]
+}
