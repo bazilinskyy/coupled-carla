@@ -14145,6 +14145,591 @@
 0.41
 ]
 },
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Black.SM_CC_NL_Bike_Black": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Black.SM_CC_NL_BikeMen_Black": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Navy.SM_CC_NL_Bike_Navy": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Navy.SM_CC_NL_BikeMen_Navy": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Grey.SM_CC_NL_Bike_Grey": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Grey.SM_CC_NL_BikeMen_Grey": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Green.SM_CC_NL_Bike_Green": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Green.SM_CC_NL_BikeMen_Green": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Red.SM_CC_NL_Bike_Red": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Red.SM_CC_NL_BikeMen_Red": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Swapfiets.SM_CC_NL_Bike_Swapfiets": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Swapfiets.SM_CC_NL_BikeMen_Swapfiets": {
+"cat": "furniture",
+"ext": [
+0.937,
+0.335,
+0.556
+],
+"off": [
+-0.005,
+0.129,
+0.559
+]
+},
+"/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_A.SM_CC_Any_AdColumn_A": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+1.84
+],
+"off": [
+0.0,
+0.0,
+1.84
+]
+},
+"/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_B.SM_CC_Any_AdColumn_B": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+1.84
+],
+"off": [
+0.0,
+0.0,
+1.84
+]
+},
+"/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_C.SM_CC_Any_AdColumn_C": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+1.84
+],
+"off": [
+0.0,
+0.0,
+1.84
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_bakkerij.SM_CC_NL_ShopSign_bakkerij": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_cafe.SM_CC_NL_ShopSign_cafe": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_restaurant.SM_CC_NL_ShopSign_restaurant": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_kapper.SM_CC_NL_ShopSign_kapper": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_apotheek.SM_CC_NL_ShopSign_apotheek": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_mode.SM_CC_NL_ShopSign_mode": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_fietsen.SM_CC_NL_ShopSign_fietsen": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_bloemen.SM_CC_NL_ShopSign_bloemen": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_supermarkt.SM_CC_NL_ShopSign_supermarkt": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_slagerij.SM_CC_NL_ShopSign_slagerij": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_optiek.SM_CC_NL_ShopSign_optiek": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_snackbar.SM_CC_NL_ShopSign_snackbar": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_lunchroom.SM_CC_NL_ShopSign_lunchroom": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_boeken.SM_CC_NL_ShopSign_boeken": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_schoenen.SM_CC_NL_ShopSign_schoenen": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_winkel.SM_CC_NL_ShopSign_winkel": {
+"cat": "furniture",
+"ext": [
+1.5,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W2.SM_CC_NL_Clinker_W2": {
+"cat": "marking",
+"ext": [
+2.0,
+1.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W2.SM_CC_Any_Sett_W2": {
+"cat": "marking",
+"ext": [
+2.0,
+1.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W3.SM_CC_NL_Clinker_W3": {
+"cat": "marking",
+"ext": [
+3.0,
+1.5,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W3.SM_CC_Any_Sett_W3": {
+"cat": "marking",
+"ext": [
+3.0,
+1.5,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W4.SM_CC_NL_Clinker_W4": {
+"cat": "marking",
+"ext": [
+4.0,
+2.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W4.SM_CC_Any_Sett_W4": {
+"cat": "marking",
+"ext": [
+4.0,
+2.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W6.SM_CC_NL_Clinker_W6": {
+"cat": "marking",
+"ext": [
+6.0,
+3.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W6.SM_CC_Any_Sett_W6": {
+"cat": "marking",
+"ext": [
+6.0,
+3.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W8.SM_CC_NL_Clinker_W8": {
+"cat": "marking",
+"ext": [
+8.0,
+4.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W8.SM_CC_Any_Sett_W8": {
+"cat": "marking",
+"ext": [
+8.0,
+4.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.009
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Grime_A.SM_CC_Any_Grime_A": {
+"cat": "marking",
+"ext": [
+3.0,
+0.3,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.01
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Puddle_A.SM_CC_Any_Puddle_A": {
+"cat": "marking",
+"ext": [
+0.7,
+0.5,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.011
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Stains_A.SM_CC_Any_Stains_A": {
+"cat": "marking",
+"ext": [
+0.75,
+0.75,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.006
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Litter_A.SM_CC_Any_Litter_A": {
+"cat": "marking",
+"ext": [
+0.75,
+0.75,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.012
+]
+},
 "/Game/CoupledCarla/Street/UK/Pole/SM_CC_UK_LampColumn8.SM_CC_UK_LampColumn8": {
 "cat": "lamp",
 "ext": [

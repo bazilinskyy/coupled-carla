@@ -123,7 +123,7 @@ def test_manifest_matches_catalogue_and_generator(cat10):
     head = data["meshes"]["SM_CC_NL_SignalCar"]
     assert all(c[1] > 0 for c in head["lenses"]) and head["off"][1] > 0
     for n, spec in data["meshes"].items():
-        assert spec["off"][2] - spec["ext"][2] == pytest.approx(0.0, abs=0.06) or "Signal" in n, n
+        assert spec["off"][2] - spec["ext"][2] == pytest.approx(0.0, abs=0.06) or "Signal" in n or "ShopSign" in n, n
 
 
 class FakePlacer:

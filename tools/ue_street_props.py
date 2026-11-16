@@ -212,6 +212,21 @@ def set_collision(mesh, decal):
     return "none" if decal else "complex as simple"
 
 
+def set_lods(mesh):
+    """Three LODs (100 %, 30 %, 8 % of the triangles at screen sizes 1, 0.3, 0.08) for the heavier props (bikes,
+    columns, lamps): thousands of parked bikes stand in a street. Returns the LOD count."""
+    try:
+        settings = [unreal.EditorScriptingMeshReductionSettings(percent_triangles=p_, screen_size=s_)
+                    for p_, s_ in ((1.0, 1.0), (0.3, 0.3), (0.08, 0.08))]
+        opts = unreal.EditorScriptingMeshReductionOptions(auto_compute_lod_screen_size=False,
+                                                          reduction_settings=settings)
+        sub = unreal.get_editor_subsystem(unreal.StaticMeshEditorSubsystem)
+        return sub.set_lods(mesh, opts)
+    except Exception as err:  # noqa: BLE001 - one LOD then
+        log("LODs for %s: %s" % (mesh.get_name(), err))
+        return 1
+
+
 def assign(mesh, mats):
     missing = []
     for k, sm in enumerate(mesh.get_editor_property("static_materials")):
@@ -248,6 +263,7 @@ def main(argv):
             log("%s: %s" % (name, err))
             continue
         missing = assign(mesh, mats)
+        lods = set_lods(mesh) if spec.get("triangles", 0) >= 800 else 1
         coll = set_collision(mesh, spec.get("decal") or spec["folder"] == "RoadLine")
         EAL.save_asset(dest + "/" + name, only_if_is_dirty=False)
         bb = mesh.get_bounding_box()
@@ -256,7 +272,7 @@ def main(argv):
         err = max(abs(p - q) for p, q in zip(ext + off, spec["ext"] + spec["off"]))
         report[name] = {"path": mesh.get_path_name(), "ext": [round(v, 3) for v in ext],
                         "off": [round(v, 3) for v in off], "max_err_m": round(err, 3), "missing_slots": missing,
-                        "collision": coll}
+                        "collision": coll, "lods": lods}
         log("%s: ext %s off %s (manifest error %.3f m)%s, collision %s" % (
             name, report[name]["ext"], report[name]["off"], err,
             ("; slots without material: %s" % missing) if missing else "", coll))

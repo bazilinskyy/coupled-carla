@@ -81,8 +81,34 @@ PALETTE = {
     "RoofDark": ((0.04, 0.04, 0.045), 0.2, 0.6),            # fan grilles, roof felt, doors
     "RoofRender": ((0.38, 0.37, 0.35), 0.0, 0.85),          # bulkhead walls
     "JPGrey": ((0.30, 0.31, 0.31), 0.6, 0.45),              # Japanese galvanised / grey poles
+    # round 2: bikes, columns, signs, road surfaces and grime
+    "FrameBlack": ((0.012, 0.012, 0.013), 0.3, 0.35),
+    "FrameNavy": ((0.012, 0.022, 0.06), 0.3, 0.35),
+    "FrameGrey": ((0.16, 0.165, 0.17), 0.5, 0.35),
+    "FrameGreen": ((0.012, 0.045, 0.025), 0.3, 0.35),
+    "FrameRed": ((0.17, 0.012, 0.014), 0.3, 0.35),
+    "TyreBlack": ((0.02, 0.02, 0.02), 0.0, 0.8),
+    "TyreBlue": ((0.02, 0.18, 0.62), 0.0, 0.6),             # the Swapfiets front tyre
+    "Chrome": ((0.55, 0.55, 0.56), 1.0, 0.25),
+    "Saddle": ((0.025, 0.02, 0.018), 0.0, 0.55),
+    "Spokes": ((1.0, 1.0, 1.0), 0.8, 0.3, "spokes"),
+    "ColumnGreen": ((0.012, 0.05, 0.03), 0.3, 0.45),        # the column's cast iron, dark green
+    "Poster_A": ((1.0, 1.0, 1.0), 0.0, 0.6, "poster_a"),
+    "Poster_B": ((1.0, 1.0, 1.0), 0.0, 0.6, "poster_b"),
+    "Poster_C": ((1.0, 1.0, 1.0), 0.0, 0.6, "poster_c"),
+    "SignBack": ((0.05, 0.05, 0.055), 0.4, 0.5),
+    "Clinker": ((1.0, 1.0, 1.0), 0.0, 0.8, "clinker"),      # red-brown clay road clinkers, herringbone
+    "Sett": ((1.0, 1.0, 1.0), 0.0, 0.75, "sett"),           # grey granite setts (cobbles)
+    "Grime": ((1.0, 1.0, 1.0), 0.0, 0.9, "grime"),
+    "Puddle": ((1.0, 1.0, 1.0), 0.2, 0.03, "puddle"),       # wet: nearly mirror-smooth
+    "Stains": ((1.0, 1.0, 1.0), 0.0, 0.7, "stains"),
+    "Litter": ((1.0, 1.0, 1.0), 0.0, 0.7, "litter"),
 }
-DECAL = {"Crack", "Patch", "Pothole", "Oil", "Leaves", "RedAsphalt"}    # masked, two-sided, no collision
+SIGN_KEYS = ["bakkerij", "cafe", "restaurant", "kapper", "apotheek", "mode", "fietsen", "bloemen", "supermarkt",
+             "slagerij", "optiek", "snackbar", "lunchroom", "boeken", "schoenen", "winkel"]
+PALETTE.update({f"Sign_{k}": ((1.0, 1.0, 1.0), 0.0, 0.5, f"sign_{k}") for k in SIGN_KEYS})
+DECAL = {"Crack", "Patch", "Pothole", "Oil", "Leaves", "RedAsphalt", "Clinker", "Sett", "Grime", "Puddle", "Stains",
+         "Litter"}    # masked, two-sided, no collision
 
 
 # -- extra primitives ----------------------------------------------------------------------------------------------
@@ -531,6 +557,161 @@ def lamp_jp(h=8.0):
     return m, {"light": [1.9, 0.0, h - 0.08]}
 
 
+# -- round 2: Dutch street life (bikes, columns, shop signs, clinker roads, grime) ------------------------------------
+
+def torus(m, mat, centre, R, r, nu=22, nv=6):
+    """A torus in the model's x-z plane (a wheel's tyre), axis along y."""
+    c = np.asarray(centre, float)
+    V, N, UV, idx = [], [], [], []
+    for i in range(nu + 1):
+        u = 2 * math.pi * i / nu
+        cu, su = math.cos(u), math.sin(u)
+        for j in range(nv + 1):
+            v = 2 * math.pi * j / nv
+            cv, sv = math.cos(v), math.sin(v)
+            n = np.array([cu * cv, sv, su * cv])
+            V.append(c + np.array([cu * R, 0, su * R]) + n * r)
+            N.append(n)
+            UV.append((i / nu, j / nv))
+    w = nv + 1
+    for i in range(nu):
+        for j in range(nv):
+            p = i * w + j
+            idx += [p, p + w, p + w + 1, p, p + w + 1, p + 1]
+    m.add(mat, V, N, UV, idx)
+
+
+def _disc_xz(m, mat, centre, r, seg=20):
+    """A two-sided disc in the x-z plane (spokes, posters)."""
+    sub = Mesh()
+    disc(sub, mat, (0, 0, 0), r, seg=seg, both=True)
+    R = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    for v, n, uv, ix in zip(*[sub.parts[mat][k] for k in range(4)]):
+        m.add(mat, v @ R.T + np.asarray(centre, float), n @ R.T, uv, ix - ix.min())
+
+
+SURFACE_WIDTHS = (2, 3, 4, 6, 8)
+BIKE_COLOURS = {"Black": "FrameBlack", "Navy": "FrameNavy", "Grey": "FrameGrey", "Green": "FrameGreen",
+                "Red": "FrameRed"}
+
+
+def dutch_bike(frame="FrameBlack", step_through=True, front_tyre="TyreBlack", lean_deg=7.0):
+    """A Dutch city bike ("omafiets" with a step-through frame, or the diamond "opafiets"): 28-inch wheels, upright
+    swept-back bars, mudguards, a rear rack, a closed chain guard, a kickstand; parked, leaning lean_deg to its left
+    (model +y, the kickstand side). 1.85 m long, x forward. front_tyre "TyreBlue" is a Swapfiets."""
+    m = Mesh()
+    wf, wr, zc = np.array([0.56, 0, 0.355]), np.array([-0.57, 0, 0.355]), 0.355
+    for c, tyre in ((wf, front_tyre), (wr, "TyreBlack")):
+        torus(m, tyre, c, 0.333, 0.022)
+        torus(m, "Chrome", c, 0.305, 0.007, nu=20, nv=4)
+        _disc_xz(m, "Spokes", c, 0.30)
+        tube(m, "Chrome", c + (0, -0.05, 0), c + (0, 0.05, 0), 0.02, seg=8)
+        # mudguard: a thin arc over the top half
+        pts = [c + np.array([math.cos(a) * 0.37, 0, math.sin(a) * 0.37])
+               for a in np.linspace(math.radians(-20), math.radians(200), 9)]
+        for a_, b_ in zip(pts, pts[1:]):
+            mid = (a_ + b_) / 2
+            ang = math.atan2(b_[2] - a_[2], b_[0] - a_[0])
+            obox(m, frame, mid, (np.linalg.norm(b_ - a_) + 0.01, 0.055, 0.008), rot(pitch=-ang))
+    bb = np.array([-0.04, 0, 0.30])
+    head_lo, head_hi = np.array([0.38, 0, 0.66]), np.array([0.33, 0, 0.88])
+    seat_top = np.array([-0.21, 0, 0.84])
+    r = 0.019
+    tube(m, frame, head_lo, head_hi, 0.024, seg=8)
+    tube(m, frame, bb, seat_top, r, seg=8)                                  # seat tube
+    polyline_tube(m, frame, [bb, wr + (0, 0.04, 0)], 0.012, seg=6)         # chain stays
+    polyline_tube(m, frame, [bb, wr + (0, -0.04, 0)], 0.012, seg=6)
+    polyline_tube(m, frame, [seat_top + (0, 0, -0.06), wr + (0, 0.04, 0)], 0.011, seg=6)   # seat stays
+    polyline_tube(m, frame, [seat_top + (0, 0, -0.06), wr + (0, -0.04, 0)], 0.011, seg=6)
+    if step_through:        # the double low tubes of an omafiets
+        for dz in (0.0, 0.07):
+            polyline_tube(m, frame, [head_lo + (0, 0, 0.12 + dz), np.array([0.15, 0, 0.42 + dz]), bb + (0.03, 0, dz)],
+                          r, seg=6)
+    else:
+        polyline_tube(m, frame, [head_lo + (0, 0, 0.18), seat_top + (0, 0, -0.04)], r, seg=6)    # top tube
+        polyline_tube(m, frame, [head_lo, bb], 0.022, seg=6)                                     # down tube
+    for s in (1, -1):       # fork
+        polyline_tube(m, frame, [head_lo + (0, s * 0.03, 0), wf + (-0.04, s * 0.05, 0.15), wf + (0, s * 0.05, 0)],
+                      0.012, seg=6)
+    stem_top = np.array([0.30, 0, 1.06])
+    tube(m, "Chrome", head_hi, stem_top, 0.012, seg=6)
+    for s in (1, -1):       # upright, swept-back bars and grips
+        polyline_tube(m, "Chrome", [stem_top, stem_top + (-0.05, s * 0.18, 0.03), stem_top + (-0.20, s * 0.29, 0.0)],
+                      0.011, seg=6)
+        tube(m, "Saddle", stem_top + (-0.20, s * 0.27, 0.0), stem_top + (-0.23, s * 0.33, -0.005), 0.017, seg=6)
+    tube(m, "Chrome", seat_top, seat_top + (-0.02, 0, 0.10), 0.013, seg=6)          # seat post
+    obox(m, "Saddle", seat_top + (-0.05, 0, 0.13), (0.27, 0.19, 0.07), np.eye(3))
+    # rear rack over the rear wheel, with stays to the axle
+    for s in (1, -1):
+        obox(m, frame, (-0.52, s * 0.07, 0.80), (0.48, 0.012, 0.012), np.eye(3))
+        polyline_tube(m, frame, [np.array([-0.72, s * 0.07, 0.80]), wr + (0, s * 0.06, 0)], 0.007, seg=4)
+    for x in (-0.70, -0.55, -0.40):
+        obox(m, frame, (x, 0, 0.80), (0.012, 0.15, 0.012), np.eye(3))
+    # closed chain guard (kettingkast) from the bottom bracket to the rear axle, on the right (model -y)
+    mid = (bb + wr) / 2 + (0, -0.06, 0)
+    ang = math.atan2(wr[2] - bb[2], wr[0] - bb[0])
+    obox(m, "FrameBlack", mid, (np.linalg.norm(wr - bb) + 0.24, 0.05, 0.17), rot(pitch=-ang))
+    tube(m, "Chrome", bb + (0, -0.12, 0), bb + (0, 0.12, 0), 0.03, seg=8)
+    for s, ph in ((1, 0.0), (-1, math.pi)):      # pedals
+        a = bb + np.array([0.12 * math.cos(ph), s * 0.13, 0.12 * math.sin(ph)])
+        obox(m, "Saddle", a + (0, s * 0.05, 0), (0.1, 0.09, 0.02), np.eye(3))
+    tube(m, "Chrome", bb + (-0.10, 0.04, -0.02), np.array([-0.28, 0.12, 0.0]), 0.008, seg=5)   # kickstand
+    obox(m, "LampHousing", head_lo + (0.07, 0, 0.0), (0.06, 0.06, 0.06), np.eye(3))       # front light
+    obox(m, "LensRed", (-0.78, 0, 0.82), (0.02, 0.05, 0.03), np.eye(3))                    # rear light
+    if lean_deg:        # stand on the tyres' contact line, leaning to the kickstand side
+        R = rot(roll=math.radians(lean_deg))
+        for k, (vs, ns, uvs, ids, _) in list(m.parts.items()):
+            m.parts[k][0] = [v @ R.T for v in vs]
+            m.parts[k][1] = [n @ R.T for n in ns]
+    return m, {"length": 1.85}
+
+
+def ad_column(poster="Poster_A"):
+    """A Morris (advertising) column, "reclamezuil": a 1.2 m drum of posters (a texture of three posters around it)
+    on a dark green plinth under a fluted cornice and a dome, 3.6 m."""
+    m = Mesh()
+    tube(m, "ColumnGreen", (0, 0, 0), (0, 0, 0.35), 0.66, 0.64, seg=32)
+    tube(m, "ColumnGreen", (0, 0, 0.35), (0, 0, 0.42), 0.62, 0.62, seg=32)
+    # the poster drum: its own UVs, u around once, v bottom to top
+    n, z0, z1, R = 36, 0.42, 2.95, 0.6
+    V, N, UV, idx = [], [], [], []
+    for i in range(n + 1):
+        a = 2 * math.pi * i / n
+        d = np.array([math.cos(a), math.sin(a), 0.0])
+        V += [d * R + (0, 0, z0), d * R + (0, 0, z1)]
+        N += [d, d]
+        UV += [(i / n, 1.0), (i / n, 0.0)]
+    for i in range(n):
+        p = 2 * i
+        idx += [p, p + 2, p + 3, p, p + 3, p + 1]
+    m.add(poster, V, N, UV, idx)
+    tube(m, "ColumnGreen", (0, 0, 2.95), (0, 0, 3.05), 0.62, 0.70, seg=32)
+    tube(m, "ColumnGreen", (0, 0, 3.05), (0, 0, 3.15), 0.70, 0.70, seg=32)
+    sphere(m, "ColumnGreen", (0, 0, 3.15), 0.62, nu=32, nv=6, z_scale=0.55, half=True)
+    tube(m, "ColumnGreen", (0, 0, 3.45), (0, 0, 3.62), 0.04, 0.02, seg=8)
+    sphere(m, "ColumnGreen", (0, 0, 3.63), 0.05, nu=10, nv=5)
+    return m, {}
+
+
+def shop_sign(face, width=3.0, height=0.6):
+    """A fascia sign: a board width x height x 0.08 m, its face (texture) towards model +y (Unreal -y, away from
+    the wall: placed with yaw so that -y in Unreal points out of the facade), origin at the middle of its back."""
+    m = Mesh()
+    obox(m, "SignBack", (0, 0.04, 0), (width, 0.08, height), np.eye(3))
+    quad(m, face, [(width / 2 - 0.02, 0.0805, -height / 2 + 0.02), (-width / 2 + 0.02, 0.0805, -height / 2 + 0.02),
+                   (-width / 2 + 0.02, 0.0805, height / 2 - 0.02), (width / 2 - 0.02, 0.0805, height / 2 - 0.02)],
+         (0, 1, 0), ((0, 1), (1, 1), (1, 0), (0, 0)))
+    return m, {"width": width}
+
+
+def surface_strip(mat, w=1.0, l=2.0, tile_m=2.0, z=0.009):
+    """A road-surface overlay w x l (scaled by the lane width at placement: one per 1.9 widths), its texture
+    repeating every tile_m metres at scale 1."""
+    m = Mesh()
+    flat(m, mat, (0, 0, 0), (l, w), z=z, uv_scale=(l / tile_m, w / tile_m))
+    return m, {}
+
+
 # -- the catalogue ------------------------------------------------------------------------------------------------
 
 def specs():
@@ -587,6 +768,24 @@ def specs():
     add("RoofACLarge", "Any", "Building", "roof_ac_large", roof_ac_large)
     add("RoofBulkhead", "Any", "Building", "roof_bulkhead", roof_bulkhead)
     add("RoofVent", "Any", "Building", "roof_vent", roof_vent)
+    # round 2: Dutch street life
+    for col, slot in BIKE_COLOURS.items():
+        add(f"Bike_{col}", "NL", "Static", "bike", lambda slot=slot: dutch_bike(slot, True))
+        add(f"BikeMen_{col}", "NL", "Static", "bike", lambda slot=slot: dutch_bike(slot, False))
+    add("Bike_Swapfiets", "NL", "Static", "bike_swapfiets", lambda: dutch_bike("FrameBlack", True, "TyreBlue"))
+    add("BikeMen_Swapfiets", "NL", "Static", "bike_swapfiets", lambda: dutch_bike("FrameBlack", False, "TyreBlue"))
+    for key in "ABC":
+        add(f"AdColumn_{key}", "Any", "Static", "ad_column", lambda key=key: ad_column(f"Poster_{key}"),
+            "SM_Billboard1", "Morris column (reclamezuil, Litfass)")
+    for k in SIGN_KEYS:
+        add(f"ShopSign_{k}", "NL", "Static", "shop_sign", lambda k=k: shop_sign(f"Sign_{k}"))
+    for w in SURFACE_WIDTHS:      # widths so that a strip stands at about scale 1 (the stones keep their size)
+        add(f"Clinker_W{w}", "NL", "Road", "clinker_road", lambda w=w: surface_strip("Clinker", w, 2 * w))
+        add(f"Sett_W{w}", "Any", "Road", "sett_road", lambda w=w: surface_strip("Sett", w, 2 * w))
+    add("Grime_A", "Any", "Road", "grime", lambda: decal("Grime", (6.0, 0.6), z=0.010))
+    add("Puddle_A", "Any", "Road", "puddle", lambda: decal("Puddle", (1.4, 1.0), z=0.011))
+    add("Stains_A", "Any", "Road", "stains", lambda: decal("Stains", (1.5, 1.5), z=0.006))
+    add("Litter_A", "Any", "Road", "litter", lambda: decal("Litter", (1.5, 1.5), z=0.012))
     # UK and Japan
     add("LampColumn8", "UK", "Pole", "lamp_arm", lambda: lamp_uk(8.0), "SM_StreetLight06_A", "BS EN 40 column")
     add("BinCast", "UK", "Static", "bin", bin_uk, "SM_TrashCan01")
@@ -717,6 +916,162 @@ def textures(out, size=512, seed=7):
     save("leaves", np.asarray(img, float)[..., :3], np.asarray(img, float)[..., 3])
 
 
+# Dutch shop-sign words by OSM shop / amenity value: generic trade names, no brands (streetlook.SIGN_OF)
+SIGN_WORDS = {"bakkerij": "BAKKERIJ", "cafe": "CAFÉ", "restaurant": "RESTAURANT", "kapper": "KAPSALON",
+              "apotheek": "APOTHEEK", "mode": "MODE", "fietsen": "FIETSEN", "bloemen": "BLOEMEN",
+              "supermarkt": "SUPERMARKT", "slagerij": "SLAGERIJ", "optiek": "OPTIEK", "snackbar": "SNACKBAR",
+              "lunchroom": "LUNCHROOM", "boeken": "BOEKHANDEL", "schoenen": "SCHOENEN", "winkel": "WINKEL"}
+SIGN_STYLE = [((20, 40, 70), (235, 225, 200)), ((120, 20, 30), (245, 240, 230)), ((240, 238, 230), (30, 30, 35)),
+              ((25, 70, 45), (235, 220, 160)), ((15, 15, 18), (225, 190, 90)), ((200, 120, 40), (255, 255, 255))]
+
+
+def textures2(out, seed=11):
+    """Round 2 textures: spokes, posters, shop-sign faces, clinker and sett paving, grime, litter, puddles, stains,
+    bike tyres (RGBA PNGs, alpha = opacity mask)."""
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    import matplotlib
+    rng = np.random.default_rng(seed)
+    out = Path(out)
+    font_dir = Path(matplotlib.__file__).parent / "mpl-data" / "fonts" / "ttf"     # DejaVu (Bitstream Vera licence)
+
+    def save(name, img):
+        img.save(out / f"T_CC_{name}.png")
+
+    def noise(s, octaves=5):
+        acc = np.zeros((s, s))
+        for o in range(octaves):
+            n = 4 * 2 ** o
+            g = rng.random((n + 1, n + 1))
+            acc += np.asarray(Image.fromarray((g * 255).astype(np.uint8)).resize((s, s), Image.BICUBIC),
+                              float) / 255.0 / 2 ** o
+        return acc / acc.max()
+    # spokes: 36 thin radial lines on transparent, a hub ring
+    s = 512
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for k in range(36):
+        a = 2 * math.pi * k / 36
+        d.line([(s / 2 + math.cos(a) * 18, s / 2 + math.sin(a) * 18),
+                (s / 2 + math.cos(a + 0.35) * 250, s / 2 + math.sin(a + 0.35) * 250)], fill=(190, 190, 195, 255),
+               width=2)
+    d.ellipse([s / 2 - 22, s / 2 - 22, s / 2 + 22, s / 2 + 22], outline=(170, 170, 175, 255), width=6)
+    save("spokes", img)
+    # posters around a column: three posters side by side (1024 x 512 wraps the drum once)
+    font = ImageFont.truetype(str(font_dir / "DejaVuSans-Bold.ttf"), 54)
+    small = ImageFont.truetype(str(font_dir / "DejaVuSans.ttf"), 26)
+    words = [["CONCERT", "TOUR 2026"], ["EXPO", "MUSEUM"], ["FESTIVAL", "ZOMER"], ["THEATER", "PREMIERE"],
+             ["OPERA", "VOORSTELLING"], ["MARKT", "ZATERDAG"], ["FILM", "NU IN DE BIOS"], ["DANS", "LIVE"],
+             ["KERMIS", "STADSFEEST"]]
+    for v, key in enumerate("ABC"):
+        img = Image.new("RGB", (1024, 512), (230, 228, 220))
+        d = ImageDraw.Draw(img)
+        for p in range(3):
+            x0 = p * 1024 // 3
+            bg = tuple(int(c) for c in rng.integers(30, 230, 3))
+            d.rectangle([x0 + 6, 14, x0 + 1024 // 3 - 6, 498], fill=bg)
+            for _ in range(3):      # abstract shapes
+                cx, cy, r = x0 + rng.integers(40, 300), rng.integers(140, 380), rng.integers(30, 110)
+                col = tuple(int(c) for c in rng.integers(0, 255, 3))
+                d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=col)
+            w1, w2 = words[(v * 3 + p) % len(words)]
+            fg = (255, 255, 255) if sum(bg) < 380 else (20, 20, 20)
+            d.text((x0 + 22, 30), w1, font=font, fill=fg)
+            d.text((x0 + 24, 440), w2, font=small, fill=fg)
+        img = img.filter(ImageFilter.GaussianBlur(0.6))
+        save(f"poster_{key.lower()}", img)
+    # shop-sign faces: the trade word on a plain board, a thin border
+    big = ImageFont.truetype(str(font_dir / "DejaVuSans-Bold.ttf"), 150)
+    for i, (key, word) in enumerate(SIGN_WORDS.items()):
+        bg, fg = SIGN_STYLE[i % len(SIGN_STYLE)]
+        img = Image.new("RGB", (1024, 205), bg)
+        d = ImageDraw.Draw(img)
+        d.rectangle([6, 6, 1017, 198], outline=fg, width=5)
+        size = 150
+        f = big
+        while d.textlength(word, font=f) > 940 and size > 40:
+            size -= 8
+            f = ImageFont.truetype(str(font_dir / "DejaVuSans-Bold.ttf"), size)
+        tw = d.textlength(word, font=f)
+        d.text(((1024 - tw) / 2, (205 - size * 1.17) / 2), word, font=f, fill=fg)
+        save(f"sign_{key}", img)
+    # red-brown clay clinkers (waalformaat 200 x 100 mm) in herringbone, 2 m per texture: bricks of 0.1 m units,
+    # H_i = [i, i+2] x [i, i+1], V_i = [i-1, i] x [i, i+2], bands every 4 units (it tiles over 20 x 20 units)
+    s, U = 1024, 1024 / 20
+    img = Image.new("RGB", (s, s), (82, 66, 58))
+    d = ImageDraw.Draw(img)
+    for b in range(-12, 12):
+        for i in range(-30, 30):
+            for (x0, x1, y0, y1) in ((i + 4 * b, i + 2 + 4 * b, i, i + 1), (i - 1 + 4 * b, i + 4 * b, i, i + 2)):
+                for ox in (0, -20, 20):
+                    for oy in (0, -20, 20):
+                        X0, X1, Y0, Y1 = (x0 + ox) * U, (x1 + ox) * U, (y0 + oy) * U, (y1 + oy) * U
+                        if X1 < 0 or Y1 < 0 or X0 > s or Y0 > s:
+                            continue
+                        t = rng.normal(0, 1)
+                        col = (int(np.clip(132 + 18 * t, 60, 200)), int(np.clip(64 + 9 * t, 30, 120)),
+                               int(np.clip(48 + 7 * t, 20, 100)))
+                        d.rectangle([X0 + 2, Y0 + 2, X1 - 2, Y1 - 2], fill=col)
+    arr = np.asarray(img, float) * (0.88 + 0.22 * noise(s, 6)[..., None])
+    Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(out / "T_CC_clinker.png")
+    # grey granite setts (10 x 10 cm, rows), 2 m per texture
+    img = Image.new("RGB", (s, s), (60, 60, 58))
+    d = ImageDraw.Draw(img)
+    for r_ in range(20):
+        off = (U / 2) * (r_ % 2)
+        for c_ in range(-1, 21):
+            g = int(np.clip(rng.normal(118, 14), 70, 170))
+            x0 = c_ * U + off
+            d.rounded_rectangle([x0 + 3, r_ * U + 3, x0 + U - 3, r_ * U + U - 3], radius=8, fill=(g, g - 2, g - 6))
+    arr = np.asarray(img, float) * (0.85 + 0.3 * noise(s, 6)[..., None])
+    Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(out / "T_CC_sett.png")
+    # gutter grime: a dark band fading out from the kerb (v = 0) over the strip's width, streaks along it
+    s = 512
+    yy, xx = np.mgrid[0:s, 0:s] / s
+    n1 = noise(s, 6)
+    a = np.clip((1.0 - yy) ** 2.2 * (0.6 + 0.8 * n1) * 255 * 0.9, 0, 210)
+    rgb = np.dstack([40 + 20 * n1, 36 + 16 * n1, 30 + 12 * n1])
+    Image.fromarray(np.dstack([rgb, a]).astype(np.uint8), "RGBA").save(out / "T_CC_grime.png")
+    # puddle: a dark, irregular wet patch
+    r = np.hypot(xx - 0.5, yy - 0.5) / 0.5
+    edge = 0.62 + 0.3 * noise(s, 3)
+    a = np.clip((edge - r) * 6, 0, 1) * 235
+    rgb = np.dstack([np.full((s, s), 28.0), np.full((s, s), 30.0), np.full((s, s), 32.0)])
+    Image.fromarray(np.dstack([rgb, a]).astype(np.uint8), "RGBA").save(out / "T_CC_puddle.png")
+    # stains: chewing gum spots and a dark blotch
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for _ in range(90):
+        x, y, rr = rng.uniform(20, s - 20), rng.uniform(20, s - 20), rng.uniform(2.5, 6)
+        g = int(rng.uniform(25, 70))
+        d.ellipse([x - rr, y - rr, x + rr, y + rr], fill=(g, g, g, 230))
+    blot = np.clip(1.0 - r / (0.45 + 0.25 * noise(s, 3)), 0, 1) ** 0.8 * 120
+    base = np.asarray(img, float)
+    base[..., 3] = np.maximum(base[..., 3], blot)
+    base[..., :3] = np.where(base[..., 3:4] > 0, np.maximum(base[..., :3], 25), base[..., :3])
+    Image.fromarray(base.astype(np.uint8), "RGBA").save(out / "T_CC_stains.png")
+    # litter: cigarette butts, paper scraps, a can, bottle caps on transparent
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for _ in range(40):         # butts: 25 mm long at 512 px per 1.5 m
+        x, y, a_ = rng.uniform(20, s - 20), rng.uniform(20, s - 20), rng.uniform(0, math.pi)
+        L = 8.5
+        x1, y1 = x + math.cos(a_) * L, y + math.sin(a_) * L
+        d.line([(x, y), (x1, y1)], fill=(235, 230, 220, 255), width=3)
+        d.line([(x1, y1), (x1 + math.cos(a_) * 3, y1 + math.sin(a_) * 3)], fill=(200, 140, 60, 255), width=3)
+    for _ in range(9):          # paper scraps
+        x, y = rng.uniform(30, s - 30), rng.uniform(30, s - 30)
+        pts = [(x + rng.uniform(-16, 16), y + rng.uniform(-16, 16)) for _ in range(5)]
+        g = int(rng.uniform(190, 245))
+        d.polygon(pts, fill=(g, g, g - 10, 255))
+    for _ in range(2):
+        x, y = rng.uniform(40, s - 40), rng.uniform(40, s - 40)
+        d.rectangle([x, y, x + 22, y + 11], fill=(160, 20, 20, 255))
+    for _ in range(6):
+        x, y = rng.uniform(20, s - 20), rng.uniform(20, s - 20)
+        d.ellipse([x - 3, y - 3, x + 3, y + 3], fill=(180, 170, 60, 255))
+    save("litter", img)
+
+
 def build(out_dir):
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -732,6 +1087,7 @@ def build(out_dir):
                      "decal": any(s in DECAL for s in slots), "note": note, "licence": LICENCE, **extra}
         print(f"{n}: {tris} triangles, {2 * ext[0]:.2f} x {2 * ext[1]:.2f} x {2 * ext[2]:.2f} m")
     textures(out)
+    textures2(out)
     manifest = {"root": ROOT, "palette": {k: list(v[0]) + list(v[1:3]) + ([v[3]] if len(v) > 3 else [])
                                           for k, v in PALETTE.items()},
                 "decal_slots": sorted(DECAL), "meshes": meshes}

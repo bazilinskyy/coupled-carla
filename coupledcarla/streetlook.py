@@ -172,6 +172,11 @@ class Chooser:
 
     def furniture(self, key, value, tags, uid=0):
         """The regional mesh for an OSM-style (key, value) feature, or None (CARLA's)."""
+        if (key, value) == ("advertising", "column"):      # a Morris column in any country (three poster sets)
+            name = f"SM_CC_Any_AdColumn_{'ABC'[zlib.crc32(str(uid).encode()) % 3]}"
+            if self._have(name):
+                self._count("ad_column")
+                return name
         if self.region is None:
             return None
         kv = (key, value)
@@ -602,7 +607,8 @@ def _on(sc, key):
     return sc.get(key, "auto") not in (False, "off", "false", None)
 
 
-def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log=print, ndw=None, bgt_data=None):
+def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log=print, ndw=None, bgt_data=None,
+                   free=None):
     """scenery.build's hook: markings and red cycle lanes (the Dutch set), road wear, oil spots, leaf litter and
     rooftop clutter (any region), each where the catalogue has the meshes (CARLA 1.0) and its option is on."""
     from shapely.geometry import Polygon
@@ -674,6 +680,9 @@ def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log
             said.append("rooftop " + ", ".join(f"{k} {v}" for k, v in sorted(got.items())))
     if said:
         log("scenery: " + "; ".join(said))
+    if free is not None:      # clinker roads, grime and litter, parked bikes, shop signs (streetlife.py)
+        from . import streetlife
+        streetlife.add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, blds, look.region, bgt_data, free, log)
 
 
 # --- night: CARLA's lit lamp in place of ours ----------------------------------------------------------------------

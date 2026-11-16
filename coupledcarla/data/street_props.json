@@ -259,15 +259,306 @@
    0.31,
    0.6,
    0.45
+  ],
+  "FrameBlack": [
+   0.012,
+   0.012,
+   0.013,
+   0.3,
+   0.35
+  ],
+  "FrameNavy": [
+   0.012,
+   0.022,
+   0.06,
+   0.3,
+   0.35
+  ],
+  "FrameGrey": [
+   0.16,
+   0.165,
+   0.17,
+   0.5,
+   0.35
+  ],
+  "FrameGreen": [
+   0.012,
+   0.045,
+   0.025,
+   0.3,
+   0.35
+  ],
+  "FrameRed": [
+   0.17,
+   0.012,
+   0.014,
+   0.3,
+   0.35
+  ],
+  "TyreBlack": [
+   0.02,
+   0.02,
+   0.02,
+   0.0,
+   0.8
+  ],
+  "TyreBlue": [
+   0.02,
+   0.18,
+   0.62,
+   0.0,
+   0.6
+  ],
+  "Chrome": [
+   0.55,
+   0.55,
+   0.56,
+   1.0,
+   0.25
+  ],
+  "Saddle": [
+   0.025,
+   0.02,
+   0.018,
+   0.0,
+   0.55
+  ],
+  "Spokes": [
+   1.0,
+   1.0,
+   1.0,
+   0.8,
+   0.3,
+   "spokes"
+  ],
+  "ColumnGreen": [
+   0.012,
+   0.05,
+   0.03,
+   0.3,
+   0.45
+  ],
+  "Poster_A": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "poster_a"
+  ],
+  "Poster_B": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "poster_b"
+  ],
+  "Poster_C": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "poster_c"
+  ],
+  "SignBack": [
+   0.05,
+   0.05,
+   0.055,
+   0.4,
+   0.5
+  ],
+  "Clinker": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.8,
+   "clinker"
+  ],
+  "Sett": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.75,
+   "sett"
+  ],
+  "Grime": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.9,
+   "grime"
+  ],
+  "Puddle": [
+   1.0,
+   1.0,
+   1.0,
+   0.2,
+   0.03,
+   "puddle"
+  ],
+  "Stains": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.7,
+   "stains"
+  ],
+  "Litter": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.7,
+   "litter"
+  ],
+  "Sign_bakkerij": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_bakkerij"
+  ],
+  "Sign_cafe": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_cafe"
+  ],
+  "Sign_restaurant": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_restaurant"
+  ],
+  "Sign_kapper": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_kapper"
+  ],
+  "Sign_apotheek": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_apotheek"
+  ],
+  "Sign_mode": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_mode"
+  ],
+  "Sign_fietsen": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_fietsen"
+  ],
+  "Sign_bloemen": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_bloemen"
+  ],
+  "Sign_supermarkt": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_supermarkt"
+  ],
+  "Sign_slagerij": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_slagerij"
+  ],
+  "Sign_optiek": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_optiek"
+  ],
+  "Sign_snackbar": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_snackbar"
+  ],
+  "Sign_lunchroom": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_lunchroom"
+  ],
+  "Sign_boeken": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_boeken"
+  ],
+  "Sign_schoenen": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_schoenen"
+  ],
+  "Sign_winkel": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.5,
+   "sign_winkel"
   ]
  },
  "decal_slots": [
+  "Clinker",
   "Crack",
+  "Grime",
   "Leaves",
+  "Litter",
   "Oil",
   "Patch",
   "Pothole",
-  "RedAsphalt"
+  "Puddle",
+  "RedAsphalt",
+  "Sett",
+  "Stains"
  ],
  "meshes": {
   "SM_CC_NL_LampPostTop4": {
@@ -1313,6 +1604,1215 @@
    ],
    "fallback": null,
    "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Bike_Black": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Black.SM_CC_NL_Bike_Black",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 2024,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_BikeMen_Black": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Black.SM_CC_NL_BikeMen_Black",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 1904,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_Bike_Navy": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Navy.SM_CC_NL_Bike_Navy",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 2024,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "FrameNavy",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_BikeMen_Navy": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Navy.SM_CC_NL_BikeMen_Navy",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 1904,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "FrameNavy",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_Bike_Grey": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Grey.SM_CC_NL_Bike_Grey",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 2024,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "FrameGrey",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_BikeMen_Grey": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Grey.SM_CC_NL_BikeMen_Grey",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 1904,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "FrameGrey",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_Bike_Green": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Green.SM_CC_NL_Bike_Green",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 2024,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "FrameGreen",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_BikeMen_Green": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Green.SM_CC_NL_BikeMen_Green",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 1904,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "FrameGreen",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_Bike_Red": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Red.SM_CC_NL_Bike_Red",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 2024,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "FrameRed",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_BikeMen_Red": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Red.SM_CC_NL_BikeMen_Red",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 1904,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "FrameRed",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_Bike_Swapfiets": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Swapfiets.SM_CC_NL_Bike_Swapfiets",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike_swapfiets",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 2024,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack",
+    "TyreBlue"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_NL_BikeMen_Swapfiets": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BikeMen_Swapfiets.SM_CC_NL_BikeMen_Swapfiets",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bike_swapfiets",
+   "ext": [
+    0.937,
+    0.335,
+    0.556
+   ],
+   "off": [
+    -0.005,
+    0.129,
+    0.559
+   ],
+   "triangles": 1904,
+   "slots": [
+    "Chrome",
+    "FrameBlack",
+    "LampHousing",
+    "LensRed",
+    "Saddle",
+    "Spokes",
+    "TyreBlack",
+    "TyreBlue"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "length": 1.85
+  },
+  "SM_CC_Any_AdColumn_A": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_A.SM_CC_Any_AdColumn_A",
+   "region": "Any",
+   "folder": "Static",
+   "role": "ad_column",
+   "ext": [
+    0.7,
+    0.7,
+    1.84
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.84
+   ],
+   "triangles": 1100,
+   "slots": [
+    "ColumnGreen",
+    "Poster_A"
+   ],
+   "fallback": "SM_Billboard1",
+   "decal": false,
+   "note": "Morris column (reclamezuil, Litfass)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_AdColumn_B": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_B.SM_CC_Any_AdColumn_B",
+   "region": "Any",
+   "folder": "Static",
+   "role": "ad_column",
+   "ext": [
+    0.7,
+    0.7,
+    1.84
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.84
+   ],
+   "triangles": 1100,
+   "slots": [
+    "ColumnGreen",
+    "Poster_B"
+   ],
+   "fallback": "SM_Billboard1",
+   "decal": false,
+   "note": "Morris column (reclamezuil, Litfass)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_AdColumn_C": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_C.SM_CC_Any_AdColumn_C",
+   "region": "Any",
+   "folder": "Static",
+   "role": "ad_column",
+   "ext": [
+    0.7,
+    0.7,
+    1.84
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.84
+   ],
+   "triangles": 1100,
+   "slots": [
+    "ColumnGreen",
+    "Poster_C"
+   ],
+   "fallback": "SM_Billboard1",
+   "decal": false,
+   "note": "Morris column (reclamezuil, Litfass)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_ShopSign_bakkerij": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_bakkerij.SM_CC_NL_ShopSign_bakkerij",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_bakkerij"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_cafe": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_cafe.SM_CC_NL_ShopSign_cafe",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_cafe"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_restaurant": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_restaurant.SM_CC_NL_ShopSign_restaurant",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_restaurant"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_kapper": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_kapper.SM_CC_NL_ShopSign_kapper",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_kapper"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_apotheek": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_apotheek.SM_CC_NL_ShopSign_apotheek",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_apotheek"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_mode": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_mode.SM_CC_NL_ShopSign_mode",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_mode"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_fietsen": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_fietsen.SM_CC_NL_ShopSign_fietsen",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_fietsen"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_bloemen": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_bloemen.SM_CC_NL_ShopSign_bloemen",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_bloemen"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_supermarkt": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_supermarkt.SM_CC_NL_ShopSign_supermarkt",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_supermarkt"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_slagerij": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_slagerij.SM_CC_NL_ShopSign_slagerij",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_slagerij"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_optiek": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_optiek.SM_CC_NL_ShopSign_optiek",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_optiek"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_snackbar": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_snackbar.SM_CC_NL_ShopSign_snackbar",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_snackbar"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_lunchroom": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_lunchroom.SM_CC_NL_ShopSign_lunchroom",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_lunchroom"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_boeken": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_boeken.SM_CC_NL_ShopSign_boeken",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_boeken"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_schoenen": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_schoenen.SM_CC_NL_ShopSign_schoenen",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_schoenen"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_ShopSign_winkel": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_winkel.SM_CC_NL_ShopSign_winkel",
+   "region": "NL",
+   "folder": "Static",
+   "role": "shop_sign",
+   "ext": [
+    1.5,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "SignBack",
+    "Sign_winkel"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.0
+  },
+  "SM_CC_NL_Clinker_W2": {
+   "path": "/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W2.SM_CC_NL_Clinker_W2",
+   "region": "NL",
+   "folder": "Road",
+   "role": "clinker_road",
+   "ext": [
+    2.0,
+    1.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Clinker"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Sett_W2": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W2.SM_CC_Any_Sett_W2",
+   "region": "Any",
+   "folder": "Road",
+   "role": "sett_road",
+   "ext": [
+    2.0,
+    1.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Sett"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Clinker_W3": {
+   "path": "/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W3.SM_CC_NL_Clinker_W3",
+   "region": "NL",
+   "folder": "Road",
+   "role": "clinker_road",
+   "ext": [
+    3.0,
+    1.5,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Clinker"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Sett_W3": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W3.SM_CC_Any_Sett_W3",
+   "region": "Any",
+   "folder": "Road",
+   "role": "sett_road",
+   "ext": [
+    3.0,
+    1.5,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Sett"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Clinker_W4": {
+   "path": "/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W4.SM_CC_NL_Clinker_W4",
+   "region": "NL",
+   "folder": "Road",
+   "role": "clinker_road",
+   "ext": [
+    4.0,
+    2.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Clinker"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Sett_W4": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W4.SM_CC_Any_Sett_W4",
+   "region": "Any",
+   "folder": "Road",
+   "role": "sett_road",
+   "ext": [
+    4.0,
+    2.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Sett"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Clinker_W6": {
+   "path": "/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W6.SM_CC_NL_Clinker_W6",
+   "region": "NL",
+   "folder": "Road",
+   "role": "clinker_road",
+   "ext": [
+    6.0,
+    3.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Clinker"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Sett_W6": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W6.SM_CC_Any_Sett_W6",
+   "region": "Any",
+   "folder": "Road",
+   "role": "sett_road",
+   "ext": [
+    6.0,
+    3.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Sett"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Clinker_W8": {
+   "path": "/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W8.SM_CC_NL_Clinker_W8",
+   "region": "NL",
+   "folder": "Road",
+   "role": "clinker_road",
+   "ext": [
+    8.0,
+    4.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Clinker"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Sett_W8": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W8.SM_CC_Any_Sett_W8",
+   "region": "Any",
+   "folder": "Road",
+   "role": "sett_road",
+   "ext": [
+    8.0,
+    4.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.009
+   ],
+   "triangles": 2,
+   "slots": [
+    "Sett"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Grime_A": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Grime_A.SM_CC_Any_Grime_A",
+   "region": "Any",
+   "folder": "Road",
+   "role": "grime",
+   "ext": [
+    3.0,
+    0.3,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.01
+   ],
+   "triangles": 2,
+   "slots": [
+    "Grime"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Puddle_A": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Puddle_A.SM_CC_Any_Puddle_A",
+   "region": "Any",
+   "folder": "Road",
+   "role": "puddle",
+   "ext": [
+    0.7,
+    0.5,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.011
+   ],
+   "triangles": 2,
+   "slots": [
+    "Puddle"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Stains_A": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Stains_A.SM_CC_Any_Stains_A",
+   "region": "Any",
+   "folder": "Road",
+   "role": "stains",
+   "ext": [
+    0.75,
+    0.75,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.006
+   ],
+   "triangles": 2,
+   "slots": [
+    "Stains"
+   ],
+   "fallback": null,
+   "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_Any_Litter_A": {
+   "path": "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Litter_A.SM_CC_Any_Litter_A",
+   "region": "Any",
+   "folder": "Road",
+   "role": "litter",
+   "ext": [
+    0.75,
+    0.75,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.012
+   ],
+   "triangles": 2,
+   "slots": [
+    "Litter"
+   ],
+   "fallback": null,
+   "decal": true,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
   },
