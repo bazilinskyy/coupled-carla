@@ -21,7 +21,9 @@ class Autopilot:
     the Lyon clip's car left at one render and straight at the next), and it slows before curves and turns so its
     lateral acceleration stays under A_LAT (it took a junction turn at 39 km/h: 13 m/s^2)."""
     needs_display = False
-    A_LAT = 2.5         # m/s^2: the most lateral acceleration in a curve or turn
+    A_LAT = 2.5         # m/s^2: the lateral acceleration it plans its speed for in a curve or turn
+    A_LAT_MAX = 3.5     # m/s^2: never more (steering is limited to it): CARLA's cars steer their wheels up to ~70 deg,
+                        # which at 10 km/h is a 2 m radius and 4-5 m/s^2 (the clip QA blocks a participant at 4)
     B_PLAN = 2.5        # m/s^2: the deceleration it plans with to be slow enough at a curve ahead
 
     def __init__(self, vehicle, target_speed=40.0, seed=None):
@@ -86,7 +88,29 @@ class Autopilot:
                     v_curve = math.sqrt(self.A_LAT / k)
                     best = min(best, math.sqrt(v_curve * v_curve + 2.0 * self.B_PLAN * max(0.0, s - ds)))
             prev = (tf.location.x, tf.location.y, yaw)
-        return max(10.0, min(self.target_speed, best * 3.6))
+        return max(5.0, min(self.target_speed, best * 3.6))
+
+    def _steer_limit(self, vehicle, speed):
+        """The steering (0-1) that turns the car at A_LAT_MAX at this speed (1 when slow)."""
+        import math
+        if getattr(self, "_geom", None) is None:
+            try:
+                pc = vehicle.get_physics_control()
+                w = pc.wheels
+                front = [x for x in w[:2]]
+                rear = [x for x in w[2:4]]
+                fx = sum(x.position.x for x in front) / 2 / 100.0
+                fy = sum(x.position.y for x in front) / 2 / 100.0
+                rx = sum(x.position.x for x in rear) / 2 / 100.0
+                ry = sum(x.position.y for x in rear) / 2 / 100.0
+                self._geom = (max(1.5, math.hypot(fx - rx, fy - ry)), max(20.0, float(front[0].max_steer_angle)))
+            except (AttributeError, RuntimeError, IndexError, ZeroDivisionError):
+                self._geom = (2.8, 70.0)
+        wheelbase, max_deg = self._geom
+        if speed < 1.0:
+            return 1.0
+        k = self.A_LAT_MAX / (speed * speed)             # the tightest curvature allowed
+        return min(1.0, math.degrees(math.atan(k * wheelbase)) / max_deg)
 
     def control(self, vehicle, events=()):
         try:
@@ -95,6 +119,9 @@ class Autopilot:
             pass
         try:
             ctl = self.agent.run_step()
+            v = vehicle.get_velocity()
+            lim = self._steer_limit(vehicle, (v.x ** 2 + v.y ** 2) ** 0.5)
+            ctl.steer = max(-lim, min(lim, ctl.steer))
         except (IndexError, AttributeError):
             # CARLA's local planner throws where a lane simply ends (a lane drop); continue from a neighbouring
             # driving lane, or stand still and let the runner reset the car.

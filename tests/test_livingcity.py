@@ -370,3 +370,19 @@ def test_autopilot_slows_before_a_turn(monkeypatch):
     ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=[
         wp(20 + 4.0, -6.93, -90.0), wp(20 + 4.0, -8.93, -90.0), wp(20 + 4.0, -10.93, -90.0)]))
     assert ap._curve_speed(at(20.0, 0.0)) < 13.0
+
+
+def test_autopilot_steering_is_limited_by_speed(monkeypatch):
+    if "carla" not in sys.modules:
+        try:
+            import carla  # noqa: F401
+        except ImportError:
+            monkeypatch.setitem(sys.modules, "carla", _fake_carla())
+    from coupledcarla import inputs
+    ap = inputs.Autopilot.__new__(inputs.Autopilot)
+    ap._geom = (2.9, 70.0)
+    assert ap._steer_limit(None, 0.5) == 1.0
+    lim = ap._steer_limit(None, 3.0)               # 11 km/h: radius >= 9 / 3.5 = 2.6 m, about 48 deg of 70
+    r = 2.9 / math.tan(math.radians(lim * 70.0))
+    assert 3.0 ** 2 / r == pytest.approx(3.5, rel=0.01)
+    assert ap._steer_limit(None, 11.0) < 0.1
