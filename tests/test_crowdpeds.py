@@ -385,3 +385,28 @@ def test_replay_waits_for_traffic_and_reports_the_gap():
     assert not r["censored"] and r["kind"] == "midblock" and 2.5 <= r["wait"] <= 3.5 and r["gap"] is None
     (r,) = cp.replay([seg], plan, [(0.0, [(-60.0, -4.0, 0.5, 0.0)])], 30.0)       # a crawling car far off
     assert r["wait"] == 0.0 and r["gap"] > 60
+
+
+def test_group_leader_found_after_a_refused_spawn(monkeypatch):
+    # CARLA refusing one spot shifted the crowd's indices, and a follower looked its leader up by the plan's index:
+    # Kigali's and Chernihiv's trials crashed with IndexError in _follow
+    import sys
+    monkeypatch.setitem(sys.modules, "carla", _fake_carla())
+    seg = _street(n=9, width=8.0, crossings=(4,))
+    legs = [("walk", 0, 0, 2, 6)]
+    plan = [{"seg": 0, "side": 0, "i": 1, "speed": 1.3, "legs": legs},                       # 0: refused by CARLA
+            {"seg": 0, "side": 0, "i": 2, "speed": 1.3, "legs": legs},                       # 1: the leader
+            {"seg": 0, "side": 0, "i": 2, "speed": 1.3, "legs": legs, "follow": (1, 0.6, 0.0)},
+            {"seg": 0, "side": 0, "i": 2, "speed": 1.3, "legs": legs, "follow": (0, 0.6, 0.0)}]   # its leader is gone
+    world = _World()
+    spawn, calls = world.try_spawn_actor, []
+
+    def refuse_first(bp, tf):
+        calls.append(1)
+        return None if len(calls) == 1 else spawn(bp, tf)
+    world.try_spawn_actor = refuse_first
+    sim = cp.CrowdSim(world, None, [seg], plan, {}, log=lambda m: None)
+    assert len(sim.state) == 3
+    assert sim.state[1]["follow"] == (0, 0.6, 0.0) and sim.state[2]["follow"] is None
+    sim.step(0.0)
+    sim.step(0.1)                                     # no IndexError; the follower walks beside the leader

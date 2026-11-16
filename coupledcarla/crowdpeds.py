@@ -954,7 +954,16 @@ class CrowdSim:
         self.bps = sorted(self.lib.filter("walker.pedestrian.*"), key=lambda b: b.id)
         self.actors, self.state = [], []
         self.log = log
-        n = sum(self.add(w) is not None for w in walkers)
+        index = {}               # plan index -> state index (CARLA can refuse a spot, which shifts the indices)
+        for i, w in enumerate(walkers):
+            k = self.add(w)
+            if k is not None:
+                index[i] = k
+        for st in self.state:    # a group member's leader by its index in the plan: re-pointed, or alone
+            f = st["follow"]
+            if f is not None:
+                st["follow"] = (index[f[0]], f[1], f[2]) if f[0] in index else None
+        n = len(index)
         log(f"crowd: {n} of {len(walkers)} walkers spawned")
 
     @property
@@ -1109,6 +1118,9 @@ class CrowdSim:
         """A group member: beside its leader (offset right/back in the leader's heading), at the leader's pace."""
         carla = self.carla
         li, right, back = st["follow"]
+        if not 0 <= li < len(self.state) or li == k:      # no such leader: walks its own route
+            st["follow"] = None
+            return
         lead = self.state[li]
         if not lead["alive"]:
             self.remove(k, "with its group")
