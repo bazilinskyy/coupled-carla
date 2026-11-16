@@ -30,7 +30,7 @@ CURVE_ACC = 3.0       # m/s^2: a lane's speed is cut to sqrt(CURVE_ACC * its tig
                       # speeds of its own: a car took an 85 deg bend of an OSM road at 49 km/h, 30 m/s^2 lateral)
 CURVE_WINDOW = 6.0    # m: the radius over this much of the lane's shape
 CURVE_MIN_SPEED = 4.0 # m/s
-NET_ARGS = ["--junctions.limit-turn-speed", f"{TURN_ACC:g}"]
+NET_ARGS = ["--junctions.limit-turn-speed", f"{TURN_ACC:g}"]       # turnarounds: turnarounds() below
 KINK_DEG = 8.0        # a junction lane with a corner sharper than this (at its ends or inside) is redrawn
 BEZIER_STEP = 1.0     # m between the points of a redrawn junction lane
 JUNCTION_MARGIN_M = 1.0   # a redrawn junction lane stays within the junction's outline and this margin (a 120 deg
@@ -366,6 +366,29 @@ def redraw_junction_lanes(net_path, log=print):
     return n
 
 
+def turnarounds(net_path):
+    """The U-turn connections (dir "t") of a net that are not at a dead end: SUMO turns a car round on the spot within
+    its own length (Eindhoven rush hour: a car reversed its heading at 33 km/h in front of the camera). Dead ends keep
+    theirs, as there is no other way out. netconvert's --no-turnarounds does not remove the connections of a loaded
+    net, so they are deleted like the lane shifts."""
+    import sumolib
+    net = sumolib.net.readNet(str(net_path), withInternal=False, withPedestrianConnections=False)
+    out = []
+    for e in net.getEdges():
+        node = e.getToNode()
+        ways_on = [o for o in node.getOutgoing()
+                   if o.getToNode() != e.getFromNode() and any(ln.allows("passenger") or ln.allows("bicycle")
+                                                               for ln in o.getLanes())]
+        if not ways_on:
+            continue                      # a dead end: the turnaround is the only way back
+        for lane in e.getLanes():
+            for c in lane.getOutgoing():
+                if c.getDirection() == "t":
+                    out.append({"from": e.getID(), "to": c.getTo().getID(), "fromLane": lane.getIndex(),
+                                "toLane": c.getToLane().getIndex()})
+    return out
+
+
 def connection_xml(deletes, slowed):
     lines = ["<connections>"]
     for c in deletes:
@@ -383,6 +406,8 @@ def smooth(net_path, extra=(), log=print):
     module doc). Returns the counts."""
     net_path = Path(net_path)
     deletes, slowed = plan(connections(net_path))
+    uturns = turnarounds(net_path)
+    deletes = deletes + uturns
     with tempfile.TemporaryDirectory() as tmp:
         con = Path(tmp) / "smooth.con.xml"
         con.write_text(connection_xml(deletes, slowed))
@@ -392,9 +417,11 @@ def smooth(net_path, extra=(), log=print):
         net_path.write_bytes(out.read_bytes())
     redrawn = redraw_junction_lanes(net_path, log)
     slow = slow_bends(net_path)
-    log(f"junctions: {len(deletes)} sharp lane shifts dropped (a straighter connection to the same road exists), "
-        f"{len(slowed)} slowed to stay under {A_LAT:g} m/s^2; {slow} lanes slowed for their bends")
-    return {"deleted": len(deletes), "slowed": len(slowed), "curves": slow, "redrawn": redrawn}
+    log(f"junctions: {len(deletes) - len(uturns)} sharp lane shifts dropped (a straighter connection to the same road "
+        f"exists), {len(slowed)} slowed to stay under {A_LAT:g} m/s^2, {len(uturns)} U-turns away from dead ends "
+        f"dropped; {slow} lanes slowed for their bends")
+    return {"deleted": len(deletes) - len(uturns), "uturns": len(uturns), "slowed": len(slowed), "curves": slow,
+            "redrawn": redrawn}
 
 
 def slow_bends(net_path):
