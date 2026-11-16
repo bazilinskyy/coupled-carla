@@ -1936,6 +1936,24 @@ a 0.9.16 server.
 - **Level of detail.** SUMO simulates the whole map; a SUMO vehicle exists in CARLA only within
   `simulation.lod_radius_m` (250 m) of a participant and is removed beyond 280 m.
 
+### Smooth traffic and clip QA
+
+SUMO moves each vehicle's front bumper along its lane's centre line, and netconvert's lanes have kinks, junction lanes
+drawn as straight chords and sideways jumps where a road widens, so CARLA vehicles copying that pose jerked (83 % of
+SUMO vehicles in 19 cities had a moment over 4 m/s²). `map.smooth_net` (netsmooth.py, map.net.xml only) redraws
+junction lanes as curves inside the junction, rounds lane corners (≤ 0.5 m), drops sharp lane shifts that have a
+straighter alternative, and slows turns and bends to about 3 m/s²; `python -m coupledcarla.mapbuild <experiment>
+--sumo-net` rebuilds a net. `simulation.smooth_paths` drives cars and bikes in CARLA along a smoothed copy of their
+SUMO path (a bicycle model aiming 0.6 s ahead on the lanes they will take); the participant on the SUMO driver gets
+gentler limits (in the Eindhoven rush hour clip its peak lateral acceleration fell from 22.2 to 1.4 m/s²). Buses keep
+SUMO's pose, with CARLA's measured 3.18 m width in SUMO. `traffic.driver_mix` gives every SUMO driver their own time
+gap, gaps, acceleration and lane-change eagerness, and Dutch bikes e-bike speeds (27 % e-bikes, KiM 2023).
+`tools/traffic_check.py` reports a SUMO-only run against targets from the literature; `tools/crowd_validate.py`
+compares the crowd's crossings with CROWD's. Demo clips are checked before encoding (`tools/clip_check.py`, also run by
+`make_videos.py`, `--force` to override): overlapping bodies, vehicles in buildings, swerves, jumps and pop-ins in
+view, SUMO teleports and collisions, camera shake. Follow cameras steady their target's position and view direction
+(`pos_smooth_s`, `turn_smooth_s`).
+
 ## Traffic lights
 
 SUMO runs the signal programs (`simulation.tls_manager: sumo`). CARLA's own traffic-light actors are unusable
