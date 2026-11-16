@@ -34,6 +34,8 @@ DEFAULTS = {
             "bgt": "auto",           # the Dutch BGT (bgt.py): ground surfaces (grass, bricks/tiles, asphalt,
                                      # gravel) and municipal street furniture, for maps in the Netherlands; false: off
             "canopy": True,          # trees without a mapped height: sized by Meta/WRI's 1 m canopy height map
+            "canopy_trees": True,    # ... and a tree at each crown of that map with no tree within
+            "canopy_tree_gap_m": 6.0,    # this distance (gardens, courtyards: trees no register or OSM lists)
             "ndw_signs": "auto",     # the Dutch national traffic sign register (NDW, ndwsigns.py): every official
                                      # sign at its position, for maps in the Netherlands; false: OSM's signs only
             "ndw_faces": True,       # CARLA 1.0: register signs show their Dutch design (data/nl_sign_faces.json,

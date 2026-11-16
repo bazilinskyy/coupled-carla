@@ -8,8 +8,9 @@ real dimensions; data/street_props.json lists them), scenery.py places a region'
   one (Eindhoven: type_drager_mast "AL 3,5 CONISCH" -> a 4 m post-top lamp, "AL 6 NEDAL" -> a 6 m mast with a top
   LED luminaire, "ST 9 STANDAARD" with an arm -> a 9 m steel mast with a 1.5 m arm, "DUBBEL" -> a double-arm mast,
   "GY 3,5" cast iron -> a lantern; lights that are not on a pole of their own are left out by nightlights.mount),
-  else by height and distance to the road; at night with lamp lights, a lamp spawns as CARLA's lit lamp in its
-  place (scenery.Scenery: our meshes carry no light); the "Model
+  else by height and distance to the road; at night with lamp lights, a lamp spawns as its own lit blueprint
+  (tools/ue_lamp_lights.py: CARLA's lit lamp with our mesh and luminaire), or as CARLA's lit lamp in its place
+  where the server lacks that blueprint (scenery.Scenery); the "Model
   Eindhoven" bench in the register's colour (zitbanken0), round or square bins in its colour (afvalbakken0),
   steel bollards (the red-brown "Amsterdammertje" in Amsterdam), rows of bike stands ("nietjes") by capacity,
   shark-teeth give-way lines at the register's B6 signs and OSM's give-way points, red asphalt on cycle lanes;

@@ -538,6 +538,16 @@ How it is placed (`coupledcarla/scenery.py`, `coupledcarla/realworld.py`):
   The map reads urban trees about 6.5 m low and misses most under 8 m, so its values are corrected with a line
   fitted to Eindhoven's tree register (6 m + 1.1 x canopy, r = 0.34: a rough guide, unproven outside Europe).
   Where it sees no tree, the size stays a guess. `map.scenery.canopy: false` turns it off.
+- **Trees nobody maps.** Registers and OSM list public trees; gardens, courtyards and private ground hold many more.
+  In central Eindhoven only 44.7 % of the canopy map's cover over 3 m outside buildings had a placed tree within 5 m
+  (street-photo comparisons found "missing trees" at 221-307 of 350 spots). The canopy map's crowns (the tallest
+  pixel of each 5 m square over 3 m) now get a tree where none stands within 6 m (`map.scenery.canopy_trees`,
+  `canopy_tree_gap_m`), sized by the same calibration; over 18 m an oak, beech or ash, under 10 m a small maple or
+  sassafras, between the place's usual mix. Eindhoven centre on 0.9.16: 2,511 trees added (6,062 -> 8,573), cover
+  44.7 % -> 82.9 %; the twin's scenery with CARLA 1.0's meshes: 2,467 added (5,883 -> 8,350), 43.1 % -> 80.6 %. Cost
+  on a headless 0.9.16 trial (90 s, two runs each): 4,510 -> 5,176 meshes within 400 m, 12.1 -> 13.4 ms per tick in
+  the bridge's sync, real-time factor 1.47 -> 1.34. In parks without OSM planting (the Dommel valley north of the
+  station) the canopy now makes a wood where there was lawn; a tree may stand on a park path (paths are not lanes).
 - **Nothing on the lanes.** Every placement is checked against CARLA's map: nothing stands on a lane that is
   driven, ridden, parked or walked; a building that would reach into one is shrunk or dropped.
 - **Ground.** 40 m tiles (20 m on maps with more than 40 m of relief), tilted to the terrain and kept under
@@ -626,7 +636,13 @@ cracks, repair patches, potholes (more where OSM tags a bad smoothness), oil spo
 deciduous trees, and AC units and bulkheads on flat measured roofs of baked twins. OSM give-way and speed signs in
 Vienna-convention countries show the Dutch faces (the same design). Options in `map.scenery`: `street_props`,
 `shark_teeth`, `red_cycle`, `road_wear`, `leaf_litter`, `roof_clutter` (all on). A server without the content spawns
-CARLA's props in their place; CARLA 0.9.16 keeps CARLA's props. All meshes are procedural (MIT;
+CARLA's props in their place; CARLA 0.9.16 keeps CARLA's props. At night the regional lamps light as themselves:
+`tools/ue_lamp_lights.py` makes a street-light blueprint per lamp (`/Game/CoupledCarla/Street/Lights/BP_CC_<...>`,
+CARLA's lit lamp BP_StreetLight06_A with our mesh, its spot light moved to our luminaire, a second one on the double
+arm, CARLA's lamp glass on our glass), listed in the content pack as `blueprint.cc_nl_lamparm9` and so on; they light
+at the register's colour and lumens like CARLA's lamps ([night and rain](#night-and-rain)). On a -nullrhi server all
+eight spawn and register as street lights, on at night. A server without these blueprints gets CARLA's lit lamp in
+a regional lamp's place, as before. All meshes are procedural (MIT;
 `unreal/StreetProps/SOURCES.md`). Ideas from [BeamNG.Earth](https://github.com/TecnaGamer/BeamNG.Earth) (MIT,
 TecnaGamer).
 

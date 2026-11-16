@@ -104,6 +104,11 @@ PACKS = Path(__file__).resolve().parent / "data" / "carla_packs"
 LAMP_LIGHTS = {             # scenery lamp mesh (1.0 name) -> the blueprint (content pack) with that mesh and a light;
     # both checked on a 1.0 server: the same bounding box and pivot as the static.prop.mesh of the mesh
     "SM_StreetLight06_A": "blueprint.cc_streetlight06_a", "SM_StreetLight03": "blueprint.cc_streetlight03",
+    # the regional lamps (streetlook.py, /Game/CoupledCarla/Street): CARLA's lit lamp blueprint with our mesh and its
+    # light at our luminaire (tools/ue_lamp_lights.py); a lamp placed scaled spawns at its mesh's own size
+    **{m: "blueprint.cc_" + m[6:].lower() for m in (
+        "SM_CC_NL_LampPostTop4", "SM_CC_NL_LampTopLed6", "SM_CC_NL_LampArm9", "SM_CC_NL_LampArm12",
+        "SM_CC_NL_LampDouble10", "SM_CC_NL_LampHeritage4", "SM_CC_UK_LampColumn8", "SM_CC_JP_LampGooseneck8")},
 }
 NIGHT_SUN = 0.0             # the sun at or below this: lamps carry their light (a 1.0 server switches
                             # every street light on at altitude 0 and off at 1, measured)
