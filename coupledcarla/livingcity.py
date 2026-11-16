@@ -1505,7 +1505,7 @@ class LivingCity:
         cands = []
         for cid, (x, y, yaw, sp, *_r) in poses.items():
             sid = ids.get(cid)
-            if sid is None or sid.startswith("lc_") or not (3.0 < sp < 15.0):
+            if sid is None or sid.startswith("lc_") or cid in self.vehicles or not (3.0 < sp < 15.0):
                 continue
             if not self.near_participants(x, y, 110.0) or self.near_participants(x, y, 15.0):
                 continue
