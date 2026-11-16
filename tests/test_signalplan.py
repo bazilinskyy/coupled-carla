@@ -189,11 +189,11 @@ def test_norms():
 
 def _groups_cross():
     """Signal groups of the test crossroads as a controller's MAP would give them (Dutch numbering)."""
-    return {"vri1": {"02": {"from": 0, "turns": "sr", "mode": "car"}, "03": {"from": 0, "turns": "l", "mode": "car"},
-                     "08": {"from": 180, "turns": "sr", "mode": "car"}, "09": {"from": 180, "turns": "l", "mode": "car"},
-                     "05": {"from": 90, "turns": "lsr", "mode": "car"}, "11": {"from": 270, "turns": "lsr", "mode": "car"},
-                     "22": {"from": 0, "turns": "lsr", "mode": "bike"}, "28": {"from": 180, "turns": "lsr",
-                                                                              "mode": "bike"}}}
+    car, bike = "car", "bike"
+    return {"vri1": {"02": {"from": 0, "turns": "sr", "mode": car}, "03": {"from": 0, "turns": "l", "mode": car},
+                     "08": {"from": 180, "turns": "sr", "mode": car}, "09": {"from": 180, "turns": "l", "mode": car},
+                     "05": {"from": 90, "turns": "lsr", "mode": car}, "11": {"from": 270, "turns": "lsr", "mode": car},
+                     "22": {"from": 0, "turns": "lsr", "mode": bike}, "28": {"from": 180, "turns": "lsr", "mode": bike}}}
 
 
 def _log_rows(start, cycles, cycle_s, jitter=0.0):
@@ -349,3 +349,15 @@ def test_signal_heads_compare(tmp_path):
     (tmp_path / "signal_heads.csv").write_text("time,head,links,state\n10.00,0,A:0,G\n")    # drawn as it switched
     out = signal_heads.compare(tmp_path)
     assert out["agree"] == 1 and out["agree_at_switch_step"] == 1
+
+
+def test_typical_period_with_two_greens_a_cycle():
+    start = datetime(2026, 11, 2, 8, 0)
+    rows = []
+    for c in range(40):
+        t = start + timedelta(seconds=90 * c)
+        for g, a, b in (("21", 0, 20), ("21", 45, 55), ("2", 25, 40)):     # cyclists green twice a cycle
+            rows += [(t + timedelta(seconds=a), "vri1", g, "G"), (t + timedelta(seconds=b), "vri1", g, "y"),
+                     (t + timedelta(seconds=b + 3), "vri1", g, "r")]
+    tls = signaldata.timelines(sorted(rows), "vri1")
+    assert signaldata.typical_period(tls, {"21", "2"}, start, start + timedelta(minutes=30)) == 90.0

@@ -17,11 +17,11 @@ takes such data once there is some, in a plain form any source can be converted 
 
 Three ways to use them:
 - replay "program" (default): per controller the SUMO programme of the chosen hour (simulation.time or
-  signal_data.date / hour): the typical cycle (the median time between the green starts of its busiest group), the
-  phases of a cycle folded over all cycles of the hour (each second the most common state of every group), the offset
-  of the cycle at the trial's start, and type "actuated" when the cycles or greens vary (coefficient of variation
-  over 0.1 or 0.15) with
-  each green between the 10th and 90th percentile of its recorded length;
+  signal_data.date / hour): the typical cycle (the shift that best repeats all its groups' states), each cycle
+  starting where a group green once a cycle turns green, the phases of a cycle folded over all cycles of the hour
+  (each second the most common state of every group), the offset of the cycle at the trial's start, and type
+  "actuated" when the cycles or greens vary (coefficient of variation over 0.1 or 0.15) with each green between the
+  10th and 90th percentile of its recorded length;
 - replay "exact": TraCI sets every recorded state at its time (ExactDriver), as it happened;
 - live: a feed of the same rows (NDJSON lines from a file being written, an http(s) stream or tcp://host:port), set
   through TraCI as they come (LiveDriver). A UDAP (Talking Traffic) SPaT stream is ASN.1 UPER over TLS with a token;
@@ -215,11 +215,18 @@ def link_states(n_links, link_group, group_state, yields=()):
 def program_from_log(prog, tls, link_group, t_start, hours=1.0, step=1.0):
     """The SUMO programme of one controller for the recorded hour from t_start (datetime): {id, type, offset, phases,
     cycle, stats} or None (too few cycles). tls: timelines(); link_group: fill_unmatched()."""
-    t1 = t_start + timedelta(hours=hours)
     used = {g for g in link_group.values() if g is not None and g in tls}
     if not used:
         return None
-    ref = max(used, key=lambda g: (len(green_starts(tls[g], t_start, t1)), sum(greens(tls[g], t_start, t1)), g))
+    last = max(tl[-1][0] for g, tl in tls.items() if g in used)
+    t1 = min(t_start + timedelta(hours=hours), last)
+    period = typical_period(tls, used, t_start, t1)
+    if period is None:
+        return None
+    span = (t1 - t_start).total_seconds()
+    # the reference: a group green once per cycle (its green starts nearest span / period), the longest green first
+    ref = min(used, key=lambda g: (abs(len(green_starts(tls[g], t_start, t1)) - span / period),
+                                   -sum(greens(tls[g], t_start, t1)), g))
     starts = green_starts(tls[ref], t_start - timedelta(minutes=10), t1)
     starts = [s for s in starts if s >= t_start - timedelta(minutes=5)]
     if len(starts) < 3:
@@ -274,6 +281,26 @@ def program_from_log(prog, tls, link_group, t_start, hours=1.0, step=1.0):
                      "groups": {g: {"green_median_s": round(statistics.median(greens(tls[g], t_start, t1)), 1)
                                     if greens(tls[g], t_start, t1) else None} for g in sorted(used)}}}
     return out
+
+
+def typical_period(tls, used, t0, t1, lo=30, hi=180):
+    """The cycle (s) of a controller's recorded states: the shift that best repeats all its groups' states
+    (autocorrelation over the window, 1 s samples); the shortest shift within 2% of the best wins (not a multiple).
+    Groups green twice a cycle (cyclists, a group of several stages) made the green-start intervals half a cycle."""
+    n = int((t1 - t0).total_seconds())
+    if n < 2 * lo:
+        return None
+    cols = []
+    for g in sorted(used):
+        tl = tls[g]
+        cols.append([state_at(tl, t0 + timedelta(seconds=i)) or "r" for i in range(n)])
+    rows = list(zip(*cols))
+    best = {}
+    for p in range(lo, min(hi, n // 2) + 1):
+        m = n - p
+        best[p] = sum(rows[i] == rows[i + p] for i in range(0, m)) / m
+    top = max(best.values())
+    return float(min(p for p, v in best.items() if v >= top - 0.02))
 
 
 def sumo_offset(pos, cycle):

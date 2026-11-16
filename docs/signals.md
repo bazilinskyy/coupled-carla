@@ -95,7 +95,8 @@ traffic:
 ```
 
 - `replay: program` writes a programme per covered junction (`signals_real.add.xml` in the trial's `sumo/`): the
-  median cycle (time between green starts of the busiest group), one cycle folded over all cycles of the hour (each
+  typical cycle (the shift that best repeats all the junction's states; cycles start where a group green once a cycle
+  turns green), one cycle folded over all cycles of the hour (each
   second the most common state of each group), the offset at the trial's start, `actuated` when the cycles vary by
   more than 10% (coefficient of variation) or a group's greens by more than 15%, each green then between the 10th and
   90th percentile of its recorded lengths.

@@ -1811,7 +1811,34 @@ is the formal route); live SPaT/MAP comes through UDAP (Talking Traffic) with th
 account from the Ministerie van IenW (info@talking-traffic.com). Exactly what to ask for: [docs/signals.md](docs/signals.md#what-you-would-have-to-request-nothing-has-been-requested).
 Nothing has been requested.
 
-SIGNAL_RESULTS
+**Checks on `eindhoven_centre`** (weekday 08:00, 2,400 cars and 1,200 bikes an hour). SUMO only
+(`tools/signal_check.py`), 900 s after a 120 s warm-up, mean of seeds 42, 7, 1 and 3:
+
+| | `sumo` (before) | `dutch` (after) |
+|---|---|---|
+| Lights / signalised approach lanes | 210 one-link lights / 76 | 18 junctions (13 matched to the city's list, 2 added from it, 3 OSM-only; 14 of the 16 listed in the box) / 178 |
+| Crossing links green at once, neither yielding | 10 | 0 |
+| Halting vehicles per signalised lane: mean, 95th pct, longest queue | 0.45, 1.25, 34 | 0.31, 2, 17 |
+| Stops at a red or amber light; mean wait per stop | 101; 26 s | 1,481; 31 s |
+| Waiting time per trip: car, bike, bus | 34 s, 25 s, 22 s | 74 s, 50 s, 39 s |
+| Trips ended (cars) | 302 | 244 |
+| Red-light entries; amber entries | 0; 6.5 | 0; 26.5 |
+| SUMO teleports; collisions; emergency braking | 38.5; 15.5; 134 | 62.8; 13.5; 162 |
+
+Before, the lights barely stopped anyone (every stream green 42 of 48 s, sorted out by right of way); now the
+traffic waits at reds as in the city: 31 s per stop, inside the Nota's targets of 20-45 s per junction, the longest
+queue halved, no conflicting greens. The price is SUMO's: more teleports (vehicles waiting over 120 s, mostly at
+unsignalised junctions behind the queues and at the net's known spots), as the signals cut the network's capacity.
+A round trip of the real-data path (the Dutch run's own record of its lights turned into a phase log and replayed as
+`real`, seed 3) gave the same traffic (stops 1,558 against 1,537, car wait 71 s against 67 s, teleports 52 against
+57).
+
+With CARLA (lin4080, CARLA 0.9.16, 300 s each, the driver on SUMO's autopilot through five signalised junctions,
+`simulation.traffic_lights.log: true`): before, 0 teleports, 2 SUMO collisions, 21 emergency brakes, 17 red-light
+stops, mean wait per car trip 5.5 s; after, 0 teleports, 2 SUMO collisions, 3 emergency brakes, 258 red-light stops,
+16.5 s; the participant had no collision in either. Every drawn head showed SUMO's state for its links
+(`tools/signal_heads.py` against SUMO's own record `tls_states.xml`: 16,483 of 16,483 and 32,941 of 32,941 samples;
+61 and 219 of them drawn at the very step their light switched, showing the step before).
 ## Logging and data
 
 Each trial writes to `logs/<experiment>/<YYYYmmdd-HHMMSS>_trial<k>/`:

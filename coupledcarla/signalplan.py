@@ -59,7 +59,8 @@ CYCLE_BY_STAGES = {1: 50.0, 2: 50.0, 3: 65.0, 4: 80.0}
 CYCLE_MAX_INNER, CYCLE_MAX_MAIN = 90.0, 120.0
 MAIN_ROAD_SPEED = 13.0            # m/s (about 50 km/h and more) with 2+ lanes: a main road (the Ring, radials)
 MAX_GREEN_FACTOR = 1.8            # actuated: the maximum green is this times the planned green (within the cap)
-FEEDERS = True                    # a stream into the middle of a multi-node junction keeps its exit's conflicts
+FEEDERS = False                   # True: a stream into the middle of a multi-node junction takes on its exit's
+                                  # conflicts (fewer stuck in the middle, but more stages: more teleports overall)
 PED_STAGE = 12.0                  # a mid-block crossing's red for the road (s): 9 m at 1.2 m/s (Regeling) + start
 # actuated: SUMO's defaults (max-gap 3.0 s, detector-gap 2.0 s, passing-time 1.9 s); no <param> is written: the
 # bridge (sumo_simulation.SumoTLLogic) reads every tlLogic param as a CARLA landmark link and fails on others
@@ -779,7 +780,8 @@ def plan(map_dir, bbox, inner=True, fetch=True, log=_log, xy_of=None):
     inside = [loc for loc in locs if bbox[0] <= loc["lat"] <= bbox[2] and bbox[1] <= loc["lon"] <= bbox[3]]
     matched = {p["location"] for p in progs if p["location"]}
     summary = {"controllers": len(progs), "matched": sum(p["source"] == "matched" for p in progs),
-               "added": sum(p["source"] == "added" for p in progs), "osm_only": sum(p["source"] == "osm" for p in progs),
+               "added": sum(p["source"] == "added" for p in progs),
+               "osm_only": sum(p["source"] == "osm" for p in progs),
                "listed_in_box": len(inside), "listed_matched": sum(loc["id"] in matched for loc in inside),
                "listed_unmatched": sorted(loc["name"] for loc in inside if loc["id"] not in matched),
                "ivri": sorted(p["ivri"] for p in progs if p["ivri"]),
@@ -846,9 +848,14 @@ def prepare(cfg, map_dir, work, when=None, log=_log):
         if not progs:
             log("traffic lights: no signalised junction found; SUMO's programmes")
             return None, [], {"mode": "sumo"}
-        write_net(map_dir / "map.net.xml", net_out, progs)
+        import os
         out_dir.mkdir(parents=True, exist_ok=True)
-        plan_out.write_text(json.dumps({"summary": summary, "programs": [_public(p) for p in progs]}, indent=0))
+        tmp = out_dir / f".{key}.{os.getpid()}"         # written whole, then moved: trials may start together
+        write_net(map_dir / "map.net.xml", tmp.with_suffix(".net.xml"), progs)
+        tmp.with_suffix(".plan.json").write_text(json.dumps({"summary": summary,
+                                                             "programs": [_public(p) for p in progs]}, indent=0))
+        os.replace(tmp.with_suffix(".net.xml"), net_out)
+        os.replace(tmp.with_suffix(".plan.json"), plan_out)
         import time as _time
         for old in out_dir.glob("*.net.xml"):          # older designs of this map (a week old: trials may run them)
             if old.name != net_out.name and _time.time() - old.stat().st_mtime > 7 * 86400:
