@@ -724,12 +724,13 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     elif summary["ticks"] % 2 == 0 and ag.ehmi not in ("", "off"):
                         here = ag.vehicle.get_location()
                         near = [w.get_location() for w in walkers_all]
-                        gaze = min(near, key=lambda l: l.distance(here)) if near else None   # not `look`: the module
-                        if gaze is not None and gaze.distance(here) > 40.0:
-                            gaze = None
+                        nearest_walker = min(near, key=lambda l: l.distance(here)) if near else None  # not look/gaze
+                        if nearest_walker is not None and nearest_walker.distance(here) > 40.0:
+                            nearest_walker = None
                         draw_ehmi(side.debug, ag.vehicle, ag.ehmi, ehmi_states, life=step * 3,
                                   slots=tuple(ag.cfg.get("ehmi_slots") or ehmi_slots),
-                                  look_at=gaze + carla.Location(z=0.7) if gaze is not None else None,
+                                  look_at=(nearest_walker + carla.Location(z=0.7)
+                                           if nearest_walker is not None else None),
                                   text_slots=ehmi_inside.world_slots(ag.cfg.get("ehmi_slots") or ehmi_slots)
                                   if ag.id in ehmi_cabin else None)
             if summary["ticks"] % 5 == 0:
