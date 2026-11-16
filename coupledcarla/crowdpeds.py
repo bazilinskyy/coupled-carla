@@ -858,7 +858,8 @@ def _next_arrival(a, b, vehicles, speed=False):
 
 # --- set-up for a trial ---------------------------------------------------------------------------------------------
 
-def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fetch=True, crossings_xy=None):
+def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fetch=True, crossings_xy=None,
+            want_att=False):
     """Everything about the crowd that needs no server: (params, segments, walkers, stats). centres_xy in geo.net
     x, y (the participants; [] for the whole map). crossings_xy: crossings in geo.net x, y for a map without
     map.osm (a baked level: its OpenDRIVE crosswalks, see make_crowd)."""
@@ -910,12 +911,30 @@ def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fe
         f"({params['jaywalk_from']}); {stats['crossings']} crossings planned "
         f"({stats['crosswalk']} marked, {stats['junction']} at junctions, {stats['midblock']} mid-block); "
         f"{len(pois)} places, {len(counts)} count sites")
+    if want_att:        # the living city plans walks of its own on the same weights (livingcity.walk_from)
+        return params, segs, walkers, stats, att
     return params, segs, walkers, stats
 
 
 class CrowdSim:
     """The CARLA side: spawns the planned walkers and walks them, waiting at the kerb for a gap before each crossing.
-    Walkers on the road are returned by on_road(), so SUMO traffic and scripted cars yield to them."""
+    Walkers on the road are returned by on_road(), so SUMO traffic and scripted cars yield to them.
+
+    The living city (livingcity.py) adds to a plan's walkers (all optional, absent: as before):
+      bp, wheelchair      the blueprint (a child's) and CARLA 0.9.16's wheelchair (use_wheelchair) for the walker
+      speed_factor        times its speed (a phone user, a group at group pace)
+      follow              (leader index, right m, back m): walks beside its group's leader instead of its own route
+      phone               at the kerb looks again only every PHONE_RECHECK_S (fewer looks; Thompson et al. 2013)
+      xy, yaw             a start in CARLA x, y (a door, a bus door) instead of a kerb sample
+      legs                besides walk and cross: ("to", [(x, y), ...]) walks to CARLA points, ("stop", (x, y) or
+                          None, seconds, face yaw or None) stands there, ("vanish", reason) leaves the street (a door,
+                          a bus, a car), ("wait", key) stands until release(index) (a bus stop, a taxi)
+    and add() spawns such a walker during the trial. Hooks: on_stand(index, actor, state, kind) when a walker starts
+    standing (a stop, a wait, the kerb before a crossing), on_walk(index, actor, state) when it walks on again,
+    on_vanish(index, actor, reason). Reactions (reactions.py) set state "hurry"/"hurry_until" (faster on the road)
+    and "back_until" (a step back from the kerb)."""
+
+    PHONE_RECHECK_S = 2.0
 
     def __init__(self, world, geo, segments, walkers, params, seed=1, log=_log):
         self.send = None   # (actor, WalkerControl) -> None; the runner sends them with the tick's batch
@@ -923,47 +942,111 @@ class CrowdSim:
         self.signals = None      # pedsignals.PedSignals: at a signal, cross only when the cars crossing it have red
         self.poses = None        # the bridge's SUMO vehicle poses: walkers on the road wait for a car in their way
         self.decider = None      # embodiedped.EmbodiedCrossing: crossing decisions from what each walker sees
+        self.on_stand = self.on_walk = self.on_vanish = None
         self._ids = []           # actor ids of the vehicles of the last _vehicles()
         import carla
         self.carla, self.world = carla, world
         self.params, self.events = params, []
-        cmap = world.get_map()
-        rng = random.Random(seed)
-        bps = sorted(world.get_blueprint_library().filter("walker.pedestrian.*"), key=lambda b: b.id)
+        self.segments = segments
+        self.cmap = world.get_map()
+        self.rng = random.Random(seed)
+        self.lib = world.get_blueprint_library()
+        self.bps = sorted(self.lib.filter("walker.pedestrian.*"), key=lambda b: b.id)
+        self.actors, self.state = [], []
+        self.log = log
+        n = sum(self.add(w) is not None for w in walkers)
+        log(f"crowd: {n} of {len(walkers)} walkers spawned")
 
-        def xy(seg, side, i):
-            x, y = segments[seg].sides[side][i]
-            return x, -y                                 # geo.net -> CARLA
+    @property
+    def walkers(self):
+        """The walkers on the street now (not those gone through a door or onto a bus)."""
+        return [a for a, st in zip(self.actors, self.state) if st["alive"]]
 
-        self.walkers, self.state = [], []
-        for w in walkers:
-            x, y = xy(w["seg"], w["side"], w["i"])
-            bp = rng.choice(bps)
-            if bp.has_attribute("is_invincible"):
-                bp.set_attribute("is_invincible", "false")
-            bp.set_attribute("role_name", "crowd")
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Any)
-            z = wp.transform.location.z if wp is not None else 0.0      # the road's height there (geo.ground)
-            actor = world.try_spawn_actor(bp, carla.Transform(carla.Location(x=x, y=y, z=z + 1.0)))
-            if actor is None:
-                continue
-            route = []                               # [(kind, [(x, y), ...], width, marked)]
-            for leg in w["legs"]:
-                s = segments[leg[1]]
-                if leg[0] == "walk":
-                    step = 1 if leg[4] > leg[3] else -1
-                    route.append(("walk", [xy(leg[1], leg[2], j) for j in range(leg[3] + step, leg[4] + step, step)],
-                                  0.0, False))
-                else:
-                    route.append(("cross", [xy(leg[1], leg[2], leg[3]), xy(leg[1], 1 - leg[2], leg[3])],
-                                  s.width(leg[3]), leg[4] in ("crosswalk", "junction")))
-            self.walkers.append(actor)
-            self.state.append({"route": route, "leg": 0, "pt": 0, "speed": w["speed"], "wait_from": None,
-                               "crossing": False, "kinds": [leg[4] for leg in w["legs"] if leg[0] == "cross"]})
-        log(f"crowd: {len(self.walkers)} of {len(walkers)} walkers spawned")
+    def xy(self, seg, side, i):
+        x, y = self.segments[seg].sides[side][i]
+        return x, -y                                 # geo.net -> CARLA
+
+    def route_of(self, w):
+        """[(kind, [(x, y), ...], width or seconds, marked or face yaw or reason)] of a planned walker."""
+        route = []
+        for leg in w["legs"]:
+            if leg[0] == "walk":
+                step = 1 if leg[4] > leg[3] else -1
+                route.append(("walk", [self.xy(leg[1], leg[2], j) for j in range(leg[3] + step, leg[4] + step, step)],
+                              0.0, False))
+            elif leg[0] == "cross":
+                s = self.segments[leg[1]]
+                route.append(("cross", [self.xy(leg[1], leg[2], leg[3]), self.xy(leg[1], 1 - leg[2], leg[3])],
+                              s.width(leg[3]), leg[4] in ("crosswalk", "junction")))
+            elif leg[0] == "to":
+                route.append(("walk", [tuple(p) for p in leg[1]], 0.0, False))
+            elif leg[0] == "stop":
+                route.append(("stop", [tuple(leg[1])] if leg[1] else [], float(leg[2]), leg[3]))
+            elif leg[0] == "wait":
+                route.append(("wait", [], 0.0, leg[1]))
+            elif leg[0] == "vanish":
+                route.append(("vanish", [], 0.0, leg[1] if len(leg) > 1 else ""))
+        return route
+
+    def add(self, w):
+        """Spawns one walker of a plan (see the class doc); its index, or None when CARLA refused the spot."""
+        carla = self.carla
+        x, y = w["xy"] if "xy" in w else self.xy(w["seg"], w["side"], w["i"])
+        if w.get("bp"):
+            bp = self.lib.find(w["bp"])
+        else:
+            bp = self.rng.choice(self.bps)
+        if bp.has_attribute("is_invincible"):
+            bp.set_attribute("is_invincible", "false")
+        if w.get("wheelchair") and bp.has_attribute("use_wheelchair"):
+            bp.set_attribute("use_wheelchair", "true")
+        bp.set_attribute("role_name", w.get("role", "crowd"))
+        wp = self.cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Any)
+        z = wp.transform.location.z if wp is not None else 0.0      # the road's height there (geo.ground)
+        at = carla.Location(x=x, y=y, z=z + 1.0)
+        actor = self.world.try_spawn_actor(bp, carla.Transform(at, carla.Rotation(yaw=float(w["yaw"])))
+                                           if "yaw" in w else carla.Transform(at))
+        if w.get("wheelchair") and bp.has_attribute("use_wheelchair"):
+            bp.set_attribute("use_wheelchair", "false")
+        if actor is None:
+            return None
+        self.actors.append(actor)
+        self.state.append({"route": self.route_of(w), "leg": 0, "pt": 0,
+                           "speed": w["speed"] * float(w.get("speed_factor", 1.0)), "wait_from": None,
+                           "crossing": False, "kinds": [leg[4] for leg in w["legs"] if leg[0] == "cross"],
+                           "alive": True, "follow": w.get("follow"), "phone": bool(w.get("phone")),
+                           "tag": w.get("tag", "crowd"), "standing": None, "stop_until": None, "pos": (x, y),
+                           "heading": (1.0, 0.0), "cmd": 0.0, "hurry": 1.0, "hurry_until": -1.0,
+                           "back_until": -1.0, "next_check": -1.0, "released": False, "plan": w})
+        return len(self.actors) - 1
+
+    def release(self, k):
+        """A walker waiting at a ("wait", key) leg walks on (a bus came, its taxi stopped)."""
+        if 0 <= k < len(self.state):
+            self.state[k]["released"] = True
+
+    def redirect(self, k, legs):
+        """Walker k walks these legs (see route_of) from now on instead of the rest of its route."""
+        st = self.state[k]
+        st["route"] = self.route_of({"legs": legs})
+        st["leg"], st["pt"], st["crossing"], st["wait_from"], st["stop_until"] = 0, 0, False, None, None
+
+    def remove(self, k, reason=""):
+        """Takes walker k off the street (through a door, onto a bus, into a car)."""
+        st = self.state[k]
+        if not st["alive"]:
+            return
+        st["alive"], st["crossing"] = False, False
+        actor = self.actors[k]
+        try:
+            actor.destroy()
+        except RuntimeError:
+            pass
+        if self.on_vanish is not None:
+            self.on_vanish(k, actor, reason)
 
     def on_road(self):
-        return [a for a, st in zip(self.walkers, self.state) if st["crossing"]]
+        return [a for a, st in zip(self.actors, self.state) if st["alive"] and st["crossing"]]
 
     def _vehicles(self):
         out, self._ids = [], []
@@ -986,21 +1069,98 @@ class CrowdSim:
         if self.decider is not None:
             self.decider.close()
 
+    def _stand(self, k, actor, st, kind, send, face=None):
+        carla = self.carla
+        if face is not None:      # turn to face (a shop window, the road): a crawl in that direction for one step
+            send(actor, carla.WalkerControl(direction=carla.Vector3D(math.cos(math.radians(face)),
+                                                                     math.sin(math.radians(face)), 0.0), speed=0.05))
+        else:
+            send(actor, carla.WalkerControl(speed=0.0))
+        st["cmd"] = 0.0
+        if st["standing"] != kind:
+            st["standing"] = kind
+            if self.on_stand is not None:
+                self.on_stand(k, actor, st, kind)
+
+    def _walking(self, k, actor, st):
+        if st["standing"] is not None:
+            st["standing"] = None
+            if self.on_walk is not None:
+                self.on_walk(k, actor, st)
+
+    def _follow(self, k, actor, st, t, send):
+        """A group member: beside its leader (offset right/back in the leader's heading), at the leader's pace."""
+        carla = self.carla
+        li, right, back = st["follow"]
+        lead = self.state[li]
+        if not lead["alive"]:
+            self.remove(k, "with its group")
+            return
+        loc = actor.get_location()
+        st["pos"] = (loc.x, loc.y)
+        hx, hy = lead["heading"]
+        lx, ly = lead["pos"]
+        tx, ty = lx - hx * back - hy * right, ly - hy * back + hx * right
+        dx, dy = tx - loc.x, ty - loc.y
+        d = math.hypot(dx, dy)
+        st["crossing"] = lead["crossing"]
+        if lead["cmd"] <= 0.0 and d < 0.4:
+            self._stand(k, actor, st, lead["standing"] or "group", send)
+            return
+        self._walking(k, actor, st)
+        speed = min(2.5, max(0.0, lead["cmd"]) + 0.8 * d) if d > 0.3 else lead["cmd"]
+        if d < 1e-3:
+            dx, dy, d = hx, hy, 1.0
+        st["heading"], st["cmd"] = (dx / d, dy / d), speed
+        send(actor, carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0), speed=speed))
+
     def step(self, t):
         carla = self.carla
         send = self.send or (lambda actor, ctl: actor.apply_control(ctl))
         vehicles = None
-        for actor, st in zip(self.walkers, self.state):
+        for k, (actor, st) in enumerate(zip(self.actors, self.state)):
+            if not st["alive"]:
+                continue
             try:
+                if st["follow"] is not None:
+                    self._follow(k, actor, st, t, send)
+                    continue
                 if st["leg"] >= len(st["route"]):
-                    send(actor, carla.WalkerControl(speed=0.0))
+                    self._stand(k, actor, st, "end", send)
                     continue
                 kind, pts, width, marked = st["route"][st["leg"]]
+                if kind == "vanish":
+                    self.remove(k, marked)
+                    continue
+                if kind == "wait":
+                    if st["released"]:
+                        st["released"] = False
+                        st["leg"], st["pt"] = st["leg"] + 1, 0
+                    else:
+                        self._stand(k, actor, st, "wait", send)
+                    continue
                 loc = actor.get_location()
+                st["pos"] = (loc.x, loc.y)
+                if kind == "stop" and st["pt"] >= len(pts):
+                    if st["stop_until"] is None:
+                        st["stop_until"] = t + width
+                    if t < st["stop_until"]:
+                        self._stand(k, actor, st, "stop", send, face=marked if st["standing"] != "stop" else None)
+                        continue
+                    st["stop_until"] = None
+                    st["leg"], st["pt"] = st["leg"] + 1, 0
+                    continue
+                if t < st["back_until"]:          # a step back from the kerb (reactions.py)
+                    hx, hy = st["heading"]
+                    send(actor, carla.WalkerControl(direction=carla.Vector3D(-hx, -hy, 0.0), speed=0.8))
+                    continue
                 if kind == "cross" and st["pt"] == 0:
                     # at the kerb: wait for a gap
                     if st["wait_from"] is None:
                         st["wait_from"] = t
+                    if st["phone"] and t < st["next_check"]:     # looking at the phone, not at the road
+                        self._stand(k, actor, st, "kerb", send)
+                        continue
                     if vehicles is None:
                         vehicles = self._vehicles()
                     t_c = critical_gap(width, st["speed"], t - st["wait_from"])
@@ -1008,12 +1168,15 @@ class CrowdSim:
                     if light is False or not (gap_ok(pts[0], pts[1], vehicles, t_c, marked) if self.decider is None
                                               else self.decider.decide(actor.id, t, pts[0], pts[1], t_c, vehicles,
                                                                        self._ids, marked)):
-                        send(actor, carla.WalkerControl(speed=0.0))
+                        if st["phone"]:
+                            st["next_check"] = t + self.PHONE_RECHECK_S
+                        self._stand(k, actor, st, "kerb", send)
                         continue
                     seen = self.decider.last if self.decider is not None else {}
                     self.events.append(("crowd_crosses", f"{actor.id} {'marked' if marked else 'mid-block'} "
                                         f"{width:.1f} m after {t - st['wait_from']:.1f} s"
-                                        f"{' on its light' if light else ''}" + (
+                                        f"{' on its light' if light else ''}"
+                                        f"{' (phone)' if st['phone'] else ''}" + (
                                             f"; believed gap {_fmt(seen.get('believed_gap'))} s, true "
                                             f"{_fmt(seen.get('true_gap'))} s, {seen.get('looks', 0)} looks"
                                             if seen else "")))
@@ -1023,14 +1186,16 @@ class CrowdSim:
                 d = math.hypot(dx, dy)
                 if d < 0.8:
                     st["pt"] += 1
-                    if st["pt"] >= len(pts):
+                    if st["pt"] >= len(pts) and kind != "stop":
                         st["leg"], st["pt"], st["crossing"] = st["leg"] + 1, 0, False
                     continue
                 if blocked(loc.x + 0.7 * dx / d, loc.y + 0.7 * dy / d, self.poses):
-                    send(actor, carla.WalkerControl(speed=0.0))     # a vehicle stands in the way: wait for it
+                    self._stand(k, actor, st, "blocked", send)     # a vehicle stands in the way: wait for it
                     continue
-                send(actor, carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0),
-                                                        speed=st["speed"]))
+                self._walking(k, actor, st)
+                speed = st["speed"] * (st["hurry"] if t < st["hurry_until"] else 1.0)
+                st["heading"], st["cmd"] = (dx / d, dy / d), speed
+                send(actor, carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0), speed=speed))
             except RuntimeError:
                 pass
 
@@ -1075,16 +1240,27 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):
         except Exception as err:  # noqa: BLE001 - then junction and mid-block crossings only, as before
             log(f"crowd: no OpenDRIVE crossings ({type(err).__name__}: {err})")
     try:
-        params, segs, walkers, stats = prepare(tc, mdir, geo.net, centres_xy, duration_s, night, log,
-                                               crossings_xy=xodr_x)
+        params, segs, walkers, stats, att = prepare(tc, mdir, geo.net, centres_xy, duration_s, night, log,
+                                                    crossings_xy=xodr_x, want_att=True)
     except Exception as err:  # noqa: BLE001 - a map the planner cannot read: the crowd of before
         log(f"crowd: CROWD behaviour failed ({err!r}); walkers beside the roads instead")
         return legacy()
+    living = None
+    from . import livingcity    # groups, children, phones, wheelchairs, shop stops, doors (living_city on)
+    lc = livingcity.settings(tc)
+    if lc["enabled"]:
+        try:
+            info, outs, doors = livingcity.dress_plan(tc, lc, mdir, geo, segs, att, params, walkers, duration_s,
+                                                      world, log)
+            living = {"info": info, "outs": outs, "doors": doors, "att": att}
+        except Exception as err:  # noqa: BLE001 - the crowd as planned rather than none
+            log(f"living city: the crowd was not dressed ({type(err).__name__}: {err})")
     if (tc.get("map") or {}).get("carla_town"):     # a CARLA town: kerbs onto its pavements (walls, sunken roads)
         from . import towns
         towns.snap_kerbs(world.get_map(), segs, log)
     sim = CrowdSim(world, geo, segs, walkers, params, int(wc.get("seed", 1)), log)
     sim.stats = stats
+    sim.living = living
     from . import embodiedped      # traffic.walkers.perception: crossings from what each walker sees (embodied-human)
     sim.decider = embodiedped.make(tc, sim.events, log)
     if sim.decider is not None:

@@ -1296,6 +1296,7 @@ class Scenery:
                 cx, cy = it[8] if len(it) > 8 else it[1:3]      # the mesh's centre where its pivot is far off
                 self.cells[(int(cx // self.cell), int(cy // self.cell))].append(it)
         self.loaded = {}
+        self.actor_of = {}
         self.fallbacks = dict(data.get("fallbacks") or {})     # mesh path -> spawned instead when it fails
         self.bp = world.get_blueprint_library().find("static.prop.mesh")
         self.n = 0
@@ -1329,6 +1330,9 @@ class Scenery:
                      f"light")
         if self.fallbacks:
             res = self._fall_back(items, res)
+        for it, r in zip(items, res):        # which actor stands for which item (take_at: a parked car leaving)
+            if not r.error:
+                self.actor_of[id(it)] = r.actor_id
         ids = [r.actor_id for r in res if not r.error]
         if self.light_bp:
             self.lamps[key] = [r.actor_id for r, is_lamp in zip(res, lamp) if is_lamp and not r.error]
@@ -1427,6 +1431,26 @@ class Scenery:
         for key in [k for k in lit if k in self.loaded and k not in self.lit and self.lamps.get(k)]:
             self._relight(key)
         return len(new)
+
+    def take_at(self, x, y, reach=0.6):
+        """Removes the item standing at (x, y) for good (its actor, if spawned, and from its cell): a parked car that
+        drives away (livingcity.py). True when there was one."""
+        import carla
+        key = (int(x // self.cell), int(y // self.cell))
+        for k in [key] + [(key[0] + i, key[1] + j) for i in (-1, 0, 1) for j in (-1, 0, 1) if i or j]:
+            for it in self.cells.get(k, ()):
+                if abs(it[1] - x) <= reach and abs(it[2] - y) <= reach:
+                    self.cells[k] = [o for o in self.cells[k] if o is not it]
+                    aid = self.actor_of.pop(id(it), None)
+                    if aid is not None:
+                        self.client.apply_batch([carla.command.DestroyActor(aid)])
+                        for ids in self.loaded.values():
+                            if aid in ids:
+                                ids.remove(aid)
+                                self.n -= 1
+                                break
+                    return True
+        return False
 
     def _lit_cells(self, points):
         """Cells whose nearest part is within lights_radius_m of a point (all cells for radius_m 0)."""

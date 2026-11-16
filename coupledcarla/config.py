@@ -383,6 +383,21 @@ DEFAULTS = {
         "cameras": [],               # more cameras, each {name, kind, ...}
         "hold": {},                  # {role: until_s}: a host-local driver waits with the hand brake on until then
     },
+    "living_city": {                 # what people and vehicles do besides walking and driving (livingcity.py,
+                                     # reactions.py; README "Living city"); every rate has its source there
+        "enabled": "auto",           # auto: on for city drives, off for controlled studies (scripted agents or
+                                     # design conditions); true/false
+        "seed": 11,                  # every behaviour draws from its own generator seeded by this and its name
+        "radius_m": 150,             # around the participants
+        "crowd": "auto",             # auto: traffic.walkers.count "auto" when the experiment has no crowd
+        "max_extra_walkers": 30,     # sitters, bus passengers, couriers, drivers at once (~0.4 ms per tick each)
+        "activities": {"enabled": True, "groups": True, "children": True, "phones": True, "wheelchairs": True,
+                       "shops": True, "doors": True, "benches": True, "stops": True, "bikes": True},
+        "kerbside": {"enabled": True, "deliveries": True, "pickups": True, "buses": True, "parking": True},
+        "reactions": {"enabled": True, "horns": True, "courtesy": True, "looks": True, "hurry": True, "bells": True,
+                      "near_misses": True},
+        "rates": {},                 # {name: value} over livingcity.RATES and reactions.RATES (e.g. honk_p12: 0.5)
+    },
     "pois": [],
     "logging": {
         "dir": "logs",

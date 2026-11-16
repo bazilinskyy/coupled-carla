@@ -23,7 +23,8 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, inputs, mapbuild, parking, photoreal, realworld, season, soundrec, study, \
+from . import analysis, compat, config, crowdpeds, inputs, livingcity, mapbuild, parking, photoreal, reactions, \
+    realworld, season, soundrec, study, \
     towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from . import ehmi_design, ehmi_inside, levels, livemap, multigpu, placement, stationux
@@ -345,7 +346,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     client = server.start()
     from . import look
     look.DEBUG_COMPRESS = compat.server_major(client) == 0     # debug colours (traffic lights, eHMIs): look.py
-    sync = view = recorder = world = logger = drone_world = film = host_audio = photo = navw = None
+    sync = view = recorder = world = logger = drone_world = film = host_audio = photo = navw = city = react = None
     own_logs = []
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
@@ -521,6 +522,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                       [a.walker for a in agents if isinstance(a, ScriptedWalker)]
         # the pedestrian crowd: calibrated with CROWD for the map's country (crowdpeds.py), or with behaviour off
         # ai.Crowd beside the roads; its walkers join walkers_now (cars yield to them) only while on the road
+        livingcity.apply_crowd_default(tc, livingcity.settings(tc), log)   # a living city has a crowd
         crowd = crowdpeds.make_crowd(world, geo, tc, mdir, [p.actor.get_location() for p in parts], wx["night"],
                                      duration, log)
         wai = (tc["traffic"].get("walkers") or {}).get("ai") or {}
@@ -556,6 +558,17 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             f.apply = lambda c, i=f.walker.id: queue(walker_cmd(i, c))
         if crowd is not None and hasattr(crowd, "send"):      # crowdpeds.CrowdSim
             crowd.send = lambda actor, c: queue(walker_cmd(actor.id, c))
+        # the living city (livingcity.py): activities, kerbside life and reactions to the participants, seeded, logged
+        city = react = None
+        try:
+            city = livingcity.make(tc, world, client, geo, mdir, crowd if hasattr(crowd, "add") else None, sync,
+                                   carla_sim, parked, parts, duration, wx, log)
+            if city is not None:
+                log(f"living city: {city.start()}")
+                react = reactions.make(city, parts, sync, city.crowd, cmap, sumo_yield)
+        except Exception as err:  # noqa: BLE001 - the trial without it rather than no trial
+            log(f"living city: not started ({type(err).__name__}: {err})")
+            city = react = None
 
         if drone_world is not None:      # obstacles, wind and AI missions once the participants stand
             drone_world.queue = queue
@@ -676,6 +689,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             sumo_yield.step(sync, world, walkers_all + list(getattr(crowd, "walkers", None) or
                                                             (crowd.on_road() if crowd is not None else [])), step)
             laps("yield")
+            if city is not None:
+                city.step(t, types)
+                if react is not None and summary["ticks"] % 5 == 0:
+                    react.step(t, 5 * step, types)
+                laps("living_city")
             signals.draw([a.get_location() for a in focus_actors])
             laps("signals")
             if scenery is not None and summary["ticks"] % 50 == 25:
@@ -830,6 +848,16 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 logger.event(t, snap.frame, name, "", detail)
             if crowd is not None:
                 crowd.events.clear()
+            if city is not None:
+                for name, aid, detail in city.events:
+                    logger.event(t, snap.frame, name, aid, detail)
+                city.events.clear()
+                for se in city.sound_events:      # horns, bells, hazards, doors: the sound helper renders them
+                    if control is not None:
+                        control.broadcast({"type": "sound_event", **se})
+                    if host_audio is not None and hasattr(host_audio, "sound_event"):
+                        host_audio.sound_event(se)
+                city.sound_events.clear()
             for r in records:     # the light states the bridge read this frame (saves a round trip each)
                 r["lights"] = carla_sim.frame_lights.get(r["actor"].id)
             laps("stations_events")
@@ -962,6 +990,16 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             drone_world.close()
         if navw is not None:
             navw.destroy()
+        if city is not None:
+            try:
+                info = city.summary()
+                info["reactions"] = {k: reactions.rate(city.lc, k) for k in reactions.RATES}
+                info["reaction_sources"] = {k: reactions.SOURCES[reactions.RATES[k][2]] for k in reactions.RATES}
+                (out / "living_city.json").write_text(json.dumps(info, indent=2, default=str))
+                summary["living_city"] = info["counts"]
+                city.close()
+            except Exception as err:  # noqa: BLE001
+                log(f"living city summary: {err}")
         if logger is not None:
             logger.close()
         for x in own_logs:
