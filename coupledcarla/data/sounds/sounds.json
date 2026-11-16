@@ -174,5 +174,305 @@
     ]
    ]
   }
+ },
+ "clips": {
+  "horn_car": {
+   "file": "events/horn_car.ogg",
+   "kind": "slots",
+   "slot_s": 0.9,
+   "items": 5,
+   "sources": [
+    [
+     734253,
+     0.05,
+     0.62
+    ],
+    [
+     571322,
+     0.34,
+     1.1
+    ],
+    [
+     349922,
+     2.5,
+     3.0
+    ],
+    [
+     434878,
+     0.0,
+     0.22
+    ],
+    [
+     423990,
+     0.1,
+     0.35
+    ]
+   ]
+  },
+  "horn_bus": {
+   "file": "events/horn_bus.ogg",
+   "kind": "slots",
+   "slot_s": 3.0,
+   "items": 2,
+   "sources": [
+    [
+     403980,
+     0.2,
+     1.42
+    ],
+    [
+     403981,
+     0.55,
+     3.45
+    ]
+   ]
+  },
+  "horn_truck": {
+   "file": "events/horn_truck.ogg",
+   "kind": "slots",
+   "slot_s": 0.7,
+   "items": 1,
+   "sources": [
+    [
+     174819,
+     2.68,
+     3.25
+    ]
+   ]
+  },
+  "bicycle_bell": {
+   "file": "events/bicycle_bell.ogg",
+   "kind": "slots",
+   "slot_s": 1.8,
+   "items": 3,
+   "sources": [
+    [
+     383602,
+     0.0,
+     1.75
+    ],
+    [
+     383627,
+     0.0,
+     1.6
+    ],
+    [
+     383599,
+     0.0,
+     1.75
+    ]
+   ]
+  },
+  "shout": {
+   "file": "events/shout.ogg",
+   "kind": "slots",
+   "slot_s": 1.0,
+   "items": 2,
+   "sources": [
+    [
+     368824,
+     0.0,
+     0.9
+    ],
+    [
+     345083,
+     0.05,
+     0.56
+    ]
+   ]
+  },
+  "blinker": {
+   "file": "events/blinker.ogg",
+   "kind": "slots",
+   "slot_s": 0.3,
+   "items": 2,
+   "sources": [
+    [
+     431816,
+     0.21,
+     0.5
+    ],
+    [
+     431816,
+     0.57,
+     0.9
+    ]
+   ]
+  },
+  "wiper": {
+   "file": "events/wiper.ogg",
+   "kind": "slots",
+   "slot_s": 0.9,
+   "items": 4,
+   "sources": [
+    [
+     200975,
+     9.58,
+     10.43
+    ],
+    [
+     200975,
+     10.43,
+     11.3
+    ],
+    [
+     200975,
+     11.3,
+     12.15
+    ],
+    [
+     200975,
+     12.15,
+     13.0
+    ]
+   ]
+  },
+  "church_bell": {
+   "file": "events/church_bell.ogg",
+   "kind": "slots",
+   "slot_s": 2.4,
+   "items": 2,
+   "sources": [
+    [
+     671843,
+     29.25,
+     31.6
+    ],
+    [
+     671843,
+     31.65,
+     34.0
+    ]
+   ]
+  },
+  "rain_in_car": {
+   "file": "ambience/rain_in_car.ogg",
+   "kind": "loop",
+   "seconds": 39.5,
+   "sources": [
+    [
+     849916,
+     5.0,
+     45.0
+    ]
+   ]
+  },
+  "walla": {
+   "file": "ambience/walla.ogg",
+   "kind": "loop",
+   "seconds": 25.5,
+   "sources": [
+    [
+     588217,
+     2.0,
+     28.0
+    ]
+   ]
+  },
+  "cafe": {
+   "file": "ambience/cafe.ogg",
+   "kind": "loop",
+   "seconds": 39.5,
+   "sources": [
+    [
+     873721,
+     60.0,
+     100.0
+    ]
+   ]
+  },
+  "construction": {
+   "file": "ambience/construction.ogg",
+   "kind": "loop",
+   "seconds": 39.5,
+   "sources": [
+    [
+     348624,
+     20.0,
+     60.0
+    ]
+   ]
+  },
+  "fountain": {
+   "file": "ambience/fountain.ogg",
+   "kind": "loop",
+   "seconds": 39.5,
+   "sources": [
+    [
+     169254,
+     5.0,
+     45.0
+    ]
+   ]
+  },
+  "crickets": {
+   "file": "ambience/crickets.ogg",
+   "kind": "loop",
+   "seconds": 13.5,
+   "sources": [
+    [
+     521129,
+     7.0,
+     21.0
+    ]
+   ]
+  },
+  "cicadas": {
+   "file": "ambience/cicadas.ogg",
+   "kind": "loop",
+   "seconds": 37.5,
+   "sources": [
+    [
+     268962,
+     2.0,
+     40.0
+    ]
+   ]
+  },
+  "leaves": {
+   "file": "ambience/leaves.ogg",
+   "kind": "loop",
+   "seconds": 49.5,
+   "sources": [
+    [
+     361216,
+     10.0,
+     60.0
+    ]
+   ]
+  }
+ },
+ "credits": {
+  "779214": "\"Ford Ranger (2000) RPM variations outside 4 mics\" by YannSauvin, https://freesound.org/s/779214/, CC0 1.0",
+  "425837": "\"Renault Master 28dTi Engine Start Idle Gas Pressing Off Mono.wav\" by Soundholder, https://freesound.org/s/425837/, CC BY 3.0",
+  "425838": "\"Renault Master 28dTi Engine 1_3 Accelerations Wind Mono.wav\" by Soundholder, https://freesound.org/s/425838/, CC BY 3.0",
+  "641223": "\"bike, ignition, start, idle, working, rev, bmw f800gs\" by AlexanderChe, https://freesound.org/s/641223/, CC0 1.0",
+  "546827": "\"Footsteps Leather Concrete\" by Kinoton, https://freesound.org/s/546827/, CC0 1.0",
+  "734253": "\"Car Horn\" by yfjesse, https://freesound.org/s/734253/, CC0 1.0",
+  "571322": "\"horn.wav\" by maciejadach, https://freesound.org/s/571322/, CC0 1.0",
+  "349922": "\"Car Horn Honk.wav\" by DeVern, https://freesound.org/s/349922/, CC0 1.0",
+  "434878": "\"Car Honking\" by MicktheMicGuy, https://freesound.org/s/434878/, CC0 1.0",
+  "423990": "\"Car horn beep beep two beeps honk honk\" by AmishRob, https://freesound.org/s/423990/, CC0 1.0",
+  "403980": "\"Bus horn short.wav\" by arundasstp, https://freesound.org/s/403980/, CC BY 4.0",
+  "403981": "\"Bus horn long.wav\" by arundasstp, https://freesound.org/s/403981/, CC BY 4.0",
+  "174819": "\"air horn close and loud.WAV\" by goose278, https://freesound.org/s/174819/, CC0 1.0",
+  "383602": "\"bicycle-bell_09.wav\" by newagesoup, https://freesound.org/s/383602/, CC0 1.0",
+  "383627": "\"bicycle-bell_18.wav\" by newagesoup, https://freesound.org/s/383627/, CC0 1.0",
+  "383599": "\"bicycle-bell_06.wav\" by newagesoup, https://freesound.org/s/383599/, CC0 1.0",
+  "368824": "\"man screaming HEY breaking voice.wav\" by klankbeeld, https://freesound.org/s/368824/, CC BY 4.0",
+  "345083": "\"HEY VERY LOW 4.WAV\" by metrostock99, https://freesound.org/s/345083/, CC0 1.0",
+  "431816": "\"Car blinker\" by Audy_Leonard, https://freesound.org/s/431816/, CC0 1.0",
+  "200975": "\"Windshield Wipers On.wav\" by NHumphrey, https://freesound.org/s/200975/, CC0 1.0",
+  "671843": "\"Cre\u0161njevec - The belfry strikes the ninth hour.wav\" by dibko, https://freesound.org/s/671843/, CC BY 4.0",
+  "849916": "\"Light Rain inside a car, driver seat\" by leocb, https://freesound.org/s/849916/, CC0 1.0",
+  "588217": "\"Pedestrian area people Limietlaan HT1 190610_0026.wav\" by klankbeeld, https://freesound.org/s/588217/, CC BY 4.0",
+  "873721": "\"cafe terrace - Lepelstraat 's-Hertogenbosch Netherlands 1123 am\" by klankbeeld, https://freesound.org/s/873721/, CC BY 4.0",
+  "348624": "\"construction site 160628_0906.wav\" by klankbeeld, https://freesound.org/s/348624/, CC BY 4.0",
+  "169254": "\"Fountain_2.wav\" by skyko, https://freesound.org/s/169254/, CC0 1.0",
+  "521129": "\"crickets_chirping.wav\" by C-V, https://freesound.org/s/521129/, CC0 1.0",
+  "268962": "\"Cicada Insects 8_26_13 8_06 PM.wav\" by harryScary, https://freesound.org/s/268962/, CC0 1.0",
+  "361216": "\"wind in trees 4-5 bft 160929_0993.wav\" by klankbeeld, https://freesound.org/s/361216/, CC BY 4.0",
+  "545543": "\"light footsteps on concrete walking.wav\" by rsellick, https://freesound.org/s/545543/, CC0 1.0",
+  "764531": "\"Footsteps on grass\" by ChloePieterse, https://freesound.org/s/764531/, CC0 1.0"
  }
 }

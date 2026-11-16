@@ -100,7 +100,10 @@ def test_recording_is_in_simulation_time_and_aligned(tmp_path):
     onset = s + int(np.argmax(np.abs(x[s - 200:s + 2000, 0]) > 2.5 * before)) - 200
     assert after > 2.5 * before and abs(onset - s) < 120
     assert meta["ms_per_tick"] > 0 and meta["peak"] <= 1.0
-    assert not (tmp_path / "audio_credits.txt").exists()      # nothing recorded was used (recordings off)
+    cr = tmp_path / "audio_credits.txt"            # nothing fetched was used (recordings off): only the shipped ones
+    if cr.exists():
+        roles = {ln.split(":")[0] for ln in cr.read_text().splitlines()[1:-1]}
+        assert roles <= {"recorded_sounds"}
 
 
 def _car(i, x, y, kmh=50.0, yaw=0.0, kind="car", electric=False):

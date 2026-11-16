@@ -44,6 +44,32 @@ SOURCES = {
     425838: ("Soundholder", "CC BY 3.0", "Renault Master 28dTi Engine 1_3 Accelerations Wind Mono.wav"),
     641223: ("AlexanderChe", "CC0 1.0", "bike, ignition, start, idle, working, rev, bmw f800gs"),
     546827: ("Kinoton", "CC0 1.0", "Footsteps Leather Concrete"),
+    # events
+    734253: ("yfjesse", "CC0 1.0", "Car Horn"),
+    571322: ("maciejadach", "CC0 1.0", "horn.wav"),
+    349922: ("DeVern", "CC0 1.0", "Car Horn Honk.wav"),
+    434878: ("MicktheMicGuy", "CC0 1.0", "Car Honking"),
+    423990: ("AmishRob", "CC0 1.0", "Car horn beep beep two beeps honk honk"),
+    403980: ("arundasstp", "CC BY 4.0", "Bus horn short.wav"),
+    403981: ("arundasstp", "CC BY 4.0", "Bus horn long.wav"),
+    174819: ("goose278", "CC0 1.0", "air horn close and loud.WAV"),
+    383602: ("newagesoup", "CC0 1.0", "bicycle-bell_09.wav"),
+    383627: ("newagesoup", "CC0 1.0", "bicycle-bell_18.wav"),
+    383599: ("newagesoup", "CC0 1.0", "bicycle-bell_06.wav"),
+    368824: ("klankbeeld", "CC BY 4.0", "man screaming HEY breaking voice.wav"),
+    345083: ("metrostock99", "CC0 1.0", "HEY VERY LOW 4.WAV"),
+    431816: ("Audy_Leonard", "CC0 1.0", "Car blinker"),
+    200975: ("NHumphrey", "CC0 1.0", "Windshield Wipers On.wav"),
+    671843: ("dibko", "CC BY 4.0", "Crešnjevec - The belfry strikes the ninth hour.wav"),
+    # ambience
+    849916: ("leocb", "CC0 1.0", "Light Rain inside a car, driver seat"),
+    588217: ("klankbeeld", "CC BY 4.0", "Pedestrian area people Limietlaan HT1 190610_0026.wav"),
+    873721: ("klankbeeld", "CC BY 4.0", "cafe terrace - Lepelstraat 's-Hertogenbosch Netherlands 1123 am"),
+    348624: ("klankbeeld", "CC BY 4.0", "construction site 160628_0906.wav"),
+    169254: ("skyko", "CC0 1.0", "Fountain_2.wav"),
+    521129: ("C-V", "CC0 1.0", "crickets_chirping.wav"),
+    268962: ("harryScary", "CC0 1.0", "Cicada Insects 8_26_13 8_06 PM.wav"),
+    361216: ("klankbeeld", "CC BY 4.0", "wind in trees 4-5 bft 160929_0993.wav"),
     545543: ("rsellick", "CC0 1.0", "light footsteps on concrete walking.wav"),
     764531: ("ChloePieterse", "CC0 1.0", "Footsteps on grass"),
 }
@@ -74,6 +100,28 @@ FOOTSTEPS = {
     "grass": (764531, [(0.0, 15.0)], 8),
 }
 SLOT = 0.5
+
+# clip -> ("slots", slot seconds, [(source, t0, t1), ...]) one-shots, or ("loop", [(source, t0, t1)]) a seamless loop
+CLIPS = {
+    "horn_car": ("slots", 0.9, [(734253, 0.05, 0.62), (571322, 0.34, 1.1), (349922, 2.5, 3.0), (434878, 0.0, 0.22),
+                                (423990, 0.1, 0.35)]),
+    "horn_bus": ("slots", 3.0, [(403980, 0.2, 1.42), (403981, 0.55, 3.45)]),
+    "horn_truck": ("slots", 0.7, [(174819, 2.68, 3.25)]),
+    "bicycle_bell": ("slots", 1.8, [(383602, 0.0, 1.75), (383627, 0.0, 1.6), (383599, 0.0, 1.75)]),
+    "shout": ("slots", 1.0, [(368824, 0.0, 0.9), (345083, 0.05, 0.56)]),
+    "blinker": ("slots", 0.3, [(431816, 0.21, 0.5), (431816, 0.57, 0.9)]),       # the relay's on and off clicks
+    "wiper": ("slots", 0.9, [(200975, 9.58, 10.43), (200975, 10.43, 11.3), (200975, 11.3, 12.15),
+                             (200975, 12.15, 13.0)]),                             # single strokes, over and back
+    "church_bell": ("slots", 2.4, [(671843, 29.25, 31.6), (671843, 31.65, 34.0)]),
+    "rain_in_car": ("loop", [(849916, 5.0, 45.0)]),
+    "walla": ("loop", [(588217, 2.0, 28.0)]),
+    "cafe": ("loop", [(873721, 60.0, 100.0)]),
+    "construction": ("loop", [(348624, 20.0, 60.0)]),
+    "fountain": ("loop", [(169254, 5.0, 45.0)]),
+    "crickets": ("loop", [(521129, 7.0, 21.0)]),
+    "cicadas": ("loop", [(268962, 2.0, 40.0)]),
+    "leaves": ("loop", [(361216, 10.0, 60.0)]),
+}
 
 
 # -- fetching ---------------------------------------------------------------------------------------------------------
@@ -115,6 +163,7 @@ def write_ogg(path, x, rate=RATE, quality=7):
     path.parent.mkdir(parents=True, exist_ok=True)
     pcm = (np.clip(x, -1, 1) * 32767).astype("<i2").tobytes()
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "s16le", "-ar", str(rate), "-ac", "1", "-i", "-",
+                    "-fflags", "+bitexact", "-flags:a", "+bitexact", "-serial_offset", "1",
                     "-c:a", "libvorbis", "-q:a", str(quality), str(path)], input=pcm, check=True)
 
 
@@ -236,9 +285,91 @@ def build(plots=False):
         man["footsteps"][surf] = {"file": fn, "slot_s": SLOT, "steps": len(typical), "source": sid,
                                   "cut_s": spans}
         print(f"footsteps {surf:8} {len(typical)} steps of {len(steps)} found (fs{sid})")
+    man["clips"] = {}
+    for name, spec in CLIPS.items():
+        kind = spec[0]
+        if kind == "loop":
+            sid, t0, t1 = spec[1][0]
+            x = load(CACHE / f"fs{sid}.ogg")[int(t0 * RATE):int(t1 * RATE)]
+            x = x - float(np.mean(x))
+            X = int(0.5 * RATE)
+            r = np.linspace(0.0, 1.0, X)
+            loop = x[:len(x) - X].copy()
+            loop[:X] = loop[:X] * np.sqrt(r) + x[len(x) - X:] * np.sqrt(1.0 - r)     # uncorrelated: equal power
+            loop *= 10 ** (-20 / 20) / max(1e-9, float(np.sqrt(np.mean(loop ** 2))))
+            fn = f"ambience/{name}.ogg"
+            write_ogg(OUT / fn, loop, quality=4)
+            man["clips"][name] = {"file": fn, "kind": "loop", "seconds": round(len(loop) / RATE, 2),
+                                  "sources": [[sid, t0, t1]]}
+        else:
+            slot_s, pieces = spec[1], spec[2]
+            slot = int(slot_s * RATE)
+            buf = np.zeros(slot * len(pieces))
+            for k, (sid, t0, t1) in enumerate(pieces):
+                x = load(CACHE / f"fs{sid}.ogg")[int(t0 * RATE):int(t1 * RATE)][:slot]
+                x = x - float(np.mean(x))
+                f = min(len(x) // 4, int(0.005 * RATE))
+                x[:f] *= np.linspace(0.0, 1.0, f)
+                g = min(len(x) // 3, int(0.03 * RATE))
+                x[-g:] *= np.linspace(1.0, 0.0, g)
+                x *= 10 ** (-3 / 20) / max(1e-9, float(np.max(np.abs(x))))
+                buf[k * slot:k * slot + len(x)] = x
+            fn = f"events/{name}.ogg"
+            write_ogg(OUT / fn, buf)
+            man["clips"][name] = {"file": fn, "kind": "slots", "slot_s": slot_s, "items": len(pieces),
+                                  "sources": [list(p) for p in pieces]}
+        print(f"clip {name:13} {kind}")
+    man["credits"] = {str(sid): credit_line(sid) for sid in SOURCES}
     (OUT / "sounds.json").write_text(json.dumps(man, indent=1) + "\n")
+    write_sources(man)
     total = sum(p.stat().st_size for p in OUT.rglob("*.ogg"))
     print(f"wrote {OUT / 'sounds.json'}; {total / 1e6:.2f} MB of audio")
+
+
+def credit_line(sid):
+    author, lic, title = SOURCES[sid]
+    return f"\"{title}\" by {author}, https://freesound.org/s/{sid}/, {lic}"
+
+
+LICENCE_URL = {"CC0 1.0": "https://creativecommons.org/publicdomain/zero/1.0/",
+               "CC BY 3.0": "https://creativecommons.org/licenses/by/3.0/",
+               "CC BY 4.0": "https://creativecommons.org/licenses/by/4.0/"}
+
+
+def write_sources(man):
+    """data/sounds/SOURCES.md: every file, its source recording, author, licence and what was cut (from the tables
+    above and the built manifest)."""
+    rows = []
+    for name, spec in man["engines"].items():
+        for lp in spec["loops"]:
+            rows.append((lp["file"], [(lp["source"], *lp["cut_s"])],
+                         f"{spec['source_engine']}: {lp['cut_s'][0]}-{lp['cut_s'][1]} s, time-warped to a steady "
+                         f"{lp['firing_hz']} Hz firing frequency, a whole number of cycles, ends cross-faded"))
+    for name, spec in man["footsteps"].items():
+        rows.append((spec["file"], [(spec["source"], *spec["cut_s"][0])],
+                     f"{spec['steps']} single steps cut at their onsets, one per {spec['slot_s']} s slot"))
+    for name, spec in man["clips"].items():
+        what = "a seamless loop (ends cross-faded 0.5 s)" if spec["kind"] == "loop" else \
+            f"{spec['items']} one-shots, one per {spec['slot_s']} s slot"
+        rows.append((spec["file"], [tuple(x) for x in spec["sources"]], what))
+    out = ["# Recorded sounds and their sources", "",
+           "Built by [`tools/sound_samples.py`](../../../tools/sound_samples.py) (`fetch`, then `build`) from openly "
+           "licensed recordings on [Freesound](https://freesound.org) (each sound's HQ preview, mono, 44.1 kHz; "
+           "the licence is re-read from the sound's page at fetch time). Only CC0 and CC BY; no NC or ND. All files "
+           "are re-encoded as Ogg Vorbis, mono, 44.1 kHz. The CC BY ones are credited here, in the README's credits "
+           "and in each trial's `audio_credits.txt` when they were heard.", "",
+           "| File | Source (Freesound) | Author | Licence | What was cut |", "|---|---|---|---|---|"]
+    for fn, srcs, what in rows:
+        ids = sorted({s[0] for s in srcs})
+        src = ", ".join(f"[{SOURCES[i][2]}](https://freesound.org/s/{i}/) ({', '.join(f'{a:g}-{b:g} s' for j, a, b in srcs if j == i)})"
+                        for i in ids)
+        auth = ", ".join(sorted({SOURCES[i][0] for i in ids}))
+        lic = ", ".join(sorted({f"[{SOURCES[i][1]}]({LICENCE_URL[SOURCES[i][1]]})" for i in ids}))
+        out.append(f"| `{fn}` | {src} | {auth} | {lic} | {what} |")
+    out += ["", "Levels are not the recordings': each sound plays at the level its model gives (CNOSSOS-EU band "
+            "levels for engines, regulation or measured levels for horns, footsteps, rain and the rest; see "
+            "[sound_credits.md](../sound_credits.md)).", ""]
+    (OUT / "SOURCES.md").write_text("\n".join(out))
 
 
 def _plot(x, path, F):

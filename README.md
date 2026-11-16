@@ -1535,10 +1535,15 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   power per octave band (63 Hz-8 kHz; Directive (EU) 2015/996 as amended in 2021) for its category (car, van,
   bus/truck, moped, motorbike): rolling noise with the road surface (`road_surface`, e.g. Dutch paving blocks), air
   temperature and, on wet roads, IMAGINE's wet-road increase, and propulsion noise with the acceleration and the
-  engine speed of a gearbox model (idling when stopped). The engine is synthesised from its firing frequency and
-  orders, load-dependent harmonics, intake and exhaust resonances and cycle-to-cycle jitter (after Pieren et al.
-  2016 and Baldan et al. 2015), carrying CNOSSOS's band levels: a car at 50 km/h measures 72.9 dB(A) at 7.5 m
-  (measured pass-bys 70-73). Electric cars have tyres and an AVAS (on by default: UN R138, 56 dB(A) at 2 m up to 20
+  engine speed of a gearbox model (idling when stopped). The engine is heard from recordings of real engines, the
+  game-audio way (`engine_sound: recorded`, `coupledcarla/soundsamples.py`): a few steady-rpm loops per engine type
+  (petrol for cars, diesel for vans, buses and trucks, a twin for motorbikes; `data/sounds/engines`, cut by
+  `tools/sound_samples.py`), the two around the wanted engine speed resampled to it and cross-faded, each split into
+  the octave bands so that it plays at exactly CNOSSOS's band levels (the recording gives the timbre only); a
+  cruising or coasting engine is up to 6 dB quieter than CNOSSOS's average (`engine_part_load_db`), so steady urban
+  traffic is mostly tyres. `engine_sound: synth` keeps the older additive model (firing orders, formants, jitter,
+  after Pieren et al. 2016 and Baldan et al. 2015), also the fallback when the loops cannot be decoded. A car at
+  50 km/h measures 72.9 dB(A) at 7.5 m (measured pass-bys 70-73). Electric cars have tyres and an AVAS (on by default: UN R138, 56 dB(A) at 2 m up to 20
   km/h); bicycles a freewheel and now and then a bell; emergency vehicles a siren with their special lights; buses
   an air hiss at stops; `horn: true` makes a car braking hard before a pedestrian sound its horn.
   Every source reaches the ears by a direct path and two first-order reflections off the nearest facades, each
@@ -1547,10 +1552,30 @@ Ported from coupled-sim (#95, #131, #133, #135, #157) into the stations; all off
   the sides; a reverberant tail is sized by the street canyon around the listener. Output is panned stereo, or
   binaural for headphones (`spatial: binaural`: MIT KEMAR HRTFs, fetched once; else a spherical head model). A
   limiter keeps the sum from clipping.
-  Inside a car (driver, AV passenger) the own tyres and engine come through the cabin's insertion loss (41 dB(A) at
-  idle, 60 at 50 km/h, 70 at 100 km/h), with wind noise, the indicator relay and rain on the roof. Pedestrians hear
-  footsteps and accessible pedestrian signals at signalised crossings (ticking once a second while red, eight a
-  second while green, as Dutch and German signals do). The ambience follows the trial's real conditions (`weather:
+  Inside a car (driver, AV passenger) the own tyres and engine come through the cabin's insertion loss (about 50
+  dB(A) at idle, 60 at 50 km/h, 70 at 100 km/h), with wind noise, the recorded indicator relay (also for the hazard
+  lights), rain on the roof and windscreen (a recording in a parked car under the synthesised drops) and the wipers
+  while it rains (intermittent below 1 mm/h, 45 sweeps a minute, 65 above 4 mm/h; `wipers: off`). An **electric own
+  car** (e.g. `vehicle: vehicle.tesla.model3`, [`experiments/eindhoven_ev_driver.yaml`](experiments/eindhoven_ev_driver.yaml))
+  has no engine: the traction motor and reduction gear whine at orders of the motor speed (72 rpm per km/h), rising
+  with speed and louder when accelerating (`ev_motor_db`, 38 dB(A) at 50 km/h), tyres and wind, and its own AVAS
+  faintly through the cabin below 20 km/h; its cluster shows a power meter (`cluster_ev`) instead of the rev counter.
+  Pedestrians hear recorded footsteps (`footsteps`: shoes, trainers or grass; heel and toe, a random step each time
+  with a little pitch and level variation; about 60 dB(A) at the ears with hard soles), rain on their umbrella
+  (`umbrella: true`) and accessible pedestrian signals at signalised crossings (ticking once a second while red,
+  eight a second while green, as Dutch and German signals do). Wet roads add IMAGINE's tyre hiss (up to +12 dB above
+  2 kHz).
+- **Sound events** (`Soundscape.event(name, body_id, kind=...)`): what other parts of the simulator ask for, heard
+  from where that actor is: `horn` (short, long, double, or `seconds=`; recorded car horns, one per car, bus horns
+  and a truck's air horn, 95-108 dB(A) at 7 m; `body_id` None is the participant's own horn in the cabin), `bell` (a
+  bicycle's, recorded), `shout` (a pedestrian's "hey!"), `hazard` (on/off: the own car's relay ticks) and
+  `indicator` (left/right/off). Each is logged as a `sound_event` cue.
+- **The city's own sounds** (`coupledcarla/soundplaces.py`, `places: true`): recordings at real places of the map,
+  through the same propagation (occlusion, reflections, the street's reverb): voices and cutlery at the nearest cafe
+  terrace (Overture places, 8-23 h), people talking around a pedestrian (by the walkers near), construction at OSM
+  construction sites (working days 7-17 h), fountains, church bells striking the hour from the nearest church (7-22
+  h), crickets on warm summer nights and cicadas on hot days near green, leaves in the wind among trees, and a long
+  echo inside tunnels and passages under buildings. Places are cached in `maps/<name>/sound_places.json`. The ambience follows the trial's real conditions (`weather:
   real`, `time`): birds by dawn, season and the trees around, wind in the leaves, rain from the rain rate, the far
   traffic as a distant hum. Bird, rain and bicycle-bell recordings come from Wikimedia Commons (CC0, public domain,
   CC BY, CC BY-SA; fetched at run time and cached, never in the repository, credited in `audio_credits.txt`);
@@ -2207,6 +2232,11 @@ just as much; how to report bugs, propose features and run the tests: [CONTRIBUT
   [MyoSuite](https://github.com/MyoHub/myosuite) (Apache-2.0) on [MuJoCo](https://mujoco.org) (Apache-2.0), and
   [embodied-human](https://github.com/M-Colley/embodied-human) (Apache-2.0 AND MIT), used as separately installed packages.
 - Coupled CARLA's own code is released under the [MIT License](LICENSE).
+- Recorded sounds in `coupledcarla/data/sounds/` (engines, footsteps, horns, bells, wipers, rain in a car, city
+  ambience; 3.8 MB): openly licensed recordings from [Freesound](https://freesound.org), CC0 or CC BY. The CC BY ones:
+  Soundholder (Renault Master 2.8 dTi engine, CC BY 3.0), klankbeeld (pedestrian area, cafe terrace, construction
+  site, wind in trees, a shout; CC BY 4.0), arundasstp (bus horns, CC BY 4.0), dibko (a belfry's strike, CC BY
+  4.0). Every file, its source, author, licence and cut: [SOURCES.md](coupledcarla/data/sounds/SOURCES.md).
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL. Built maps and
   `buildings.json` are derived databases under the ODbL.

@@ -734,6 +734,11 @@ def tick_buffers(kind="aps", n=3, seed=5, rate=RATE):
             t = np.arange(m) / rate
             f0 = rng.uniform(1500.0, 5000.0)
             x = _decay_noise(rng, m, 0.0008, 1000.0, 12000.0) + 0.6 * np.sin(2 * np.pi * f0 * t * (1 + 8 * t)) * np.exp(-t / 0.006)
+        elif kind == "umbrella":        # a raindrop on a taut umbrella canopy: a short tap of the fabric
+            m = int(0.03 * rate)
+            t = np.arange(m) / rate
+            x = 0.7 * _decay_noise(rng, m, 0.003, 400, 7000) + np.sin(2 * np.pi * rng.uniform(180, 320) * t) * \
+                np.exp(-t / 0.006)
         elif kind == "roof":            # a raindrop on a car roof: a dull thud of the panel
             m = int(0.05 * rate)
             t = np.arange(m) / rate

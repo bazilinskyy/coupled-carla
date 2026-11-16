@@ -41,6 +41,7 @@ MANIFEST = DATA / "sounds.json"
 KIND_SET = {"car": "petrol", "van": "diesel", "bus": "diesel", "truck": "diesel", "motorbike": "motorbike"}
 _SETS = {}
 _said = set()
+USED = set()          # Freesound ids of the recordings loaded (credits: used_credits)
 
 
 def manifest(path=None):
@@ -152,6 +153,7 @@ def load_set(name, log=print, path=None):
         base = Path(path or MANIFEST).parent
         bufs = [decode(base / lp["file"]) for lp in spec["loops"]]
         es = EngineSet(name, [lp["firing_hz"] for lp in spec["loops"]], bufs, spec.get("source_engine", ""))
+        es.sources = sorted({lp.get("source") for lp in spec["loops"] if lp.get("source")})
     except Exception as e:  # noqa: BLE001 - a missing or undecodable file: the synthesised engine instead
         if key not in _said:
             _said.add(key)
@@ -257,6 +259,7 @@ def engine_voice(kind, cylinders, diesel, seed=0, log=print, mode="recorded", **
         name = "diesel" if diesel and kind in ("car", "van", "bus", "truck") else KIND_SET.get(kind, "petrol")
         es = load_set(name, log)
         if es is not None:
+            USED.update(getattr(es, "sources", ()))
             return SampleEngineVoice(es, cylinders, seed=seed, **kw)
     return synth.EngineVoice(cylinders, diesel, seed=seed, **kw)
 
@@ -315,6 +318,8 @@ def footstep_buffers(surface="shoes", log=print, path=None, wet=False):
         spec = (man.get("footsteps") or {})[surface]
         base = Path(path or MANIFEST).parent
         x = decode(base / spec["file"])
+        if spec.get("source"):
+            USED.add(spec["source"])
         slot = int(round(float(spec["slot_s"]) * RATE))
         out = []
         rng = np.random.default_rng(31)
@@ -339,3 +344,78 @@ def footstep_buffers(surface="shoes", log=print, path=None, wet=False):
         out = None
     _STEPS[key] = out
     return out
+
+
+_CLIPS = {}
+
+
+def clip(name, log=print, path=None):
+    """A recorded clip of data/sounds (sounds.json "clips"): a list of one-shot buffers for "slots" clips (horns,
+    bells, a shout, wiper strokes, blinker clicks, a church bell's strike; each normalised like a cue) or one seamless
+    loop for "loop" clips (rain in a car, voices, a cafe terrace, construction, a fountain, crickets, cicadas, leaves;
+    normalised to full-scale RMS). None when missing (logged once): the caller synthesises or stays silent."""
+    key = (name, str(path or MANIFEST))
+    if key in _CLIPS:
+        return _CLIPS[key]
+    out = None
+    try:
+        man = manifest(path)
+        spec = (man.get("clips") or {})[name]
+        x = decode(Path(path or MANIFEST).parent / spec["file"])
+        USED.update(src[0] for src in spec.get("sources") or [])
+        if spec.get("kind") == "loop":
+            out = audio._norm(x.astype(np.float32))
+        else:
+            slot = int(round(float(spec["slot_s"]) * RATE))
+            out = []
+            for k in range(int(spec["items"])):
+                st = x[k * slot:(k + 1) * slot]
+                nz = np.flatnonzero(np.abs(st) > 1e-4)
+                if len(nz) < RATE // 50:
+                    continue
+                out.append(audio._peak_norm(st[:nz[-1] + 1].copy(), RATE))
+            if not out:
+                raise ValueError("no items in the file")
+    except Exception as e:  # noqa: BLE001
+        if key not in _said:
+            _said.add(key)
+            log(f"sound: no recorded {name} ({type(e).__name__}: {e})")
+        out = None
+    _CLIPS[key] = out
+    return out
+
+
+def horn_buffer(buf, seconds, rate=RATE, attack_s=0.03, release_s=0.06):
+    """A horn honk of `seconds`: the recorded honk's attack, its steady middle looped (cross-faded) as long as needed,
+    and a release fade (a horn's sound is a steady buzz while the button is held)."""
+    buf = np.asarray(buf, np.float32)
+    n = max(int(seconds * rate), int(0.08 * rate))
+    a = int(attack_s * rate)
+    env = np.abs(buf)
+    pk = float(env.max()) if len(env) else 0.0
+    loud = np.flatnonzero(np.convolve(env, np.ones(441) / 441, "same") > 0.25 * pk)
+    s0, s1 = (int(loud[0]) + a, int(loud[-1]) - a) if len(loud) else (a, len(buf) - a)
+    if s1 - s0 < int(0.04 * rate) or n <= s1:
+        out = buf[:n].copy()
+    else:
+        mid = buf[s0:s1]
+        reps = int(math.ceil((n - s0) / max(1, len(mid) - 256))) + 1
+        x = fade = None
+        for _ in range(reps):
+            if x is None:
+                x = buf[:s1].copy()
+                continue
+            fade = np.linspace(0.0, 1.0, 256, dtype=np.float32)
+            x[-256:] = x[-256:] * (1 - fade) + mid[:256] * fade
+            x = np.concatenate([x, mid[256:]])
+        out = x[:n].copy()
+    r = min(len(out), int(release_s * rate))
+    if r > 0:
+        out[-r:] *= np.linspace(1.0, 0.0, r, dtype=np.float32)
+    return out
+
+
+def credit_lines(ids=None, path=None):
+    """Attribution lines of the shipped recordings `ids` (default: those loaded so far)."""
+    cr = manifest(path).get("credits") or {}
+    return [cr[str(i)] for i in sorted(USED if ids is None else ids) if str(i) in cr]
