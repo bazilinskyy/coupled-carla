@@ -55,7 +55,8 @@ def read_net(path):
                 net.lanes[ln.get("id")] = {"edge": eid, "shape": _shape(ln.get("shape")),
                                            "length": float(ln.get("length") or 0), "width":
                                            float(ln.get("width") or 3.2), "internal": eid.startswith(":"),
-                                           "allow": ln.get("allow"), "disallow": ln.get("disallow")}
+                                           "allow": ln.get("allow"), "disallow": ln.get("disallow"),
+                                           "speed": float(ln.get("speed") or 13.89)}
             el.clear()
         elif tag == "junction":
             reqs = {}

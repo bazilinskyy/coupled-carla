@@ -277,6 +277,18 @@ class Signals:
             out = max([out] + [states[tls][i] for i in idxs if i < len(states[tls])], key=lambda s: RANK.get(s, 0))
         return out
 
+    def start_log(self, path, clock):
+        """Write every drawn head's state (sim time from clock(), head, its first light, lamp state) to a CSV, to
+        check against SUMO's own record of its lights (tls_states.xml, signalplan.tls_states_additional)."""
+        self._log = open(path, "w", buffering=1)
+        self._log.write("time,head,links,state\n")
+        self._clock = clock
+
+    def stop_log(self):
+        if getattr(self, "_log", None):
+            self._log.close()
+            self._log = None
+
     def draw(self, centres):
         if self.style == "none":        # the level's own light actors show SUMO's states (heads kept: livemap)
             return
@@ -284,10 +296,14 @@ class Signals:
         if self._tick % self.every or not centres:
             return
         states = {}
-        for (_tls, _idxs, loc, yaw), links in zip(self.heads, self.head_links):
+        log = getattr(self, "_log", None)
+        now = self._clock() if log else None
+        for h, ((_tls, _idxs, loc, yaw), links) in enumerate(zip(self.heads, self.head_links)):
             if not any(math.hypot(loc.x - c.x, loc.y - c.y) <= self.radius for c in centres):
                 continue
             st = self._state(states, links)
+            if log:
+                log.write(f"{now:.2f},{h},{'|'.join(t + ':' + ' '.join(map(str, i)) for t, i in links)},{st}\n")
             if self.style == "marker":
                 self.debug.draw_line(loc, loc + carla.Location(z=3.0), thickness=0.08,
                                      color=carla.Color(40, 40, 40), life_time=self.life)

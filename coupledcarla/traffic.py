@@ -58,18 +58,29 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     random_trips = Path(sumo.SUMO_HOME) / "tools" / "randomTrips.py"
     end = int(duration_s) + 60
     routes, additional = [], [vss] if vss else []
+    from . import transit
+    when = transit.trial_time(cfg["simulation"].get("time"), ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2),
+                              Path(map_dir) / "real")
+    sumo_net = net
+    try:     # the traffic lights: a programme per junction, Dutch or from real data (signalplan.py, traffic.signals)
+        from . import signalplan
+        sig_net, sig_add, _ = signalplan.prepare(cfg, map_dir, work, when, log)
+        if sig_net:
+            sumo_net = sig_net
+        additional += sig_add
+    except Exception as err:  # noqa: BLE001 - netconvert's programmes still run
+        import traceback
+        traceback.print_exc()
+        log(f"traffic lights: SUMO's programmes ({type(err).__name__}: {err})")
     try:     # scramble crossings: an all-pedestrian phase in their signal programmes (pedsignals.py)
         from . import pedsignals
-        scramble = pedsignals.prepare(map_dir, net, work, log)
+        scramble = pedsignals.prepare(map_dir, sumo_net, work, log)
         if scramble:
             additional.append(scramble)
     except Exception as err:  # noqa: BLE001 - a refinement: never fail the trial for it
         log(f"scramble crossings: not used ({type(err).__name__}: {err})")
     pc = tc.get("public_transport") or {}
     pt = None
-    from . import transit
-    when = transit.trial_time(cfg["simulation"].get("time"), ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2),
-                              Path(map_dir) / "real")
     if pc.get("enabled", True):
         import sumolib
         live = pc.get("live", "auto")
@@ -132,7 +143,7 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     stop_xml = '\n    <stop-output value="sumo_stops.xml"/>' if pt else ""
     cfg_file.write_text(f"""<configuration>
   <input>
-    <net-file value="{net}"/>
+    <net-file value="{sumo_net}"/>
     <route-files value="{','.join(routes)}"/>{additional_xml}
   </input>
   <processing>

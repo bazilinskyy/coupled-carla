@@ -415,6 +415,15 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
                 f"{', meshes' if signals.meshes else ''}) drawn near participants")
         carla_sim._kinds.update({a.id: False for a in signals.actors})     # static: never looked up per tick
+        if (tc["simulation"].get("traffic_lights") or {}).get("log"):   # drawn states, for tools/signal_heads.py
+            import traci
+            signals.start_log(out / "signal_heads.csv", traci.simulation.getTime)
+        from . import signaldata      # real phases replayed exactly, or a live feed, through TraCI (signaldata.py)
+        sig_driver = signaldata.driver(out / "sumo", log)
+        try:
+            summary["signals"] = json.loads((out / "sumo" / "signals.json").read_text())
+        except (OSError, ValueError):
+            pass
         world.tick()
 
         # AI agents (scripted cars and walkers); an AV passenger rides in one of them
@@ -683,6 +692,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 laps("drones")
             t_a = time.time()
             sync.tick()
+            if sig_driver is not None:
+                import traci
+                sig_driver.step(traci.simulation.getTime(), traci)
             t_b = time.time()
             prof["sync"] += t_b - t_a
             laps.start()      # sync.tick() timed its own parts
