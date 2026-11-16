@@ -387,12 +387,12 @@ Three per inhabited continent, by size, each a 1.4 km square around a central po
 
 | Continent | Large | Medium | Small |
 |---|---|---|---|
-| Africa | Cairo (Tahrir), ~22 M | Kigali, ~1.7 M | Stellenbosch, ~0.2 M (left-hand) |
-| Asia | Tokyo (Shibuya), ~37 M (left-hand) | Taipei (Main Station), ~2.6 M | Luang Prabang, ~0.06 M |
-| Europe | London (Westminster), ~9 M (left-hand) | Lyon (Bellecour), ~0.5 M | Leuven, ~0.1 M |
-| North America | New York (Midtown), ~8.3 M | Portland, Oregon, ~0.65 M | Burlington, Vermont, ~0.045 M |
-| South America | São Paulo (Sé), ~12 M | Montevideo, ~1.3 M | Ushuaia, ~0.08 M |
-| Oceania | Sydney (CBD), ~5.3 M (left-hand) | Auckland (CBD), ~1.7 M (left-hand) | Nouméa, ~0.1 M |
+| Africa | 🇪🇬 Cairo (Tahrir), ~22 M | 🇷🇼 Kigali, ~1.7 M | 🇿🇦 Stellenbosch, ~0.2 M (left-hand) |
+| Asia | 🇯🇵 Tokyo (Shibuya), ~37 M (left-hand) | 🇹🇼 Taipei (Main Station), ~2.6 M | 🇱🇦 Luang Prabang, ~0.06 M |
+| Europe | 🇬🇧 London (Westminster), ~9 M (left-hand) | 🇫🇷 Lyon (Bellecour), ~0.5 M | 🇧🇪 Leuven, ~0.1 M |
+| North America | 🇺🇸 New York (Midtown), ~8.3 M | 🇺🇸 Portland, Oregon, ~0.65 M | 🇺🇸 Burlington, Vermont, ~0.045 M |
+| South America | 🇧🇷 São Paulo (Sé), ~12 M | 🇺🇾 Montevideo, ~1.3 M | 🇦🇷 Ushuaia, ~0.08 M |
+| Oceania | 🇦🇺 Sydney (CBD), ~5.3 M (left-hand) | 🇳🇿 Auckland (CBD), ~1.7 M (left-hand) | 🇳🇨 Nouméa, ~0.1 M |
 
 Plus **Eindhoven** (city centre, station to the TU/e campus edge, 1.6 km), the reference use case
 ([`experiments/eindhoven_centre.yaml`](experiments/eindhoven_centre.yaml)). Populations are approximate and
@@ -408,25 +408,25 @@ Smoke test, 2026-11-14: 40 s headless autopilot trial per map, CARLA 0.9.16 at E
 
 | Map | Continent | Size | Traffic | Lane links | Buildings | Building heights | Relief (m) | Scenery meshes | Bus lines (with timetable) | SUMO vehicles shown | Real-time factor | Left road | Stuck | Put back on lane | Collisions | Result |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Eindhoven | Europe | medium | right | 2318 | 2998 | 3dbag | 11 | 16781 | 51 (45) | 11 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| Cairo (Tahrir) | Africa | large | right | 3835 | 1308 | overture | 66 | 10814 | – | 3 | 0.994 | 0 | 1 | 1 | 0 | ok |
-| Kigali | Africa | medium | right | 1655 | 2942 | overture | 188 | 15270 | 18 (0) | 3 | 0.994 | 0 | 0 | 0 | 0 | ok |
-| Stellenbosch | Africa | small | left | 1748 | 1683 | overture | 32 | 8665 | – | 7 | 0.994 | 0 | 9 | 9 | 0 | ok |
-| Tokyo (Shibuya) | Asia | large | left | 5057 | 3833 | overture | 87 | 15735 | 31 (10) | 15 | 0.989 | 0 | 0 | 0 | 0 | ok |
-| Taipei (Main Station) | Asia | medium | right | 2940 | 2679 | overture | 48 | 15461 | 150 (0) | 14 | 0.991 | 0 | 0 | 0 | 0 | ok |
-| Luang Prabang | Asia | small | right | 1418 | 3611 | overture | 87 | 10402 | – | 2 | 0.995 | 0 | 0 | 0 | 0 | ok |
-| London (Westminster) | Europe | large | left | 2751 | 2069 | overture | 30 | 10053 | 31 (0) | 2 | 0.994 | 0 | 1 | 1 | 0 | ok |
-| Lyon (Bellecour) | Europe | medium | right | 2276 | 2518 | bdtopo | 135 | 19667 | 21 (20) | 6 | 0.992 | 0 | 2 | 2 | 0 | ok |
-| Leuven | Europe | small | right | 1537 | 5049 | overture | 26 | 19194 | 26 (26) | 4 | 0.992 | 0 | 2 | 2 | 0 | ok |
-| New York (Midtown) | North America | large | right | 2229 | 1404 | nyc | 14 | 8289 | 67 (54) | 9 | 0.988 | 0 | 0 | 0 | 0 | ok |
-| Portland, Oregon | North America | medium | right | 4368 | 710 | overture | 50 | 14077 | 27 (25) | 5 | 0.99 | 0 | 0 | 0 | 0 | ok |
-| Burlington, Vermont | North America | small | right | 2033 | 1974 | overture | 83 | 12027 | 10 (2) | 5 | 0.993 | 0 | 1 | 1 | 0 | ok |
-| São Paulo (Sé) | South America | large | right | 2164 | 3182 | overture | 85 | 16300 | 64 (56) | 4 | 0.991 | 0 | 0 | 0 | 0 | ok |
-| Montevideo | South America | medium | right | 1917 | 2411 | overture | 64 | 12668 | 3 (0) | 5 | 0.991 | 0 | 0 | 0 | 0 | ok |
-| Ushuaia | South America | small | right | 2404 | 2309 | overture | 129 | 12561 | 2 (0) | 3 | 0.993 | 0 | 0 | 0 | 0 | ok |
-| Sydney (CBD) | Oceania | large | left | 2609 | 985 | overture | 111 | 14600 | 32 (31) | 1 | 0.993 | 0 | 8 | 8 | 0 | ok |
-| Auckland (CBD) | Oceania | medium | left | 3935 | 1142 | overture | 47 | 14635 | 31 (29) | 0 | 0.992 | 0 | 0 | 0 | 0 | ok |
-| Nouméa | Oceania | small | right | 1786 | 2465 | overture | 67 | 18425 | – | 6 | 0.993 | 0 | 2 | 2 | 0 | ok |
+| 🇳🇱 Eindhoven | Europe | medium | right | 2318 | 2998 | 3dbag | 11 | 16781 | 51 (45) | 11 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| 🇪🇬 Cairo (Tahrir) | Africa | large | right | 3835 | 1308 | overture | 66 | 10814 | – | 3 | 0.994 | 0 | 1 | 1 | 0 | ok |
+| 🇷🇼 Kigali | Africa | medium | right | 1655 | 2942 | overture | 188 | 15270 | 18 (0) | 3 | 0.994 | 0 | 0 | 0 | 0 | ok |
+| 🇿🇦 Stellenbosch | Africa | small | left | 1748 | 1683 | overture | 32 | 8665 | – | 7 | 0.994 | 0 | 9 | 9 | 0 | ok |
+| 🇯🇵 Tokyo (Shibuya) | Asia | large | left | 5057 | 3833 | overture | 87 | 15735 | 31 (10) | 15 | 0.989 | 0 | 0 | 0 | 0 | ok |
+| 🇹🇼 Taipei (Main Station) | Asia | medium | right | 2940 | 2679 | overture | 48 | 15461 | 150 (0) | 14 | 0.991 | 0 | 0 | 0 | 0 | ok |
+| 🇱🇦 Luang Prabang | Asia | small | right | 1418 | 3611 | overture | 87 | 10402 | – | 2 | 0.995 | 0 | 0 | 0 | 0 | ok |
+| 🇬🇧 London (Westminster) | Europe | large | left | 2751 | 2069 | overture | 30 | 10053 | 31 (0) | 2 | 0.994 | 0 | 1 | 1 | 0 | ok |
+| 🇫🇷 Lyon (Bellecour) | Europe | medium | right | 2276 | 2518 | bdtopo | 135 | 19667 | 21 (20) | 6 | 0.992 | 0 | 2 | 2 | 0 | ok |
+| 🇧🇪 Leuven | Europe | small | right | 1537 | 5049 | overture | 26 | 19194 | 26 (26) | 4 | 0.992 | 0 | 2 | 2 | 0 | ok |
+| 🇺🇸 New York (Midtown) | North America | large | right | 2229 | 1404 | nyc | 14 | 8289 | 67 (54) | 9 | 0.988 | 0 | 0 | 0 | 0 | ok |
+| 🇺🇸 Portland, Oregon | North America | medium | right | 4368 | 710 | overture | 50 | 14077 | 27 (25) | 5 | 0.99 | 0 | 0 | 0 | 0 | ok |
+| 🇺🇸 Burlington, Vermont | North America | small | right | 2033 | 1974 | overture | 83 | 12027 | 10 (2) | 5 | 0.993 | 0 | 1 | 1 | 0 | ok |
+| 🇧🇷 São Paulo (Sé) | South America | large | right | 2164 | 3182 | overture | 85 | 16300 | 64 (56) | 4 | 0.991 | 0 | 0 | 0 | 0 | ok |
+| 🇺🇾 Montevideo | South America | medium | right | 1917 | 2411 | overture | 64 | 12668 | 3 (0) | 5 | 0.991 | 0 | 0 | 0 | 0 | ok |
+| 🇦🇷 Ushuaia | South America | small | right | 2404 | 2309 | overture | 129 | 12561 | 2 (0) | 3 | 0.993 | 0 | 0 | 0 | 0 | ok |
+| 🇦🇺 Sydney (CBD) | Oceania | large | left | 2609 | 985 | overture | 111 | 14600 | 32 (31) | 1 | 0.993 | 0 | 8 | 8 | 0 | ok |
+| 🇳🇿 Auckland (CBD) | Oceania | medium | left | 3935 | 1142 | overture | 47 | 14635 | 31 (29) | 0 | 0.992 | 0 | 0 | 0 | 0 | ok |
+| 🇳🇨 Nouméa | Oceania | small | right | 1786 | 2465 | overture | 67 | 18425 | – | 6 | 0.993 | 0 | 2 | 2 | 0 | ok |
 
 All 19 maps load and drive with their scenery. "Scenery meshes" counts the placements on the whole map (about
 2,000-2,700 are loaded at a time around the car); "Relief" is the terrain's height range within the box; "Bus
