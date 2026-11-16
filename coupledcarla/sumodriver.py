@@ -110,18 +110,29 @@ def drivable_lane(net, x, y, rng, yaw=None, vclass="passenger", radius=80.0, z=N
     return None
 
 
+def has_u_turn(path):
+    """Whether a path (sumolib edges) turns back onto the road it came on (an edge followed by the edge between the
+    same two junctions the other way): at a dead end SUMO's turnaround lane swings round beyond the road's surface
+    (Zurich HB twin: the participant's car turned through a building for 4 s at -231 -> 231)."""
+    return any(b.getFromNode() == a.getToNode() and b.getToNode() == a.getFromNode() for a, b in zip(path, path[1:]))
+
+
 def random_destination(net, start_edge, rng, vclass="passenger", lo=600.0, hi=1500.0, tries=60):
-    """A route (edge ids) from start_edge to a random edge lo-hi m away (straight line), or None."""
+    """A route (edge ids) from start_edge to a random edge lo-hi m away (straight line) without a U-turn, or None
+    (with a U-turn only when no destination can be reached without one)."""
     sx, sy = start_edge.getToNode().getCoord()
     edges = [e for e in net.getEdges() if e.allows(vclass) and e.getFunction() != "internal"]
     far = [e for e in edges if lo <= math.hypot(e.getToNode().getCoord()[0] - sx,
                                                e.getToNode().getCoord()[1] - sy) <= hi] or edges
+    fallback = None
     for _ in range(tries):
         dest = rng.choice(far)
         path, _ = net.getShortestPath(start_edge, dest, vClass=vclass)
         if path and len(path) > 2:
-            return [e.getID() for e in path]
-    return None
+            if not has_u_turn(path):
+                return [e.getID() for e in path]
+            fallback = fallback or [e.getID() for e in path]
+    return fallback
 
 
 class SumoDriver:

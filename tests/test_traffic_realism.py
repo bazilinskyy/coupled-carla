@@ -222,3 +222,26 @@ def test_bridge_subscribes_to_lane_variables_traci_has():
            "sumo_simulation.py").read_text()
     for name in set(re.findall(r"traci\.constants\.(VAR_[A-Z0-9_]+)", src)):
         assert hasattr(traci.constants, name), name
+
+
+def test_u_turns_are_found():
+    import pytest
+    pytest.importorskip("carla")
+    from coupledcarla import sumodriver
+
+    class N:
+        def __init__(self, i):
+            self.i = i
+
+    class E:
+        def __init__(self, a, b):
+            self.a, self.b = a, b
+
+        def getFromNode(self):
+            return self.a
+
+        def getToNode(self):
+            return self.b
+    a, b, c = N(1), N(2), N(3)
+    assert sumodriver.has_u_turn([E(a, b), E(b, a)])
+    assert not sumodriver.has_u_turn([E(a, b), E(b, c)])
