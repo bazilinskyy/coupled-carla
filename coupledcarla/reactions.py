@@ -69,6 +69,7 @@ RATES = {
 DEFAULTS = {"enabled": True, "horns": True, "courtesy": True, "looks": True, "hurry": True, "bells": True,
             "near_misses": True}
 
+RADIUS = {"bike": 0.5, "car": 1.0, "bus": 1.3, "walker": 0.3}     # discs for near misses (half widths + a margin)
 LEFT_BLINKER, RIGHT_BLINKER = 2, 1          # bits of carla.VehicleLightState: LeftBlinker = 32, RightBlinker = 16
 GREEN = ("G", "g")
 
@@ -261,18 +262,23 @@ class Reactions:
             if nb is not None and nb.lane_type == carla.LaneType.Driving and nb.lane_id * wp.lane_id > 0:
                 nx, ny = nb.transform.location.x, nb.transform.location.y
                 c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+                near = None          # the driver nearest behind (or beside) in the target lane decides
                 for cid, (ox, oy, oyaw, osp, *_r) in poses.items():
                     sid = ids.get(cid)
-                    if sid is None or (p.role, sid) in self.courtesy:
+                    if sid is None:
                         continue
                     along = (ox - x) * c + (oy - y) * s
                     lat = -(ox - nx) * s + (oy - ny) * c
-                    if -30.0 < along < 3.0 and abs(lat) < 1.6 and abs(((oyaw - yaw + 180) % 360) - 180) < 35:
-                        rng = rng_for(self.lc, "courtesy", p.role, sid)
-                        yes = rng.random() < rate(self.lc, "courtesy_p")
-                        self.courtesy[(p.role, sid)] = yes
-                        if yes:
-                            self._yield_flash(cid, sid, osp, p.role, -along)
+                    if -30.0 < along < 3.0 and abs(lat) < 1.6 and abs(((oyaw - yaw + 180) % 360) - 180) < 35 and \
+                            (near is None or along > near[2]):
+                        near = (cid, sid, along, osp)
+                if near is not None and (p.role, near[1]) not in self.courtesy:
+                    cid, sid, along, osp = near
+                    rng = rng_for(self.lc, "courtesy", p.role, sid)
+                    yes = rng.random() < rate(self.lc, "courtesy_p")
+                    self.courtesy[(p.role, sid)] = yes
+                    if yes:
+                        self._yield_flash(cid, sid, osp, p.role, -along)
         # a lane change: the driver now behind in the new lane, if cut off, may honk
         if old is not None and key != old and old[0] == key[0] and self.opts.get("horns", True):
             for cid, (ox, oy, oyaw, osp, hl, *_r) in poses.items():
@@ -480,8 +486,8 @@ class Reactions:
     # -- near misses --
     def _near_misses(self, t, vehicles, types):
         thr = rate(self.lc, "near_miss_ttc_s")
-        users = [(vid, x, y, vx, vy, "participant:" + part if part else (types.get(vid) or ("vehicle",))[0], 1.0)
-                 for vid, x, y, vx, vy, part in vehicles]      # radius 1.0: a car's half width and a margin
+        users = [(vid, x, y, vx, vy, "participant:" + part if part else (types.get(vid) or ("vehicle",))[0],
+                  RADIUS.get((types.get(vid) or ("car",))[0], 1.0)) for vid, x, y, vx, vy, part in vehicles]
         if self.crowd is not None:
             for k, st in enumerate(self.crowd.state):
                 if st["alive"] and (st["crossing"] or st["standing"] in ("kerb",)):

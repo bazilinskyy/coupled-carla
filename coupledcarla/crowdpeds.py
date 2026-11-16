@@ -1102,6 +1102,8 @@ class CrowdSim:
                 st["stuck"] = True
                 self.events.append(("crowd_stuck", f"{actor.id} {st['tag']} at {loc.x:.1f}, {loc.y:.1f} for "
                                                    f"{t - mt:.0f} s"))
+                if st["tag"] != "crowd":       # a living-city walker that cannot walk on leaves the street
+                    self.remove(k, "stuck")
 
     def _follow(self, k, actor, st, t, send):
         """A group member: beside its leader (offset right/back in the leader's heading), at the leader's pace."""
