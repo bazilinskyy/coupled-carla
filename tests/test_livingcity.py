@@ -182,6 +182,9 @@ def test_reaction_rules():
     assert rx.ttc(0, 0, -10, 0, 20, 0, 0, 0, 2.0)[0] is None
     assert rx.ttc(0, 0, 10, 0, 20, 3.5, -10, 0, 2.0)[0] is None       # oncoming in the next lane: passes clear
     assert rx.ttc(0, 0, 10, 0, 20, 1.0, -10, 0, 2.0)[0] < 1.0
+    t, d = rx.closest(0, 0, 0, 0, 20, 3.0, -10, 0)        # a car passing a kerb walker 3 m away in 2 s
+    assert t == pytest.approx(2.0) and d == pytest.approx(3.0)
+    assert rx.closest(0, 0, 0, 0, 20, 3.0, 10, 0)[0] is None
     assert rx.behind(0, 0, 0, -8, 0.5, 5) == 8 and rx.behind(0, 0, 0, 8, 0, 0) is None
     assert rx.behind(0, 0, 0, -8, 0, 180) is None
 

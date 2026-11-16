@@ -139,6 +139,8 @@ EVENTS = {   # events.csv names written by the living city (and reactions.py)
     "lc_park_in": "a SUMO car parks in a stall", "hazard": "hazard lights on/off (sound: relay click)",
     "door": "a vehicle door opens or closes (sound)", "horn": "a vehicle sounds its horn (sound)",
     "bell": "a cyclist rings the bell (sound)", "lc_yield_flash": "a driver lets the participant in, flashing",
+    "lc_blocked": "a SUMO driver stands behind a participant who could go (honks may follow)",
+    "lc_cut_in": "the participant changed lanes in front of a SUMO driver (gap, headway, deceleration needed)",
     "lc_look": "a pedestrian looks at an approaching vehicle", "lc_hurry": "a crossing pedestrian hurries",
     "lc_step_back": "a pedestrian steps back to the kerb", "near_miss": "a near miss with its kinematics",
 }

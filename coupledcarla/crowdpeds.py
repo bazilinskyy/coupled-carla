@@ -1071,11 +1071,13 @@ class CrowdSim:
 
     def _stand(self, k, actor, st, kind, send, face=None):
         carla = self.carla
-        if face is not None:      # turn to face (a shop window, the road): a crawl in that direction for one step
-            send(actor, carla.WalkerControl(direction=carla.Vector3D(math.cos(math.radians(face)),
-                                                                     math.sin(math.radians(face)), 0.0), speed=0.05))
-        else:
-            send(actor, carla.WalkerControl(speed=0.0))
+        send(actor, carla.WalkerControl(speed=0.0))
+        if face is not None and st.get("face") != face:   # turn to face (a shop window, the road), once
+            st["face"] = face
+            try:
+                actor.set_transform(carla.Transform(actor.get_location(), carla.Rotation(yaw=face)))
+            except (RuntimeError, AttributeError):
+                pass
         st["cmd"] = 0.0
         if st["standing"] != kind:
             st["standing"] = kind
@@ -1084,7 +1086,7 @@ class CrowdSim:
 
     def _walking(self, k, actor, st):
         if st["standing"] is not None:
-            st["standing"] = None
+            st["standing"], st["face"] = None, None
             if self.on_walk is not None:
                 self.on_walk(k, actor, st)
 
@@ -1105,7 +1107,8 @@ class CrowdSim:
         d = math.hypot(dx, dy)
         st["crossing"] = lead["crossing"]
         if lead["cmd"] <= 0.0 and d < 0.4:
-            self._stand(k, actor, st, lead["standing"] or "group", send)
+            self._stand(k, actor, st, lead["standing"] or "group", send,
+                        face=lead.get("face") if lead["standing"] == "stop" else None)
             return
         self._walking(k, actor, st)
         speed = min(2.5, max(0.0, lead["cmd"]) + 0.8 * d) if d > 0.3 else lead["cmd"]
@@ -1145,9 +1148,9 @@ class CrowdSim:
                     if st["stop_until"] is None:
                         st["stop_until"] = t + width
                     if t < st["stop_until"]:
-                        self._stand(k, actor, st, "stop", send, face=marked if st["standing"] != "stop" else None)
+                        self._stand(k, actor, st, "stop", send, face=marked)
                         continue
-                    st["stop_until"] = None
+                    st["stop_until"], st["face"] = None, None
                     st["leg"], st["pt"] = st["leg"] + 1, 0
                     continue
                 if t < st["back_until"]:          # a step back from the kerb (reactions.py)

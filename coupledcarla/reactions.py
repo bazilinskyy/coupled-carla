@@ -107,6 +107,20 @@ def ttc(ax, ay, avx, avy, bx, by, bvx, bvy, radius):
     return (-b - math.sqrt(disc)) / (2.0 * a), d
 
 
+def closest(ax, ay, avx, avy, bx, by, bvx, bvy):
+    """(time s, distance m) of the closest approach of two road users moving on as now; time None when they are
+    moving apart."""
+    px, py = bx - ax, by - ay
+    vx, vy = bvx - avx, bvy - avy
+    a = vx * vx + vy * vy
+    if a < 1e-6:
+        return None, math.hypot(px, py)
+    t = -(px * vx + py * vy) / a
+    if t <= 0.0:
+        return None, math.hypot(px, py)
+    return t, math.hypot(px + vx * t, py + vy * t)
+
+
 def behind(pose_x, pose_y, yaw_deg, ox, oy, oyaw, reach=15.0, lat=1.7):
     """Distance (m) of (ox, oy) heading oyaw behind a vehicle at (pose_x, pose_y) heading yaw_deg in the same
     direction and lane, or None."""
@@ -211,6 +225,8 @@ class Reactions:
             return
         if b["since"] is None:
             b["since"] = t
+            self.city.ev("lc_blocked", follower[0], target=p.role, gap_m=round(follower[1], 1),
+                         light=(light[2] if light else None))
         waited = t - b["since"]
         grace = rate(self.lc, "honk_grace_s")
         if waited < grace or t - b["last"] < 4.0:
@@ -387,14 +403,14 @@ class Reactions:
                 continue
             hx, hy = st["heading"]
             wvx, wvy = hx * st["cmd"], hy * st["cmd"]
-            best = None
+            best = None          # the vehicle coming closest soonest: passing within 10 m in under 6 s
             for vid, x, y, vx, vy, part in vehicles:
                 d = math.hypot(x - px, y - py)
                 if d > 30.0:
                     continue
-                tt, _ = ttc(px, py, wvx, wvy, x, y, vx, vy, 2.0)
-                if tt is not None and tt < 6.0 and (best is None or tt < best[1]):
-                    best = (vid, tt, d, x, y, part)
+                tt, dmin = closest(px, py, wvx, wvy, x, y, vx, vy)
+                if tt is not None and tt < 6.0 and dmin < 10.0 and (best is None or tt < best[1]):
+                    best = (vid, tt, d, x, y, part, dmin)
             # looks: standing walkers turn their head to the approaching vehicle, and back once it is gone
             if looks:
                 cur = self.looking.get(k)
@@ -411,7 +427,7 @@ class Reactions:
                         self._look(k, st, best[3], best[4], best[0], best[5], best[2], best[1])
             if not hurry or best is None:
                 continue
-            if st["crossing"] and best[1] < 3.0 and t >= st["hurry_until"]:
+            if st["crossing"] and best[1] < 3.0 and best[6] < 3.0 and t >= st["hurry_until"]:
                 route = st["route"][st["leg"]] if st["leg"] < len(st["route"]) else None
                 (ax, ay) = route[1][0] if route and route[1] else (px, py)
                 if route and route[0] == "cross" and math.hypot(px - ax, py - ay) < 1.2 and \
