@@ -738,6 +738,13 @@ def cmd_compare(args):
                                                 float(rr["wide_hfov"]), gt, args.yaw_margin, args.pitch_margin,
                                                 args.pano_yaw)
         extra_metrics(m, rg, ag, real_rgb, arg, v["hfov"], perc)
+        if gt is not None:      # CARLA's own labels: a view that is nearly all wall stands in or against a building
+            from coupledcarla import streetphotos as SP
+            m["wall_share"] = SP.wall_share(gt)
+            if m["wall_share"] > SP.WALL_SHARE:
+                m["pose_suspect"] = 1
+                m["differences"] = "camera in or against a building (photo position off?)" + (
+                    "; " + m["differences"] if m["differences"] else "")
         rows.append({"id": vid, "source": v["source"], "kind": v["kind"], "lat": v["lat"], "lon": v["lon"],
                      "heading": v["heading"], "local_time": v["local_time"], **m})
         imgs = [real_rgb, arg, R.colourise(rg), R.colourise(ag)]

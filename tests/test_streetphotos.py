@@ -206,8 +206,11 @@ def test_spot_and_map_scores():
              "differences": "missing building on the right (photo 40%, render 0%); skyline 6 deg too "
                             "low: buildings or trees lower than in the photo, or missing"},
             {"spot_score": float("nan"), "differences": ""}]
-    m = SP.map_score(rows)
-    assert m["score"] == 50.0 and m["spots"] == 2
+    m = SP.map_score(rows + [{"spot_score": 0.05, "pose_suspect": 1, "differences": ""}])
+    assert m["score"] == 50.0 and m["spots"] == 2 and m["pose_suspect"] == 1
+    lab = np.zeros((40, 40), np.uint8)
+    lab[5:35, 5:35] = 3
+    assert SP.wall_share(lab) == 1.0 and SP.wall_share(np.zeros((40, 40), np.uint8)) == 0.0
     assert m["differences"] == {"missing building": 2, "road too wide": 1, "skyline too low": 1}
 
 

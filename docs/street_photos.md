@@ -53,13 +53,19 @@ take it in the URL, so the HTTP client's error messages never include the URL.
 
 - *Map features*, from the tiles: positions and classes of lamps, signs, poles and furniture. This works with the
   current token, on every map.
-- *Photos and panoramas*, which need the graph API (`graph.mapillary.com/<image id>`) for the camera, the heading
-  corrected by structure from motion, and the image URL. With the token set on 2026-11-16, the tiles answer but
-  the graph API refuses every image and map feature ("does not exist, cannot be loaded due to missing permissions")
-  and its bbox search returns empty lists. The application probably lacks read access. Until that is fixed, the
-  tool counts Mapillary's photos but cannot compare them. This matters most for Chernihiv, where Mapillary has
-  4,868 panoramas from 2022 and the open sources have none. `realism_check.py sources` tells whether the graph
-  answers.
+- *Photos and panoramas*, from the graph API, with a client token whose application has read access (the
+  first token of 2026-11-16 had none; the second, 19:37, works). Its image search (`graph.mapillary.com/images`)
+  gives the camera, the heading corrected by structure from motion and a signed thumbnail URL (2048 px). Looking an
+  image up by its id gives everything but the URL, so a fresh URL is found by searching a 60 m box around the
+  image. Dense boxes answer HTTP 500 ("reduce the amount of data"), so the box is searched in 0.002° tiles and a
+  tile that still fails, or fills the 2,000-image page, is split in four. Searches are cached for 30 days.
+- Images are left out, and counted, when:
+  - Mapillary serves no image file for them. That is every image in Ukraine in 2026, so Chernihiv has no
+    Mapillary photos either: the search finds 11,269 in its box (the tiles 11,993), all withheld.
+  - They come from a fisheye camera.
+  - Both headings are exactly 0. That means none was recorded, as for the GoPro Fusion panoramas of Chernihiv.
+- Mapillary panoramas are taken at 2.2 m (car roofs) and its other photos at 1.4 m (dashcams, phones), like the
+  other sources' views.
 
 ## Running it
 
@@ -71,6 +77,7 @@ python tools/realism_check.py render   experiments/eindhoven_centre.yaml --out l
 python tools/realism_check.py pairs    experiments/eindhoven_centre.yaml --out logs/sp   # real-vs-real baseline
 python tools/realism_check.py compare  --out logs/sp                                     # metrics, sheets, spots
 python tools/realism_check.py objects  experiments/chernihiv.yaml --evidence mapillary   # street objects
+python tools/realism_check.py objects  experiments/eindhoven_centre.yaml --evidence mapillary_panos --validate lamp
 python tools/realism_check.py table    logs/sp_before logs/sp_after                     # runs side by side
 ```
 

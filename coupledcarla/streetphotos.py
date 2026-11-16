@@ -623,10 +623,23 @@ def spot_score(m):
     return float(np.mean(vals)) if vals else float("nan")
 
 
+WALL_SHARE = 0.8      # a render whose middle is this much building (CARLA's labels) stands in or against a wall
+CARLA_BUILDING = (3, 4)
+
+
+def wall_share(carla_labels):
+    """Share of the middle half of a render (CARLA semantic tags) that is building or wall."""
+    h, w = carla_labels.shape[:2]
+    mid = carla_labels[h // 4:3 * h // 4, w // 4:3 * w // 4]
+    return float(np.isin(mid, CARLA_BUILDING).mean())
+
+
 def map_score(rows):
-    """Per-map summary: the median spot score x 100 and how many spots have each kind of difference."""
+    """Per-map summary: the median spot score x 100 over the spots whose camera is not in or against a building
+    (pose_suspect: the photo's position is off), and how many spots have each kind of difference."""
     scores = [r["spot_score"] for r in rows
-              if isinstance(r.get("spot_score"), float) and not math.isnan(r["spot_score"])]
+              if isinstance(r.get("spot_score"), float) and not math.isnan(r["spot_score"])
+              and not r.get("pose_suspect")]
     kinds = {}
     for r in rows:
         for t in (r.get("differences") or "").split("; "):
@@ -637,6 +650,7 @@ def map_score(rows):
                     k = "skyline too low" if " too low" in k else "skyline too high"
                 kinds[k] = kinds.get(k, 0) + 1
     return {"score": round(100 * float(np.median(scores)), 1) if scores else None, "spots": len(scores),
+            "pose_suspect": sum(1 for r in rows if r.get("pose_suspect")),
             "differences": dict(sorted(kinds.items(), key=lambda kv: -kv[1]))}
 
 
