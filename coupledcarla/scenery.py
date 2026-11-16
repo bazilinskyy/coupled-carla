@@ -281,6 +281,15 @@ class Catalog:
         return cx - wx, cy - wy, z - wz - sink, yaw
 
 
+def _wet_road(world):
+    """The trial's road is wet: CARLA weather with wetness, puddles or rain (False when it cannot be read)."""
+    try:
+        w = world.get_weather()
+        return max(w.wetness, w.precipitation, getattr(w, "precipitation_deposits", 0.0)) >= 20.0
+    except Exception:  # noqa: BLE001 - a stand-in world (tests)
+        return False
+
+
 def _axes(pitch, yaw, roll):
     """The local x, y, z axes in world coordinates for an Unreal FRotator (degrees)."""
     p, y, r = (math.radians(v) for v in (pitch, yaw, roll))
@@ -1266,7 +1275,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     # markings, red cycle lanes, road wear and rooftop clutter (streetlook.py; CARLA 1.0 with our content)
     try:
         streetlook.add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log,
-                                  ndw=ndw, bgt_data=bgt_data)
+                                  ndw=ndw, bgt_data=bgt_data, free=free)
     except Exception as err:  # noqa: BLE001 - the scenery stands without them
         log(f"scenery: street look extras failed ({type(err).__name__}: {err})")
     if look.counts:
@@ -1420,6 +1429,8 @@ class Scenery:
             kinds |= {"marking", "surface", "wear", "roof"}
         if (season or {}).get("state") == "autumn" and "tree" in kinds:
             kinds.add("leaves")         # leaf litter under deciduous trees only in autumn
+        if "ground" in kinds and _wet_road(world):
+            kinds.add("puddle")         # puddles in the gutters only on a wet road (streetlife.py)
         self.radius = float(sc.get("radius_m", 400.0))
         self.cell = float(data.get("cell_m", CELL))
         self.cells = defaultdict(list)
