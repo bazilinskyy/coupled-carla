@@ -174,6 +174,21 @@ DEFAULTS = {
         "fleet": "auto",             # "auto": car body types and colours from the open vehicle register where
                                      # there is one (fleet.py: RDW for NL, NY DMV for New York, Waka Kotahi
                                      # for New Zealand, Senatran for Brazilian cities); else car_types
+        "signals": "auto",           # traffic-light programmes (signalplan.py): "dutch" (a controller per junction,
+                                     # matched to the city's list of signalised junctions; CROW 2022 amber, all-red
+                                     # from the conflict distances, Nota Verkeerslichten 2024 cycles, vehicle-
+                                     # actuated), "real" (recorded phases or a live feed: signal_data; Dutch where
+                                     # it has none), "sumo" (netconvert's, one light per OpenDRIVE signal, all in
+                                     # step), "auto": real where signal_data is set, dutch in NL, else sumo
+        "signal_data": {             # real phase data for "real" (signaldata.py; none is open for Eindhoven: README)
+            "log": None,             # phase log: CSV time,controller,signal_group,state (or NDJSON), file or folder
+            "groups": None,          # JSON {controller: {signal_group: {from: bearing, turns: "lsr", mode}}}
+            "replay": "program",     # "program": each junction's programme of the recorded hour (cycle, splits,
+                                     # offset; actuated when the cycles vary); "exact": every state at its time
+            "date": None,            # recorded day "YYYY-MM-DD" and hour (0-23.99) to replay; else simulation.time
+            "hour": None,
+            "live": None,            # a live feed of the same rows: NDJSON file, http(s) stream or tcp://host:port
+        },
         "car_following": "EIDM",
         "speed_limits": "auto",      # "auto": roads without an OSM maxspeed (netconvert gives them 80-100 km/h)
                                      # get the country's urban default limit (speeds.py); false: as built
