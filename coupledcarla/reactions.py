@@ -191,7 +191,7 @@ class Reactions:
 
     # -- the participant blocking traffic, cutting in, signalling --
     def _blocking(self, t, p, tf, speed, poses, ids, wp=None):
-        rng = rng_for(self.lc, "horn", p.role, int(t))
+        rng = rng_for(self.lc, "horn", p.role, round(t, 2))
         b = self.block.setdefault(p.role, {"since": None, "last": -1e9, "honks": 0})
         x, y, yaw = tf.location.x, tf.location.y, tf.rotation.yaw
         go = speed < 0.5
@@ -332,7 +332,7 @@ class Reactions:
                     self.queue_wait.pop(ocid, None)
                     continue
                 since = self.queue_wait.setdefault(ocid, t)
-                rng = rng_for(self.lc, "queue_honk", ocid, int(t))
+                rng = rng_for(self.lc, "queue_honk", ocid, round(t, 2))
                 if t - since > 10.0 and rng.random() < rate(self.lc, "honk_queue_per_s") * self.dt:
                     self._honk(ocid, "queued", behind=cid, waited_s=round(t - since, 1))
 
@@ -358,7 +358,7 @@ class Reactions:
                 along = (loc.x - pose[0]) * c + (loc.y - pose[1]) * s
                 if 0 < along < pose[4] + 6.0 and abs(-(loc.x - pose[0]) * s + (loc.y - pose[1]) * c) < 2.0:
                     b = self.block.setdefault(("ped", sid), {"since": t, "last": -1e9})
-                    rng = rng_for(self.lc, "ped_horn", sid, int(t))
+                    rng = rng_for(self.lc, "ped_horn", sid, round(t, 2))
                     if t - b["since"] > 4.0 and t - b["last"] > 5.0 and rng.random() < lam * self.dt:
                         b["last"] = t
                         self._honk(cid, "pedestrian_blocking", target=p.role, waited_s=round(t - b["since"], 1))

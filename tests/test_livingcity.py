@@ -275,3 +275,17 @@ def test_scenery_take_at_removes_the_item_for_good(monkeypatch):
 
 def test_unused_imports_are_fine():
     assert _Actor is not None
+
+
+def test_honk_draws_give_the_measured_share_within_12_s():
+    s = _lc()
+    lam = rx.honk_hazard(rx.rate(s, "honk_p12"), rx.rate(s, "honk_grace_s"))
+    honked = 0
+    for ep in range(600):              # checks every 0.1 s, one draw each (as Reactions does)
+        t = 2.0
+        while t < 12.0:
+            if lc.rng_for(s, "horn", f"role{ep}", round(t, 2)).random() < lam * 0.1:
+                honked += 1
+                break
+            t += 0.1
+    assert 0.62 < honked / 600 < 0.78
