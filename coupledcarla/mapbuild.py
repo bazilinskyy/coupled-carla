@@ -461,6 +461,13 @@ def build_from_opendrive(cfg, out):
             log(f"scenery failed ({err}); the level has its own scenery only (redo with --scenery)")
     if mc.get("transit", True):
         build_transit(dict(cfg, map=dict(mc, bbox=bbox)), out, meta)
+    # a carla-digitaltwins twin's solid building footprints after its road clearance cut (<Name>.buildings.json next
+    # to its OpenDRIVE): what tools/trial_buildings.py and the clip checks test actors against
+    twin_fp = src.with_suffix(".buildings.json")
+    if twin_fp.exists():
+        import shutil
+        shutil.copyfile(twin_fp, out / "twin_buildings.json")
+        meta["twin_buildings"] = len(json.loads(twin_fp.read_text()))
     (out / "meta.json").write_text(json.dumps(meta, indent=2))
     log(f"done (from {src.name}): {out}")
     return out
