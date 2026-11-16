@@ -1,0 +1,34 @@
+# Amsterdam's Dam square and Damrak (1 km) as a baked CARLA 1.0 level: the carla-digitaltwins twin AmsterdamDam made by
+# the "twin of any place" pipeline from Dutch open data (PDOK 8 cm aerial photo, AHN terrain, 3DBAG LoD 2.2 buildings;
+# OSM roads), with SUMO driving on the twin's own OpenDRIVE. One of the "most realistic twin" examples: Google
+# Photorealistic 3D Tiles can be streamed over it (map.photoreal, see eindhoven_twin_photoreal.yaml); the level data
+# for that is written by `python -m coupledcarla.photoreal prepare`.
+# Needs a CARLA 1.0 server that has the level (see README, "A twin of any place").
+name: amsterdam_twin
+
+map:
+  opendrive: twins/AmsterdamDam.xodr   # the twin's OpenDRIVE, copied next to the experiments (not in git)
+  carla_level: AmsterdamDam
+  name: amsterdam_twin
+  lefthand: false
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 2400
+  bikes_per_hour: 1200
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 52.37425, lon: 4.89457, heading: 37}   # on the Damrak by the Dam, heading north to Centraal (one-way)
+
+trials:
+  - {duration_s: 300}

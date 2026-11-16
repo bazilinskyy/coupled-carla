@@ -1,0 +1,34 @@
+# Zurich's Hauptbahnhof and the north end of the Bahnhofstrasse (1 km) as a baked CARLA 1.0 level: the
+# carla-digitaltwins twin ZurichHB made by the "twin of any place" pipeline from swisstopo's open data (SWISSIMAGE
+# 10 cm aerial photo, swissALTI3D terrain; Overture buildings; OSM roads), with SUMO driving on the twin's own OpenDRIVE.
+# One of the "most realistic twin" examples: Google Photorealistic 3D Tiles can be streamed over it (map.photoreal, see
+# eindhoven_twin_photoreal.yaml); the level data for that is written by `python -m coupledcarla.photoreal prepare`.
+# Needs a CARLA 1.0 server that has the level (see README, "A twin of any place").
+name: zurich_twin
+
+map:
+  opendrive: twins/ZurichHB.xodr   # the twin's OpenDRIVE, copied next to the experiments (not in git)
+  carla_level: ZurichHB
+  name: zurich_twin
+  lefthand: false
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  cars_per_hour: 2400
+  bikes_per_hour: 1200
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 47.37687, lon: 8.54149, heading: 175}   # on the Bahnhofquai by the Limmat, heading south past the station
+
+trials:
+  - {duration_s: 300}

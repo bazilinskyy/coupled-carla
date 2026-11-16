@@ -8,7 +8,9 @@ from coupledcarla import config
 EXP = Path(__file__).resolve().parent.parent / "experiments"
 
 
-@pytest.mark.parametrize("name,level", [("eindhoven_twin", "EhvCentre"), ("nyc_twin", "NycMidtown")])
+@pytest.mark.parametrize("name,level", [("eindhoven_twin", "EhvCentre"), ("nyc_twin", "NycMidtown"),
+                                        ("amsterdam_twin", "AmsterdamDam"), ("zurich_twin", "ZurichHB"),
+                                        ("helsinki_twin", "HelsinkiSenate"), ("tue_campus_twin", "TUeCampus")])
 def test_twin_experiments_name_their_level_and_opendrive(name, level):
     cfg = config.load(EXP / f"{name}.yaml")
     m = cfg["map"]
