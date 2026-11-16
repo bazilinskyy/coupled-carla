@@ -31,6 +31,8 @@ TOKEN_HELP = ("Mapillary needs a client token: log in at mapillary.com, open Das
 TILE_Z = 14
 TILES = "https://tiles.mapillary.com/maps/vtp/{layer}/2/{z}/{x}/{y}"
 GRAPH = "https://graph.mapillary.com"
+SEARCH_FIELDS = ("id,captured_at,compass_angle,computed_compass_angle,computed_geometry,camera_type,"
+                 "camera_parameters,width,height,make,model,creator,sequence,thumb_2048_url")
 IMAGE_FIELDS = ("id,captured_at,compass_angle,computed_compass_angle,geometry,computed_geometry,camera_type,"
                 "camera_parameters,width,height,make,model,creator,sequence,thumb_2048_url,is_pano")
 
@@ -56,13 +58,14 @@ class Http:
         self.session = session
         self.n = 0
 
-    def get(self, url, params=None, headers=None, what=None):
+    def get(self, url, params=None, headers=None, what=None, tries=None):
         import requests
         from .realworld import UA
         host = urlsplit(url).hostname or ""
         what = what or host
         s = self.session or requests
-        for k in range(self.tries):
+        tries = tries or self.tries
+        for k in range(tries):
             wait = self.interval.get(host, 0.2) - (time.time() - self.last.get(host, 0.0))
             if wait > 0:
                 self.sleep(wait)
@@ -76,7 +79,7 @@ class Http:
                 if r.status_code == 200:
                     return r
                 code, retry = f"HTTP {r.status_code}", r.status_code == 429 or r.status_code >= 500
-            if not retry or k == self.tries - 1:
+            if not retry or k == tries - 1:
                 raise FetchError(f"{what}: {code}")
             self.sleep(min(60.0, 2.0 * 3 ** k))
         raise FetchError(f"{what}: no answer")
@@ -277,6 +280,7 @@ class Mapillary:
         self.cache = Cache(cache_dir)
         self.http = http or Http()
         self.log = log
+        self.last_stats = None
 
     def tile(self, layer, z, x, y):
         name = f"mapillary/tiles/{layer}/{z}/{x}/{y}.pbf"
@@ -322,42 +326,76 @@ class Mapillary:
                 out[str(i)] = rec
         return out
 
-    def url_for(self, image_id):
-        """A fresh 2048 px thumbnail URL (the stored ones are signed and expire)."""
-        res = self.http.get(f"{GRAPH}/{image_id}", {"fields": "thumb_2048_url"},
-                            {"Authorization": f"OAuth {self.token}"}, what="Mapillary image").json()
-        return res.get("thumb_2048_url")
+    def search(self, bbox, fields=SEARCH_FIELDS, depth=0, max_age_days=30):
+        """The graph API's image search over bbox [s, w, n, e], cached per box. A box it finds too dense (HTTP 500,
+        "reduce the amount of data") or that fills the 2,000-image page is split in four."""
+        s_, w, n, e = bbox
+        name = f"mapillary/search/{key(round(s_, 6), round(w, 6), round(n, 6), round(e, 6), fields)}.json"
+        if self.cache.fresh(name, max_age_days):
+            return json.loads(self.cache.path(name).read_bytes())
 
-    def images(self, bbox, spacing_m=8.0, max_images=3000):
-        """Image records (realism.py's record format) in bbox: the tile points thinned to one per spacing_m per
-        sequence (a sequence shot every metre does not cost a graph call per image), then their details."""
-        pts = self.points("mly1_public", bbox)
-        pts = [p for p in pts if p.get("layer") == "image"]
-        kept, last = [], {}
-        for p in sorted(pts, key=lambda p: (str(p.get("sequence_id")), p.get("captured_at") or 0)):
-            seq = str(p.get("sequence_id"))
-            q = last.get(seq)
-            if q is not None and _metres(q["lat"], q["lon"], p["lat"], p["lon"]) < spacing_m:
-                continue
-            last[seq] = p
-            kept.append(p)
-        if len(kept) > max_images:      # the most recent first, spread over the box
-            kept.sort(key=lambda p: -(p.get("captured_at") or 0))
-            kept = kept[:max_images]
-        self.log(f"mapillary: {len(pts)} images in the box, {len(kept)} after thinning to one per {spacing_m:.0f} m "
-                 f"of a sequence")
+        def split():
+            ms, mw = (s_ + n) / 2, (w + e) / 2
+            out = []
+            for b in ([s_, w, ms, mw], [s_, mw, ms, e], [ms, w, n, mw], [ms, mw, n, e]):
+                out += self.search(b, fields, depth + 1, max_age_days)
+            return out
         try:
-            det = self.details([p["id"] for p in kept])
+            data = self.http.get(f"{GRAPH}/images", {"bbox": f"{w:.6f},{s_:.6f},{e:.6f},{n:.6f}", "fields": fields,
+                                                     "limit": 2000}, {"Authorization": f"OAuth {self.token}"},
+                                 what="Mapillary image search", tries=1 if depth < 6 else None).json().get("data", [])
         except FetchError as err:
-            det = {}
-            self.log(f"mapillary: image details refused ({err})")
-        if kept and not det:      # raised, so that realism.fetch does not cache an empty list
-            raise FetchError(f"the graph API gave no details for any of {len(kept)} images (it answers 'does not "
-                             f"exist, cannot be loaded due to missing permissions' when the token's application "
-                             f"lacks read access): no Mapillary photos to compare; the tiles (coverage, map "
-                             f"features) still work")
-        recs = [mapillary_record(det[str(p["id"])]) for p in kept if str(p["id"]) in det]
-        return [r for r in recs if r]
+            if "HTTP 500" in str(err) and depth < 6:
+                return split()
+            raise
+        if len(data) >= 2000 and depth < 6:
+            return split()
+        self.cache.get(name, lambda: json.dumps(data).encode())
+        return data
+
+    def url_for(self, image_id, lat=None, lon=None):
+        """A fresh 2048 px thumbnail URL (the stored ones are signed and expire). The graph API gives image URLs only
+        in its search, so the image is searched for in a 60 m box around where it was taken."""
+        if lat is None or lon is None:
+            return None
+        d = 0.0003
+        res = self.http.get(f"{GRAPH}/images", {"bbox": f"{lon - d:.6f},{lat - d:.6f},{lon + d:.6f},{lat + d:.6f}",
+                                                "fields": "id,thumb_2048_url", "limit": 2000},
+                            {"Authorization": f"OAuth {self.token}"}, what="Mapillary image search").json()
+        return next((x.get("thumb_2048_url") for x in res.get("data", []) if str(x.get("id")) == str(image_id)), None)
+
+    def images(self, bbox, spacing_m=8.0, tile_deg=0.002):
+        """Image records (realism.py's record format) in bbox from the graph API's search over tiles of tile_deg,
+        thinned to one per spacing_m along each sequence. Images whose files Mapillary withholds (no thumbnail URL:
+        all of Ukraine in 2026) and images without a heading are left out and counted."""
+        s, w, n, e = bbox
+        raw = {}
+        ny, nx = max(1, math.ceil((n - s) / tile_deg - 1e-6)), max(1, math.ceil((e - w) / tile_deg - 1e-6))
+        for i in range(ny):
+            for j in range(nx):
+                b = [s + (n - s) * i / ny, w + (e - w) * j / nx, s + (n - s) * (i + 1) / ny, w + (e - w) * (j + 1) / nx]
+                for x in self.search(b):
+                    raw[str(x["id"])] = x
+        withheld = sum(1 for x in raw.values() if not x.get("thumb_2048_url"))
+        recs = [mapillary_record(x) for x in raw.values() if x.get("thumb_2048_url")]
+        no_head = sum(1 for r in recs if r is None)
+        recs = [r for r in recs if r and s <= r["lat"] <= n and w <= r["lon"] <= e]
+        kept, last = [], {}
+        for r in sorted(recs, key=lambda r: (r["sequence"], r["time"] or "")):
+            q = last.get(r["sequence"])
+            if q is not None and _metres(q["lat"], q["lon"], r["lat"], r["lon"]) < spacing_m:
+                continue
+            last[r["sequence"]] = r
+            kept.append(r)
+        self.last_stats = {"found": len(raw), "withheld": withheld, "fisheye_or_no_heading": no_head,
+                           "kept": len(kept), "spacing_m": spacing_m}
+        self.log(f"mapillary: {len(raw)} images in the box; {withheld} without an image file (withheld by "
+                 f"Mapillary), {no_head} fisheye or without a heading; {len(kept)} kept (one per {spacing_m:.0f} m "
+                 f"of a sequence)")
+        if raw and withheld == len(raw):     # raised, so that realism.fetch does not cache an empty list
+            raise FetchError(f"Mapillary serves no image file for any of the {len(raw)} photos in the box (it "
+                             f"withholds all of Ukraine's imagery); the tiles (coverage, map features) still work")
+        return kept
 
     def camera_points(self, bbox):
         """(lat, lon, day) of every image in the box (from the tiles; no graph calls): where photos were taken."""
@@ -400,9 +438,8 @@ def mapillary_record(x):
     ctype = x.get("camera_type") or ("spherical" if x.get("is_pano") else "perspective")
     if ctype not in ("perspective", "spherical", "equirectangular"):
         return None        # fisheye (action cams on helmets and handlebars): no pinhole model
-    head = x.get("computed_compass_angle")
-    if head is None:
-        head = x.get("compass_angle")
+    # exactly 0 means not computed / not recorded (GoPro Fusion panoramas in Chernihiv): no heading
+    head = x.get("computed_compass_angle") or x.get("compass_angle") or None
     geom = x.get("computed_geometry") or x.get("geometry")
     if head is None or not geom:
         return None

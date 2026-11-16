@@ -351,3 +351,55 @@ def test_photo_cache_folder_of_a_run(tmp_path):
     legacy = tmp_path / "old"
     (legacy / "panos").mkdir(parents=True)
     assert RC.set_photos_dir(legacy, mdir) == legacy and RC.photos_dir(legacy) == legacy
+
+
+def test_mapillary_search_splits_dense_boxes_and_counts_withheld_images(tmp_path):
+    class Resp:
+        def __init__(self, data):
+            self.data = data
+
+        def json(self):
+            return {"data": self.data}
+
+    calls = []
+
+    class FakeHttp:
+        def get(self, url, params=None, headers=None, what=None, tries=None):
+            w, s, e, n = (float(v) for v in params["bbox"].split(","))
+            calls.append((s, w, n, e))
+            if n - s > 0.0011:                                   # the whole box: too dense
+                raise SP.FetchError("Mapillary image search: HTTP 500")
+            lat, lon = (s + n) / 2, (w + e) / 2
+            img = {"id": f"{lat:.5f}{lon:.5f}", "camera_type": "perspective", "camera_parameters": [0.8],
+                   "width": 2048, "height": 1536, "computed_compass_angle": 90.0, "sequence": f"q{lat:.5f}",
+                   "computed_geometry": {"coordinates": [lon, lat]}, "captured_at": 1700000000000,
+                   "thumb_2048_url": "https://x/1.jpg"}
+            hidden = dict(img, id=img["id"] + "h", thumb_2048_url=None)
+            return Resp([img, hidden])
+    m = SP.Mapillary(tmp_path, token="MLY|t", http=FakeHttp(), log=lambda s: None)
+    recs = m.images([51.0, 5.0, 51.002, 5.002], tile_deg=0.002)
+    assert len(calls) == 5                                       # the box, then its four quarters
+    assert len(recs) == 4 and all(r["source"] == "mapillary" for r in recs)
+    calls.clear()
+    assert len(m.images([51.0, 5.0, 51.002, 5.002], tile_deg=0.002)) == 4
+    assert calls == [(51.0, 5.0, 51.002, 5.002)]                 # the quarters come from the cache
+
+
+def test_mapillary_withheld_box_raises_so_nothing_empty_is_cached(tmp_path):
+    class FakeHttp:
+        def get(self, url, params=None, headers=None, what=None, tries=None):
+            class R:
+                def json(self):
+                    return {"data": [{"id": "1", "camera_type": "spherical", "computed_compass_angle": 10.0,
+                                      "computed_geometry": {"coordinates": [31.29, 51.49]}}]}
+            return R()
+    m = SP.Mapillary(tmp_path, token="MLY|t", http=FakeHttp(), log=lambda s: None)
+    with pytest.raises(SP.FetchError, match="withholds"):
+        m.images([51.48, 31.28, 51.50, 31.30], tile_deg=0.05)
+
+
+def test_mapillary_heading_zero_and_zero_is_unknown():
+    x = {"id": "1", "camera_type": "spherical", "compass_angle": 0, "computed_compass_angle": 0,
+         "computed_geometry": {"coordinates": [5.0, 51.0]}}
+    assert SP.mapillary_record(x) is None
+    assert SP.mapillary_record(dict(x, compass_angle=12.0))["heading"] == 12.0

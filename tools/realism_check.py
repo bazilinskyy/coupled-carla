@@ -105,12 +105,13 @@ def set_photos_dir(out, mdir, photos=None):
 
 
 def _fresh_url(v, out):
-    """Mapillary's thumbnail URLs are signed and expire: a new one by the image id (None when the graph API refuses)."""
+    """Mapillary's thumbnail URLs are signed and expire: a new one, found by searching around the image's spot
+    (None when it cannot be had; the stored URL is tried then)."""
     if v.get("source") != "mapillary":
         return None
     try:
         from coupledcarla.streetphotos import Mapillary
-        return Mapillary(photos_dir(out)).url_for(v["src_id"])
+        return Mapillary(photos_dir(out)).url_for(v["src_id"], float(v["lat"]), float(v["lon"]))
     except Exception as err:  # noqa: BLE001 - the stored URL is tried
         print(f"{v['id']}: no fresh Mapillary URL ({err})", flush=True)
         return None
@@ -988,14 +989,17 @@ def cmd_sources(args):
             m = SP.Mapillary(pdir)
             pts = [p for p in m.points("mly1_public", bbox) if p.get("layer") == "image"]
             feats = m.features(bbox)
-            probe = m.details([pts[0]["id"]]) if pts else {}
+            try:
+                kept = len(m.images(bbox))
+            except SP.FetchError:
+                kept = 0
             cov["sources"]["mapillary"] = {
                 "photos": len(pts), "panoramas": sum(bool(p.get("is_pano")) for p in pts),
                 "years": dict(sorted(Counter(time.strftime("%Y", time.gmtime((p.get("captured_at") or 0) / 1000))
                                              for p in pts).items())),
                 "map_features": len(feats),
                 "feature_classes": dict(Counter(SP.mly_class(f["value"], f["layer"]) or "other" for f in feats)),
-                "graph_api": "ok" if probe else "refused (image details and URLs unavailable to this token)",
+                "image_search": m.last_stats, "usable": kept,
                 "licence": SP.MAPILLARY[1]}
         except SP.FetchError as err:
             cov["sources"]["mapillary"] = {"error": str(err)}
@@ -1054,9 +1058,10 @@ def cmd_objects(args):
             continue
         if src == "mapillary":
             ev, cams = SP.mapillary_evidence(SP.Mapillary(mdir / "real" / "streetphotos"), bbox, geo)
-        elif src == "panoramax":
+        elif src in ("panoramax", "mapillary_panos"):      # poles found in the panoramas of a source
             set_photos_dir(out, mdir, getattr(args, "photos", None))
-            recs = [r for r in R.daytime(R.fetch(mdir, bbox, sources=("panoramax",)))
+            psrc = "panoramax" if src == "panoramax" else "mapillary"
+            recs = [r for r in R.daytime(R.fetch(mdir, bbox, sources=(psrc,)))
                     if r["projection"] == "equirect"]
             recs = _thin(recs, args.pano_spacing)[:args.max_panos]
             labels = Labels(out, args.model, args.device)
@@ -1067,9 +1072,9 @@ def cmd_objects(args):
                 except Exception as err:  # noqa: BLE001 - a panorama that cannot be fetched is skipped
                     print(f"{r['src_id']}: skipped ({err})", flush=True)
                     return None
-            ev, cams = SP.pano_evidence(recs, geo, lab, cam_h=R.HEIGHTS["pano"])
+            ev, cams = SP.pano_evidence(recs, geo, lab, cam_h=R.HEIGHTS["pano" if psrc == "panoramax" else "mly_pano"])
         else:
-            raise SystemExit(f"unknown evidence source {src} (mapillary, panoramax)")
+            raise SystemExit(f"unknown evidence source {src} (mapillary, panoramax, mapillary_panos)")
         SP.save_evidence(mdir, src, ev, cams)
     protect = None if args.protect == "auto" else [x for x in args.protect.split(",") if x and x != "none"]
     actions = tuple(a for a in args.actions.split(",") if a)
@@ -1181,7 +1186,8 @@ def main():
     p.add_argument("--refresh", action="store_true")
     p = sub.add_parser("objects", parents=[common, seg], help="street objects in the photos against scenery.json")
     p.add_argument("experiment")
-    p.add_argument("--evidence", default="mapillary", help="mapillary and/or panoramax (poles in panoramas)")
+    p.add_argument("--evidence", default="mapillary",
+                   help="mapillary (its map features), panoramax or mapillary_panos (poles found in their panoramas)")
     p.add_argument("--refresh", action="store_true", help="find the evidence again (else the saved one)")
     p.add_argument("--max-panos", type=int, default=600)
     p.add_argument("--pano-spacing", type=float, default=6.0, help="one panorama per this many metres of a ride")
