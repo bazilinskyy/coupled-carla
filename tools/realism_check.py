@@ -185,7 +185,7 @@ def fetch_images(views, out, threads=4, sd=False):
 def cmd_prepare(args):
     cfg, mdir, bbox = _map(args.experiment)
     out = Path(args.out)
-    set_photos_dir(out, mdir, args.photos)
+    set_photos_dir(out, mdir, getattr(args, "photos", None))
     views = build_views(args, mdir, bbox)
     R.write_views(out / "views.csv", views)
     by = {}
@@ -293,7 +293,7 @@ def cmd_render(args):
     from coupledcarla.scenery import Scenery
     cfg, mdir, bbox = _map(args.experiment)
     out = Path(args.out)
-    set_photos_dir(out, mdir, args.photos)
+    set_photos_dir(out, mdir, getattr(args, "photos", None))
     vpath = out / "views.csv"
     if vpath.exists():
         views = R.read_views(vpath)
@@ -888,7 +888,7 @@ def cmd_pairs(args):
     of the same street 10-25 m on, and of random places; a twin render should score between 'random' and the others."""
     cfg, mdir, bbox = _map(args.experiment)
     out = Path(args.out)
-    set_photos_dir(out, mdir, args.photos)
+    set_photos_dir(out, mdir, getattr(args, "photos", None))
     recs = R.fetch(mdir, bbox, sources=("panoramax", "kartaview"), refresh=False)
     views = R.read_views(out / "views.csv")
     pairs = make_pairs(views, R.daytime(recs), args.max_pairs)
@@ -1055,7 +1055,7 @@ def cmd_objects(args):
         if src == "mapillary":
             ev, cams = SP.mapillary_evidence(SP.Mapillary(mdir / "real" / "streetphotos"), bbox, geo)
         elif src == "panoramax":
-            set_photos_dir(out, mdir, args.photos)
+            set_photos_dir(out, mdir, getattr(args, "photos", None))
             recs = [r for r in R.daytime(R.fetch(mdir, bbox, sources=("panoramax",)))
                     if r["projection"] == "equirect"]
             recs = _thin(recs, args.pano_spacing)[:args.max_panos]
