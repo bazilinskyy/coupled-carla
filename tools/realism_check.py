@@ -1017,6 +1017,74 @@ def cmd_sources(args):
         print(f"  {src}: " + json.dumps(c))
 
 
+def _spot_pair(path, w, h):
+    """(photo, aligned render) cut back out of a spot image (photo | render over the two layouts)."""
+    a = _load(path)
+    return a[:h, :w].copy(), a[:h, w + 4:2 * w + 4].copy()
+
+
+def cmd_critique(args):
+    """A vision-language model lists what a person would notice between photo and render, per spot, as JSON
+    (category, what, where, severity); per run the themes that make the renders look fake, ranked. Off by default
+    (this command only). Claude with the key anthropic_api_key in the secret file, else (or --backend local) an
+    open model on this machine's GPU. Writes <out>/critique/<id>.json, critique_summary.json and summary.json's
+    'critique'."""
+    from coupledcarla import streetphotos as SP
+    from coupledcarla.settings import get_secret
+    out = Path(args.out)
+    views = {v["id"]: v for v in R.read_views(out / "views.csv")}
+    with (out / "compare.csv").open(newline="") as f:
+        rows = [r for r in csv.DictReader(f) if (out / "spots" / f"{r['id']}.jpg").exists()]
+    rows.sort(key=lambda r: _num(r.get("spot_score")))
+    if args.max_spots and len(rows) > args.max_spots:     # spread over the scores, worst to best
+        step = len(rows) / args.max_spots
+        rows = [rows[int(i * step)] for i in range(args.max_spots)]
+    if args.backend == "claude" and not get_secret("anthropic_api_key")[0]:
+        print("critique skipped: no anthropic_api_key in the project's secret file (python -m coupledcarla.settings "
+              "--set anthropic_api_key), and --backend claude asked for Claude; --backend local runs an open model "
+              "on this machine's GPU instead", flush=True)
+        return
+    cdir = out / "critique"
+    cdir.mkdir(parents=True, exist_ok=True)
+    critic, done = None, []
+    t0 = time.time()
+    for k, r in enumerate(rows):
+        path = cdir / f"{r['id']}.json"
+        if path.exists() and not args.again:
+            done.append((r["id"], json.loads(path.read_text())["differences"]))
+            continue
+        if critic is None:
+            kw = {"quant": args.quant} if args.backend != "claude" and not (
+                args.backend == "auto" and get_secret("anthropic_api_key")[0]) else {"effort": args.effort}
+            critic = SP.make_critic(args.backend, args.vlm, **kw)
+            print(f"critic: {critic.name} {getattr(critic, 'model_id', getattr(critic, 'model', ''))}", flush=True)
+        v = views[r["id"]]
+        photo, render = _spot_pair(out / "spots" / f"{r['id']}.jpg", int(v["width"]), int(v["height"]))
+        try:
+            diffs, raw = critic(photo, render)
+        except Exception as err:  # noqa: BLE001 - one spot the model fails on is not fatal
+            print(f"{r['id']}: no critique ({type(err).__name__}: {err})", flush=True)
+            continue
+        path.write_text(json.dumps({"id": r["id"], "critic": critic.name, "spot_score": r.get("spot_score"),
+                                    "differences": diffs, "raw": raw}, indent=1))
+        done.append((r["id"], diffs))
+        if (k + 1) % 10 == 0:
+            print(f"{k + 1}/{len(rows)} spots critiqued ({(time.time() - t0) / (k + 1):.1f} s each)", flush=True)
+    agg = SP.aggregate_critiques(done)
+    agg["critic"] = critic.name if critic else "cached"
+    (out / "critique_summary.json").write_text(json.dumps(agg, indent=1))
+    sp = out / "summary.json"
+    if sp.exists():
+        summ = json.loads(sp.read_text())
+        summ["critique"] = {k: agg[k] for k in ("critic", "spots", "categories")}
+        summ["critique"]["themes"] = agg["themes"][:10]
+        sp.write_text(json.dumps(summ, indent=1))
+    print(f"what makes it look fake ({agg['spots']} spots; weight = summed severity of the spots naming it):")
+    for t in agg["themes"]:
+        print(f"  {t['weight']:3d}  {t['category']:9s} {t['theme']:12s} {t['spots']:3d} spots   "
+              f"e.g. {t['examples'][0]}")
+
+
 def _lane_check(mdir, cfg):
     """on_lane(x, y): True on a driving lane of the map's OpenDRIVE (carla.Map offline), or None without carla."""
     try:
@@ -1191,6 +1259,15 @@ def main():
     p.add_argument("experiment")
     p.add_argument("--sources", default="panoramax,kartaview,commons,mapillary")
     p.add_argument("--refresh", action="store_true")
+    p = sub.add_parser("critique", parents=[common],
+                       help="a vision-language model's differences per spot, ranked per run (optional)")
+    p.add_argument("--backend", default="auto", choices=["auto", "claude", "local"],
+                   help="auto: Claude when anthropic_api_key is set, else the local model")
+    p.add_argument("--vlm", default=None, help="model id (Claude: claude-opus-5-5; local: Qwen/Qwen2.5-VL-7B-Instruct)")
+    p.add_argument("--quant", default="4bit", choices=["4bit", "8bit", "none"], help="local model quantisation")
+    p.add_argument("--effort", default="medium", help="Claude's effort")
+    p.add_argument("--max-spots", type=int, default=40, help="spots to critique, spread from worst to best (0: all)")
+    p.add_argument("--again", action="store_true")
     p = sub.add_parser("objects", parents=[common, seg], help="street objects in the photos against scenery.json")
     p.add_argument("experiment")
     p.add_argument("--evidence", default="mapillary",
@@ -1210,7 +1287,7 @@ def main():
     p.add_argument("--json", default=None)
     args = ap.parse_args()
     {"prepare": cmd_prepare, "render": cmd_render, "compare": cmd_compare, "pairs": cmd_pairs,
-     "table": cmd_table, "sources": cmd_sources, "objects": cmd_objects}[args.cmd](args)
+     "table": cmd_table, "sources": cmd_sources, "objects": cmd_objects, "critique": cmd_critique}[args.cmd](args)
 
 
 if __name__ == "__main__":

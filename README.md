@@ -362,6 +362,7 @@ cp default.config config && cp default.secret secret && chmod 600 secret
 | `freesound_api_key` | recordings for the soundscape (engines, horns, rain, city ambience) | freesound.org/apiv2/apply |
 | `opentopography_api_key` | elevation outside the countries with national data (Copernicus 30 m, lidar) | portal.opentopography.org |
 | `tomtom_api_key` | traffic speeds where no open counts exist | developer.tomtom.com |
+| `anthropic_api_key` | optional Claude critiques of street-photo spots (`realism_check.py critique`) | platform.claude.com |
 
 An environment variable with the entry's name in capitals (`GOOGLE_MAPS_API_KEY`, `MAPILLARY_TOKEN`, ...) wins over
 `secret`. The CARLA server's photorealistic-tiles plugin runs inside the server and reads its key on the server

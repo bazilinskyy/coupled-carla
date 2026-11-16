@@ -1187,3 +1187,199 @@ def validate_corrections(truth, evidence, obs, cls="lamp", shift_m=5.0, drop=0.3
             "before": before, "after_moves": moved_only, "after": after,
             "moves": len(moves), "moves_closer": better, "removes": len(rem), "removes_of_made_up": rem_fake,
             "adds": len(added), "adds_at_a_register_object": add_real}
+
+
+# ---------------------------------------------------------------- vision-model critique (optional, off by default)
+
+CRITIQUE_CATEGORIES = ["materials", "objects", "buildings", "greenery", "wear", "lighting", "sky", "layout", "other"]
+CRITIQUE_WHERE = ["left", "middle", "right", "foreground", "background", "whole"]
+CRITIQUE_PROMPT = (
+    "The first image is a real street photo. The second is a render of a simulated city from the same place, "
+    "height and direction (the renderer's heading may be a few degrees off). List the concrete differences a person "
+    "would notice that make the render look different from the real street or less real. Look at: road and "
+    "pavement materials (bricks, tiles, asphalt), markings and kerbs; objects that are missing or extra (bicycles, "
+    "bollards, signs, lamps, bins, benches, parked cars, fences); building facades, windows and roofs; trees, "
+    "hedges and grass; dirt, wear and litter; light, shadows and sky. Ignore people and moving vehicles, and do "
+    "not describe what is the same. Give at most 8 differences, the most noticeable first, each with: category "
+    "(one of " + ", ".join(CRITIQUE_CATEGORIES) + "), what (a short phrase about the render, e.g. 'road is "
+    "smooth grey asphalt where the photo has red brick pavers'), where in the image (one of "
+    + ", ".join(CRITIQUE_WHERE) + "), and severity (1 = small, 2 = clear, 3 = it gives the render away). "
+    "Answer with JSON only: {\"differences\": [{\"category\": ..., \"what\": ..., \"where\": ..., "
+    "\"severity\": ...}]}")
+CRITIQUE_SCHEMA = {
+    "type": "object", "additionalProperties": False, "required": ["differences"],
+    "properties": {"differences": {"type": "array", "items": {
+        "type": "object", "additionalProperties": False, "required": ["category", "what", "where", "severity"],
+        "properties": {"category": {"type": "string", "enum": CRITIQUE_CATEGORIES}, "what": {"type": "string"},
+                       "where": {"type": "string", "enum": CRITIQUE_WHERE},
+                       "severity": {"type": "integer", "enum": [1, 2, 3]}}}}}}
+
+
+def parse_critique(text):
+    """A model's answer -> [{'category', 'what', 'where', 'severity'}] (tolerant: the first JSON object in the text,
+    unknown categories as 'other', severities clipped to 1-3, at most 8)."""
+    if not text:
+        return []
+    start = text.find("{")
+    data = None
+    while start >= 0 and data is None:
+        depth = 0
+        for k in range(start, len(text)):
+            depth += {"{": 1, "}": -1}.get(text[k], 0)
+            if depth == 0:
+                try:
+                    data = json.loads(text[start:k + 1])
+                except ValueError:
+                    pass
+                break
+        if data is None:
+            start = text.find("{", start + 1)
+    items = (data or {}).get("differences") if isinstance(data, dict) else None
+    out = []
+    for it in items or []:
+        if not isinstance(it, dict) or not str(it.get("what") or "").strip():
+            continue
+        cat = str(it.get("category") or "other").lower().strip()
+        where = str(it.get("where") or "whole").lower().strip()
+        try:
+            sev = int(it.get("severity") or 1)
+        except (TypeError, ValueError):
+            sev = 1
+        out.append({"category": cat if cat in CRITIQUE_CATEGORIES else "other",
+                    "what": " ".join(str(it["what"]).split())[:200],
+                    "where": where if where in CRITIQUE_WHERE else "whole", "severity": min(3, max(1, sev))})
+    return out[:8]
+
+
+_STOP = {"the", "a", "an", "is", "are", "and", "or", "of", "in", "on", "at", "to", "where", "photo", "render", "has",
+         "have", "with", "than", "no", "not", "while", "but", "too", "more", "less", "there", "its", "it", "real",
+         "rendered", "image", "which", "that", "this", "instead", "missing", "lacks", "shows", "show", "much"}
+
+
+def _words(text):
+    import re
+    return [w for w in re.findall(r"[a-z]+", text.lower()) if w not in _STOP and len(w) > 2]
+
+
+def aggregate_critiques(spots, top=15):
+    """Per map: what makes the render look fake, ranked. spots: [(spot id, [differences])]. A theme is a category
+    and the words its differences share; its weight is the summed severity over the spots that name it (a spot
+    counts once per theme). Returns [{'category', 'theme', 'spots', 'weight', 'examples'}]."""
+    from collections import Counter, defaultdict
+    by_cat = defaultdict(list)
+    for sid, diffs in spots:
+        for d in diffs:
+            by_cat[d["category"]].append((sid, d))
+    themes = []
+    for cat, items in by_cat.items():
+        counts = Counter(w for _, d in items for w in set(_words(d["what"])))
+        for word, _ in counts.most_common(6):
+            hits = [(sid, d) for sid, d in items if word in _words(d["what"])]
+            spots_hit = {}
+            for sid, d in hits:
+                spots_hit[sid] = max(spots_hit.get(sid, 0), d["severity"])
+            if len(spots_hit) < 2:
+                continue
+            themes.append({"category": cat, "theme": word, "spots": len(spots_hit),
+                           "weight": sum(spots_hit.values()),
+                           "examples": [d["what"] for _, d in sorted(hits, key=lambda h: -h[1]["severity"])[:3]]})
+    themes.sort(key=lambda t: -t["weight"])
+    out, seen = [], set()
+    for t in themes:          # one theme per set of examples: 'red' and 'brick' about the same pavers count once
+        k = (t["category"], tuple(t["examples"][:2]))
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(t)
+    cats = Counter()
+    for _, diffs in spots:
+        for d in diffs:
+            cats[d["category"]] += d["severity"]
+    return {"themes": out[:top], "categories": dict(cats.most_common()), "spots": len(spots)}
+
+
+def _jpeg_b64(rgb, width=768):
+    import base64
+    import io
+    from PIL import Image
+    im = Image.fromarray(rgb)
+    if im.width > width:
+        im = im.resize((width, int(round(im.height * width / im.width))), Image.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=88)
+    return base64.standard_b64encode(buf.getvalue()).decode("ascii")
+
+
+class ClaudeCritic:
+    """Claude (Anthropic API, the `anthropic` package) with the key anthropic_api_key from the project's secret.
+    Structured output (the JSON schema above); refusals fall back server-side to the default model."""
+
+    name = "claude"
+
+    def __init__(self, model="claude-opus-5-5", effort="medium", key=None):
+        import anthropic
+        from .settings import get_secret
+        key = key or get_secret("anthropic_api_key")[0]
+        if not key:
+            raise FetchError("no anthropic_api_key in the project's secret file (python -m coupledcarla.settings "
+                             "--set anthropic_api_key)")
+        self.client = anthropic.Anthropic(api_key=key)
+        self.model, self.effort = model, effort
+
+    def __call__(self, photo, render):
+        msg = self.client.beta.messages.create(
+            model=self.model, max_tokens=16000, betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+            output_config={"effort": self.effort, "format": {"type": "json_schema", "schema": CRITIQUE_SCHEMA}},
+            messages=[{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": _jpeg_b64(photo)}},
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": _jpeg_b64(render)}},
+                {"type": "text", "text": CRITIQUE_PROMPT}]}])
+        if msg.stop_reason == "refusal":
+            return [], "refused"
+        text = next((b.text for b in msg.content if b.type == "text"), "")
+        return parse_critique(text), text
+
+
+class LocalCritic:
+    """An open vision-language model run locally with transformers (default Qwen2.5-VL-7B-Instruct, Apache 2.0,
+    4-bit with bitsandbytes on a 16 GB GPU shared with others; 'none' quantisation needs about 17 GB)."""
+
+    name = "local"
+
+    def __init__(self, model="Qwen/Qwen2.5-VL-7B-Instruct", quant="4bit", device=None, max_new_tokens=700):
+        import torch
+        from transformers import AutoModelForImageTextToText, AutoProcessor
+        kw = {"dtype": torch.bfloat16}
+        if quant in ("4bit", "8bit"):
+            from transformers import BitsAndBytesConfig
+            kw["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=quant == "4bit", load_in_8bit=quant == "8bit", bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16)
+            kw["device_map"] = device or "cuda:0"
+        self.model = AutoModelForImageTextToText.from_pretrained(model, **kw).eval()
+        if quant not in ("4bit", "8bit"):
+            self.model.to(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        # about 600 x 450 px per image: enough for materials and objects, little memory
+        self.proc = AutoProcessor.from_pretrained(model, min_pixels=256 * 28 * 28, max_pixels=360 * 28 * 28)
+        self.torch, self.max_new_tokens, self.model_id = torch, max_new_tokens, model
+
+    def __call__(self, photo, render):
+        from PIL import Image
+        msgs = [{"role": "user", "content": [{"type": "image"}, {"type": "image"},
+                                             {"type": "text", "text": CRITIQUE_PROMPT}]}]
+        prompt = self.proc.apply_chat_template(msgs, add_generation_prompt=True)
+        inp = self.proc(text=[prompt], images=[Image.fromarray(photo), Image.fromarray(render)],
+                        return_tensors="pt").to(self.model.device)
+        with self.torch.no_grad():
+            out = self.model.generate(**inp, max_new_tokens=self.max_new_tokens, do_sample=False)
+        text = self.proc.batch_decode(out[:, inp["input_ids"].shape[1]:], skip_special_tokens=True)[0]
+        return parse_critique(text), text
+
+
+def make_critic(backend="auto", model=None, **kw):
+    """'claude' (needs anthropic_api_key), 'local' (an open model on this machine's GPU) or 'auto' (Claude when the
+    key is set, else the local model)."""
+    from .settings import get_secret
+    if backend == "claude" or (backend == "auto" and get_secret("anthropic_api_key")[0]):
+        return ClaudeCritic(**({"model": model} if model else {}), **kw)
+    return LocalCritic(**({"model": model} if model else {}), **kw)

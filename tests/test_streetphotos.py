@@ -406,3 +406,45 @@ def test_mapillary_heading_zero_and_zero_is_unknown():
          "computed_geometry": {"coordinates": [5.0, 51.0]}}
     assert SP.mapillary_record(x) is None
     assert SP.mapillary_record(dict(x, compass_angle=12.0))["heading"] == 12.0
+
+
+def test_parse_critique_is_tolerant():
+    text = ('Here you go:\n```json\n{"differences": [{"category": "materials", "what": "road is smooth asphalt '
+            'where the photo has red brick", "where": "foreground", "severity": 3}, {"category": "Weather", '
+            '"what": "flat grey sky", "where": "up", "severity": 7}, {"category": "objects", "what": ""}]}\n```')
+    d = SP.parse_critique(text)
+    assert d[0] == {"category": "materials", "what": "road is smooth asphalt where the photo has red brick",
+                    "where": "foreground", "severity": 3}
+    assert d[1]["category"] == "other" and d[1]["where"] == "whole" and d[1]["severity"] == 3
+    assert len(d) == 2                                   # the empty one is dropped
+    assert SP.parse_critique("no json here") == [] and SP.parse_critique("{bad} {\"differences\": []}") == []
+
+
+def test_aggregate_critiques_ranks_themes_by_spots_and_severity():
+    brick = {"category": "materials", "where": "foreground", "severity": 3}
+    spots = [("a", [dict(brick, what="smooth asphalt where the photo has red brick pavers"),
+                    {"category": "objects", "what": "no parked bicycles", "where": "left", "severity": 2}]),
+             ("b", [dict(brick, what="grey asphalt instead of brick", severity=2),
+                    {"category": "objects", "what": "bicycles missing along the wall", "where": "right",
+                     "severity": 1}]),
+             ("c", [{"category": "greenery", "what": "trees too small", "where": "right", "severity": 2}])]
+    agg = SP.aggregate_critiques(spots)
+    top = agg["themes"][0]
+    assert top["category"] == "materials" and top["spots"] == 2 and top["weight"] == 5
+    assert any(t["category"] == "objects" and t["theme"].startswith("bicycle") for t in agg["themes"])
+    assert not any(t["category"] == "greenery" for t in agg["themes"])          # one spot is not a theme
+    assert agg["categories"]["materials"] == 5 and agg["spots"] == 3
+
+
+def test_critique_is_skipped_without_a_key(tmp_path, monkeypatch, capsys):
+    import realism_check as RC
+    from coupledcarla import settings
+    monkeypatch.setattr(settings, "get_secret", lambda name, *a, **k: (None, None))
+    (tmp_path / "spots").mkdir()
+    (tmp_path / "views.csv").write_text(",".join(R.VIEW_FIELDS) + "\n")
+    (tmp_path / "compare.csv").write_text("id,spot_score\n")
+    args = type("A", (), {"out": str(tmp_path), "backend": "claude", "max_spots": 5, "again": False, "vlm": None,
+                          "quant": "4bit", "effort": "medium"})()
+    RC.cmd_critique(args)
+    assert "critique skipped" in capsys.readouterr().out
+    assert not (tmp_path / "critique_summary.json").exists()

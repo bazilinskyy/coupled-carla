@@ -152,6 +152,32 @@ The four largest are kept per spot, largest first. They describe the view, not t
 front of a building reads as "missing trees"; it can also come from the photo's position (the GPS is off by 2-5 m).
 Use them to find the spots worth a look, then look at the spot image.
 
+## Vision-model critique (optional)
+
+`realism_check.py critique --out <run>` shows a vision-language model each spot's photo and its aligned render. The
+model lists what a person would notice as JSON: category (materials, objects, buildings, greenery, wear, lighting,
+sky, layout, other), what, where in the image, and severity 1-3. Per run, the differences are grouped into themes
+(a category and a word several differences share, for example *materials: brick*) and ranked by the summed
+severity of the spots naming them: "what makes it look fake". It writes:
+
+- `critique/<id>.json`: one file per spot, with the model's raw answer.
+- `critique_summary.json`: the ranked themes.
+- `summary.json`'s `critique`: the top themes, next to the scores.
+
+It is off by default: only this command runs it. Two backends:
+
+- **Claude** (`--backend claude`, or `auto` when the key is set): it needs `anthropic_api_key` in the project's
+  `secret` file, or `$COUPLED_CARLA_ANTHROPIC_API_KEY`. The tool never uses an ambient `ANTHROPIC_API_KEY`. Model
+  `claude-opus-5-5` at effort `medium`, with the JSON schema enforced and server-side fallback on refusals. Without
+  the key the command is skipped with a note.
+- **A local open model** (`--backend local`, or `auto` without a key): Qwen2.5-VL-7B-Instruct (Apache 2.0, 16.6 GB
+  download), loaded in 4 bits with bitsandbytes so it needs about 6 GB of GPU memory. Run it under
+  `~/cc-carla.lock` on lin4080, so no CARLA server shares the GPU.
+
+`--max-spots` (default 40) spreads the critiqued spots from the worst score to the best. The spot images are
+real photos, so only the open sources' photos go to the model; Google Street View is never used (its terms
+forbid it).
+
 ## Street objects
 
 `objects` compares the photos' evidence with what `scenery.json` places:
@@ -164,7 +190,8 @@ Two kinds of evidence:
 
 - **Mapillary map features** (token; `--evidence mapillary`), from the tiles. A feature is placed by Mapillary from
   many photos. Signs seen from the front and the back are merged within 1.5 m.
-- **Poles in Panoramax panoramas** (no key; `--evidence panoramax`). The Cityscapes model labels each panorama, and
+- **Poles in panoramas**: Panoramax's (no key; `--evidence panoramax`) or Mapillary's (`--evidence
+  mapillary_panos`, camera height 2.2 m). The Cityscapes model labels each panorama, and
   every pole whose foot is seen on the ground gets a direction and a distance (camera height 2.1 m over the angle
   of the foot below the horizon). It counts when two or more panoramas put it within 2.5 m. It is a lamp when it
   is taller than 5 m or leaves the image at the top, a sign when a sign touches it, else a pole.
@@ -270,7 +297,33 @@ tiles as road: against CARLA's own labels of the same renders it reaches a coars
 where the photo has none" come in equal numbers, which is what 2-5 m photo position errors look like next to
 narrow streets.
 
-### Street objects
+### Vision-model critique (optional)
+
+`realism_check.py critique --out <run>` shows a vision-language model each spot's photo and its aligned render. The
+model lists what a person would notice as JSON: category (materials, objects, buildings, greenery, wear, lighting,
+sky, layout, other), what, where in the image, and severity 1-3. Per run, the differences are grouped into themes
+(a category and a word several differences share, for example *materials: brick*) and ranked by the summed
+severity of the spots naming them: "what makes it look fake". It writes:
+
+- `critique/<id>.json`: one file per spot, with the model's raw answer.
+- `critique_summary.json`: the ranked themes.
+- `summary.json`'s `critique`: the top themes, next to the scores.
+
+It is off by default: only this command runs it. Two backends:
+
+- **Claude** (`--backend claude`, or `auto` when the key is set): it needs `anthropic_api_key` in the project's
+  `secret` file, or `$COUPLED_CARLA_ANTHROPIC_API_KEY`. The tool never uses an ambient `ANTHROPIC_API_KEY`. Model
+  `claude-opus-5-5` at effort `medium`, with the JSON schema enforced and server-side fallback on refusals. Without
+  the key the command is skipped with a note.
+- **A local open model** (`--backend local`, or `auto` without a key): Qwen2.5-VL-7B-Instruct (Apache 2.0, 16.6 GB
+  download), loaded in 4 bits with bitsandbytes so it needs about 6 GB of GPU memory. Run it under
+  `~/cc-carla.lock` on lin4080, so no CARLA server shares the GPU.
+
+`--max-spots` (default 40) spreads the critiqued spots from the worst score to the best. The spot images are
+real photos, so only the open sources' photos go to the model; Google Street View is never used (its terms
+forbid it).
+
+## Street objects
 
 From the Mapillary map features. "Photographed" counts the scenery objects with a Mapillary photo within 20 m.
 
@@ -294,7 +347,19 @@ within 4 m of 76 % of the photographed NDW posts.
 **Chernihiv's lamps** are placed every 32 m along the kerbs, because OSM maps few lamps there. Only 63 of them
 match a Mapillary lamp, which is the case the correction pass is for.
 
-**Panoramax poles as evidence.** 408 Eindhoven panoramas gave 1,006 pole sightings and 124 poles seen twice or more
+**Poles in panoramas as evidence.** Both sources tested against Eindhoven's lamp and NDW sign registers:
+
+| Panoramas | Searched | Poles seen in 2+ panoramas | Within 4 m of a register lamp or sign post | Photographed register objects found |
+|---|---|---|---|---|
+| Panoramax (2024, backpack pole) | 408 | 124 (15 lamps, 41 signs, 68 poles) | 51 % (lamps 73 %) | 15 % |
+| Mapillary (2026 and older, mostly car roofs) | 800 | 424 (95 lamps, 96 signs, 233 poles) | 39 % (lamps 43 %) | 27 % |
+
+Mapillary's panoramas find more but place them worse: camera heights differ from rig to rig, and some
+headings are off. Neither is good enough to correct with. A correction pass on the spoiled register made almost
+no changes with either, and the changes it made were mostly wrong (Mapillary panoramas: 12-19 adds, 1-3 at a
+register lamp).
+
+Earlier findings (Panoramax only): 408 Eindhoven panoramas gave 1,006 pole sightings and 124 poles seen twice or more
 (15 lamps, 41 signs, 68 other poles). The lamps lie a median 2.1 m from the register's, and 73 % are within 4 m.
 But they find only 4 % of the photographed register lamps, because the detector needs the pole's foot on the
 ground, unhidden. That is too few to correct anything yet. The detector would need the pole's top (lamp heads),
