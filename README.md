@@ -1347,6 +1347,23 @@ bake): the Flemish orthophoto, 849 Overture buildings, the experiment and its SU
 open data: PLATEAU models them as part of the facade photo at best; screens playing video would need emissive
 media-texture materials placed by hand or from a sign inventory.
 
+**Roads clear of buildings.** Open building models are solids down to the ground, so where a street runs under a
+building (Shibuya's bus terminal, station halls, the Park Avenue viaduct) or a footprint overlaps the carriageway,
+the baked walls stood on the lanes and SUMO's buses drove through them. The twin tool now cuts the building meshes
+clear of every driving lane (4.6 m, or OSM `maxheight`) and sidewalk lane (2.5 m), closes the cuts as passages
+(ceiling and side walls in the building's own wall material) or trims slivers back to the kerb, and checks CARLA's
+lane samples before the bake (carla-digitaltwins `tools/road_clearance.py`, results per twin in its README). It
+also writes `<Name>.buildings.json`, the solid footprints minus the passages: copy it next to the twin's OpenDRIVE in
+`twins/`; the map build copies it to `maps/<name>/twin_buildings.json`. Before publishing a clip, check its trial:
+
+```bash
+python tools/trial_buildings.py logs/shibuya_twin/<trial> [--start 30 --duration 20]   # exit 1: actors inside
+```
+
+It tests every vehicle (two corners of its body, shrunk by 0.3 m) and walker (its centre, 0.2 m inside) of
+`frames.csv` against those footprints (`buildings.json` for maps without them) and lists each stay with its time and
+place (`coupledcarla/inbuildings.py`; `footprints_path()` gives the clip checks the same file).
+
 **Download the Eindhoven twin.** The release
 [twin-eindhoven-2026-11-15](https://github.com/bazilinskyy/coupled-carla/releases/tag/twin-eindhoven-2026-11-15)
 has EhvCentre as a CARLA content pack for Linux and Windows (about 1.7 GB each; release assets, not in git), cooked
