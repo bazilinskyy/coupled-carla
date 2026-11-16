@@ -111,6 +111,8 @@ def angle_lerp(a, b, w):
 
 
 POS_SMOOTH_S = 0.25      # follow cameras: time constant of the steadied target position (s)
+TURN_SMOOTH_S = 0.2      # ... and of the view's direction (a car passing close by swung a pedestrian's view 24 deg
+                         # between two frames)
 STEADY_RESET_M = 3.0     # the target jumped farther than this (a new target, a teleport): no smoothing across it
 
 
@@ -416,6 +418,13 @@ class Rig:
             return None
         pitch, yaw = look_rotation(pos, look)
         pitch += float(c.get("pitch_offset", 0.0))
+        if self.kind == "follow":     # a head (or a stabilised camera) turns smoothly: the view's own angles
+            tau = float(c.get("turn_smooth_s", TURN_SMOOTH_S))     # through a short low-pass (0: off)
+            if getattr(self, "_view", None) is not None and tau > 0:
+                w = smooth_weight(f.step, tau)
+                pitch = self._view[0] + (pitch - self._view[0]) * w
+                yaw = angle_lerp(self._view[1], yaw, w)
+            self._view = (pitch, yaw)
         return carla.Transform(carla.Location(*pos), carla.Rotation(pitch=pitch, yaw=yaw))
 
     def _steady(self, loc, vel, dt, tau):
@@ -462,7 +471,7 @@ class Rig:
             if alt is not None and alt.id != self.target.id:
                 f.log(f"film {self.name}: target {self.target.id} gone, now {alt.id} {alt.type_id}")
                 self.target, self.yaw, self._pivot_up = alt, None, None
-                self._spring = None
+                self._spring = self._view = None
         if self.kind in ("tripod", "orbit", "path", "follow"):
             tf = self.transform(t + f.step, snap)
             if tf is not None:

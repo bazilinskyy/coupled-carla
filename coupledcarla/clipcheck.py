@@ -293,6 +293,12 @@ def check_trial(trial, t0, t1, camera="main", fov=None, map_dir=None, viewers=()
         cams = ([film["camera"]] if film.get("camera") else []) + list(film.get("cameras") or [])
         c0 = next((c for c in cams if c.get("name", "main") == camera), cams[0] if cams else {})
         fov = float(c0.get("fov", film.get("fov", 90.0)))
+    eye_role = None        # the walker a first-person follow camera rides on (offset within 1.5 m)
+    for c in ([film["camera"]] if film.get("camera") else []) + list(film.get("cameras") or []):
+        off = c.get("offset") or [0, 0, 0]
+        if c.get("name", "main") == camera and c.get("kind") == "follow" and \
+                sum(float(v) ** 2 for v in off) ** 0.5 <= 1.5:
+            eye_role = c.get("target")
     lo, hi = t0 - margin_s, t1 + margin_s
     frames = read_frames(trial / "frames.csv", lo, hi)
     times = sorted(frames)
@@ -424,7 +430,10 @@ def check_trial(trial, t0, t1, camera="main", fov=None, map_dir=None, viewers=()
                 for i in range(k, len(run)):
                     if abs(ys[i] - ys[i - k]) > HEADING_JUMP and _speed_at(s, run[i][0]) > 0.5:
                         swerves.append((run[i][0], aid, (is_part, run[i][1], run[i][2], None, ys[i] - ys[i - k])))
-        # position jumps (vehicles and walkers)
+        # position jumps (vehicles and walkers); a first-person camera's own walker is not seen: what its jumps do
+        # to the picture is the camera's jitter
+        if r0["role"] and r0["role"] == eye_role:
+            continue
         for (ta, ra), (tb, rb) in zip(s, s[1:]):
             dt = tb - ta
             if dt > 1.5 * step or ra["z"] < -10.0 or rb["z"] < -10.0:
