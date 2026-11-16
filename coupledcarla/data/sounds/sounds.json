@@ -1,0 +1,178 @@
+{
+ "_about": "Engine loops at a known firing frequency (Hz) and footsteps, cut by tools/sound_samples.py; sources and licences in SOURCES.md.",
+ "engines": {
+  "petrol": {
+   "source_engine": "Ford Ranger (2000), petrol, exterior at the front of the engine, free revving",
+   "loops": [
+    {
+     "file": "engines/petrol_idle.ogg",
+     "firing_hz": 28.65,
+     "seconds": 5.863,
+     "source": 779214,
+     "cut_s": [
+      40.0,
+      46.0
+     ]
+    },
+    {
+     "file": "engines/petrol_1950.ogg",
+     "firing_hz": 67.16,
+     "seconds": 5.867,
+     "source": 779214,
+     "cut_s": [
+      100.0,
+      106.0
+     ]
+    },
+    {
+     "file": "engines/petrol_2900.ogg",
+     "firing_hz": 97.73,
+     "seconds": 5.873,
+     "source": 779214,
+     "cut_s": [
+      160.0,
+      166.0
+     ]
+    }
+   ]
+  },
+  "diesel": {
+   "source_engine": "Renault Master 2.8 dTi, turbo diesel, exterior, idle and revs",
+   "loops": [
+    {
+     "file": "engines/diesel_idle.ogg",
+     "firing_hz": 28.67,
+     "seconds": 4.849,
+     "source": 425837,
+     "cut_s": [
+      5.0,
+      10.0
+     ]
+    },
+    {
+     "file": "engines/diesel_1600.ogg",
+     "firing_hz": 52.63,
+     "seconds": 1.862,
+     "source": 425838,
+     "cut_s": [
+      4.4,
+      6.4
+     ]
+    },
+    {
+     "file": "engines/diesel_2050.ogg",
+     "firing_hz": 65.7,
+     "seconds": 2.877,
+     "source": 425838,
+     "cut_s": [
+      58.0,
+      61.0
+     ]
+    },
+    {
+     "file": "engines/diesel_2500.ogg",
+     "firing_hz": 79.22,
+     "seconds": 2.878,
+     "source": 425838,
+     "cut_s": [
+      53.0,
+      56.0
+     ]
+    },
+    {
+     "file": "engines/diesel_3050.ogg",
+     "firing_hz": 102.28,
+     "seconds": 2.679,
+     "source": 425838,
+     "cut_s": [
+      11.0,
+      13.8
+     ]
+    }
+   ]
+  },
+  "motorbike": {
+   "source_engine": "BMW F 800 GS, parallel twin, exterior, idle and revs",
+   "loops": [
+    {
+     "file": "engines/motorbike_idle.ogg",
+     "firing_hz": 22.47,
+     "seconds": 5.829,
+     "source": 641223,
+     "cut_s": [
+      60.0,
+      66.0
+     ]
+    },
+    {
+     "file": "engines/motorbike_2700.ogg",
+     "firing_hz": 45.25,
+     "seconds": 3.403,
+     "source": 641223,
+     "cut_s": [
+      202.5,
+      206.0
+     ]
+    },
+    {
+     "file": "engines/motorbike_3600.ogg",
+     "firing_hz": 59.98,
+     "seconds": 3.218,
+     "source": 641223,
+     "cut_s": [
+      38.3,
+      41.6
+     ]
+    },
+    {
+     "file": "engines/motorbike_4600.ogg",
+     "firing_hz": 76.92,
+     "seconds": 5.369,
+     "source": 641223,
+     "cut_s": [
+      190.5,
+      196.0
+     ]
+    }
+   ]
+  }
+ },
+ "footsteps": {
+  "shoes": {
+   "file": "footsteps/shoes.ogg",
+   "slot_s": 0.5,
+   "steps": 8,
+   "source": 546827,
+   "cut_s": [
+    [
+     0.5,
+     40.0
+    ]
+   ]
+  },
+  "trainers": {
+   "file": "footsteps/trainers.ogg",
+   "slot_s": 0.5,
+   "steps": 8,
+   "source": 545543,
+   "cut_s": [
+    [
+     0.3,
+     32.0
+    ]
+   ]
+  },
+  "grass": {
+   "file": "footsteps/grass.ogg",
+   "slot_s": 0.5,
+   "steps": 8,
+   "source": 764531,
+   "cut_s": [
+    [
+     0.0,
+     15.0
+    ]
+   ]
+  }
+ }
+}

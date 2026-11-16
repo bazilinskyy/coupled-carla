@@ -37,7 +37,7 @@ from pathlib import Path
 import numpy as np
 
 from . import acoustics as ac
-from . import audio, synth
+from . import audio, soundsamples, synth
 from .soundenv import Ambience, Env
 
 C_SOUND = 343.0
@@ -315,7 +315,13 @@ class Soundscape:
         self.buf_tone = audio.tone(1000.0, 1.0)
         self.sounds = {n: audio.cue_sound(n) for n in ("chime", "beeps", "ding", "tick", "takeover")}
         wet = self.env.wet > 0.3
-        self.steps = synth.footstep_buffers("hard", 6, wet=wet)
+        # footsteps: recorded single steps (soundsamples, data/sounds/footsteps) of `footsteps` (shoes, trainers,
+        # grass), else synthesised (Cook 2002)
+        fw = self.cfg.get("footsteps", "shoes")
+        self.steps = soundsamples.footstep_buffers(fw, self.log, wet=wet) if fw != "synth" else None
+        self.steps_recorded = self.steps is not None
+        if self.steps is None:
+            self.steps = synth.footstep_buffers("soft" if fw == "grass" else "hard", 6, wet=wet)
         self.aps_ticks = synth.tick_buffers("aps", 3)
         self.ratchet = synth.tick_buffers("ratchet", 3)
         self.bell_buf = None
@@ -707,6 +713,11 @@ class Soundscape:
         # 20 km/h, and the gearbox's lag behind the gear a steady driver would pick at this load
         _g0, rpm_typ = gear_for(max(kmh, 20.0), load, gk)
         prop = prop + max(-18.0, min(5.0, 35.0 * math.log10(max(rpm, 300.0) / rpm_typ)))
+        # CNOSSOS's propulsion is a fleet average over all driving; the engine's orders rise with its load (torque;
+        # Pieren et al. 2016), so a car cruising or coasting (part load) is quieter than that average and one pulling
+        # away louder (the acceleration term above): up to `engine_part_load_db` less below a load of 0.4
+        if kmh >= 2.0:
+            prop = prop - float(self.cfg.get("engine_part_load_db", 6.0)) * max(0.0, min(1.0, (0.4 - load) / 0.4))
         return roll, prop, rpm, load
 
     def _vehicle(self, b, d, t, dt, lvx, lvy, walkers):
@@ -750,10 +761,11 @@ class Soundscape:
             cyl, diesel = GEARS[gk][5], GEARS[gk][6]
             if gk == "car":
                 diesel = (zlib.crc32(f"d{b.id}".encode()) % 1000) / 1000.0 < float(cfg.get("diesel_cars", 0.2))
-            v = voice("engine", lambda: synth.EngineVoice(cyl, diesel, seed=b.id % 9973))
+            v = voice("engine", lambda: soundsamples.engine_voice(gk, cyl, diesel, seed=b.id % 9973, log=self.log,
+                                                                   mode=cfg.get("engine_sound", "recorded")))
             v.set_rpm(rpm, load)
             v.rate = dop
-            v.nlive = v.nh if d < 30.0 else v.nh // 2       # far engines: the lower orders carry what is heard
+            v.nlive = v.nh if d < 30.0 else v.nh // 2       # far synthesised engines: the lower orders carry it
             self._apply(v, prop, paths, on)
             info["engine_db"] = ac.a_weighted(prop - direct)
         # AVAS (UN R138 / EU 540/2014): electric cars up to 20 km/h
@@ -902,26 +914,36 @@ class Soundscape:
                 v = self.mixer.get(key)
                 if v is None:
                     v = self.mixer.add(key, synth.EventVoice(self.steps, seed=w.id % 997, jitter=0.04,
+                                                             rate_sd=0.04 if self.steps_recorded else 0.0,
                                                              kinds=("direct", "reverb")))
                     v.next = self.rng.uniform(0, 0.5) * audio.RATE
                 v.period = 1.0 / (0.85 + 0.75 * sp) if sp > 0.25 else None
                 p = self._propagation(key, w.x, w.y, w.z, 0.0, t, refl=0)
-                self._apply(v, v.band_db(_lw_from_lp(float(cfg.get("footstep_db", 58.0)), 1.0)), p, self._on)
+                self._apply(v, v.band_dba(self._step_lw()), p, self._on)
             if self.kind == "pedestrian":
                 key = ("steps", "own")
                 keep.add(key)
                 v = self.mixer.get(key)
                 if v is None:
-                    v = self.mixer.add(key, synth.EventVoice(self.steps, seed=5, jitter=0.03, kinds=("direct",)))
+                    v = self.mixer.add(key, synth.EventVoice(self.steps, seed=5, jitter=0.04, gain_db_sd=1.5,
+                                                             rate_sd=0.04 if self.steps_recorded else 0.0,
+                                                             kinds=("direct",)))
                 sp = math.hypot(*self.lv)
                 v.period = 1.0 / (0.85 + 0.75 * sp) if 0.25 < sp < 4.0 else None
                 p = _Paths()
                 p.att[0] = np.full(ac.NB, 20.0 * math.log10(self.lis[5]) + 8.0 - 3.0)
                 p.el[0] = -1.3
-                self._apply(v, v.band_db(_lw_from_lp(float(cfg.get("footstep_db", 58.0)), 1.0)), p, self._on)
+                self._apply(v, v.band_dba(self._step_lw()), p, self._on)
+                self.own_steps = {"dba": self._step_lw() - float(p.att[0][0]), "period": v.period}
         for key in self.mixer.keys():
             if isinstance(key, tuple) and key[0] == "steps" and key not in keep:
                 self.mixer.remove(key)
+
+    def _step_lw(self):
+        """A-weighted sound power of one footstep (its loudest 100 ms): `footstep_db` dB(A) at 1 m for hard soles on
+        paving, less for trainers or grass."""
+        fw = self.cfg.get("footsteps", "shoes")
+        return _lw_from_lp(float(self.cfg.get("footstep_db", 61.0)), 1.0) + {"trainers": -9.0, "grass": -6.0}.get(fw, 0.0)
 
     def _aps(self, aps):
         """Accessible pedestrian signals: a tick every second while the crossing is red (the locator) and about 8
@@ -973,11 +995,15 @@ class Soundscape:
         pe = _Paths()
         pe.att[0] = near + (ac.CABIN_IL_BUS if own.kind == "bus" else ac.CABIN_IL_ENGINE) - red
         pe.el[0] = -0.3
+        gk = own.kind if own.kind in GEARS else "car"
+        cyl, diesel = GEARS[gk][5], GEARS[gk][6]
+        if gk == "car":
+            diesel = bool(cfg.get("own_diesel", False))
         for part, lw, make in (("tyre", roll, lambda: synth.BandNoise("pink", seed=3, flutter_db=0.5,
                                                                        kinds=("direct",))),
-                               ("engine", prop, lambda: synth.EngineVoice(GEARS.get(own.kind, GEARS["car"])[5],
-                                                                          GEARS.get(own.kind, GEARS["car"])[6],
-                                                                          seed=1, kinds=("direct",)))):
+                               ("engine", prop, lambda: soundsamples.engine_voice(
+                                   gk, cyl, diesel, seed=1, log=self.log, mode=cfg.get("engine_sound", "recorded"),
+                                   kinds=("direct",)))):
             key = ("own", part)
             v = self.mixer.get(key)
             if lw is None:
@@ -1002,7 +1028,9 @@ class Soundscape:
             q.att[0] = np.zeros(ac.NB)
             self._apply(v, wind if wind is not None else np.full(ac.NB, -200.0), q, on if wind is not None else 0.0)
             info["wind_db"] = ac.a_weighted(wind) if wind is not None else None
-        tot = [x for x in (info["tyre_db"], info["engine_db"], info["wind_db"]) if x is not None]
+        self._own_electric(own, tr, kmh, ctl, cab, red, on, info)
+        tot = [x for x in (info["tyre_db"], info["engine_db"], info["wind_db"], info.get("motor_db"),
+                           info.get("avas_db")) if x is not None]
         info["total_dba"] = float(ac.db_sum(tot)) if tot else None
         self.info["own"] = info
         # turn signal: a relay click every 1/3 s while a blinker is on (the lamp's on and off edges at 1.5 Hz)
@@ -1011,6 +1039,54 @@ class Soundscape:
             self.play("tick", float(cfg.get("blinker_db", 58.0)), name="blinker_tick")
             self.blink_next = t + 1.0 / 3.0
         self.blink_was = lit
+
+    def _own_electric(self, own, tr, kmh, ctl, cab, red, on, info):
+        """An electric own car from inside: no engine, the motor and reduction gear's whine rising with speed and
+        torque (soundsamples.MotorVoice, `ev_motor_db` at 50 km/h), and its AVAS heard faintly through the cabin
+        (the speaker sits behind the front bumper, ~2.5 m from the driver's ears)."""
+        cfg = self.cfg
+        info["motor_db"] = info["avas_db"] = None
+        lv = None
+        if own.electric and own.kind in ("car", "van", "bus", "truck"):
+            throttle = float(getattr(ctl, "throttle", 0.0) or 0.0) if ctl is not None else 0.0
+            load = max(throttle, max(0.0, min(1.0, (tr.accel + 0.1) / 3.0)))
+            tr.motor_load = getattr(tr, "motor_load", load) + (load - getattr(tr, "motor_load", load)) * 0.3
+            at50 = float(cfg.get("ev_motor_db", 38.0))
+            lv = soundsamples.motor_dba(kmh, tr.motor_load, at50) if at50 > 0 else None
+        key = ("own", "motor")
+        v = self.mixer.get(key)
+        if lv is not None or v is not None:
+            if v is None:
+                v = self.mixer.add(key, soundsamples.MotorVoice(float(cfg.get("ev_motor_rpm_per_kmh", 72.0)),
+                                                                 seed=2, kinds=("direct",)))
+            v.set_speed(kmh, getattr(tr, "motor_load", 0.0))
+            q = _Paths()
+            q.att[0] = np.zeros(ac.NB)
+            q.el[0] = -0.4
+            self._apply(v, _shape(soundsamples.MotorVoice.SHAPE, lv) if lv is not None else np.full(ac.NB, -200.0),
+                        q, on if lv is not None else 0.0)
+            info["motor_db"] = lv
+        # the own AVAS (UN R138: up to 20 km/h), through the cabin
+        av = cfg.get("avas") or {}
+        fade = 0.0
+        if own.electric and av.get("enabled", True) and av.get("vehicles", "electric") in ("electric", "all") \
+                and own.kind in ("car", "van", "bus", "truck"):
+            until = float(av.get("until_kmh", 20.0))
+            fade = 1.0 if kmh <= until - 5.0 else max(0.0, (until - kmh) / 5.0)
+            if kmh < 0.5 and not av.get("stopped", False):
+                fade = 0.0
+        key = ("own", "avas")
+        v = self.mixer.get(key)
+        if fade > 0 or v is not None:
+            if v is None:
+                v = self.mixer.add(key, synth.AvasVoice(seed=7, kinds=("direct",)))
+            v.base = v.base0 * (1.0 + 0.01 * kmh)
+            lw = _shape(synth.AvasVoice.SHAPE, _lw_from_lp(float(av.get("db", 56.0))) + 20 * math.log10(max(fade, 1e-4)))
+            q = _Paths()
+            q.att[0] = 20.0 * math.log10(2.5) + 11.0 - 3.0 + cab - red
+            q.el[0] = -0.5
+            self._apply(v, lw, q, on if fade > 0 else 0.0)
+            info["avas_db"] = ac.a_weighted(lw - q.att[0]) if fade > 0 else None
 
     def _cues_for(self, b, tr, events, t, walkers):
         """Auditory eHMI cues of one vehicle."""

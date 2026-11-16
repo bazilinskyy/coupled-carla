@@ -376,6 +376,8 @@ class StationUX:
             dt = t - getattr(self, "_t_prev", t)
             self._t_prev = t
             auto, left = self._automation(tor, t)
+            if own is not None:
+                self.incar.set_electric(own.electric)
             self.incar.update(t, kmh, own.lights if own is not None else 0, ctl, limit, dt, automation=auto,
                               time_left=left)
         if self.haptics is not None:

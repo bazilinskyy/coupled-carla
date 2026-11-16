@@ -125,7 +125,7 @@ def test_busy_street_at_the_kerb_and_inside_a_car():
         blocks.append(sc.mixer.render(2205))
     x = np.concatenate(blocks)
     leq = soundrec.level_dba(x)
-    assert 65.0 <= leq <= 76.0
+    assert 65.0 <= leq <= 77.0          # the bus 2 m away dominates (recorded engines keep its CNOSSOS level)
     assert sc.mixer.clipped == 0
     # inside a car at 50 km/h: about 60 dB(A)
     own = _car(1, 0.0, 0.0, 50.0)
