@@ -149,6 +149,7 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     <fcd-output.signals value="true"/>
     <device.fcd.period value="0.1"/>
     <tripinfo-output value="sumo_tripinfo.xml"/>{stop_xml}
+    <collision-output value="sumo_collisions.xml"/>
   </output>
   <random_number><seed value="{tc['seed']}"/></random_number>
 </configuration>

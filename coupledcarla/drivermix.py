@@ -19,8 +19,10 @@ observations at five junctions in The Hague (SWOV) found a quarter of the cyclis
 24 % aged 21-64, 22 % over 65; 27.4 % in SWOV's overall observation report): RED_RUNNER_SHARE of the bikes may ride
 on through a red light at walking pace when nothing is coming (their type's red-running twin, drivers.RED_RUNNER:
 SUMO's jmDriveAfterRedTime / jmDriveRedSpeed, which TraCI cannot set per vehicle; they still give way to vehicles
-on the conflicting links). Outside the Netherlands the same Dutch values are used for
-lack of comparable data (traffic.driver_mix: false switches all of this off).
+on the conflicting links). Red-light running is on in the Netherlands only (traffic.cyclist_red_running: auto),
+where SWOV's numbers apply: SUMO's red runners do not look as carefully as real ones (Lyon, 300 s: 4 of 6 SUMO
+collisions involved one). The other draws use the same values everywhere for lack of comparable data
+(traffic.driver_mix: false switches all of this off).
 
 apply(vid, kind, seed) sets one vehicle's parameters through TraCI (the bridge on each new SUMO vehicle in a trial,
 tools/traffic_check.py in a SUMO-only run). Pure draws (draw()) are unit-tested.
@@ -36,9 +38,12 @@ RED_RUNNER_SHARE = 0.24
 RED_RUNNER = {"jmDriveAfterRedTime": "300", "jmDriveRedSpeed": "2.0"}
 # (distribution, a, b, lo, hi): normal(mean a, sd b) or lognormal(median a, sigma b), cut to [lo, hi]
 DRAWS = {
-    "car": {"tau": ("lognormal", 1.2, 0.25, 0.7, 2.2), "minGap": ("normal", 2.0, 0.5, 1.0, 3.5),
-            "accel": ("normal", 2.6, 0.4, 1.6, 3.6), "decel": ("normal", 3.4, 0.5, 2.5, 4.5),
-            "lcAssertive": ("lognormal", 1.0, 0.3, 0.5, 2.5), "lcSpeedGain": ("lognormal", 1.0, 0.4, 0.3, 3.0),
+    # cut tighter than the published ranges at the short end: SUMO's junction model has no human anticipation, and
+    # the shortest time gaps and minimum gaps (0.7 s, 1 m) with the softest braking made cars run into vehicles
+    # stuck in junctions (19 maps, 300 s: SUMO collisions 29 -> 46, Sao Paulo 0 -> 11)
+    "car": {"tau": ("lognormal", 1.2, 0.2, 0.9, 2.0), "minGap": ("normal", 2.0, 0.4, 1.5, 3.0),
+            "accel": ("normal", 2.6, 0.4, 1.6, 3.6), "decel": ("normal", 3.5, 0.4, 3.0, 4.5),
+            "lcAssertive": ("lognormal", 1.0, 0.25, 0.7, 1.8), "lcSpeedGain": ("lognormal", 1.0, 0.4, 0.3, 3.0),
             "lcCooperative": ("normal", 0.9, 0.08, 0.6, 1.0)},
     "bus": {"tau": ("normal", 1.2, 0.1, 1.0, 1.5), "accel": ("normal", 1.0, 0.1, 0.8, 1.2)},
     "bike": {"tau": ("lognormal", 1.0, 0.25, 0.6, 2.0), "minGap": ("normal", 1.0, 0.25, 0.5, 1.8),
@@ -75,7 +80,7 @@ def kind_of(vclass):
                                                                                "private", "evehicle") else None)
 
 
-def apply(vid, vclass, seed=42, traci_mod=None):
+def apply(vid, vclass, seed=42, traci_mod=None, red_running=True):
     """Draws and sets the parameters of SUMO vehicle vid (SUMO gives it its own copy of its type, "<type>@<vid>");
     returns them, or None for a class left as it is."""
     kind = kind_of(vclass)
@@ -85,6 +90,8 @@ def apply(vid, vclass, seed=42, traci_mod=None):
         import traci as traci_mod
     p = draw(kind, rng_for(vid, seed))
     v = traci_mod.vehicle
+    if kind == "bike" and not red_running:
+        p["red_runner"] = False
     if kind == "bike" and p["red_runner"]:      # its type's red-running twin (traffic.py: variants.add.xml), first:
         from .drivers import RED_RUNNER as SUFFIX           # a new type replaces the values set below
         base = v.getTypeID(vid).split("@")[0]
@@ -107,3 +114,15 @@ def apply(vid, vclass, seed=42, traci_mod=None):
         except Exception:  # noqa: BLE001 - older SUMO without setPreviousSpeed
             pass
     return p
+
+
+def red_running(cfg):
+    """traffic.cyclist_red_running: auto (in the Netherlands) | true | false."""
+    v = (cfg.get("traffic") or {}).get("cyclist_red_running", "auto")
+    if isinstance(v, bool):
+        return v
+    try:
+        from . import realworld
+        return bool(realworld.in_netherlands((cfg.get("map") or {}).get("bbox") or [0, 0, 0, 0]))
+    except Exception:  # noqa: BLE001
+        return False

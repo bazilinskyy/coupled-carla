@@ -114,7 +114,8 @@ def main():
             traci.vehicle.subscribe(vid, [VAR])
             kinds[vid] = kind_of(traci.vehicle.getTypeID(vid))
             if cfg["traffic"].get("driver_mix", True):
-                drivermix.apply(vid, traci.vehicle.getVehicleClass(vid), cfg["traffic"].get("seed", 42))
+                drivermix.apply(vid, traci.vehicle.getVehicleClass(vid), cfg["traffic"].get("seed", 42),
+                                red_running=drivermix.red_running(cfg))
         for vid in traci.simulation.getArrivedIDList():
             lanes.pop(vid, None)
         for vid, res in traci.vehicle.getAllSubscriptionResults().items():

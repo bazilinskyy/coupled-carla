@@ -15,6 +15,11 @@ end a new random destination (the car never arrives, so it never leaves CARLA). 
 SUMO only when the hold ends, at its spawn lane (the traffic built up meanwhile does not queue behind a parked car);
 until then the CARLA car waits below the road.
 
+The CARLA car does not copy SUMO's pose: it drives a smoothed copy of it (bridge/animate.PathSmoother, the gentle
+participant limits: 3 m/s^2 lateral, a slow steering rate, up to 8 m off SUMO's path for a moment), so a kink or a
+sideways jump in a SUMO junction lane (Eindhoven rush hour: 8 m across in an 8.8 m junction, 22 m/s^2) is driven as
+a curve; the nets avoid such lanes too (netsmooth.py).
+
 Keyboard and wheel participants are unchanged. simulation.autopilot: sumo (default) | carla picks this or BasicAgent
 for `input: autopilot`; a participant's own `autopilot:` wins.
 """

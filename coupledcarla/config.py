@@ -151,6 +151,8 @@ DEFAULTS = {
     "traffic": {
         "driver_mix": True,          # every SUMO driver and rider their own time gap, gaps, acceleration, lane
                                      # changing; e-bikes and red-light running cyclists (drivermix.py)
+        "cyclist_red_running": "auto",   # a quarter of the cyclists ride on through red when clear: auto = in the
+                                     # Netherlands only (SWOV's observations; drivermix.py)
         "seed": 42,
         "cars_per_hour": "auto",     # cars entering per hour, or "auto": from the map's lane-km by road class and
                                      # the trial's hour (coupledcarla/counts.py)

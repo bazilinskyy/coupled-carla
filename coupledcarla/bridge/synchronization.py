@@ -56,7 +56,8 @@ class SimulationSynchronization(object):
                  radius=None,
                  animate_radius=0.0,
                  smooth_paths=True,
-                 driver_mix_seed=None):
+                 driver_mix_seed=None,
+                 red_running=False):
 
         self.sumo = sumo_simulation
         self.carla = carla_simulation
@@ -87,6 +88,7 @@ class SimulationSynchronization(object):
         # sharp junction shape is not shown as a swerve; a participant on the SUMO driver gets the gentler limits
         # coupled-carla: each new SUMO vehicle gets its own driver (drivermix.py); None: the vTypes' values for all
         self.driver_mix_seed = driver_mix_seed
+        self.red_running = red_running
         self.smooth_paths = bool(smooth_paths)
         self.smoothers = {}
         self.lane_shapes = None
@@ -151,7 +153,8 @@ class SimulationSynchronization(object):
                 if sumo_actor_id.startswith("carla"):      # a CARLA actor's twin: driven by CARLA
                     continue
                 try:
-                    drivermix.apply(sumo_actor_id, traci.vehicle.getVehicleClass(sumo_actor_id), self.driver_mix_seed)
+                    drivermix.apply(sumo_actor_id, traci.vehicle.getVehicleClass(sumo_actor_id), self.driver_mix_seed,
+                                    red_running=getattr(self, "red_running", False))
                 except traci.TraCIException:
                     pass
         for sumo_actor_id in sumo_spawned_actors:
