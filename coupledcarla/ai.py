@@ -355,6 +355,19 @@ class PathWalker:
             self.apply(carla.WalkerControl(speed=0.0))
             self._hist = None
             return
+        climb = getattr(self, "_climb", None)
+        if climb is not None:                     # on the way up a high kerb (_step_up)
+            t0, tf0, dest = climb
+            u = min(1.0, (t - t0) / CLIMB_S)
+            a = tf0.location
+            lift = min(1.0, 2.0 * u)              # up first, then forward
+            loc = carla.Location(a.x + (dest.x - a.x) * u, a.y + (dest.y - a.y) * u, a.z + (dest.z - a.z) * lift)
+            self.walker.set_transform(carla.Transform(loc, tf0.rotation))
+            if u >= 1.0:
+                self._climb = None
+                self._hist = None
+                self.walker.set_simulate_physics(True)
+            return
         loc = self.walker.get_location()
         target = self.points[self.i]
         dx, dy = target.x - loc.x, target.y - loc.y
@@ -402,15 +415,18 @@ class PathWalker:
             if wp is None or not 0.1 < wp.transform.location.z - feet < STEP_MAX_M:
                 return
             tf = self.walker.get_transform()
-            tf.location = carla.Location(ahead.x, ahead.y, wp.transform.location.z + self.walker.bounding_box.extent.z + 0.05)
-            self.walker.set_transform(tf)
+            # stepped up over CLIMB_S as a person climbs a kerb (one jump of a metre showed in the other views)
+            self._climb = (t, tf, carla.Location(ahead.x, ahead.y,
+                                                 wp.transform.location.z + self.walker.bounding_box.extent.z + 0.05))
+            self.walker.set_simulate_physics(False)
             self.steps_up = getattr(self, "steps_up", 0) + 1
         except RuntimeError:
             pass
 
 
 STUCK_S = 0.6        # PathWalker: no headway for this long while walking ...
-STEP_MAX_M = 0.8     # ... and a road surface ahead at most this much above its feet: lifted onto it
+STEP_MAX_M = 0.8     # ... and a road surface ahead at most this much above its feet: lifted onto it ...
+CLIMB_S = 0.6        # ... over this long
 
 
 class ScriptedWalker:
