@@ -135,6 +135,21 @@ def render(frames_csv, t0, t1, listener=None, listener_role=None, own_role=None,
     return x[:want]
 
 
+def highpass(x, hz, rate=audio.RATE, order=4):
+    """Zero-phase Butterworth-magnitude high-pass in the frequency domain (|H| = 1 / sqrt(1 + (hz/f)^2n)): takes out
+    the low engine orders (30-120 Hz) that a chase camera hears as a steady hum; hz <= 0 leaves x as it is."""
+    if not hz or hz <= 0 or len(x) < 2:
+        return x
+    y = np.asarray(x, np.float64)
+    f = np.fft.rfftfreq(y.shape[0], 1.0 / rate)
+    with np.errstate(divide="ignore"):
+        h = 1.0 / np.sqrt(1.0 + (float(hz) / np.maximum(f, 1e-9)) ** (2 * int(order)))
+    h[0] = 0.0
+    spec = np.fft.rfft(y, axis=0)
+    spec *= h[:, None] if y.ndim == 2 else h
+    return np.fft.irfft(spec, n=y.shape[0], axis=0).astype(np.float32)
+
+
 def normalise(x, target_rms_db=-20.0, peak=0.89):
     """Scales to an RMS level (dBFS), then softly limits peaks (tanh above `peak`)."""
     r = float(np.sqrt(np.mean(x.astype(np.float64) ** 2))) if len(x) else 0.0

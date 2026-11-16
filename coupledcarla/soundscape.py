@@ -847,6 +847,8 @@ class Soundscape:
         """The nearest `max_drones` drones within `drone_distance_m` (300 m) as rotor voices: the drone's sound
         power (EU 2019/945 class, dronemodel.py) rising with the thrust, through the same propagation as vehicles."""
         cfg = self.cfg
+        if not cfg.get("drone_sound", True):    # sound.drone_sound: false (demo videos not about drones)
+            drones = []
         lx, ly, lz = self.lis[:3]
         maxd = float(cfg.get("drone_distance_m", 300.0))
         near = sorted(((math.dist((d[1], d[2], d[3]), (lx, ly, lz)), d) for d in drones), key=lambda x: x[0])

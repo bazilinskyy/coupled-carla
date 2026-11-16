@@ -52,6 +52,8 @@ CLIP_DEFAULTS = {
     "crf": 28, "preset": "slow", "scale": None,      # scale: [w, h] of the encoded video (default: size)
     "audio": "auto",           # auto: the runner's audio.wav if it records one, else offline | offline | none
     "audio_kbps": 96, "loudness_db": -20.0,
+    "audio_highpass_hz": "auto",   # auto: 120 Hz for outside cameras (the engines' low orders hum), 0 first-person
+    "drone_sound": "auto",     # auto: drones are heard only in clips about drones (a drone camera or pilot view)
     "caption": True,           # true: title + place / role / time; false; or {title, line}
     "caption_s": 7.0,          # the caption fades out after this many seconds (0: stays)
     "poster_s": None,          # seconds into the clip for the poster (default: the middle)
@@ -131,6 +133,8 @@ def derive_experiment(clip, server, root=ROOT):
                 copy.deepcopy(trial[k])
     exp = ccconfig._merge(exp, clip.get("set") or {})
     exp["name"] = f"video_{clip['name']}"
+    if not wants_drone_sound(clip, exp):
+        exp.setdefault("sound", {})["drone_sound"] = False
     sim = exp.setdefault("simulation", {})
     if clip.get("time") is not None:
         sim["time"] = clip["time"]
@@ -478,6 +482,28 @@ def run_clip(ctx, clip, attempts=3):
     return rec
 
 
+def wants_drone_sound(clip, exp=None):
+    """Whether the clip's sound has the drones in it: `drone_sound` true/false, or auto: only when the clip is about
+    a drone as a user's agent (a drone camera, or a station view of a drone participant); elsewhere their rotors
+    would be a loud, distracting hum."""
+    v = clip.get("drone_sound", "auto")
+    if isinstance(v, bool):
+        return v
+    if (clip.get("camera") or {}).get("kind") == "drone" or any(c.get("kind") == "drone"
+                                                               for c in clip.get("cameras") or []):
+        return True
+    if clip.get("kind") == "stations":
+        kinds = {p.get("role"): p.get("kind") for p in ((exp or {}).get("participants") or []) if isinstance(p, dict)}
+        return any(kinds.get(v.get("role")) == "drone" for v in (clip.get("stations") or {}).get("views") or [])
+    return False
+
+
+def audio_highpass(clip):
+    """The high-pass (Hz) on an offline (outside camera) mix: auto 120, else the clip's number."""
+    v = clip.get("audio_highpass_hz", "auto")
+    return 120.0 if v == "auto" else float(v or 0)
+
+
 def hears_first_participant(clip):
     """Whether the clip's sound is what the first participant hears (the runner's --record-audio): first-person
     cameras (a drone's FPV, an attached camera, a follow camera within 1.5 m of its target: a pedestrian's eyes) and
@@ -632,6 +658,7 @@ def make_audio(ctx, clip, rec, frames_info):
         listener_role = own or v0["role"]       # an AV passenger has no rows of its own: its car's
     x = filmaudio.render(trial / "frames.csv", t0, t1, listener=listener, listener_role=listener_role,
                          own_role=own, sound=sound, log=lambda m: None)
+    x = filmaudio.highpass(x, audio_highpass(clip))
     x = filmaudio.normalise(x, float(clip["loudness_db"]))
     path = ctx.work / clip["name"] / "audio.wav"
     filmaudio.write(path, x)

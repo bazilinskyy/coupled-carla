@@ -532,7 +532,13 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
     elevation = None
     if mc.get("elevation"):
         import numpy as np
-        dem, source = realworld.dem(mc["bbox"], out / "real" / "dem.npz")
+        try:
+            dem, source = realworld.dem(mc["bbox"], out / "real" / "dem.npz")
+        except Exception as err:  # noqa: BLE001 - the terrain servers did not answer: build it flat, say so
+            log(f"elevation failed ({type(err).__name__}: {err}); the map is flat (rebuild later for its hills)")
+            dem = None
+    if mc.get("elevation") and dem is not None:
+        import numpy as np
         s, w, n, e = mc["bbox"]
         grid = dem.sample(*np.meshgrid(np.linspace(s, n, 40), np.linspace(w, e, 40)))
         base = float(np.floor(grid.min()))
