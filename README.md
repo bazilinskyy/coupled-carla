@@ -646,6 +646,17 @@ a regional lamp's place, as before. All meshes are procedural (MIT;
 `unreal/StreetProps/SOURCES.md`). Ideas from [BeamNG.Earth](https://github.com/TecnaGamer/BeamNG.Earth) (MIT,
 TecnaGamer).
 
+
+**Street life (CARLA 1.0, the Netherlands first).** Roads the BGT lists as open paving and OSM roads tagged with
+bricks or paving stones get red-brown clay clinkers in herringbone (setts for `sett`/`cobblestone`, any country), as
+strips across the carriageway at the stones' real size. Gutters get a dirt band, more on shopping streets; litter and
+gum stains lie around bins, benches, cafes and stations; puddles stand in the gutters only when the road is wet. Dutch
+city bikes (step-through and diamond frames, five colours, 12 % Swapfiets with the blue front tyre) stand in the bike
+stands, in rows against facades near shops, cafes and stations, and against lamp posts (at most 4,000 per map). OSM's
+advertising columns become Morris columns with posters, and on baked twins each shop and cafe gets a fascia sign with
+its trade in Dutch. Options in `map.scenery`: `stone_roads`, `grime`, `parked_bikes`, `shop_signs`. All procedural
+(MIT), from OSM and the BGT; nothing from Street View.
+
 ## Night and rain
 
 `coupledcarla/nightlights.py` gives the street lamps the light their city lists, drives cars with the lights the Dutch
