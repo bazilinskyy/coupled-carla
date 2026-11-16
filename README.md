@@ -543,8 +543,11 @@ How it is placed (`coupledcarla/scenery.py`, `coupledcarla/realworld.py`):
   (street-photo comparisons found "missing trees" at 221-307 of 350 spots). The canopy map's crowns (the tallest
   pixel of each 5 m square over 3 m) now get a tree where none stands within 6 m (`map.scenery.canopy_trees`,
   `canopy_tree_gap_m`), sized by the same calibration; over 18 m an oak, beech or ash, under 10 m a small maple or
-  sassafras, between the place's usual mix. Eindhoven centre: 2,511 trees added (6,062 -> 8,573), cover 44.7 % ->
-  82.9 %; both CARLA versions (the same meshes as other trees).
+  sassafras, between the place's usual mix. Eindhoven centre on 0.9.16: 2,511 trees added (6,062 -> 8,573), cover
+  44.7 % -> 82.9 %; the twin's scenery with CARLA 1.0's meshes: 2,467 added (5,883 -> 8,350), 43.1 % -> 80.6 %. Cost
+  on a headless 0.9.16 trial (90 s, two runs each): 4,510 -> 5,176 meshes within 400 m, 12.1 -> 13.4 ms per tick in
+  the bridge's sync, real-time factor 1.47 -> 1.34. In parks without OSM planting (the Dommel valley north of the
+  station) the canopy now makes a wood where there was lawn; a tree may stand on a park path (paths are not lanes).
 - **Nothing on the lanes.** Every placement is checked against CARLA's map: nothing stands on a lane that is
   driven, ridden, parked or walked; a building that would reach into one is shrunk or dropped.
 - **Ground.** 40 m tiles (20 m on maps with more than 40 m of relief), tilted to the terrain and kept under
