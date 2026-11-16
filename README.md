@@ -613,7 +613,24 @@ Output: counts per kind and problem, the worst examples and camera frames in `lo
 (0 left), 45 duplicate signal heads (0), 867 floating objects (20), 35 signs, lamps or poles on a lane or in a
 junction (7); New York and Tokyo alike.
 
-### Night and rain
+#### Street furniture that looks like the place (CARLA 1.0)
+
+With the CoupledCarla content cooked into the server (`/Game/CoupledCarla/Street`, made by `tools/street_props.py`
+and `tools/ue_street_props.py`), the scenery uses a country's own props instead of CARLA's generic ones. In the
+Netherlands, lamp posts follow the street-light register's mast type and height (Eindhoven: 4 m post-top lamps, 6 m
+top-LED masts, 9 and 12 m arms, double arms, cast-iron lanterns). The scenery also places "Model Eindhoven" benches
+and bins in the register's colours, steel bollards (Amsterdammertjes in Amsterdam), rows of bike stands by capacity,
+shark-teeth give-way lines at NDW B6 signs, red asphalt on BGT cycle paths and cycle lanes, and grey concrete pavers
+on BGT open paving. The UK and Japan get their own lamp columns, and the UK cast litter bins. Everywhere there are
+cracks, repair patches, potholes (more where OSM tags a bad smoothness), oil spots in parking, autumn leaves under
+deciduous trees, and AC units and bulkheads on flat measured roofs of baked twins. OSM give-way and speed signs in
+Vienna-convention countries show the Dutch faces (the same design). Options in `map.scenery`: `street_props`,
+`shark_teeth`, `red_cycle`, `road_wear`, `leaf_litter`, `roof_clutter` (all on). A server without the content spawns
+CARLA's props in their place; CARLA 0.9.16 keeps CARLA's props. All meshes are procedural (MIT;
+`unreal/StreetProps/SOURCES.md`). Ideas from [BeamNG.Earth](https://github.com/TecnaGamer/BeamNG.Earth) (MIT,
+TecnaGamer).
+
+## Night and rain
 
 `coupledcarla/nightlights.py` gives the street lamps the light their city lists, drives cars with the lights the Dutch
 rules ask for and sends fewer cyclists out in the rain.
