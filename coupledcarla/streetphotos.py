@@ -523,7 +523,8 @@ def differences(real, render, hfov, groups, top=4, ignore=255):
     if both.sum() > 0.2 * w:
         d = float(np.mean(sa[both] - sb[both]))
         if d > 3.0:
-            out.append((d / 25.0, f"skyline {d:.0f} deg too low: buildings or trees lower than in the photo, or missing"))
+            out.append((d / 25.0, f"skyline {d:.0f} deg too low: buildings or trees lower than in the photo, "
+                                  f"or missing"))
         elif d < -3.0:
             out.append((-d / 25.0, f"skyline {-d:.0f} deg too high: buildings or trees taller than in the photo"))
     a, b = _share(real, gi["sky"], valid), _share(render, gi["sky"], valid)
@@ -587,14 +588,16 @@ def spot_score(m):
 
 def map_score(rows):
     """Per-map summary: the median spot score x 100 and how many spots have each kind of difference."""
-    scores = [r["spot_score"] for r in rows if isinstance(r.get("spot_score"), float) and not math.isnan(r["spot_score"])]
+    scores = [r["spot_score"] for r in rows
+              if isinstance(r.get("spot_score"), float) and not math.isnan(r["spot_score"])]
     kinds = {}
     for r in rows:
         for t in (r.get("differences") or "").split("; "):
             if t:
                 k = t.split(" (")[0].replace(" on the left", "").replace(" on the right", "").replace(
                     " in the middle", "")
-                k = k.split(" deg ")[-1] if "skyline" in k else k
+                if k.startswith("skyline"):
+                    k = "skyline too low" if " too low" in k else "skyline too high"
                 kinds[k] = kinds.get(k, 0) + 1
     return {"score": round(100 * float(np.median(scores)), 1) if scores else None, "spots": len(scores),
             "differences": dict(sorted(kinds.items(), key=lambda kv: -kv[1]))}
@@ -612,7 +615,8 @@ MLY_CLASSES = [("object--street-light", "lamp"), ("object--bench", "bench"), ("o
                ("object--traffic-sign--direction-front", "sign"), ("object--traffic-sign--direction-back", "sign"),
                ("object--traffic-sign--information-parking", "sign")]
 # OSM tags of scenery.py / meshes10.py furniture -> object class (their meshes are classed through these)
-OSM_CLASS = {("amenity", "bench"): "bench", ("amenity", "waste_basket"): "bin", ("emergency", "fire_hydrant"): "hydrant",
+OSM_CLASS = {("amenity", "bench"): "bench", ("amenity", "waste_basket"): "bin",
+             ("emergency", "fire_hydrant"): "hydrant",
              ("amenity", "bicycle_parking"): "bike_rack", ("amenity", "post_box"): "post_box",
              ("advertising", "column"): "billboard", ("advertising", "billboard"): "billboard",
              ("advertising", "board"): "billboard", ("advertising", "poster_box"): "billboard",

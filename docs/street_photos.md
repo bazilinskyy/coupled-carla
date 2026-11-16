@@ -204,4 +204,91 @@ lamps or signs.
 
 ## Results
 
-FILLED BY THE RUNS
+### Views
+
+Results from 2026-11-16, made on lin4080 with `pairs` giving Eindhoven's real-vs-real scale. All figures are
+medians over the spots:
+
+- Map score: median spot score × 100.
+- Index: the realism index of the spot score (0 = a random real place, 1 = the same street).
+
+| Map | CARLA, renders | Views (sources) | Map score | Index | Coarse IoU | Boundary F | Skyline (°) | DINO global | DINO patch |
+|---|---|---|---|---|---|---|---|---|---|
+| `eindhoven_centre` | 0.9.16, lin4080 (renders of 2026-11-15, re-scored) | 350 (Panoramax 196, Commons 90, KartaView 64) | 35.7 | 0.27 | 0.420 | 0.333 | 4.0 | 0.124 | 0.316 |
+| EhvCentre twin (`eindhoven_twin`) | 1.0, win5090 package, `CoupledReal` (renders of 2026-11-16, re-scored) | the same 350 | 37.6 | 0.37 | 0.435 | 0.334 | 3.8 | 0.182 | 0.336 |
+| TU/e campus, south part (`eindhoven_centre --box`) | 0.9.16, lin4080 | 34 (Panoramax 28, KartaView 6) | 32.6 | 0.11 | 0.331 | 0.317 | 4.6 | 0.162 | 0.318 |
+| TUeCampus twin | 1.0 | not rendered: needs a win5090 GPU window (lin5080's GPU is the crowd workers') | | | | | | | |
+| `chernihiv` | 0.9.16, lin4080 | 17 (Commons only) | 24.4 | -0.32 | 0.282 | 0.148 | 8.0 | 0.017 | 0.251 |
+
+**Layout.** In the two Eindhoven maps, where things are (coarse IoU 0.42-0.44, index 0.44-0.51) and the skyline
+(index 0.9-1.0, as good as a second photo) are halfway or better between a random place and the same street.
+
+**Edges and look.** Edges line up less well (index 0.26-0.27). The look is the largest gap. DINOv2's image
+similarity between render and photo (0.12-0.18) is lower than between two photos of *different* places (0.38),
+so the renders read as "not a real street" before anything else.
+
+**Twin and campus.** The twin beats the 0.9.16 map on every measure except colour.
+
+The campus sample is small. Its photos are 74 % vegetation against 50 % in the renders, and the renders have
+twice the road.
+
+**Chernihiv.** The figure rests on 17 Commons photos of landmarks taken from squares, which score lowest
+everywhere (Commons spot score 0.25 in Eindhoven too). It is a weak sample. Mapillary's 4,868 Chernihiv
+panoramas would replace it once the graph API answers.
+
+**By source** (Eindhoven centre, 0.9.16):
+
+| Source | Views | Spot score |
+|---|---|---|
+| Panoramax | 196 | 0.39 |
+| KartaView | 64 | 0.38 |
+| Commons | 90 | 0.26 |
+
+**Most frequent differences** (spots naming each, of 350 for the Eindhoven maps):
+
+| Difference | `eindhoven_centre` 0.9.16 | EhvCentre twin | Campus (34) | Chernihiv (17) |
+|---|---|---|---|---|
+| missing trees | 221 | 307 | 52 | 9 |
+| road too wide | 166 | 188 | 24 | 12 |
+| missing building | 156 | 171 | | 20 |
+| a building where the photo has none | 155 | 121 | 5 | |
+| trees or greenery where the photo has none | 133 | 65 | 8 | 13 |
+| pavement missing or too narrow / more pavement than the photo | 88 / | 70 / 85 | | 2 / |
+| skyline too low / too high | 61 / 59 | 79 / | 11 / 4 | 3 / 4 |
+
+**Read with care.** "Road too wide" is partly the model. On the renders it labels CARLA's flat grass and paving
+tiles as road: against CARLA's own labels of the same renders it reaches a coarse IoU of only 0.64 (0.9.16), 0.49
+(twin) and 0.47 (campus). The trees are real: street trees are smaller and sparser than in the photos (vegetation
+17-20 % of the view against 22 %), and on the campus it is 50 % against 74 %. "Missing building" and "a building
+where the photo has none" come in equal numbers, which is what 2-5 m photo position errors look like next to
+narrow streets.
+
+### Street objects
+
+From the Mapillary map features. "Photographed" counts the scenery objects with a Mapillary photo within 20 m.
+
+| Map | Class | Mapillary | Scenery (photographed) | Matched | Median offset | Would add | Would remove |
+|---|---|---|---|---|---|---|---|
+| `eindhoven_centre` | lamp | 3,720 | 2,311 (1,931) | 1,220 | 2.6 m | protected | protected |
+| | sign | 5,993 | 30 (30) | 27 | 1.2 m | protected | protected |
+| | bin | 1,017 | 378 (287) | 84 | 1.9 m | 168 | 43 |
+| | bench | 358 | 225 (172) | 45 | 1.9 m | 30 | 26 |
+| EhvCentre twin | lamp | 3,744 | 2,135 (1,807) | 1,114 | 2.5 m | protected | protected |
+| | sign | 6,032 | 1,203 (1,053) | 831 | 2.0 m | protected | protected |
+| | bin | 1,027 | 364 (275) | 80 | 1.9 m | 170 | 40 |
+| `chernihiv` | lamp | 562 | 723 (495) | 63 | 4.0 m | 92 | 154 |
+| | sign | 865 | 4 (3) | 3 | 3.6 m | | |
+| | bench | 150 | 111 (17) | 4 | 2.7 m | 27 | 0 |
+
+**Signs on 0.9.16.** Eindhoven's 0.9.16 map places 30 signs where the NDW register has 1,314 sign posts in the
+box. 0.9.16 has meshes for only a few sign kinds; the twin on CARLA 1.0 places 1,203. Mapillary finds a sign
+within 4 m of 76 % of the photographed NDW posts.
+
+**Chernihiv's lamps** are placed every 32 m along the kerbs, because OSM maps few lamps there. Only 63 of them
+match a Mapillary lamp, which is the case the correction pass is for.
+
+**Panoramax poles as evidence.** 408 Eindhoven panoramas gave 1,006 pole sightings and 124 poles seen twice or more
+(15 lamps, 41 signs, 68 other poles). The lamps lie a median 2.1 m from the register's, and 73 % are within 4 m.
+But they find only 4 % of the photographed register lamps, because the detector needs the pole's foot on the
+ground, unhidden. That is too few to correct anything yet. The detector would need the pole's top (lamp heads),
+more panoramas (all 846 rather than one per 6 m) and pairs of panoramas to triangulate.

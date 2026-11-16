@@ -200,12 +200,15 @@ def test_differences_in_words():
 def test_spot_and_map_scores():
     assert SP.spot_score({"al_miou_coarse": 0.4, "boundary_f": 0.6, "dino_patch": float("nan")}) == pytest.approx(0.5)
     assert math.isnan(SP.spot_score({}))
-    rows = [{"spot_score": 0.4, "differences": "missing building on the left (photo 50%, render 0%); road too wide (x)"},
-            {"spot_score": 0.6, "differences": "missing building on the right (photo 40%, render 0%)"},
+    rows = [{"spot_score": 0.4,
+             "differences": "missing building on the left (photo 50%, render 0%); road too wide (x)"},
+            {"spot_score": 0.6,
+             "differences": "missing building on the right (photo 40%, render 0%); skyline 6 deg too "
+                            "low: buildings or trees lower than in the photo, or missing"},
             {"spot_score": float("nan"), "differences": ""}]
     m = SP.map_score(rows)
     assert m["score"] == 50.0 and m["spots"] == 2
-    assert m["differences"] == {"missing building": 2, "road too wide": 1}
+    assert m["differences"] == {"missing building": 2, "road too wide": 1, "skyline too low": 1}
 
 
 # ---------------------------------------------------------------- street objects

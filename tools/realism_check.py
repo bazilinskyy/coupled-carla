@@ -818,8 +818,12 @@ def spot_image(path, imgs, caption, v):
     """One spot side by side: photo | render over photo layout | render layout, the scores and differences below,
     and the photo's credit."""
     from PIL import Image, ImageDraw
+    import textwrap
     w, h = imgs[0].shape[1], imgs[0].shape[0]
-    lines = caption.split("\n")
+    width = max(40, int((2 * w + 4) / 8.2))         # characters per line of the 15 px font
+    first, *rest = caption.split("\n")
+    lines = textwrap.wrap(first, width) + [x for r in rest for x in textwrap.wrap(r, width)]
+    n_head = len(textwrap.wrap(first, width))
     credit = f"Photo: {v.get('author') or 'unknown'}, {v.get('licence') or '?'}, {v.get('source')} {v.get('page')}"
     lh = 18
     im = Image.new("RGB", (2 * w + 4, 2 * h + 4 + lh * (len(lines) + 1) + 10), (255, 255, 255))
@@ -829,7 +833,7 @@ def spot_image(path, imgs, caption, v):
     font = _font(15)
     y = 2 * h + 8
     for li, line in enumerate(lines + [credit]):
-        dr.text((6, y + li * lh), line, fill=(0, 0, 0) if li == 0 else (150, 30, 30) if li < len(lines)
+        dr.text((6, y + li * lh), line, fill=(0, 0, 0) if li < n_head else (150, 30, 30) if li < len(lines)
                 else (70, 70, 70), font=font)
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     im.save(path, quality=88)
@@ -1086,7 +1090,8 @@ def cmd_objects(args):
                                        "adds", "adds_at_a_register_object")}), flush=True)
     (out / "objects.json").write_text(json.dumps(res, indent=1))
     for src, r in res.items():
-        print(f"\n{cfg['name']}: {src} evidence against scenery.json (protected: {', '.join(r['protected']) or 'none'})")
+        prot = ", ".join(r["protected"]) or "none"
+        print(f"\n{cfg['name']}: {src} evidence against scenery.json (protected: {prot})")
         print("| Class | Photos | Scenery (photographed) | Matched | Median offset (m) | Recall | Precision | "
               "Would move | add | remove |")
         print("|---|---|---|---|---|---|---|---|---|---|")
@@ -1096,7 +1101,8 @@ def cmd_objects(args):
                   f"{st['median_offset_m'] if st['median_offset_m'] is not None else ''} | "
                   f"{st['recall'] if st['recall'] is not None else ''} | "
                   f"{st['precision'] if st['precision'] is not None else ''} | "
-                  f"{'protected' if st['protected'] else c.get('move', 0)} | {c.get('add', 0)} | {c.get('remove', 0)} |")
+                  f"{'protected' if st['protected'] else c.get('move', 0)} | {c.get('add', 0)} | "
+                  f"{c.get('remove', 0)} |")
         if r.get("applied"):
             print(f"applied to {mdir / 'scenery.json'}: {r['applied']} (old: scenery.before_photos.json)")
     print(f"{out / 'objects.json'}", flush=True)
@@ -1183,7 +1189,8 @@ def main():
                    help="classes never corrected: auto (registers: city lamps, NDW signs), none, or e.g. lamp,sign")
     p.add_argument("--apply", action="store_true", help="write the corrections (--actions) into scenery.json")
     p.add_argument("--actions", default="add,remove",
-                   help="what --apply does: add, remove, move (moves made Eindhoven's lamps worse: docs/street_photos.md)")
+                   help="what --apply does: add, remove, move (moves made Eindhoven's lamps worse: "
+                        "docs/street_photos.md)")
     p.add_argument("--validate", default="", help="classes from a register (e.g. lamp): test the rules on it")
     p = sub.add_parser("table", help="compared runs side by side over their common views")
     p.add_argument("runs", nargs="+", help="output folders of compared runs (the first is the reference)")
