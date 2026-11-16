@@ -1068,7 +1068,6 @@ class LivingCity:
     def _delivery(self, rng, dwell_s, initial):
         """A van at a free kerb stall, or double-parked beside a taken one (double_park_share, only where a second
         lane in its direction lets traffic pass); new ones beyond 40 m of the participants."""
-        carla = self.carla
         stalls = [s for s in self._stalls_near() if not s.get("used") and
                   (initial or self.far_from_participants(s["x"], s["y"], 40.0))]
         double = rng.random() < rate(self.lc, "double_park_share")
@@ -1077,7 +1076,15 @@ class LivingCity:
         rng.shuffle(taken)
         rng.shuffle(free)
         cands = ([(s, True) for s in taken[:20]] if double else []) + [(s, False) for s in free[:20]]
+        lanes = [w for w in self._kerb_lanes() if self.near_participants(w["x"], w["y"]) and not w.get("used") and
+                 (initial or self.far_from_participants(w["x"], w["y"], 40.0))]
+        rng.shuffle(lanes)
+        cands += [(w, "lane") for w in lanes[:20]]      # no stall: stopped in the kerb lane of a two-lane street
         for s, double in cands:
+            if double == "lane":
+                if self._lane_van(s, rng, dwell_s, initial):
+                    return True
+                continue
             wp, two = self._lane_beside(s["x"], s["y"])
             if wp is None:
                 continue
@@ -1094,22 +1101,29 @@ class LivingCity:
                 x, y = s["x"] + (lx - s["x"]) / d * shift, s["y"] + (ly - s["y"]) / d * shift
             else:
                 x, y = s["x"], s["y"]
+            if self._spawn_van(x, y, wp.transform.location.z, yaw, double, rng, dwell_s, initial, s):
+                return True
+        return False
+
+    def _spawn_van(self, x, y, z, yaw, double, rng, dwell_s, initial, spot):
+        carla = self.carla
+        for _ in range(1):
             bp_id = rng.choices(["vehicle.mercedes.sprinter", "vehicle.volkswagen.t2_2021",
                                  "vehicle.carlamotors.carlacola"], weights=[6, 3, 1])[0]
             from . import compat           # CARLA 1.0 names its vans otherwise (vehicle.sprinter.mercedes)
             got = compat.blueprint(self.lib, bp_id, "delivery")
             if got is None:
-                continue
+                return False
             bp, bp_id = got, got.id
             bp.set_attribute("role_name", "delivery")
             if bp.has_attribute("color"):
                 bp.set_attribute("color", rng.choice(["255,255,255", "250,250,250", "40,40,40", "200,200,205",
                                                       "190,20,20", "20,60,150"]))
-            tf = carla.Transform(carla.Location(x=x, y=y, z=wp.transform.location.z + 0.05), carla.Rotation(yaw=yaw))
+            tf = carla.Transform(carla.Location(x=x, y=y, z=z + 0.05), carla.Rotation(yaw=yaw))
             van = self.world.try_spawn_actor(bp, tf)
             if van is None:
-                continue
-            s["used"] = True
+                return False
+            spot["used"] = True
             van.set_simulate_physics(False)
             if not double:          # off the lane: no SUMO twin (traffic passes it); in the lane it gets one
                 self.sim._kinds[van.id] = False
@@ -1119,13 +1133,47 @@ class LivingCity:
             self.vehicles[van.id] = {"kind": "delivery", "actor": van, "double": double, "until": self.t + dwell_s,
                                      "x": x, "y": y, "yaw": yaw, "bp": bp_id}
             self.ev("lc_delivery", van.id, state="start", double=double, dwell_s=round(dwell_s, 1),
-                    initial=initial, x=round(x, 1), y=round(y, 1))
+                    initial=initial, x=round(x, 1), y=round(y, 1), where="lane" if "width" in spot else "stall")
             self.ev("hazard", van.id, state="on")
             self.sound("hazard", van, state="on")
             self._courier(van, rng)
             self.at(self.t + dwell_s, self._delivery_end, van.id)
             return True
         return False
+
+    def _kerb_lanes(self):
+        """Spots every 15 m on the outermost driving lane of streets with a second lane in the same direction
+        (CARLA's map, once): {x, y, z, yaw, wp}."""
+        if hasattr(self, "_kerb_lane_cache"):
+            return self._kerb_lane_cache
+        carla = self.carla
+        out = []
+        try:
+            for wp in self.cmap.generate_waypoints(15.0):
+                if wp.lane_type != carla.LaneType.Driving or wp.is_junction:
+                    continue
+                outer = wp.get_left_lane() if self.lefthand else wp.get_right_lane()
+                inner = wp.get_right_lane() if self.lefthand else wp.get_left_lane()
+                if outer is not None and outer.lane_type == carla.LaneType.Driving and \
+                        outer.lane_id * wp.lane_id > 0:
+                    continue                                   # not the outermost driving lane
+                if inner is None or inner.lane_type != carla.LaneType.Driving or inner.lane_id * wp.lane_id <= 0:
+                    continue                                   # no second lane for traffic to pass
+                tf = wp.transform
+                out.append({"x": tf.location.x, "y": tf.location.y, "z": tf.location.z, "yaw": tf.rotation.yaw,
+                            "width": wp.lane_width})
+        except RuntimeError as err:
+            self.log(f"living city: no kerb lanes ({err})")
+        self._kerb_lane_cache = out
+        return out
+
+    def _lane_van(self, w, rng, dwell_s, initial):
+        """A delivery van stopped in the kerb lane (a SUMO twin makes traffic pass it in the next lane)."""
+        side = -1.0 if self.lefthand else 1.0
+        a = math.radians(w["yaw"])
+        shift = max(0.0, w["width"] / 2 - 1.2) * side          # towards the kerb
+        x, y = w["x"] - math.sin(a) * shift, w["y"] + math.cos(a) * shift
+        return self._spawn_van(x, y, w["z"], w["yaw"], True, rng, dwell_s, initial, w)
 
     def _courier(self, van, rng):
         """The courier walks from the van's back to the nearest door and back, again until the stop ends."""
