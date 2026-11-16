@@ -1,6 +1,12 @@
 """How close is a map's render to the real street? Real street-level photos (Panoramax, KartaView, Wikimedia
-Commons: open licences, no keys) at known positions and headings, the same views rendered in CARLA, and a
-comparison of the two (coupledcarla/realism.py: semantic layout, skyline, image statistics).
+Commons: open licences, no keys; Mapillary with the token mapillary_token) at known positions and headings, the
+same views rendered in CARLA, and a comparison of the two (coupledcarla/realism.py: semantic layout, skyline,
+image statistics; coupledcarla/streetphotos.py: edge alignment, DINOv2 similarity, the differences in words, a
+score per spot and per map). The street objects the photos show (Mapillary map features, poles in Panoramax
+panoramas) are matched with the map's lamps, signs and furniture, and can correct them (objects --apply).
+
+    # 0. what each source has in the map's box: <photos>/coverage.json
+    python tools/realism_check.py sources experiments/eindhoven_centre.yaml
 
     # 1. views and real images (internet, no CARLA): <out>/views.csv, <out>/real/<id>.jpg
     python tools/realism_check.py prepare experiments/eindhoven_twin.yaml --out logs/realism
@@ -12,9 +18,13 @@ comparison of the two (coupledcarla/realism.py: semantic layout, skyline, image 
     python tools/realism_check.py pairs experiments/eindhoven_twin.yaml --out logs/realism
     # several compared runs (e.g. before and after a change) side by side over their common views
     python tools/realism_check.py table logs/realism_before logs/realism_after
+    # street objects: Mapillary features / panorama poles against scenery.json, and what a correction would change
+    python tools/realism_check.py objects experiments/chernihiv.yaml --evidence mapillary [--apply]
 
 render works from views.csv alone (it builds it from the cached photo metadata when missing); compare downloads
-real images it lacks. Contact sheets and real images stay out of git (logs/).
+real images it lacks. Photos, panoramas, their labels and the Mapillary tiles are cached under the map's
+real/streetphotos/ (run.json in <out> says where); renders, sheets and spots/ (one image per spot) stay in <out>
+(logs/, not in git). Photographers are credited in ATTRIBUTION.csv and on every sheet. docs/street_photos.md.
 """
 import argparse
 import csv
@@ -42,6 +52,9 @@ def _map(experiment):
 
 def build_views(args, mdir, bbox):
     recs = R.fetch(mdir, bbox, sources=args.sources.split(","), refresh=args.refresh)
+    if getattr(args, "box", None):      # only the views in a part of the map (e.g. the TU/e campus)
+        s, w, n, e = (float(x) for x in args.box.split(","))
+        bbox = [max(bbox[0], s), max(bbox[1], w), min(bbox[2], n), min(bbox[3], e)]
     offsets = tuple(float(x) for x in args.pano_offsets.split(","))
     return R.select(recs, bbox, spacing_m=args.spacing, pano_offsets=offsets, max_views=args.max_views,
                     include_action=args.action_cams, size=args.size)
@@ -66,6 +79,43 @@ def _download(url, tries=3):
 PANO_W = 4096     # panoramas are kept at this width (768 px per 90 deg view needs 3072)
 
 
+def photos_dir(out):
+    """Where a run's real photos, panoramas and their labels are cached: the map's real/streetphotos/ (run.json
+    says so), or the run folder itself for runs made before that."""
+    p = Path(out) / "run.json"
+    if p.exists():
+        d = json.loads(p.read_text()).get("photos")
+        if d:
+            return Path(d)
+    return Path(out)
+
+
+def set_photos_dir(out, mdir, photos=None):
+    """A new run caches its photos under the map (shared by runs); a run that already has panos/ or real/ keeps them."""
+    out = Path(out)
+    p = out / "run.json"
+    if not p.exists() and ((out / "panos").exists() or (out / "real").exists()):
+        return out
+    run = json.loads(p.read_text()) if p.exists() else {}
+    run["photos"] = str(Path(photos or Path(mdir) / "real" / "streetphotos").resolve())
+    run["map"] = str(Path(mdir).resolve())
+    out.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(run, indent=1))
+    return Path(run["photos"])
+
+
+def _fresh_url(v, out):
+    """Mapillary's thumbnail URLs are signed and expire: a new one by the image id (None when the graph API refuses)."""
+    if v.get("source") != "mapillary":
+        return None
+    try:
+        from coupledcarla.streetphotos import Mapillary
+        return Mapillary(photos_dir(out)).url_for(v["src_id"])
+    except Exception as err:  # noqa: BLE001 - the stored URL is tried
+        print(f"{v['id']}: no fresh Mapillary URL ({err})", flush=True)
+        return None
+
+
 def _fetch_photo(v, sd=False):
     import io
     from PIL import Image, ImageOps
@@ -81,9 +131,10 @@ def _fetch_photo(v, sd=False):
 def pano_image(v, out, sd=False):
     """<out>/panos/<src_id>.jpg: the panorama of an equirect view (at most PANO_W wide), fetched once."""
     from PIL import Image
-    path = Path(out) / "panos" / f"{v['src_id']}.jpg"
+    path = photos_dir(out) / "panos" / f"{v['src_id']}.jpg"
     if not path.exists():
-        im = _fetch_photo(v, sd)
+        url = _fresh_url(v, out)
+        im = _fetch_photo(dict(v, url=url) if url else v, sd)
         if im.width > PANO_W:
             im = im.resize((PANO_W, PANO_W // 2), Image.LANCZOS)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -94,8 +145,8 @@ def pano_image(v, out, sd=False):
 def real_image(v, out, sd=False):
     """<out>/real/<id>.jpg: a panorama cut to the view, or the photo scaled to the view's width."""
     from PIL import Image
-    path = Path(out) / "real" / f"{v['id']}.jpg"
-    if path.exists() and (v["projection"] != "equirect" or (Path(out) / "panos" / f"{v['src_id']}.jpg").exists()):
+    path = photos_dir(out) / "real" / f"{v['id']}.jpg"
+    if path.exists() and (v["projection"] != "equirect" or (photos_dir(out) / "panos" / f"{v['src_id']}.jpg").exists()):
         im = Image.open(path)
         if im.width != v["width"]:      # prepared at another --size: scaled, not fetched again
             im.convert("RGB").resize((v["width"], int(round(im.height * v["width"] / im.width))),
@@ -106,7 +157,8 @@ def real_image(v, out, sd=False):
         im = Image.fromarray(R.reproject(pano, "equirect", v["width"], v["height"], v["hfov"],
                                          src_yaw=float(v["src_heading"]) - float(v["heading"])))
     else:
-        im = _fetch_photo(v, sd)
+        url = _fresh_url(v, out)
+        im = _fetch_photo(dict(v, url=url) if url else v, sd)
         im = im.resize((v["width"], int(round(im.height * v["width"] / im.width))), Image.LANCZOS)
     path.parent.mkdir(parents=True, exist_ok=True)
     im.save(path, quality=92)
@@ -133,6 +185,7 @@ def fetch_images(views, out, threads=4, sd=False):
 def cmd_prepare(args):
     cfg, mdir, bbox = _map(args.experiment)
     out = Path(args.out)
+    set_photos_dir(out, mdir, getattr(args, "photos", None))
     views = build_views(args, mdir, bbox)
     R.write_views(out / "views.csv", views)
     by = {}
@@ -240,6 +293,7 @@ def cmd_render(args):
     from coupledcarla.scenery import Scenery
     cfg, mdir, bbox = _map(args.experiment)
     out = Path(args.out)
+    set_photos_dir(out, mdir, getattr(args, "photos", None))
     vpath = out / "views.csv"
     if vpath.exists():
         views = R.read_views(vpath)
@@ -479,16 +533,19 @@ def _merge_csv(path, rows, key):
 # ---------------------------------------------------------------- comparison
 
 class Labels:
-    """Segmentation with a cache of label maps (<out>/seg/<name>.png)."""
+    """Segmentation with a cache of label maps: the renders' in <out>/seg/, the photos' (real_*, pano_*) with the
+    photos (photos_dir: the map's real/streetphotos/seg/), where every run finds them."""
 
     def __init__(self, out, model, device):
         self.dir = Path(out) / "seg"
         self.dir.mkdir(parents=True, exist_ok=True)
+        self.pdir = photos_dir(out) / "seg"
+        self.pdir.mkdir(parents=True, exist_ok=True)
         self.model, self.device, self.seg = model, device, None
 
     def __call__(self, name, rgb, width=None):
         from PIL import Image
-        p = self.dir / f"{name}.png"
+        p = (self.dir if name.startswith("render_") else self.pdir) / f"{name}.png"
         if p.exists():
             return np.asarray(Image.open(p))
         if self.seg is None:
@@ -569,24 +626,41 @@ def real_spec(v, out, labels, sd=False):
     return ("photo", rgb, labels(f"real_{v['id']}", rgb))
 
 
-def contact_sheets(rows, out, name, per_sheet=12, thumb=384):
-    """Real | render | real layout | render layout, one view per row, with its scores."""
+def _font(size):
+    from PIL import ImageFont
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:       # Pillow < 10.1: the fixed bitmap font
+        return ImageFont.load_default()
+
+
+CREDIT = "Photos: their authors via {src} ({lic}); per-photo credits in ATTRIBUTION.csv"
+
+
+def contact_sheets(rows, out, name, per_sheet=12, thumb=384, credit=None):
+    """Real | render | real layout | render layout, one view per row, with its scores (caption lines split at \n)
+    and the photo credit at the bottom."""
     from PIL import Image, ImageDraw
     sdir = Path(out) / "sheets"
     sdir.mkdir(parents=True, exist_ok=True)
     paths = []
+    font, lh = _font(13), 16
     for s in range(0, len(rows), per_sheet):
         chunk = rows[s:s + per_sheet]
         hs = [int(round(thumb * r["imgs"][0].shape[0] / r["imgs"][0].shape[1])) for r in chunk]
-        sheet = Image.new("RGB", (thumb * 4 + 8, sum(hs) + 22 * len(chunk)), (255, 255, 255))
+        caps = [r["caption"].split("\n") for r in chunk]
+        sheet = Image.new("RGB", (thumb * 4 + 8, sum(hs) + sum(6 + lh * len(c) for c in caps) + 24), (255, 255, 255))
         dr = ImageDraw.Draw(sheet)
         y = 0
-        for r, hh in zip(chunk, hs):
-            dr.text((4, y + 4), r["caption"], fill=(0, 0, 0))
-            y += 22
+        for r, hh, cap in zip(chunk, hs, caps):
+            for li, line in enumerate(cap):
+                dr.text((4, y + 3 + li * lh), line, fill=(0, 0, 0) if li == 0 else (150, 30, 30), font=font)
+            y += 6 + lh * len(cap)
             for i, im in enumerate(r["imgs"]):
                 sheet.paste(Image.fromarray(im).resize((thumb, hh)), (i * (thumb + 2), y))
             y += hh
+        dr.text((4, y + 5), credit or CREDIT.format(src="Panoramax, KartaView, Wikimedia Commons, Mapillary",
+                                                    lic="CC BY-SA 4.0 or per file"), fill=(60, 60, 60), font=font)
         p = sdir / f"{name}_{s // per_sheet + 1:02d}.jpg"
         sheet.save(p, quality=85)
         paths.append(p)
@@ -596,7 +670,7 @@ def contact_sheets(rows, out, name, per_sheet=12, thumb=384):
 SUMMARY_KEYS = ["nom_miou_coarse", "al_miou_coarse", "nom_pix_acc_coarse", "al_pix_acc_coarse", "nom_miou", "al_miou",
                 "nom_pix_acc", "al_pix_acc", "nom_layout_tv", "al_layout_tv", "nom_skyline_mae_deg",
                 "al_skyline_mae_deg", "colour_hist_sim", "heading_error_abs", "model_vs_carla_pix_acc",
-                "model_vs_carla_miou_coarse"]
+                "model_vs_carla_miou_coarse", "boundary_f", "dino_global", "dino_patch", "spot_score"]
 
 
 def summarise(rows, keys=SUMMARY_KEYS, by="source"):
@@ -643,6 +717,7 @@ def cmd_compare(args):
         for r in csv.DictReader(f):
             renders[r["id"]] = r
     labels = Labels(out, args.model, args.device)
+    perc = Perceptual(args) if args.perceptual else None
     rows, sheet_rows = [], []
     t0 = time.time()
     for k, (vid, rr) in enumerate(renders.items()):
@@ -661,22 +736,32 @@ def cmd_compare(args):
         m, rg, ag, arg, real_rgb = view_metrics(v, real, wide_rgb, labels(f"render_{vid}", wide_rgb),
                                                 float(rr["wide_hfov"]), gt, args.yaw_margin, args.pitch_margin,
                                                 args.pano_yaw)
+        extra_metrics(m, rg, ag, real_rgb, arg, v["hfov"], perc)
         rows.append({"id": vid, "source": v["source"], "kind": v["kind"], "lat": v["lat"], "lon": v["lon"],
                      "heading": v["heading"], "local_time": v["local_time"], **m})
-        sheet_rows.append({"imgs": [real_rgb, arg, R.colourise(rg), R.colourise(ag)],
-                           "caption": _caption(vid, v["source"] + " " + v["local_time"], m)})
+        imgs = [real_rgb, arg, R.colourise(rg), R.colourise(ag)]
+        cap = _caption(vid, v["source"] + " " + v["local_time"], m)
+        sheet_rows.append({"imgs": imgs, "caption": cap})
+        spot_image(out / "spots" / f"{vid}.jpg", imgs, cap, v)
         if (k + 1) % 20 == 0:
             print(f"{k + 1}/{len(renders)} compared ({(time.time() - t0) / (k + 1):.1f} s each)", flush=True)
     _write_rows(out / "compare.csv", rows)
+    from coupledcarla import streetphotos as SP
     summ = {"views": summarise(rows), "model": args.model, "groups": R.GROUPS,
-            "ignored": "person, rider, motorcycle, bicycle (both images)"}
+            "ignored": "person, rider, motorcycle, bicycle (both images)", "map": SP.map_score(rows),
+            "perceptual_model": args.dino_model if args.perceptual else None,
+            "worst": [{"id": r["id"], "spot_score": round(r["spot_score"], 3), "differences": r["differences"]}
+                      for r in sorted(rows, key=lambda r: _num(r["spot_score"]))[:20]]}
     pairs = out / "pairs_summary.json"
     if pairs.exists():
         summ["real_vs_real"] = json.loads(pairs.read_text())
         summ["realism_index"] = realism_index(summ["views"]["all"], summ["real_vs_real"])
     (out / "summary.json").write_text(json.dumps(summ, indent=1))
-    order = sorted(range(len(rows)), key=lambda i: -_num(rows[i]["al_miou_coarse"]))     # best match first
+    order = sorted(range(len(rows)), key=lambda i: -_num(rows[i]["spot_score"]))     # best match first
     paths = contact_sheets([sheet_rows[i] for i in order], out, "twin")
+    print(f"map score {summ['map']['score']} (median spot score x 100 over {summ['map']['spots']} spots); most "
+          f"frequent differences: " + "; ".join(f"{k} {n}" for k, n in list(summ["map"]["differences"].items())[:6]),
+          flush=True)
     print(json.dumps({k: summ["views"]["all"].get(k) for k in ["n"] + SUMMARY_KEYS}, indent=1))
     if "realism_index" in summ:
         print("realism index (0 = like a random real place, 1 = like a real photo of the same place):",
@@ -694,9 +779,64 @@ def _num(x):
 
 
 def _caption(vid, what, m):
-    return (f"{vid} {what}  coarse mIoU {m['al_miou_coarse']:.2f} (stated pose {m['nom_miou_coarse']:.2f}; heading "
-            f"{m['heading_error']:+.0f}, pitch {m['pitch_error']:+.0f})  pix {m['al_pix_acc']:.2f}  skyline "
-            f"{m['al_skyline_mae_deg']:.1f} deg")
+    cap = (f"{vid} {what}  coarse mIoU {m['al_miou_coarse']:.2f} (stated pose {m['nom_miou_coarse']:.2f}; heading "
+           f"{m['heading_error']:+.0f}, pitch {m['pitch_error']:+.0f})  pix {m['al_pix_acc']:.2f}  skyline "
+           f"{m['al_skyline_mae_deg']:.1f} deg")
+    if "spot_score" in m:
+        cap += (f"  edges F {_num(m.get('boundary_f')):.2f}" +
+                (f"  DINO {m['dino_patch']:.2f}" if "dino_patch" in m else "") + f"  spot {m['spot_score']:.2f}")
+        if m.get("differences"):
+            cap += "\n" + m["differences"]
+    return cap
+
+
+class Perceptual:
+    """The DINOv2 perceptual similarity (streetphotos.Perceptual), loaded on first use."""
+
+    def __init__(self, args):
+        self.args, self.p = args, None
+
+    def __call__(self, a, b):
+        if self.p is None:
+            from coupledcarla.streetphotos import Perceptual as P
+            self.p = P(self.args.dino_model, self.args.device)
+        return self.p(a, b)
+
+
+def extra_metrics(m, real_g, ren_g, real_rgb, ren_rgb, hfov, perc=None):
+    """Adds the boundary F-score, the differences in words, the DINOv2 similarity and the spot score to m."""
+    from coupledcarla import streetphotos as SP
+    m["boundary_f"] = SP.boundary_f(R.COARSE[real_g], R.COARSE[ren_g])
+    m["differences"] = "; ".join(t for _, t in SP.differences(real_g, ren_g, float(hfov), R.GROUPS))
+    if perc is not None:
+        m.update(perc(real_rgb, ren_rgb))
+    m["spot_score"] = SP.spot_score(m)
+    return m
+
+
+def spot_image(path, imgs, caption, v):
+    """One spot side by side: photo | render over photo layout | render layout, the scores and differences below,
+    and the photo's credit."""
+    from PIL import Image, ImageDraw
+    import textwrap
+    w, h = imgs[0].shape[1], imgs[0].shape[0]
+    width = max(40, int((2 * w + 4) / 8.2))         # characters per line of the 15 px font
+    first, *rest = caption.split("\n")
+    lines = textwrap.wrap(first, width) + [x for r in rest for x in textwrap.wrap(r, width)]
+    n_head = len(textwrap.wrap(first, width))
+    credit = f"Photo: {v.get('author') or 'unknown'}, {v.get('licence') or '?'}, {v.get('source')} {v.get('page')}"
+    lh = 18
+    im = Image.new("RGB", (2 * w + 4, 2 * h + 4 + lh * (len(lines) + 1) + 10), (255, 255, 255))
+    for i, a in enumerate(imgs):
+        im.paste(Image.fromarray(a).resize((w, h)), ((i % 2) * (w + 4), (i // 2) * (h + 4)))
+    dr = ImageDraw.Draw(im)
+    font = _font(15)
+    y = 2 * h + 8
+    for li, line in enumerate(lines + [credit]):
+        dr.text((6, y + li * lh), line, fill=(0, 0, 0) if li < n_head else (150, 30, 30) if li < len(lines)
+                else (70, 70, 70), font=font)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    im.save(path, quality=88)
 
 
 def realism_index(twin, rr, ref="neighbour"):
@@ -705,7 +845,7 @@ def realism_index(twin, rr, ref="neighbour"):
     out = {}
     lo, hi = rr.get("random") or {}, rr.get(ref) or {}
     for k in ("al_miou_coarse", "al_pix_acc_coarse", "al_miou", "al_layout_tv", "al_skyline_mae_deg",
-              "colour_hist_sim"):
+              "colour_hist_sim", "boundary_f", "dino_global", "dino_patch", "spot_score"):
         a, b, t = lo.get(k), hi.get(k), twin.get(k)
         if None not in (a, b, t) and abs(b - a) > 1e-6:
             out[k] = round((t - a) / (b - a), 2)
@@ -748,12 +888,14 @@ def cmd_pairs(args):
     of the same street 10-25 m on, and of random places; a twin render should score between 'random' and the others."""
     cfg, mdir, bbox = _map(args.experiment)
     out = Path(args.out)
+    set_photos_dir(out, mdir, getattr(args, "photos", None))
     recs = R.fetch(mdir, bbox, sources=("panoramax", "kartaview"), refresh=False)
     views = R.read_views(out / "views.csv")
     pairs = make_pairs(views, R.daytime(recs), args.max_pairs)
     print(f"{len(pairs)} pairs: " + ", ".join(f"{k} {sum(p[2] == k for p in pairs)}"
                                              for k in ("same", "neighbour", "random")), flush=True)
     labels = Labels(out, args.model, args.device)
+    perc = Perceptual(args) if args.perceptual else None
     rows, sheet_rows = [], []
     for k, (v, r, kind) in enumerate(pairs):
         try:
@@ -771,6 +913,7 @@ def cmd_pairs(args):
         wide_lab = R.reproject(ol, "equirect", w2, h2, f2, src_yaw=r["heading"] - head, nearest=True)
         m, rg, ag, arg, real_rgb = view_metrics(v, real, wide, wide_lab, f2, None, args.yaw_margin,
                                                 args.pitch_margin, args.pano_yaw)
+        extra_metrics(m, rg, ag, real_rgb, arg, v["hfov"], perc)
         rows.append({"id": v["id"], "other": r["src_id"], "kind": kind,
                      "dist_m": round(R.metres(r["lat"], r["lon"], v["lat"], v["lon"]), 1), **m})
         if len(sheet_rows) < 36:
@@ -822,6 +965,161 @@ def cmd_table(args):
         Path(args.json).write_text(json.dumps({"views": len(common), "runs": res}, indent=1))
 
 
+# ---------------------------------------------------------------- sources and street objects
+
+def cmd_sources(args):
+    """How many street photos each source has in the map's box (by year and camera), and what Mapillary offers:
+    written to <photos>/coverage.json."""
+    from collections import Counter
+
+    from coupledcarla import streetphotos as SP
+    cfg, mdir, bbox = _map(args.experiment)
+    pdir = Path(args.photos or mdir / "real" / "streetphotos")
+    cov = {"bbox": bbox, "made": time.strftime("%Y-%m-%d %H:%M"), "sources": {}}
+    for src in [x for x in args.sources.split(",") if x != "mapillary"]:
+        recs = R.fetch(mdir, bbox, sources=(src,), refresh=args.refresh)
+        day = R.daytime(recs)
+        cov["sources"][src] = {
+            "photos": len(recs), "daytime": len(day), "panoramas": sum(r["projection"] == "equirect" for r in recs),
+            "years": dict(sorted(Counter((r.get("time") or "?")[:4] for r in recs).items())),
+            "licence": R.SOURCES[src][1]}
+    if "mapillary" in args.sources.split(","):
+        try:
+            m = SP.Mapillary(pdir)
+            pts = [p for p in m.points("mly1_public", bbox) if p.get("layer") == "image"]
+            feats = m.features(bbox)
+            probe = m.details([pts[0]["id"]]) if pts else {}
+            cov["sources"]["mapillary"] = {
+                "photos": len(pts), "panoramas": sum(bool(p.get("is_pano")) for p in pts),
+                "years": dict(sorted(Counter(time.strftime("%Y", time.gmtime((p.get("captured_at") or 0) / 1000))
+                                             for p in pts).items())),
+                "map_features": len(feats),
+                "feature_classes": dict(Counter(SP.mly_class(f["value"], f["layer"]) or "other" for f in feats)),
+                "graph_api": "ok" if probe else "refused (image details and URLs unavailable to this token)",
+                "licence": SP.MAPILLARY[1]}
+        except SP.FetchError as err:
+            cov["sources"]["mapillary"] = {"error": str(err)}
+    pdir.mkdir(parents=True, exist_ok=True)
+    (pdir / "coverage.json").write_text(json.dumps(cov, indent=1))
+    print(f"{cfg['name']} {bbox}")
+    for src, c in cov["sources"].items():
+        print(f"  {src}: " + json.dumps(c))
+
+
+def _lane_check(mdir, cfg):
+    """on_lane(x, y): True on a driving lane of the map's OpenDRIVE (carla.Map offline), or None without carla."""
+    try:
+        import carla
+    except ImportError:
+        return None
+    xodr = Path(mdir) / "map.xodr"
+    if not xodr.exists():
+        return None
+    cmap = carla.Map(cfg["map"].get("name") or cfg["name"], xodr.read_text(encoding="utf-8"))
+
+    def on_lane(x, y):
+        return cmap.get_waypoint(carla.Location(x=float(x), y=float(y), z=0.0), project_to_road=False,
+                                 lane_type=carla.LaneType.Driving) is not None
+    return on_lane
+
+
+def _ground(mdir, geo):
+    meta = json.loads((Path(mdir) / "meta.json").read_text())
+    elev = meta.get("elevation")
+    dem_path = Path(mdir) / "real" / "dem.npz"
+    if not elev or not dem_path.exists():
+        return None
+    from coupledcarla import realworld
+    dem = realworld.Dem.load(dem_path)
+
+    def ground(x, y):
+        return float(dem.sample(*geo.to_latlon(x, y))) - float(elev.get("base_m") or 0.0)
+    return ground
+
+
+def cmd_objects(args):
+    """Street objects in the photos against the map's scenery.json: Mapillary's map features and/or poles found in
+    Panoramax panoramas, matched by class; how many lamps, signs and pieces of furniture a correction pass would move,
+    add or remove; --apply writes the --actions (default add, remove) into scenery.json."""
+    from coupledcarla import streetphotos as SP
+    from coupledcarla.geo import Geo
+    cfg, mdir, bbox = _map(args.experiment)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    geo = Geo(mdir / "geo.net.xml")
+    srcs = args.evidence.split(",")
+    for src in srcs:
+        if SP.evidence_path(mdir, src).exists() and not args.refresh:
+            print(f"{src}: evidence cached ({SP.evidence_path(mdir, src)}; --refresh makes it again)", flush=True)
+            continue
+        if src == "mapillary":
+            ev, cams = SP.mapillary_evidence(SP.Mapillary(mdir / "real" / "streetphotos"), bbox, geo)
+        elif src == "panoramax":
+            set_photos_dir(out, mdir, getattr(args, "photos", None))
+            recs = [r for r in R.daytime(R.fetch(mdir, bbox, sources=("panoramax",)))
+                    if r["projection"] == "equirect"]
+            recs = _thin(recs, args.pano_spacing)[:args.max_panos]
+            labels = Labels(out, args.model, args.device)
+
+            def lab(r):
+                try:
+                    return labels.pano(r["src_id"], pano_image(dict(r, id=""), out, args.sd))[0]
+                except Exception as err:  # noqa: BLE001 - a panorama that cannot be fetched is skipped
+                    print(f"{r['src_id']}: skipped ({err})", flush=True)
+                    return None
+            ev, cams = SP.pano_evidence(recs, geo, lab, cam_h=R.HEIGHTS["pano"])
+        else:
+            raise SystemExit(f"unknown evidence source {src} (mapillary, panoramax)")
+        SP.save_evidence(mdir, src, ev, cams)
+    protect = None if args.protect == "auto" else [x for x in args.protect.split(",") if x and x != "none"]
+    actions = tuple(a for a in args.actions.split(",") if a)
+    res = SP.correct_map(mdir, srcs, actions, protect, apply=args.apply,
+                         on_lane=_lane_check(mdir, cfg) if args.apply else None,
+                         ground=_ground(mdir, geo) if args.apply else None)
+    if args.validate:       # the rules against a register: spoil it, correct it from the photos, compare
+        data = json.loads((mdir / "scenery.json").read_text())
+        for src in srcs:
+            ev = json.loads(SP.evidence_path(mdir, src).read_text())
+            obs = SP.Observations([tuple(c) for c in ev["cameras"]])
+            res[src]["validation"] = [SP.validate_corrections(SP.scenery_objects(data), ev["evidence"], obs, cls,
+                                                              shift_m=shift, seed=seed)
+                                      for cls in args.validate.split(",") for shift in (3.0, 6.0) for seed in (1, 2)]
+            for v in res[src]["validation"]:
+                print(f"validation {src} {v['class']} shift {v['shift_m']} m: " + json.dumps(
+                    {k: v[k] for k in ("before", "after", "moves", "moves_closer", "removes", "removes_of_made_up",
+                                       "adds", "adds_at_a_register_object")}), flush=True)
+    (out / "objects.json").write_text(json.dumps(res, indent=1))
+    for src, r in res.items():
+        prot = ", ".join(r["protected"]) or "none"
+        print(f"\n{cfg['name']}: {src} evidence against scenery.json (protected: {prot})")
+        print("| Class | Photos | Scenery (photographed) | Matched | Median offset (m) | Recall | Precision | "
+              "Would move | add | remove |")
+        print("|---|---|---|---|---|---|---|---|---|---|")
+        for cls, st in r["stats"].items():
+            c = r["summary"].get(cls, {})
+            print(f"| {cls} | {st['evidence']} | {st['scenery']} ({st['scenery_photographed']}) | {st['matched']} | "
+                  f"{st['median_offset_m'] if st['median_offset_m'] is not None else ''} | "
+                  f"{st['recall'] if st['recall'] is not None else ''} | "
+                  f"{st['precision'] if st['precision'] is not None else ''} | "
+                  f"{'protected' if st['protected'] else c.get('move', 0)} | {c.get('add', 0)} | "
+                  f"{c.get('remove', 0)} |")
+        if r.get("applied"):
+            print(f"applied to {mdir / 'scenery.json'}: {r['applied']} (old: scenery.before_photos.json)")
+    print(f"{out / 'objects.json'}", flush=True)
+
+
+def _thin(recs, spacing):
+    """One record per spacing metres along each sequence."""
+    out, last = [], {}
+    for r in sorted(recs, key=lambda r: (r.get("sequence") or "", r.get("time") or "", r["src_id"])):
+        q = last.get(r.get("sequence"))
+        if q is not None and R.metres(q["lat"], q["lon"], r["lat"], r["lon"]) < spacing:
+            continue
+        last[r.get("sequence")] = r
+        out.append(r)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -831,6 +1129,7 @@ def main():
     common.add_argument("--pitch-margin", type=float, default=6.0)
     common.add_argument("--sd", action="store_true", help="2048 px panoramas instead of full resolution")
     common.add_argument("--pano-yaw", type=float, default=30.0, help="heading search for panoramas (+- deg)")
+    common.add_argument("--photos", default=None, help="photo cache (default: the map's real/streetphotos/)")
     views = argparse.ArgumentParser(add_help=False)
     views.add_argument("experiment")
     views.add_argument("--sources", default="panoramax,kartaview,commons")
@@ -840,9 +1139,13 @@ def main():
     views.add_argument("--max-views", type=int, default=350)
     views.add_argument("--action-cams", action="store_true", help="also handlebar action cams (roll, fisheye)")
     views.add_argument("--size", type=int, default=768, help="view width (px)")
+    views.add_argument("--box", default=None, help="s,w,n,e: only views inside this part of the map")
     seg = argparse.ArgumentParser(add_help=False)
     seg.add_argument("--model", default="nvidia/segformer-b2-finetuned-cityscapes-1024-1024")
     seg.add_argument("--device", default=None)
+    seg.add_argument("--no-perceptual", dest="perceptual", action="store_false",
+                     help="leave out the DINOv2 similarity (transformers model, ~350 MB)")
+    seg.add_argument("--dino-model", default="facebook/dinov2-base")
     p = sub.add_parser("prepare", parents=[common, views, seg])
     p.add_argument("--no-images", action="store_true")
     p.add_argument("--labels", action="store_true", help="also segment the real images (torch, transformers)")
@@ -872,12 +1175,29 @@ def main():
     p = sub.add_parser("pairs", parents=[common, seg])
     p.add_argument("experiment")
     p.add_argument("--max-pairs", type=int, default=60)
+    p = sub.add_parser("sources", parents=[common], help="street photos per source in the map's box")
+    p.add_argument("experiment")
+    p.add_argument("--sources", default="panoramax,kartaview,commons,mapillary")
+    p.add_argument("--refresh", action="store_true")
+    p = sub.add_parser("objects", parents=[common, seg], help="street objects in the photos against scenery.json")
+    p.add_argument("experiment")
+    p.add_argument("--evidence", default="mapillary", help="mapillary and/or panoramax (poles in panoramas)")
+    p.add_argument("--refresh", action="store_true", help="find the evidence again (else the saved one)")
+    p.add_argument("--max-panos", type=int, default=600)
+    p.add_argument("--pano-spacing", type=float, default=6.0, help="one panorama per this many metres of a ride")
+    p.add_argument("--protect", default="auto",
+                   help="classes never corrected: auto (registers: city lamps, NDW signs), none, or e.g. lamp,sign")
+    p.add_argument("--apply", action="store_true", help="write the corrections (--actions) into scenery.json")
+    p.add_argument("--actions", default="add,remove",
+                   help="what --apply does: add, remove, move (moves made Eindhoven's lamps worse: "
+                        "docs/street_photos.md)")
+    p.add_argument("--validate", default="", help="classes from a register (e.g. lamp): test the rules on it")
     p = sub.add_parser("table", help="compared runs side by side over their common views")
     p.add_argument("runs", nargs="+", help="output folders of compared runs (the first is the reference)")
     p.add_argument("--json", default=None)
     args = ap.parse_args()
     {"prepare": cmd_prepare, "render": cmd_render, "compare": cmd_compare, "pairs": cmd_pairs,
-     "table": cmd_table}[args.cmd](args)
+     "table": cmd_table, "sources": cmd_sources, "objects": cmd_objects}[args.cmd](args)
 
 
 if __name__ == "__main__":

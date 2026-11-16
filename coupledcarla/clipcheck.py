@@ -325,7 +325,9 @@ def check_trial(trial, t0, t1, camera="main", fov=None, map_dir=None, viewers=()
         return any(math.hypot(r["x"] - x, r["y"] - y) <= VIEW_M for r in eyes)
 
     # bodies: overlaps, walker contacts, bus clearance, buildings
-    blds = load_buildings(Path(map_dir) / "buildings.json") if map_dir else []
+    from . import inbuildings      # a twin's footprints with its passages under buildings cut out, else buildings.json
+    fp = inbuildings.footprints_path(map_dir) if map_dir else None
+    blds = load_buildings(fp) if fp else []
     bgrid = {}
     for i, b in enumerate(blds):
         for gx in range(int(b[0] // 20), int(b[2] // 20) + 1):

@@ -1,0 +1,34 @@
+CARLA ue58-dev: the client light API changes the light, not only its record.
+
+UCarlaLight::SetLightState (set_intensity, set_color, set_light_state, turn_on/off from a client) set the
+CarlaLight's intensity and colour and fired the blueprint UpdateLights event, whose graphs in the ported lamp
+blueprints never reach the light components, so a lamp kept its Light Defaults (BP_StreetLight06_A: 27,000 lm, warm
+white) whatever a client asked; only on/off worked (ApplyLightOnToComponents). This applies intensity and colour
+natively, as SetLightIntensity/SetLightColor (used by the Light Defaults) already do. Coupled CARLA needs it for the
+register lamps' colour temperature and lumens (coupledcarla/nightlights.py).
+
+Apply in a CARLA ue58-dev tree (checked against 38b72cc52): git apply <this file>; then rebuild the editor
+(lin5080: ~/build_editor58.sh, an incremental build of one changed file in the Carla module: estimated 5-15 min) and,
+for the packaged server, the package (win5090 task cc58-package; content is unchanged, so mostly compile and stage,
+estimated under an hour). Not posted upstream.
+
+--- a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Lights/CarlaLight.cpp
++++ b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Lights/CarlaLight.cpp
+@@ -590,6 +590,17 @@
+   flags = bOn ? (flags | ECarlaLightFlags::TurnedOn) : (flags & ~ECarlaLightFlags::TurnedOn);
+   UpdateLights();
+   ApplyLightOnToComponents(bOn);
++  // The client light API (set_intensity, set_color, set_light_state) arrives
++  // here. UpdateLights() is the blueprint event that should push the new
++  // intensity and colour into the light components, but the ported lamp
++  // blueprints' UpdateLights graphs never reach them (see
++  // ApplyIntensityToComponents), so the client changed only this record:
++  // get_intensity() answered the new value while the lamp kept shining with
++  // its Light Defaults. Push both natively, as SetLightIntensity and
++  // SetLightColor do. ApplyIntensityToComponents records what it wrote, so
++  // the legacy conversion below leaves it alone.
++  ApplyIntensityToComponents(Intensity);
++  ApplyColorToComponents(Color);
+   ApplyLegacyComponentConversion();
+   RecordLightChange();
+ }
