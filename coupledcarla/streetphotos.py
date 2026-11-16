@@ -1195,17 +1195,16 @@ CRITIQUE_CATEGORIES = ["materials", "objects", "buildings", "greenery", "wear", 
 CRITIQUE_WHERE = ["left", "middle", "right", "foreground", "background", "whole"]
 CRITIQUE_PROMPT = (
     "The first image is a real street photo. The second is a render of a simulated city from the same place, "
-    "height and direction (the renderer's heading may be a few degrees off). List the concrete differences a person "
-    "would notice that make the render look different from the real street or less real. Look at: road and "
-    "pavement materials (bricks, tiles, asphalt), markings and kerbs; objects that are missing or extra (bicycles, "
-    "bollards, signs, lamps, bins, benches, parked cars, fences); building facades, windows and roofs; trees, "
-    "hedges and grass; dirt, wear and litter; light, shadows and sky. Ignore people and moving vehicles, and do "
-    "not describe what is the same. Give at most 8 differences, the most noticeable first, each with: category "
-    "(one of " + ", ".join(CRITIQUE_CATEGORIES) + "), what (a short phrase about the render, e.g. 'road is "
-    "smooth grey asphalt where the photo has red brick pavers'), where in the image (one of "
-    + ", ".join(CRITIQUE_WHERE) + "), and severity (1 = small, 2 = clear, 3 = it gives the render away). "
-    "Answer with JSON only: {\"differences\": [{\"category\": ..., \"what\": ..., \"where\": ..., "
-    "\"severity\": ...}]}")
+    "height and direction (the renderer's heading may be a few degrees off). What would a person notice that "
+    "makes the render look different from this real street, or less real? Think about the ground surfaces and "
+    "their materials, the street furniture and other objects, the building facades, the plants, dirt and wear, "
+    "the light and the sky. Describe only what you can actually see in these two images, in your own words: name "
+    "an object as missing only if you can see it in the photo, and never list things you cannot see. Ignore "
+    "people and moving vehicles, and do not describe what is the same. Give at most 8 differences, the most "
+    "noticeable first, each with: category (one of " + ", ".join(CRITIQUE_CATEGORIES) + "), what (a short "
+    "phrase about this render), where in the image (one of " + ", ".join(CRITIQUE_WHERE) + "), and severity "
+    "(1 = small, 2 = clear, 3 = it gives the render away). Answer with JSON only: {\"differences\": "
+    "[{\"category\": ..., \"what\": ..., \"where\": ..., \"severity\": ...}]}")
 CRITIQUE_SCHEMA = {
     "type": "object", "additionalProperties": False, "required": ["differences"],
     "properties": {"differences": {"type": "array", "items": {
@@ -1213,6 +1212,24 @@ CRITIQUE_SCHEMA = {
         "properties": {"category": {"type": "string", "enum": CRITIQUE_CATEGORIES}, "what": {"type": "string"},
                        "where": {"type": "string", "enum": CRITIQUE_WHERE},
                        "severity": {"type": "integer", "enum": [1, 2, 3]}}}}}}
+
+
+def echoes_prompt(what, n=6):
+    """True when `what` is copied from the prompt rather than seen: six or more words in a row from the prompt, the
+    first prompt's example sentence, or five or more of the objects it listed (a 7B model copied both)."""
+    import re
+    words = re.findall(r"[a-z]+", what.lower())
+    grams = {tuple(words[i:i + n]) for i in range(len(words) - n + 1)}
+    pw = re.findall(r"[a-z]+", CRITIQUE_PROMPT.lower())
+    if grams & {tuple(pw[i:i + n]) for i in range(len(pw) - n + 1)}:
+        return True
+    text = " ".join(words)
+    return OLD_EXAMPLE in text or sum(o in words for o in OLD_OBJECTS) >= 5
+
+
+# the first prompt (2026-11-16) had an example and a list of objects that the 7B model copied into its answers
+OLD_EXAMPLE = "road is smooth grey asphalt where the photo has red brick pavers"
+OLD_OBJECTS = ("bicycles", "bollards", "signs", "lamps", "bins", "benches", "cars", "fences")
 
 
 def parse_critique(text):
@@ -1272,6 +1289,8 @@ def parse_critique(text):
             sev = int(it.get("severity") or 1)
         except (TypeError, ValueError):
             sev = 1
+        if echoes_prompt(str(it["what"])):
+            continue          # a phrase copied from the prompt: not an observation
         out.append({"category": cat if cat in CRITIQUE_CATEGORIES else "other",
                     "what": " ".join(str(it["what"]).split())[:200],
                     "where": where if where in CRITIQUE_WHERE else "whole", "severity": min(3, max(1, sev))})
@@ -1280,7 +1299,9 @@ def parse_critique(text):
 
 _STOP = {"the", "a", "an", "is", "are", "and", "or", "of", "in", "on", "at", "to", "where", "photo", "render", "has",
          "have", "with", "than", "no", "not", "while", "but", "too", "more", "less", "there", "its", "it", "real",
-         "rendered", "image", "which", "that", "this", "instead", "missing", "lacks", "shows", "show", "much"}
+         "rendered", "image", "which", "that", "this", "instead", "missing", "lacks", "shows", "show", "much",
+         "visible", "present", "appears", "appear", "seen", "seem", "seems", "look", "looks", "compared", "absent",
+         "lack", "lacking", "none", "any", "are", "also", "very", "some", "other", "like", "less", "fewer"}
 
 
 def _words(text):

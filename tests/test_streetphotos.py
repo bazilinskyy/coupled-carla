@@ -417,6 +417,8 @@ def test_parse_critique_is_tolerant():
                     "where": "foreground", "severity": 3}
     assert d[1]["category"] == "other" and d[1]["where"] == "whole" and d[1]["severity"] == 3
     assert len(d) == 2                                   # the empty one is dropped
+    copied = '[{"category": "objects", "what": "no bicycles, bollards, signs, lamps, bins, benches", "severity": 2}]'
+    assert SP.parse_critique(copied) == []               # copied from the (old) prompt, not seen
     assert SP.parse_critique("no json here") == [] and SP.parse_critique("{bad} {\"differences\": []}") == []
     bare = '```json\n[{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}]\n```'
     assert SP.parse_critique(bare) == [{"category": "objects", "what": "no bicycles", "where": "left", "severity": 2}]
