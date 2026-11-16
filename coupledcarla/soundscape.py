@@ -5,8 +5,8 @@ published acoustic models (acoustics.py) rather than tuned guesses:
   two-wheelers: rolling noise A_R + B_R lg(v/70) (with the road surface, the air temperature and, on wet roads,
   IMAGINE's wet-road increase), propulsion noise A_P + B_P (v-70)/70 with the acceleration correction and the engine
   speed from a gearbox model (idling at 600-1200 rpm when stopped). Rolling noise is band-shaped noise; the engine
-  is synthesised from its firing frequency and orders with load-dependent harmonics, intake and exhaust formants and
-  cycle-to-cycle jitter (synth.EngineVoice), carrying CNOSSOS's band levels. Electric vehicles have rolling noise
+  is heard from recordings of real engines resampled to the rpm (soundsamples.SampleEngineVoice; synth.EngineVoice,
+  the additive model, with `engine_sound: synth` or as the fallback), carrying CNOSSOS's band levels. Electric vehicles have rolling noise
   and an AVAS (UN R138: up to 20 km/h). Bicycles: tyre noise, a freewheel ratchet when coasting and now and then a
   bell near pedestrians. Emergency vehicles: a siren with their special lights. Buses: air hiss when they stop.
 - Propagation per band and per path: spherical spreading (20 lg d + 11), ISO 9613-1 air absorption at the trial's
@@ -22,6 +22,9 @@ published acoustic models (acoustics.py) rather than tuned guesses:
   Wikimedia Commons has a good open recording, else synthesised), and distant traffic following the hour.
 - AVAS on electric (or automated) cars, auditory eHMIs (a sound or a spoken message from the front of a car when its
   eHMI changes, when it brakes, stops, drives off, has a pedestrian ahead, or at a time).
+- Sound events from the rest of the simulator (event(): horns, bicycle bells, a shout, the own car's hazard lights)
+  and the city's own sounds at real places (soundplaces.py: cafes, construction, fountains, church bells, voices,
+  insects, leaves, tunnels); wipers and rain in the cabin, rain on an umbrella.
 - Calibration: F3 at a station plays a 1 kHz tone at full scale (everything else muted); the sound level meter's
   reading at the participant's ears goes in `sound.reference_db`. A limiter keeps the sum from clipping.
 

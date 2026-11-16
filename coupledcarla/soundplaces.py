@@ -167,10 +167,11 @@ def places(map_dir, log=print, fetch=True, to_xy=None):
                 out["tunnel"].append([round(a[0], 1), round(a[1], 1), round(b[0], 1), round(b[1], 1)])
     except (OSError, ET.ParseError):
         pass
-    try:
-        cache.write_text(json.dumps(out, separators=(",", ":")))
-    except OSError:
-        pass
+    if osm is not None or not fetch:          # an Overpass failure is retried next time (not cached)
+        try:
+            cache.write_text(json.dumps(out, separators=(",", ":")))
+        except OSError:
+            pass
     log("sound: places for the ambient bed: " + ", ".join(f"{len(v)} {k}" for k, v in out.items() if v))
     return out
 
