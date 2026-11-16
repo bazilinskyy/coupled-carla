@@ -1245,6 +1245,27 @@ their PLUTO construction year and use, USGS 3DEP ground under the NYS orthophoto
 markings, kerbs and sidewalks; SUMO drives on the twin's own OpenDRIVE. A 40 s trial on the Windows package ran at
 RTF 0.75 with 707 parked cars and 1,004 scenery meshes around the participant.
 
+**The whole city: EhvCity (`experiments/eindhoven_city_twin.yaml`, `eindhoven_city_real.yaml`).** One World
+Partition level for everything inside Eindhoven's Ring plus Veldhoven (51.395-51.465 N, 5.380-5.509 E, about
+7.8 x 9.0 km): the centre, the TU/e campus, Strijp-S, the PSV stadium, Meerhoven and Veldhoven with ASML. It is the
+carla-digitaltwins city twin (branch `citytwin`): the same data as EhvCentre, with distance-based detail (the
+centre and the campus get 2048 px photo ground tiles, 12 cm, the rest 1024 px; 3DBAG LoD 2.2 inside the Ring and
+LoD 1.3 blocks outside it), building geometry cut clear of the driving lanes and sidewalks (passages with a soffit,
+slivers trimmed to the kerb), and a chunked bake (`ue/bake_city.py`: one editor run per block of 6 x 6 tiles,
+memory-watched and resumable). Its trials start the driver by the station, on the campus (De Zaale) and in
+Veldhoven (De Run by ASML). The level's OpenDRIVE goes to `twins/EhvCity.xodr` (not in git). The Ring phase
+(51.416-51.465 N, 5.434-5.509 E) was built first: 25,923 roads, 2,792 junctions, 74,959 3DBAG buildings, 11,277
+meshes; its map here has 119,229 trees, 16,313 street lamps from the city's register, 11,469 pieces of furniture
+and 32,540 parking stalls streamed around the participants.
+
+**A quick stand-in world (`map.standin`, `experiments/eindhoven_city_quick.yaml`).** A baked city level takes
+minutes to load and CARLA's OpenDRIVE-only world of a whole city builds meshes for every road. `map.standin:
+{radius_m: 800}` generates only the roads within that distance of the first participant from the map's own
+OpenDRIVE (`coupledcarla/standin.py`, an idea from BeamNG.Earth's quick world after a teleport): same road and lane
+ids as the full map, so SUMO keeps the whole city's traffic and the logs line up. On the Ring twin (CARLA 0.9.16,
+lin4080): 1,861 of 25,923 roads around the station and 1,568 around the campus, two 60 s trials at RTF 0.98 and
+0.975 with no collisions.
+
 #### Photorealistic tiles (optional)
 
 `map.photoreal: google` ([`experiments/eindhoven_twin_photoreal.yaml`](experiments/eindhoven_twin_photoreal.yaml))
