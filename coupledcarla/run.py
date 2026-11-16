@@ -801,7 +801,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             for sid, cid in sync.sumo2carla_ids.items():
                 if sid in sync.adopted:      # a participant's car driven by SUMO: logged as the participant
                     continue
-                sa = sync.sumo.get_actor(sid)
+                try:
+                    sa = sync.sumo.get_actor(sid)
+                except KeyError:             # not inserted yet (a living-city car handed to SUMO)
+                    continue
                 if cid not in types:
                     a = world.get_actor(cid)
                     tid = a.type_id if a else ""

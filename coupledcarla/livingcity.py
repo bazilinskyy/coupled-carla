@@ -697,6 +697,7 @@ class LivingCity:
         self.radius = float(lc.get("radius_m", 150.0))
         self.extra = set()          # crowd indices of the walkers the living city added (sitters, waiters, ...)
         self.vehicles = {}          # carla id -> {kind, ...} vehicles the living city drives or holds
+        self.pending_sumo = {}      # sumo id -> carla id: handed to SUMO, not yet inserted
         self.lefthand = bool((tc.get("map") or {}).get("lefthand"))
         self.night = bool(self.wx.get("night"))
         try:            # rain: benches empty (wet weather), from the server's weather
@@ -1448,8 +1449,25 @@ class LivingCity:
         self.sim._kinds[vid] = True
         self.sim._active_actors.add(vid)          # not a new CARLA actor: no SUMO twin for it
         self.sync.sumo2carla_ids[sid] = vid
+        self.pending_sumo[sid] = vid               # subscribed in full once SUMO has inserted it (step)
         self.vehicles.pop(vid, None)
         self.ev("lc_park_out" if v["kind"] == "park_out" else "lc_delivery", vid, state="drives_off", sumo=sid)
+
+    def _subscribe_inserted(self):
+        """A car handed to SUMO, once inserted, gets the bridge's full subscription (the bridge itself gave it only
+        its pose, as it already had a CARLA actor)."""
+        import traci
+        live = set(traci.vehicle.getIDList())
+        for sid in [s for s in self.pending_sumo if s in live]:
+            try:
+                self.sync.sumo.unsubscribe(sid)
+                self.sync.sumo.subscribe(sid)
+                self.sync._sumo_live.add(sid)
+            except Exception as err:  # noqa: BLE001
+                self.log(f"living city: {sid} not subscribed ({type(err).__name__}: {err})")
+            self.pending_sumo.pop(sid)
+        for sid in [s for s in self.pending_sumo if s not in self.sync.sumo2carla_ids]:      # gone meanwhile
+            self.pending_sumo.pop(sid)
 
     def _destination(self, edge):
         import traci
@@ -1916,6 +1934,8 @@ class LivingCity:
             except Exception as err:  # noqa: BLE001 - one behaviour's failure does not end the trial
                 self.log(f"living city: {getattr(fn, '__name__', fn)} failed ({type(err).__name__}: {err})")
         self._move_kinematic()
+        if self.pending_sumo:
+            self._subscribe_inserted()
         if t >= getattr(self, "next_window", 1e18):
             self._window()
         if self.tick_n % 10 == 5:
