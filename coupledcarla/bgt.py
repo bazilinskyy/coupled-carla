@@ -269,10 +269,10 @@ class Surfaces:
         return kind, ground[kind] / total
 
 
-def merge(els, data, geo, skip_lamps=False, skip_trees=False):
+def merge(els, data, geo, skip_lamps=False, skip_trees=False, skip_kinds=()):
     """OSM (and municipal) nodes plus the BGT's plus objects: a BGT object replaces the OSM nodes of its kind within
-    a few metres (REPLACE_M); BGT duplicates closer than SPACING_M are skipped. Lamps and trees are skipped when a
-    municipal register already gives them. Returns (elements, stats)."""
+    a few metres (REPLACE_M); BGT duplicates closer than SPACING_M are skipped. Lamps and trees (and skip_kinds,
+    e.g. "amenity=bench") are skipped when a municipal register already gives them. Returns (elements, stats)."""
     from shapely.geometry import Point
     from shapely.strtree import STRtree
     objs = data.get("objects", [])
@@ -286,7 +286,7 @@ def merge(els, data, geo, skip_lamps=False, skip_trees=False):
         if tags.get("playground"):
             tags["playground"] = ("swing", "slide")[i % 2]
         k = kind_of(tags)
-        if (skip_lamps and k == "highway=street_lamp") or (skip_trees and k == "natural=tree"):
+        if (skip_lamps and k == "highway=street_lamp") or (skip_trees and k == "natural=tree") or k in skip_kinds:
             stats["skipped_register"] += 1
             continue
         gap = SPACING_M.get(k, 0.8)

@@ -50,6 +50,17 @@ DEFAULTS = {
                                          # built; registers (city lamps, NDW signs) are never moved. Off: unvalidated
             "park_shoulders_m": None,    # [min, max]: OpenDRIVE shoulders this wide count as parking strips (the
                                          # CARLA towns: [2.0, 3.0], their kerb shoulders; highways' are 3.5 m)
+            # CARLA 1.0 with the CoupledCarla content (/Game/CoupledCarla/Street, streetlook.py); CARLA's own
+            # props where the server lacks it (or on 0.9.16):
+            "street_props": "auto",      # the country's lamp posts (NL: by the register's mast type), benches,
+                                         # bins, bollards, bike stands (NL, UK, JP); false: CARLA's props
+            "shark_teeth": "auto",       # NL: give-way triangles at NDW B6 signs and OSM give-way points
+            "red_cycle": "auto",         # NL: red asphalt on the OpenDRIVE's cycle lanes
+            "road_wear": "auto",         # cracks, repair patches, potholes (more on roads OSM tags with a bad
+                                         # smoothness) and oil spots; a number scales the amount (1 = auto)
+            "leaf_litter": "auto",       # leaves under deciduous street trees, shown only in autumn trials
+            "roof_clutter": "auto",      # AC units, bulkheads, vents on flat measured roofs: "auto" on baked
+                                         # twins (map.carla_level) only; true: also over CARLA's building meshes
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
