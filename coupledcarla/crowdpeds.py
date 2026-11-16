@@ -1120,8 +1120,12 @@ class CrowdSim:
         tx, ty = lx - hx * back - hy * right, ly - hy * back + hx * right
         dx, dy = tx - loc.x, ty - loc.y
         d = math.hypot(dx, dy)
+        if d > 3.0:              # fallen behind (a post, a wall at its side place): on the leader's trail instead
+            tx, ty = lx - hx * 1.0, ly - hy * 1.0
+            dx, dy = tx - loc.x, ty - loc.y
+            d = math.hypot(dx, dy)
         st["crossing"] = lead["crossing"]
-        if lead["cmd"] <= 0.0 and d < 0.4:
+        if lead["cmd"] <= 0.0 and d < 1.5:
             self._stand(k, actor, st, lead["standing"] or "group", send,
                         face=lead.get("face") if lead["standing"] == "stop" else None)
             return
