@@ -54,7 +54,8 @@ class SimulationSynchronization(object):
                  tm_port=8000,
                  focus=None,
                  radius=None,
-                 animate_radius=0.0):
+                 animate_radius=0.0,
+                 smooth_paths=True):
 
         self.sumo = sumo_simulation
         self.carla = carla_simulation
@@ -80,6 +81,11 @@ class SimulationSynchronization(object):
         # speed, half length, half width)}, refilled in place every tick
         self.animate_radius = float(animate_radius or 0.0)
         self.velocity, self.poses, self._prev_yaw = {}, {}, {}
+        # coupled-carla: each SUMO vehicle in CARLA drives a smoothed copy of its SUMO path (animate.PathSmoother:
+        # lateral acceleration and steering rate of a human driver, a short lag), so a kink in a SUMO lane or a
+        # sharp junction shape is not shown as a swerve; a participant on the SUMO driver gets the gentler limits
+        self.smooth_paths = bool(smooth_paths)
+        self.smoothers = {}
         # coupled-carla: CARLA actors whose SUMO vehicle drives them (a participant on the SUMO driver, inputs.py):
         # {sumo id: carla id}; mapped like SUMO's own vehicles once SUMO has inserted them, never spawned, despawned
         # or destroyed by the bridge. arrived_adopted: those SUMO took off the network this tick.
@@ -227,8 +233,17 @@ class SimulationSynchronization(object):
                 carla_transform.rotation.yaw = yaw
             yaw_rate = animate.yaw_rate(self._prev_yaw.get(carla_actor_id, yaw), yaw, self.carla.step_length)
             self._prev_yaw[carla_actor_id] = yaw
-            self.velocity[carla_actor_id] = animate.velocity(sumo_actor.speed, yaw)
-            self.poses[carla_actor_id] = (loc.x, loc.y, yaw, sumo_actor.speed, sumo_actor.extent.x,
+            speed = sumo_actor.speed
+            if self.smooth_paths:
+                sm = self.smoothers.get(carla_actor_id)
+                if sm is None:
+                    sm = self.smoothers[carla_actor_id] = (animate.PathSmoother.participant()
+                                                           if sumo_actor_id in self.adopted else animate.PathSmoother())
+                loc.x, loc.y, yaw, yaw_rate, speed = sm.step((loc.x, loc.y, yaw), sumo_actor.speed,
+                                                             2.0 * sumo_actor.extent.x, self.carla.step_length)
+                carla_transform.rotation.yaw = yaw
+            self.velocity[carla_actor_id] = animate.velocity(speed, yaw)
+            self.poses[carla_actor_id] = (loc.x, loc.y, yaw, speed, sumo_actor.extent.x,
                                           sumo_actor.extent.y)
             animated = False
             if self.animate_radius > 0 and (centres or sumo_actor_id in self.adopted):
@@ -244,12 +259,14 @@ class SimulationSynchronization(object):
                 carla_lights = None
 
             if animated:
-                self.carla.follow_vehicle(carla_actor_id, carla_transform, sumo_actor.speed, yaw_rate,
+                self.carla.follow_vehicle(carla_actor_id, carla_transform, speed, yaw_rate,
                                           2.0 * sumo_actor.extent.x, carla_lights)
             else:
                 self.carla.place_vehicle(carla_actor_id, carla_transform, carla_lights)
         for gone in [i for i in self._prev_yaw if i not in self.velocity]:
             del self._prev_yaw[gone]
+        for gone in [i for i in self.smoothers if i not in self.velocity]:
+            del self.smoothers[gone]
         laps("sumo_to_carla")
 
         # Updates traffic lights in carla based on sumo information.

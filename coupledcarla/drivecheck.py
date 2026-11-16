@@ -272,3 +272,86 @@ def series_jerk(times, speeds_xy):
     acc = [(vs[i + 1] - vs[i]) / 0.1 for i in range(len(vs) - 1)]
     jerk = [(acc[i + 1] - acc[i]) / 0.1 for i in range(len(acc) - 1)]
     return [abs(a) for a in acc], [abs(j) for j in jerk]
+
+
+# -- bodies and turns from the SUMO FCD (x, y, angle) ---------------------------------------------------------------
+
+def fcd_box(rec, length, width):
+    """(x, y, yaw, hx, hy) of a vehicle's body from an FCD record (front bumper x, y in the net; navigation angle:
+    0 north, clockwise) in a frame with y pointing south like CARLA's (y flipped, yaw = angle - 90)."""
+    yaw = float(rec["angle"]) - 90.0
+    fx, fy = float(rec["x"]), -float(rec["y"])
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    return (fx - c * length / 2.0, fy - s * length / 2.0, yaw, length / 2.0, width / 2.0)
+
+
+class BodyStats:
+    """Side clearance of large vehicles and lateral accelerations, from FCD records with x, y, angle.
+
+    add_step(t, recs) once per FCD time step; size_of(type id) -> (length, width, large) or None. A large vehicle's
+    side clearance counts against bodies beside it (their extents along its axis overlap) while one of the two moves;
+    lateral acceleration per vehicle from its body centre over 0.2 s (clipcheck.dynamics)."""
+
+    def __init__(self, size_of, near_m=0.5):
+        self.size_of, self.near_m = size_of, near_m
+        self.min_clear = {}            # (kind pair) -> min clearance
+        self.close = []                # (t, a, b, clearance) under near_m
+        self.series = {}               # vehicle -> [(t, x, y, yaw)]
+
+    def add_step(self, t, recs):
+        boxes, big, moving = {}, [], {}
+        for r in recs:
+            sz = self.size_of(r.get("type", ""))
+            if sz is None or "x" not in r or "angle" not in r:
+                continue
+            b = fcd_box(r, sz[0], sz[1])
+            boxes[r["id"]] = b
+            moving[r["id"]] = float(r.get("speed", 0.0)) > 0.5
+            self.series.setdefault(r["id"], []).append((t, b[0], b[1], b[2]))
+            if sz[2]:
+                big.append(r["id"])
+        if not big:
+            return
+        g = Grid(15.0)
+        for vid, b in boxes.items():
+            g.add(vid, b[0], b[1])
+        from .clipcheck import box_clearance, side_by_side
+        for a in big:
+            ba = boxes[a]
+            for o in g.near(ba[0], ba[1]):
+                if o == a or not (moving[a] or moving[o]):
+                    continue
+                bo = boxes[o]
+                if (bo[0] - ba[0]) ** 2 + (bo[1] - ba[1]) ** 2 > 225 or not side_by_side(ba, bo):
+                    continue
+                d = box_clearance(ba, bo)
+                key = "large-large" if o in big else "large-other"
+                if key not in self.min_clear or d < self.min_clear[key]:
+                    self.min_clear[key] = d
+                if d < self.near_m and (o not in big or a < o):
+                    self.close.append((t, a, o, round(d, 2), key))
+
+    def result(self, period=0.1):
+        from .clipcheck import dynamics
+        lat_max = []
+        for s in self.series.values():
+            runs, cur = [], []
+            for p in s:
+                if cur and p[0] - cur[-1][0] > 1.5 * period:
+                    runs.append(cur)
+                    cur = []
+                cur.append(p)
+            runs.append(cur)
+            m = 0.0
+            for run in runs:
+                for d in dynamics(run):
+                    if d[3] > 2.0:
+                        m = max(m, d[1])
+            lat_max.append(m)
+        eps = {k: episodes([(round(c[0] / period), (c[1], c[2])) for c in self.close if c[4] == k], gap_frames=10)
+               for k in ("large-large", "large-other")}
+        return {"min_side_clearance_m": {k: round(v, 2) for k, v in self.min_clear.items()},
+                "large_close_episodes": eps,
+                "large_close_examples": [c for c in self.close if c[4] == "large-large"][:6] +
+                                        [c for c in self.close if c[4] == "large-other"][:4],
+                "vehicle_max_lat_acc": summary(lat_max), "vehicles_over_4_mps2": sum(1 for v in lat_max if v > 4.0)}
