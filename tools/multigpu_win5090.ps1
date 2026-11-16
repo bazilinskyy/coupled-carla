@@ -44,7 +44,11 @@ function Step($text) { Write-Host ""; Write-Host "== $text" -ForegroundColor Cya
 function Wsl($cmd, $log) {
   Write-Host "   wsl: $cmd"
   if ($Plan) { return }
-  & wsl.exe -d $Distro -u $WslUser -- bash -lc ($wslPrefix + $cmd) 2>&1 | Tee-Object -FilePath (Join-Path $out $log)
+  # Windows PowerShell 5.1 turns a native command's stderr lines (CARLA's version warning) into error records,
+  # which end the script under $ErrorActionPreference = "Stop"; here they are just output
+  $ErrorActionPreference = "Continue"
+  & wsl.exe -d $Distro -u $WslUser -- bash -lc ($wslPrefix + $cmd) 2>&1 | ForEach-Object { "$_" } |
+    Tee-Object -FilePath (Join-Path $out $log)
 }
 function WaitPort($port, $seconds) {
   if ($Plan) { Write-Host "   wait for port $port"; return }
