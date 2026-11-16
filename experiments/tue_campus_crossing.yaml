@@ -1,0 +1,93 @@
+# A pedestrian crosses De Zaale on the TU/e campus in Eindhoven in front of an automated vehicle (AV) with an eHMI,
+# on the TUeCampus twin (Dutch open data) with Google's Photorealistic 3D Tiles over it: the campus as photographed,
+# CARLA's roads, cars and people on it. The scene of eindhoven_crowd.yaml moved to the campus: the zebra on De Zaale
+# north of MetaForum (twin road 203; the crossing runs 51.44840-51.44848 N at 5.48848 E), the AV eastbound, an
+# oncoming AI car with an automatic eHMI, a crowd calibrated with CROWD for the Netherlands, SUMO traffic around.
+#
+#   host:      python -m coupledcarla.run experiments/tue_campus_crossing.yaml          (--local: every role a bot)
+#   stations:  python -m coupledcarla.station --host <host> --role pedestrian
+#              python -m coupledcarla.station --host <host> --role av_passenger
+# Needs a CARLA 1.0 server with the TUeCampus level, and for the tiles YOUR Google Maps Platform key on the server
+# machine (README "Photorealistic tiles"; one billed root request per level load). Without a key it runs on the twin.
+name: tue_campus_crossing
+
+map:
+  name: tue_campus_twin
+  opendrive: twins/TUeCampus.xodr
+  carla_level: TUeCampus
+  photoreal:
+    provider: google
+    carve: carriageway
+  scenery:
+    trees: false                     # the photo mesh has the real trees and buildings
+    buildings: false
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+
+traffic:
+  walkers: {count: 30, radius_m: 120}
+  cars_per_hour: 900
+  bikes_per_hour: 900
+
+coupling:
+  port: 2100
+  wait_for_stations_s: 600
+  visual_sync_at_s: [2]
+
+ehmi:
+  states:
+    yielding: {text: "I'M STOPPING", color: [0, 190, 255]}
+    go: {text: "GO AHEAD", color: [0, 230, 120]}
+    driving: {text: "DRIVING", color: [255, 170, 0]}
+    wait: {text: "WAIT", color: [255, 40, 40]}
+  slots: [front]
+
+eye_contact: {angle_deg: 20, distance_m: 30}
+
+participants:
+  - role: pedestrian
+    kind: pedestrian
+    station: true
+    spawn: {lat: 51.4483930, lon: 5.4884843, heading: 0}       # south pavement at the zebra, facing the road
+    bot: {path: [[51.4484800, 5.4884843]], start_s: 12, speed: 1.4, look: av1}   # across, watching the AV
+  - role: av_passenger
+    kind: av_passenger
+    station: true
+    agent: av1
+    bot: {ehmi: [[13, yielding], [16, go], [21, driving]]}
+
+agents:
+  - id: av1                          # eastbound on De Zaale towards the zebra
+    kind: car
+    vehicle: vehicle.tesla.model3
+    color: "20,60,140"
+    route: [[51.4484210, 5.4866000], [51.4484213, 5.4880485], [51.4484209, 5.4889115], [51.4484204, 5.4899185]]
+    speed_kmh: 30
+    accel: 2.0
+    yield_to_pedestrians: true
+    ehmi: manual
+    ehmi_slots: [front, roof, road, eyes]
+  - id: car2                         # oncoming, westbound, automatic eHMI
+    kind: car
+    vehicle: vehicle.audi.a2
+    route: [[51.4484526, 5.4899000], [51.4484526, 5.4866000]]
+    speed_kmh: 25
+    yield_to_pedestrians: true
+    ehmi: auto
+  - id: walker1                      # crosses at the next zebra east, in front of car2
+    kind: walker
+    path: [[51.4483930, 5.4897363], [51.4484800, 5.4897363]]
+    speed: 1.3
+    start_s: 4
+
+pois:
+  - {name: metaforum, lat: 51.44755, lon: 5.48745}
+  - {name: atlas, lat: 51.4479, lon: 5.4860}
+
+trials:
+  - {duration_s: 60}

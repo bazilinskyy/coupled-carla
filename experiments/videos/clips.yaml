@@ -364,6 +364,24 @@ clips:
 
     # CARLA 1.0 twin clips: render on a CARLA 1.0 server with the twin level
     #   (python tools/make_videos.py render twin_eindhoven --no-launch --port 2000)
+  - name: tue_campus_ehmi
+    title: Crossing on the TU/e campus
+    place: TU/e campus, Eindhoven (CARLA 1.0 twin with Google's photo tiles)
+    role: pedestrian
+    when: midday
+    agents: the AV with its eHMI (front, roof, road, eyes), an oncoming AI car, a crowd, SUMO traffic
+    notice: the zebra on De Zaale north of MetaForum; the campus as photographed (Google Photorealistic 3D Tiles over
+      the TUeCampus twin), the AV slows, shows I'M STOPPING, then GO AHEAD
+    experiment: experiments/tue_campus_crossing.yaml
+    local: true
+    time: "2026-09-20 12:30"
+    set: {simulation: {camera_profile: CoupledReal}}
+    start_s: 11
+    duration_s: 18
+    attributes: {bloom_intensity: 0.08}
+    camera: {kind: follow, target: pedestrian, offset: [0.22, 0, 0.72], look_ahead_m: 6, look_up_m: 0.7,
+             smooth_s: 0.4, look_at: av1, look_weight: 0.8, look_smooth_s: 0.4, look_max_m: 160, fov: 80}
+    carla: '1.0'
   - name: twin_eindhoven
     title: The Eindhoven digital twin
     crf: 29

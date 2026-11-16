@@ -21,11 +21,30 @@ class Geo:
         return lat, lon
 
 
+def nearest_waypoint(cmap, x, y, lane_type=None, z=None):
+    """The waypoint of the lane nearest (x, y), looked up at the road's own height: CARLA measures the distance in 3D,
+    so asking at z = 0 on a map hundreds of metres above sea level (Zurich, about 400 m) can pick a lane on another
+    road or the wrong side. Without z the first answer's height is used for a second lookup."""
+    import carla
+    lane_type = carla.LaneType.Driving if lane_type is None else lane_type
+    wp = cmap.get_waypoint(carla.Location(x=x, y=y, z=z or 0.0), project_to_road=True, lane_type=lane_type)
+    for _ in range(2 if z is None else 0):
+        if wp is None:
+            break
+        z0 = wp.transform.location.z
+        again = cmap.get_waypoint(carla.Location(x=x, y=y, z=z0), project_to_road=True, lane_type=lane_type)
+        if again is None:
+            break
+        wp = again
+        if abs(again.transform.location.z - z0) < 0.5:
+            break
+    return wp
+
+
 def ground(cmap, x, y):
     """carla.Location at (x, y) on the nearest lane's surface (roads have real heights with map.elevation)."""
     import carla
-    loc = carla.Location(x=x, y=y)
-    wp = cmap.get_waypoint(loc, project_to_road=True, lane_type=carla.LaneType.Any)
+    wp = nearest_waypoint(cmap, x, y, carla.LaneType.Any)
     return carla.Location(x=x, y=y, z=wp.transform.location.z if wp is not None else 0.0)
 
 

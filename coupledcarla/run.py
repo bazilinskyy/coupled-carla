@@ -31,7 +31,7 @@ from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSyn
 from .coupling import ControlServer
 from .display import View
 from .drones import DroneView, DroneWorld
-from .geo import Geo, ground, heading_to_yaw
+from .geo import Geo, ground, heading_to_yaw, nearest_waypoint
 from .logger import TrialLogger
 from .routing import SafeGlobalRoutePlanner
 from .scenery import Scenery
@@ -192,7 +192,7 @@ def spawn_vehicle(world, geo, p, log):
     sp = p.get("spawn") or {}
     if "lat" in sp:
         x, y = geo.to_carla(sp["lat"], sp["lon"])
-        wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
+        wp = nearest_waypoint(cmap, x, y, carla.LaneType.Driving)
         log(f"{p['role']}: asked for {sp['lat']:.5f},{sp['lon']:.5f} -> lane {wp.road_id}/{wp.lane_id} "
             f"{wp.transform.location.distance(carla.Location(x=x, y=y, z=wp.transform.location.z)):.1f} m away")
         candidates = [wp.transform]

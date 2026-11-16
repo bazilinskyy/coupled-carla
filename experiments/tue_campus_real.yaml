@@ -1,0 +1,45 @@
+# The TU/e campus as real as Coupled CARLA gets: the TUeCampus twin (PDOK 8 cm aerial photo, AHN terrain, 3DBAG
+# buildings, OSM roads) with Google's Photorealistic 3D Tiles over it and every live data stream on, as
+# eindhoven_real.yaml does for the centre: the sun and weather of now (Open-Meteo), traffic fitted to NDW counts, the
+# real buses (OVapi GTFS-Realtime), cyclists, the RDW fleet, a crowd calibrated with CROWD.
+# Needs YOUR Google Maps Platform key on the server machine (README "Photorealistic tiles"). Without one: the twin.
+name: tue_campus_real
+
+map:
+  name: tue_campus_twin
+  opendrive: twins/TUeCampus.xodr
+  carla_level: TUeCampus
+  photoreal:
+    provider: google
+    carve: carriageway
+  scenery:
+    trees: false
+    buildings: false
+
+server:
+  quality: Epic
+
+simulation:
+  step: 0.02
+  time: now
+  weather: real
+
+traffic:
+  cars_per_hour: auto
+  counts: auto
+  walkers: {count: auto}
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 51.44842, lon: 5.48690, heading: 90}   # De Zaale north of Atlas and MetaForum, heading east
+
+pois:
+  - {name: metaforum, lat: 51.44755, lon: 5.48745}
+  - {name: atlas, lat: 51.4479, lon: 5.4860}
+  - {name: groene_loper, lat: 51.44675, lon: 5.4880}
+
+trials:
+  - {duration_s: 300}
