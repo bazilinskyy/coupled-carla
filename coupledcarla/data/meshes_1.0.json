@@ -13663,6 +13663,513 @@
 0.0,
 0.0
 ]
+},
+"/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampPostTop4.SM_CC_NL_LampPostTop4": {
+"cat": "lamp",
+"ext": [
+0.235,
+0.235,
+2.15
+],
+"off": [
+0.0,
+0.0,
+2.15
+]
+},
+"/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampTopLed6.SM_CC_NL_LampTopLed6": {
+"cat": "lamp",
+"ext": [
+0.451,
+0.13,
+3.071
+],
+"off": [
+0.351,
+0.0,
+3.071
+]
+},
+"/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampArm9.SM_CC_NL_LampArm9": {
+"cat": "lamp",
+"ext": [
+1.173,
+0.15,
+4.5
+],
+"off": [
+1.048,
+0.0,
+4.5
+]
+},
+"/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampArm12.SM_CC_NL_LampArm12": {
+"cat": "lamp",
+"ext": [
+1.423,
+0.15,
+6.006
+],
+"off": [
+1.298,
+0.0,
+6.006
+]
+},
+"/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampDouble10.SM_CC_NL_LampDouble10": {
+"cat": "lamp",
+"ext": [
+2.222,
+0.15,
+5.0
+],
+"off": [
+0.0,
+0.0,
+5.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampHeritage4.SM_CC_NL_LampHeritage4": {
+"cat": "lamp",
+"ext": [
+0.29,
+0.29,
+2.102
+],
+"off": [
+0.0,
+0.0,
+2.102
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bollard.SM_CC_NL_Bollard": {
+"cat": "furniture",
+"ext": [
+0.052,
+0.052,
+0.45
+],
+"off": [
+0.0,
+0.0,
+0.45
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Amsterdammertje.SM_CC_NL_Amsterdammertje": {
+"cat": "furniture",
+"ext": [
+0.072,
+0.072,
+0.504
+],
+"off": [
+0.0,
+0.0,
+0.504
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BenchEindhoven_DarkBrown.SM_CC_NL_BenchEindhoven_DarkBrown": {
+"cat": "furniture",
+"ext": [
+0.9,
+0.295,
+0.425
+],
+"off": [
+0.0,
+0.055,
+0.425
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BenchEindhoven_LightBrown.SM_CC_NL_BenchEindhoven_LightBrown": {
+"cat": "furniture",
+"ext": [
+0.9,
+0.295,
+0.425
+],
+"off": [
+0.0,
+0.055,
+0.425
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinRound_Green.SM_CC_NL_BinRound_Green": {
+"cat": "furniture",
+"ext": [
+0.215,
+0.215,
+0.477
+],
+"off": [
+0.0,
+0.0,
+0.477
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinRound_Grey.SM_CC_NL_BinRound_Grey": {
+"cat": "furniture",
+"ext": [
+0.215,
+0.215,
+0.477
+],
+"off": [
+0.0,
+0.0,
+0.477
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinSquare_Grey.SM_CC_NL_BinSquare_Grey": {
+"cat": "furniture",
+"ext": [
+0.235,
+0.227,
+0.5
+],
+"off": [
+0.0,
+0.017,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x1.SM_CC_NL_Nietje_x1": {
+"cat": "furniture",
+"ext": [
+0.024,
+0.374,
+0.387
+],
+"off": [
+0.0,
+0.0,
+0.387
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x3.SM_CC_NL_Nietje_x3": {
+"cat": "furniture",
+"ext": [
+0.924,
+0.374,
+0.387
+],
+"off": [
+0.0,
+0.0,
+0.387
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x6.SM_CC_NL_Nietje_x6": {
+"cat": "furniture",
+"ext": [
+2.274,
+0.374,
+0.387
+],
+"off": [
+0.0,
+0.0,
+0.387
+]
+},
+"/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalPole.SM_CC_NL_SignalPole": {
+"cat": "furniture",
+"ext": [
+0.057,
+0.057,
+1.825
+],
+"off": [
+0.0,
+0.0,
+1.825
+]
+},
+"/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalCar.SM_CC_NL_SignalCar": {
+"cat": "furniture",
+"ext": [
+0.36,
+0.198,
+0.72
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalBike.SM_CC_NL_SignalBike": {
+"cat": "furniture",
+"ext": [
+0.31,
+0.198,
+0.57
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalPed.SM_CC_NL_SignalPed": {
+"cat": "furniture",
+"ext": [
+0.31,
+0.198,
+0.44
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_SharkTeeth_3.SM_CC_NL_SharkTeeth_3": {
+"cat": "marking",
+"ext": [
+0.3,
+1.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.006
+]
+},
+"/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_SharkTeeth_4.SM_CC_NL_SharkTeeth_4": {
+"cat": "marking",
+"ext": [
+0.3,
+1.375,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.006
+]
+},
+"/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_SharkTeeth_5.SM_CC_NL_SharkTeeth_5": {
+"cat": "marking",
+"ext": [
+0.3,
+1.75,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.006
+]
+},
+"/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_BlockMarking.SM_CC_NL_BlockMarking": {
+"cat": "marking",
+"ext": [
+0.15,
+0.15,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.006
+]
+},
+"/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_RedAsphalt.SM_CC_NL_RedAsphalt": {
+"cat": "marking",
+"ext": [
+3.0,
+0.5,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.008
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Crack_A.SM_CC_Any_Crack_A": {
+"cat": "marking",
+"ext": [
+1.0,
+1.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.004
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Patch_A.SM_CC_Any_Patch_A": {
+"cat": "marking",
+"ext": [
+1.2,
+0.7,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.005
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Pothole_A.SM_CC_Any_Pothole_A": {
+"cat": "marking",
+"ext": [
+0.45,
+0.45,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.006
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Oil_A.SM_CC_Any_Oil_A": {
+"cat": "marking",
+"ext": [
+0.6,
+0.8,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.004
+]
+},
+"/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Leaves_A.SM_CC_Any_Leaves_A": {
+"cat": "marking",
+"ext": [
+1.0,
+1.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.007
+]
+},
+"/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofAC.SM_CC_Any_RoofAC": {
+"cat": "furniture",
+"ext": [
+0.5,
+0.3,
+0.465
+],
+"off": [
+0.0,
+0.0,
+0.465
+]
+},
+"/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofACLarge.SM_CC_Any_RoofACLarge": {
+"cat": "furniture",
+"ext": [
+1.15,
+0.6,
+0.65
+],
+"off": [
+0.0,
+0.0,
+0.65
+]
+},
+"/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofBulkhead.SM_CC_Any_RoofBulkhead": {
+"cat": "furniture",
+"ext": [
+1.55,
+1.35,
+1.33
+],
+"off": [
+0.0,
+0.0,
+1.33
+]
+},
+"/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofVent.SM_CC_Any_RoofVent": {
+"cat": "furniture",
+"ext": [
+0.22,
+0.22,
+0.41
+],
+"off": [
+0.0,
+0.0,
+0.41
+]
+},
+"/Game/CoupledCarla/Street/UK/Pole/SM_CC_UK_LampColumn8.SM_CC_UK_LampColumn8": {
+"cat": "lamp",
+"ext": [
+0.657,
+0.125,
+4.072
+],
+"off": [
+0.545,
+0.0,
+4.072
+]
+},
+"/Game/CoupledCarla/Street/UK/Static/SM_CC_UK_BinCast.SM_CC_UK_BinCast": {
+"cat": "furniture",
+"ext": [
+0.27,
+0.27,
+0.486
+],
+"off": [
+0.0,
+0.0,
+0.486
+]
+},
+"/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalCar.SM_CC_UK_SignalCar": {
+"cat": "furniture",
+"ext": [
+0.36,
+0.198,
+0.72
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8.SM_CC_JP_LampGooseneck8": {
+"cat": "lamp",
+"ext": [
+1.125,
+0.14,
+4.023
+],
+"off": [
+1.025,
+0.0,
+4.023
+]
+},
+"/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalCar.SM_CC_JP_SignalCar": {
+"cat": "furniture",
+"ext": [
+0.72,
+0.198,
+0.36
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
 }
 },
 "server": "1.0-38b72cc52"
