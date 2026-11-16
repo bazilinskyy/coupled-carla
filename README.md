@@ -343,6 +343,33 @@ export SUMO_HOME=$(.venv/bin/python -c "import sumo; print(sumo.SUMO_HOME)")
 export PATH=$SUMO_HOME/bin:$PATH PROJ_LIB=$SUMO_HOME/data/proj
 ```
 
+### The `config` and `secret` files
+
+The machine's own settings and API keys live in two JSON files in the root of the project, `config` and `secret`.
+Both are ignored by git, so they are never committed; the templates `default.config` and `default.secret` are. Copy
+them once and fill in only what you use (every entry may stay empty; a feature that needs a key says so):
+
+```bash
+cp default.config config && cp default.secret secret && chmod 600 secret
+.venv/bin/python -m coupledcarla.settings          # which keys are set (names and lengths only, never the keys)
+```
+
+| `secret` entry | Used for | Free key from |
+|---|---|---|
+| `google_maps_api_key` | Google Photorealistic 3D Tiles ([Photorealistic tiles](#photorealistic-tiles-optional)) | console.cloud.google.com (billing on; 1,000 tile sessions a month free) |
+| `mapillary_token` | street photos and their detected signs, poles and lamps, to compare and correct the twins | mapillary.com/dashboard/developers |
+| `sketchfab_api_token` | openly licensed 3D models of street furniture | sketchfab.com, Settings, Password & API |
+| `freesound_api_key` | recordings for the soundscape (engines, horns, rain, city ambience) | freesound.org/apiv2/apply |
+| `opentopography_api_key` | elevation outside the countries with national data (Copernicus 30 m, lidar) | portal.opentopography.org |
+| `tomtom_api_key` | traffic speeds where no open counts exist | developer.tomtom.com |
+
+An environment variable with the entry's name in capitals (`GOOGLE_MAPS_API_KEY`, `MAPILLARY_TOKEN`, ...) wins over
+`secret`. The CARLA server's photorealistic-tiles plugin runs inside the server and reads its key on the server
+machine from `GOOGLE_MAPS_API_KEY` or `~/.config/coupled-carla/google_maps_key` (Windows:
+`%USERPROFILE%\.config\coupled-carla\google_maps_key`). `config` holds `mute_sound` (true: nothing is played on
+the speakers, as `COUPLED_CARLA_MUTE=1`; recordings still work) and `config_dir` (where the tiles ledger and credits
+live).
+
 Build a map once, then run its trials:
 
 ```bash

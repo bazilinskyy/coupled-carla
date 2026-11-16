@@ -8,3 +8,6 @@ twins/
 /out/
 *.egg-info/
 /_site/
+# this machine's settings and API keys (copied from default.config / default.secret)
+/config
+/secret

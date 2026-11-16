@@ -582,8 +582,9 @@ class Output:
         self.running = False
         self.thread = None
         self.blocks = 0
-        if device and os.environ.get("COUPLED_CARLA_MUTE", "") not in ("", "0"):
-            log("sound: COUPLED_CARLA_MUTE is set: nothing is played on the speakers"
+        from .settings import mute
+        if device and mute():
+            log("sound: muted (COUPLED_CARLA_MUTE or config mute_sound): nothing is played on the speakers"
                 + (" (recording only)" if record else ""))
             device = None
         if device:
