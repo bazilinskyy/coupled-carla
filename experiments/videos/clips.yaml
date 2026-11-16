@@ -4,8 +4,8 @@
 #   python tools/make_videos.py render <name>      (one clip)      python tools/make_videos.py render --all
 defaults:
   fps: 25
-  size: [1280, 720]
-  crf: 28
+  size: [1920, 1080]          # full HD (frames rendered 2x supersampled, see film.py capture)
+  crf: 20                      # visually clean; a 20 s clip is about 10-25 MB
   # capture cameras: no motion blur, less bloom (eHMI light lines), a darker auto exposure (0.9.16's pale OSM roads)
   attributes: {motion_blur_intensity: 0, motion_blur_max_distortion: 0, bloom_intensity: 0.3,
                exposure_compensation: -0.7, exposure_max_bright: 15}
@@ -15,8 +15,6 @@ defaults:
 clips:
   - name: eindhoven_rush_hour
     title: Rush hour in Eindhoven
-    scale: [960, 540]            # a moving camera full of detail: 960x540 keeps it under 4 MB
-    crf: 29
     place: Eindhoven centre, Netherlands
     role: driver (autopilot), chase camera
     when: weekday 17:15
@@ -52,7 +50,6 @@ clips:
 
   - name: crossing_four_views
     title: Four people, one street
-    crf: 29
     place: Eindhoven, east of the station
     role: pedestrian, AV passenger, driver, drone pilot (four bot stations)
     when: midday
@@ -109,7 +106,6 @@ clips:
 
   - name: eindhoven_cyclist
     title: Riding with Dutch cyclists
-    scale: [960, 540]
     place: Eindhoven, Vestdijk cycle path
     role: chase camera on a SUMO cyclist
     when: weekday 17:20, June
@@ -165,8 +161,6 @@ clips:
 
   - name: chernihiv_avenue
     title: Down prospekt Myru, Chernihiv
-    scale: [960, 540]
-    crf: 29
     place: Chernihiv, Ukraine (made with the map maker)
     role: driver (autopilot), chase camera
     when: weekday 17:00
@@ -222,7 +216,6 @@ clips:
 
   - name: robotaxi_passenger
     title: Riding in a robotaxi
-    crf: 31
     place: Eindhoven, east of the station
     role: AV passenger (bot station)
     when: midday
@@ -271,8 +264,6 @@ clips:
   # CARLA's standard maps (experiments/towns; map.carla_town, coupledcarla/towns.py)
   - name: town10_rush_hour
     title: Downtown traffic in Town10
-    scale: [960, 540]
-    crf: 29
     place: Town10HD (CARLA's downtown)
     role: driver (autopilot), chase camera
     when: midday
@@ -310,7 +301,6 @@ clips:
 
   - name: town10_four_views
     title: Four people in Town10
-    crf: 29
     place: Town10HD, the avenue
     role: pedestrian, AV passenger, driver, drone pilot (four bot stations)
     when: midday
@@ -403,7 +393,6 @@ clips:
     carla: '1.0'
   - name: twin_eindhoven
     title: The Eindhoven digital twin
-    crf: 29
     place: Eindhoven centre (CARLA 1.0 twin)
     role: driver (autopilot), chase camera
     when: weekday 17:15
@@ -436,7 +425,6 @@ clips:
     carla: '1.0'
   - name: twin_salamanca
     title: Plaza Mayor, Salamanca
-    crf: 29
     place: Salamanca, Spain (CARLA 1.0 twin)
     role: driver (autopilot), chase camera
     when: midday
@@ -453,7 +441,6 @@ clips:
     carla: '1.0'
   - name: twin_shibuya
     title: Shibuya crossing twin
-    crf: 29
     place: Tokyo, Japan (CARLA 1.0 twin, left-hand)
     role: driver (autopilot), chase camera
     when: midday
