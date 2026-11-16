@@ -13989,6 +13989,45 @@
 0.008
 ]
 },
+"/Game/CoupledCarla/Street/NL/SideWalk/SM_CC_NL_Paving_40.SM_CC_NL_Paving_40": {
+"cat": "ground",
+"ext": [
+20.0,
+20.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/SideWalk/SM_CC_NL_Paving_20.SM_CC_NL_Paving_20": {
+"cat": "ground",
+"ext": [
+10.0,
+10.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/SideWalk/SM_CC_NL_Paving_10.SM_CC_NL_Paving_10": {
+"cat": "ground",
+"ext": [
+5.0,
+5.0,
+0.0
+],
+"off": [
+0.0,
+0.0,
+0.0
+]
+},
 "/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Crack_A.SM_CC_Any_Crack_A": {
 "cat": "marking",
 "ext": [

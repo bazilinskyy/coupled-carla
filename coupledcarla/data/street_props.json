@@ -184,6 +184,14 @@
    0.85,
    "redasphalt"
   ],
+  "Klinker": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.8,
+   "klinker"
+  ],
   "Crack": [
    1.0,
    1.0,
@@ -1013,6 +1021,78 @@
    ],
    "fallback": null,
    "decal": true,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Paving_40": {
+   "path": "/Game/CoupledCarla/Street/NL/SideWalk/SM_CC_NL_Paving_40.SM_CC_NL_Paving_40",
+   "region": "NL",
+   "folder": "SideWalk",
+   "role": "paving",
+   "ext": [
+    20.0,
+    20.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "triangles": 2,
+   "slots": [
+    "Klinker"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Paving_20": {
+   "path": "/Game/CoupledCarla/Street/NL/SideWalk/SM_CC_NL_Paving_20.SM_CC_NL_Paving_20",
+   "region": "NL",
+   "folder": "SideWalk",
+   "role": "paving",
+   "ext": [
+    10.0,
+    10.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "triangles": 2,
+   "slots": [
+    "Klinker"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Paving_10": {
+   "path": "/Game/CoupledCarla/Street/NL/SideWalk/SM_CC_NL_Paving_10.SM_CC_NL_Paving_10",
+   "region": "NL",
+   "folder": "SideWalk",
+   "role": "paving",
+   "ext": [
+    5.0,
+    5.0,
+    0.0
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "triangles": 2,
+   "slots": [
+    "Klinker"
+   ],
+   "fallback": null,
+   "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
   },

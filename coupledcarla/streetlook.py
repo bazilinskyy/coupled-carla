@@ -206,6 +206,18 @@ class Chooser:
         return name
 
 
+# --- ground: Dutch pavers -----------------------------------------------------------------------------------------
+
+def ground_mesh(kind, size, cat, region):
+    """Our paving square for a ground square of `size` m (40, 20 or 10: scale 1, so the pavers keep their size) of
+    kind "open" (BGT open verharding: bricks, pavers, tiles) in the Netherlands, or None (CARLA's: on 1.0 its
+    sidewalk cube stretched over the whole square, which reads as smooth concrete)."""
+    if region != "NL" or kind != "open":
+        return None
+    name = f"SM_CC_NL_Paving_{int(round(size))}"
+    return name if name in cat else None
+
+
 # --- signs: one design, many countries -----------------------------------------------------------------------------
 
 # Countries whose give-way sign is not the plain red-bordered inverted triangle (text in it, or none at all) and
@@ -315,19 +327,90 @@ def along(cmap, lanes, step):
             s += step(wp) if callable(step) else step
 
 
-def red_cycle_lanes(pl, cat, cmap, xodr):
+def red_cycle_lanes(pl, cat, cmap, xodr, skip=()):
     """Red asphalt strips along the map's cycle lanes (OpenDRIVE lane type biking), as Dutch fietspaden are: one
     strip of the lane's width and six widths long every 5.7 widths (a little overlap on curves)."""
     name = "SM_CC_NL_RedAsphalt"
     if name not in cat:
         return 0
     n = 0
+    tree = None
+    if skip:
+        from shapely.geometry import Point
+        from shapely.strtree import STRtree
+        skip = [p.buffer(2.5) for p in skip]      # OSM's line of the same path lies a metre or two off the BGT's
+        tree = STRtree(skip)
     for wp in along(cmap, xodr_lanes(xodr, ("biking",)), lambda w: 5.7 * max(0.8, w.lane_width)):
         tf = wp.transform
+        if tree is not None:
+            p = Point(tf.location.x, tf.location.y)
+            if any(skip[i].contains(p) for i in tree.query(p)):
+                continue        # a BGT cycle path already covered
         pl.add("surface", name, tf.location.x, tf.location.y, tf.rotation.yaw, max(0.8, wp.lane_width),
                z=tf.location.z)
         n += 1
     return n
+
+
+def red_cycle_paths(pl, cat, cmap, carla, geo, bgt_data, seg_m=12.0):
+    """Red asphalt over the BGT's cycle paths (wegdeel fietspad, gesloten verharding: Dutch cycle paths are red
+    asphalt), on OSM maps and twins alike: each polygon cut into pieces about seg_m long along its main direction,
+    each piece covered by strips of its width (the 1 x 6 m strip scaled to the width, one per 5.7 widths) at the
+    surface's height (the lane there, else the ground). Returns (strips, the cycle path polygons)."""
+    from shapely.geometry import Polygon, box
+    from shapely import affinity
+    name = "SM_CC_NL_RedAsphalt"
+    if name not in cat or not bgt_data:
+        return 0, []
+    n, polys = 0, []
+    any_lane = carla.LaneType.Any
+
+    def height(x, y):
+        wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=False, lane_type=any_lane)
+        return wp.transform.location.z if wp is not None else pl.ground(x, y)
+    for srf in bgt_data.get("surfaces", []):
+        if srf.get("c") != "wegdeel" or srf.get("f") != "fietspad" or srf.get("v") != "gesloten verharding":
+            continue
+        for ring in srf.get("r", [])[:1]:
+            try:
+                poly = Polygon([geo.to_carla(lat, lon) for lon, lat in ring]).buffer(0)
+            except Exception:  # noqa: BLE001
+                continue
+            if poly.is_empty or poly.area < 4:
+                continue
+            polys.append(poly)
+            rect = list(poly.minimum_rotated_rectangle.exterior.coords)
+            e = max(((rect[i], rect[i + 1]) for i in range(4)), key=lambda p: math.dist(*p))
+            ang = math.degrees(math.atan2(e[1][1] - e[0][1], e[1][0] - e[0][0]))
+            c = poly.centroid
+            flat_ = affinity.rotate(poly, -ang, origin=c)        # main direction along x
+            minx, miny, maxx, maxy = flat_.bounds
+            x0 = minx
+            while x0 < maxx - 0.3:
+                piece = flat_.intersection(box(x0, miny - 1, min(maxx, x0 + seg_m), maxy + 1))
+                x0 += seg_m
+                if piece.is_empty or piece.area < 1.0:
+                    continue
+                for part in getattr(piece, "geoms", [piece]):
+                    if part.area < 1.0:
+                        continue
+                    px0, py0, px1, py1 = part.bounds
+                    w = max(0.8, min(5.0, part.area / max(0.5, px1 - px0)))
+                    step = 5.7 * w
+                    k = max(1, math.ceil((px1 - px0) / step))
+                    for i in range(k):
+                        cx_ = px0 + (i + 0.5) * (px1 - px0) / k
+                        mid = part.intersection(box(cx_ - 0.05, py0 - 1, cx_ + 0.05, py1 + 1))
+                        cy_ = mid.centroid.y if not mid.is_empty else (py0 + py1) / 2
+                        p = affinity.rotate(Point_(cx_, cy_), ang, origin=c)
+                        pl.add("surface", name, p.x, p.y, ang, w, z=height(p.x, p.y))
+                        n += 1
+    return n, polys
+
+
+def Point_(x, y):
+    from shapely.geometry import Point
+    return Point(x, y)
 
 
 def _rng(*parts):
@@ -518,7 +601,7 @@ def _on(sc, key):
     return sc.get(key, "auto") not in (False, "off", "false", None)
 
 
-def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log=print, ndw=None):
+def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log=print, ndw=None, bgt_data=None):
     """scenery.build's hook: markings and red cycle lanes (the Dutch set), road wear, oil spots, leaf litter and
     rooftop clutter (any region), each where the catalogue has the meshes (CARLA 1.0) and its option is on."""
     from shapely.geometry import Polygon
@@ -534,10 +617,11 @@ def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log
         n = shark_teeth(pl, cat, cmap, carla, pts, lefthand, log)
         pl.counts["marking_shark_teeth"] = n
         said.append(f"{n} shark-teeth rows at {len(pts)} give-way points")
-    if look.region == "NL" and _on(sc, "red_cycle") and xodr.exists():
-        n = red_cycle_lanes(pl, cat, cmap, xodr)
-        pl.counts["surface_red_cycle"] = n
-        said.append(f"{n} red asphalt strips on cycle lanes")
+    if look.region == "NL" and _on(sc, "red_cycle"):
+        m, polys = red_cycle_paths(pl, cat, cmap, carla, geo, bgt_data)
+        n = red_cycle_lanes(pl, cat, cmap, xodr, polys) if xodr.exists() else 0
+        pl.counts["surface_red_cycle"] = n + m
+        said.append(f"red asphalt: {m} strips on {len(polys)} BGT cycle paths, {n} on the map's other cycle lanes")
     wear = sc.get("road_wear", "auto")
     if _on(sc, "road_wear"):
         level = 1.0 if wear in ("auto", True) else float(wear)

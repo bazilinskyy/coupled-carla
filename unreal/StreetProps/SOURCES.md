@@ -48,6 +48,9 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_NL_Nietje_x1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x1` | 0.05 x 0.75 x 0.77 | 816 | SM_BikeParking01 | bike_stand | MIT (procedural) |
 | SM_CC_NL_Nietje_x3 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x3` | 1.85 x 0.75 x 0.77 | 2448 | SM_BikeParking01 | bike_stand | MIT (procedural) |
 | SM_CC_NL_Nietje_x6 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x6` | 4.55 x 0.75 x 0.77 | 4896 | SM_BikeParking02 | bike_stand | MIT (procedural) |
+| SM_CC_NL_Paving_10 | `/Game/CoupledCarla/Street/NL/SideWalk/SM_CC_NL_Paving_10` | 10.00 x 10.00 x 0.00 | 2 | - | paving | MIT (procedural) |
+| SM_CC_NL_Paving_20 | `/Game/CoupledCarla/Street/NL/SideWalk/SM_CC_NL_Paving_20` | 20.00 x 20.00 x 0.00 | 2 | - | paving | MIT (procedural) |
+| SM_CC_NL_Paving_40 | `/Game/CoupledCarla/Street/NL/SideWalk/SM_CC_NL_Paving_40` | 40.00 x 40.00 x 0.00 | 2 | - | paving | MIT (procedural) |
 | SM_CC_NL_RedAsphalt | `/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_RedAsphalt` | 6.00 x 1.00 x 0.00 | 2 | - | red_cycle | MIT (procedural) |
 | SM_CC_NL_SharkTeeth_3 | `/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_SharkTeeth_3` | 0.60 x 2.00 x 0.00 | 3 | - | shark_teeth | MIT (procedural) |
 | SM_CC_NL_SharkTeeth_4 | `/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_SharkTeeth_4` | 0.60 x 2.75 x 0.00 | 4 | - | shark_teeth | MIT (procedural) |

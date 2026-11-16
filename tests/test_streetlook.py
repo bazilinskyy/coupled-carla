@@ -115,7 +115,7 @@ def test_manifest_matches_catalogue_and_generator(cat10):
         L, W, H = cat10.size(n)
         assert H == pytest.approx(2 * ext[2])
         assert all(slot in sp.PALETTE for slot in spec["slots"]), n
-        assert folder in ("Pole", "Static", "TrafficLight", "RoadLine", "Road", "Building")     # tagger labels
+        assert folder in ("Pole", "Static", "TrafficLight", "RoadLine", "Road", "Building", "SideWalk")     # tagger labels
     # the conventions the placement relies on: lamp arms towards +x, bench seat and bin slot towards Unreal -y,
     # signal lenses towards Unreal +y, shark-teeth tips towards +x, everything standing on z = 0
     lamp = data["meshes"]["SM_CC_NL_LampArm9"]
@@ -251,3 +251,33 @@ def test_night_stand_in_for_regional_lamps(cat10):
     assert got[0][0] == alt[0] and got[0][1] == pytest.approx(alt[1])
     day = scenery.Scenery(None, W(), None, {"radius_m": 0}, log=lambda *a: None, data=data)
     assert [it for v in day.cells.values() for it in v][0][0] == item[0]
+
+
+def test_dutch_paving_squares(cat10):
+    assert streetlook.ground_mesh("open", 40.0, cat10, "NL") == "SM_CC_NL_Paving_40"
+    assert streetlook.ground_mesh("open", 10.0, cat10, "NL") == "SM_CC_NL_Paving_10"
+    assert streetlook.ground_mesh("open", 5.0, cat10, "NL") is None          # no 5 m square: CARLA's
+    assert streetlook.ground_mesh("green", 40.0, cat10, "NL") is None
+    assert streetlook.ground_mesh("open", 40.0, cat10, None) is None
+    assert scenery.tile_cover(cat10.size("SM_CC_NL_Paving_20"), 20.0) == [((0.0, 0.0), 1.0)]   # scale 1
+
+
+def test_red_cycle_paths_from_bgt(cat10):
+    pytest.importorskip("shapely")
+    pl = FakePlacer()
+    pl.ground = lambda x, y: 0.0
+
+    class Geo:
+        def to_carla(self, lat, lon):
+            return lon * 1000.0, lat * 1000.0
+    carla_ = SimpleNamespace(LaneType=SimpleNamespace(Any=0), Location=lambda **k: k)
+    cmap = SimpleNamespace(get_waypoint=lambda *a, **k: None)
+    # a straight 2.5 m wide, 60 m long cycle path along x, and a footway (not red)
+    ring = [[0.0, 0.0], [0.06, 0.0], [0.06, 0.0025], [0.0, 0.0025], [0.0, 0.0]]
+    data = {"surfaces": [{"c": "wegdeel", "f": "fietspad", "v": "gesloten verharding", "r": [ring]},
+                         {"c": "wegdeel", "f": "voetpad", "v": "open verharding", "r": [ring]}]}
+    n, polys = streetlook.red_cycle_paths(pl, cat10, cmap, carla_, Geo(), data)
+    assert len(polys) == 1 and n == pytest.approx(60 / (5.7 * 2.5), abs=6)
+    for kind, mesh, x, y, yaw, s, z in pl.items:
+        assert 0 <= x <= 60 and 0 <= y <= 2.5 and s == pytest.approx(2.5, abs=0.1)
+        assert yaw % 180 == pytest.approx(0, abs=1) or yaw % 180 == pytest.approx(180, abs=1)

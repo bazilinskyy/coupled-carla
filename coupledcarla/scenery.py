@@ -1186,7 +1186,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     # markings, red cycle lanes, road wear and rooftop clutter (streetlook.py; CARLA 1.0 with our content)
     try:
         streetlook.add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log,
-                                  ndw=ndw)
+                                  ndw=ndw, bgt_data=bgt_data)
     except Exception as err:  # noqa: BLE001 - the scenery stands without them
         log(f"scenery: street look extras failed ({type(err).__name__}: {err})")
     if look.counts:
@@ -1241,7 +1241,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     z += gap - 0.15
                     lowered += 1
             tilt = (math.degrees(math.atan(zx)), -math.degrees(math.atan(zy)))
-            mesh = ms.GROUND_MESH.get(kind, ms.PAVING)
+            mesh = streetlook.ground_mesh(kind, T, cat, look.region) or ms.GROUND_MESH.get(kind, ms.PAVING)
             if mesh not in cat:
                 mesh, kind = ms.PAVING, "open"
             dz = {"water": -0.5, "open": -0.02}.get(kind, 0.0)

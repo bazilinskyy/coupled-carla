@@ -71,6 +71,7 @@ PALETTE = {
     "PoleBlack": ((0.015, 0.015, 0.016), 0.0, 0.4),
     "RoadWhite": ((0.70, 0.70, 0.68), 0.0, 0.62),           # thermoplastic road marking
     "RedAsphalt": ((0.20, 0.035, 0.025), 0.0, 0.85, "redasphalt"),  # Dutch fietspad, sRGB ~ (125, 52, 44)
+    "Klinker": ((1.0, 1.0, 1.0), 0.0, 0.8, "klinker"),     # grey concrete pavers (betonklinkers), stretcher bond
     "Crack": ((1.0, 1.0, 1.0), 0.0, 0.8, "crack"),
     "Patch": ((1.0, 1.0, 1.0), 0.0, 0.75, "patch"),
     "Pothole": ((1.0, 1.0, 1.0), 0.0, 0.9, "pothole"),
@@ -446,6 +447,15 @@ def red_strip(w=1.0, l=6.0):
     return m, {}
 
 
+def paving(T, tile_m=2.1):
+    """A T x T m paving square (Dutch grey concrete pavers), flat, top at z 0, the texture repeating every tile_m
+    metres (so the pavers keep their real 21 x 10.5 cm at every square size): scenery lays ground squares of 40, 20
+    and 10 m (BGT "open verharding": footways, parking bays, squares)."""
+    m = Mesh()
+    flat(m, "Klinker", (0, 0, 0), (T, T), z=0.0, uv_scale=(T / tile_m, T / tile_m))
+    return m, {}
+
+
 def decal(mat, size, z=0.004):
     m = Mesh()
     flat(m, mat, (0, 0, 0), size, z=z)
@@ -564,6 +574,8 @@ def specs():
         add(f"SharkTeeth_{n}", "NL", "RoadLine", "shark_teeth", lambda n=n: shark_teeth(n))
     add("BlockMarking", "NL", "RoadLine", "block_marking", block_marking)
     add("RedAsphalt", "NL", "Road", "red_cycle", red_strip)
+    for T in (40, 20, 10):
+        add(f"Paving_{T}", "NL", "SideWalk", "paving", lambda T=T: paving(float(T)))
     # road wear (Road), any region
     add("Crack_A", "Any", "Road", "wear_crack", lambda: decal("Crack", (2.0, 2.0)))
     add("Patch_A", "Any", "Road", "wear_patch", lambda: decal("Patch", (2.4, 1.4), z=0.005))
@@ -631,6 +643,21 @@ def textures(out, size=512, seed=7):
     rgb = base[None, None, :] * (0.82 + 0.25 * g[..., None] + 0.12 * (grain[..., None] - 0.5))
     rgb[grain > 0.985] = [70, 66, 62]          # dark stones showing through
     save("redasphalt", rgb, np.full((s, s), 255))
+    # grey concrete pavers 21 x 10.5 cm in stretcher bond, 2.1 m per texture (10 x 20 pavers: it tiles), dark joints
+    img = Image.new("RGB", (s, s), (70, 70, 68))
+    d = ImageDraw.Draw(img)
+    pl_, rows = s / 10.0, 20
+    for r in range(rows):
+        y0 = r * s / rows
+        off = (pl_ / 2) if r % 2 else 0.0
+        x = -off
+        while x < s:
+            g = int(rng.normal(128, 9))
+            tint = (g, g - 1, g - 4)
+            d.rectangle([x + 1.2, y0 + 1.2, x + pl_ - 1.2, y0 + s / rows - 1.2], fill=tint)
+            x += pl_
+    arr = np.asarray(img, float) * (0.9 + 0.2 * noise(s, 6)[..., None])
+    save("klinker", arr, np.full((s, s), 255))
     # cracks: dark branching random walks on transparent
     a = Image.new("L", (s, s), 0)
     d = ImageDraw.Draw(a)
@@ -748,7 +775,7 @@ def sources_md(manifest):
 
 
 CAT_OF = {"Pole": "lamp", "Static": "furniture", "TrafficLight": "furniture", "RoadLine": "marking",
-          "Road": "marking", "Building": "furniture"}
+          "Road": "marking", "Building": "furniture", "SideWalk": "ground"}
 
 
 def write_data(manifest, repo=Path(__file__).resolve().parent.parent):
