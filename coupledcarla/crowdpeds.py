@@ -1026,9 +1026,12 @@ class CrowdSim:
                     if st["pt"] >= len(pts):
                         st["leg"], st["pt"], st["crossing"] = st["leg"] + 1, 0, False
                     continue
-                if blocked(loc.x + 0.7 * dx / d, loc.y + 0.7 * dy / d, self.poses):
+                if blocked(loc.x + 0.7 * dx / d, loc.y + 0.7 * dy / d, self.poses) and \
+                        not blocked(loc.x, loc.y, self.poses, margin=0.0):
                     send(actor, carla.WalkerControl(speed=0.0))     # a vehicle stands in the way: wait for it
                     continue
+                # (a vehicle that drove onto the walker: it walks on out of it, not stand inside it: Tokyo clip, a
+                # walker stood inside a bus for 2.6 s)
                 send(actor, carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0),
                                                         speed=st["speed"]))
             except RuntimeError:

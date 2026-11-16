@@ -123,6 +123,8 @@ DEFAULTS = {
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
         "animate_radius_m": 60.0,    # ... and within this distance move with physics on (bridge/animate.py): wheels
                                      # roll and steer, cyclists pedal; 0: all placed with physics off as before
+        "depart_hide_m": 60.0,       # a car or bike whose trip SUMO starts this close to a participant or free camera
+                                     # is dropped (it would appear out of nowhere in front of them); 0: off
         "smooth_paths": True,        # SUMO vehicles in CARLA drive a smoothed copy of their SUMO path (lateral
                                      # acceleration and steering rate of a human driver, bridge/animate.py
                                      # PathSmoother): a kink in a SUMO junction lane is a curve, not a swerve

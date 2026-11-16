@@ -283,6 +283,7 @@ class ScriptedCar:
         self.target += max(-step_kmh * 2, min(step_kmh, self.desired - self.target))
         self.agent.set_target_speed(max(0.0, self.target))
         ctl = self.agent.run_step()
+        ctl.steer = self._human_steer(ctl.steer, speed, dt)
         stop, reason = False, None
         ext_x = self.vehicle.bounding_box.extent.x
         stop_gap = None
@@ -335,6 +336,21 @@ class ScriptedCar:
             ctl = carla.VehicleControl(throttle=0.0, brake=1.0)
         self.apply(ctl)
         return ctl
+
+    def _human_steer(self, steer, speed, dt):
+        """The planner's steering within what a driver does: a front-wheel angle for at most STEER_LAT_ACC lateral
+        acceleration at this speed, turned at most STEER_RATE per second (the New York clip's automated car
+        changed lanes at 6 m/s^2)."""
+        wheelbase, max_deg = 2.9, 70.0          # CARLA cars: ~2.9 m, steer 1.0 = ~70 deg at the front wheels
+        if speed > 3.0:
+            delta = math.atan(STEER_LAT_ACC * wheelbase / (speed * speed))
+            lim = min(1.0, math.degrees(delta) / max_deg)
+            steer = max(-lim, min(lim, steer))
+        prev = getattr(self, "_steer", None)
+        if prev is not None and dt > 0:
+            steer = max(prev - STEER_RATE * dt, min(prev + STEER_RATE * dt, steer))
+        self._steer = steer
+        return steer
 
     def set_ehmi(self, state, by):
         if state != self.ehmi:
@@ -424,6 +440,8 @@ class PathWalker:
             pass
 
 
+STEER_LAT_ACC = 3.5  # ScriptedCar: m/s^2 of lateral acceleration its steering allows at speed ...
+STEER_RATE = 0.8     # ... and steer units per second it turns the wheel (about 55 deg/s at the front wheels)
 STUCK_S = 0.6        # PathWalker: no headway for this long while walking ...
 STEP_MAX_M = 0.8     # ... and a road surface ahead at most this much above its feet: lifted onto it ...
 CLIMB_S = 0.6        # ... over this long

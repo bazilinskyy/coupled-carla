@@ -51,6 +51,7 @@ class CarlaSimulation(object):
         self.snapshot = None     # coupled-carla: the world snapshot after the last tick (poses of physics actors)
         self._physics = set()    # coupled-carla: SUMO vehicles moved with physics on (bridge/animate.py)
         self._teleports, self._unstable = {}, {}     # coupled-carla: recent follow teleports; placed-until frame
+        self._glide = {}         # coupled-carla: vehicles sliding back onto their pose: {id: (x, y, z, yaw) shown}
         self.check_level = False   # coupled-carla: SUMO's heights match CARLA's roads: keep cars on their level (levels.py)
         self.level_teleports = 0   # coupled-carla: put back for being off their level or tipped (levels.py)
         self._road_z = {}          # coupled-carla: vehicle -> (frame, CARLA road height under its SUMO pose)
@@ -247,6 +248,13 @@ class CarlaSimulation(object):
                                tilt=(now.rotation.pitch, now.rotation.roll))
             if f["why"] in ("level", "tipped"):
                 self.level_teleports += 1
+            if f["teleport"] and f["why"] in ("position", "heading"):
+                # held back by something (a kerb, a pole, another body) or off its heading: placed with physics off
+                # for a while and slid back onto its SUMO pose over a few ticks, not put back in one jump (buses and
+                # bikes jumped 1.2 m in view: Eindhoven rush hour, Tokyo)
+                self._teleports[vehicle_id] = self._teleports.get(vehicle_id, []) + [frame]
+                self._unstable[vehicle_id] = frame + animate.UNSTABLE_PAUSE_TICKS
+                return self.place_vehicle(vehicle_id, transform, lights)
             if f["teleport"]:
                 self._pending.append(cmd.ApplyTransform(vehicle_id, _lifted(transform)))
                 recent = [t for t in self._teleports.get(vehicle_id, []) if frame - t < animate.UNSTABLE_TICKS]
@@ -266,10 +274,27 @@ class CarlaSimulation(object):
             self._pending.append(cmd.SetVehicleLightState(vehicle_id, carla.VehicleLightState(lights)))
 
     def place_vehicle(self, vehicle_id, transform, lights=None):
-        """coupled-carla: synchronize_vehicle, switching physics off first for a vehicle that followed with it."""
+        """coupled-carla: synchronize_vehicle, switching physics off first for a vehicle that followed with it. A vehicle
+        whose shown pose is off its target (it followed with physics and fell behind) slides onto it at most
+        animate.GLIDE_M per tick and animate.GLIDE_DEG of heading (_glide), instead of jumping."""
+        from .. import animate  # pylint: disable=import-outside-toplevel
         if vehicle_id in self._physics:
             self._physics.discard(vehicle_id)
             self._pending.append(carla.command.SetSimulatePhysics(vehicle_id, False))
+            snap = self.snapshot.find(vehicle_id) if self.snapshot is not None else None
+            if snap is not None:
+                t = snap.get_transform()
+                self._glide[vehicle_id] = (t.location.x, t.location.y, t.location.z, t.rotation.yaw)
+        g = self._glide.get(vehicle_id)
+        if g is not None:
+            loc, rot = transform.location, transform.rotation
+            pose, done = animate.glide(g, (loc.x, loc.y, loc.z, rot.yaw))
+            if done:
+                self._glide.pop(vehicle_id, None)
+            else:
+                self._glide[vehicle_id] = pose
+                transform = carla.Transform(carla.Location(pose[0], pose[1], pose[2]),
+                                            carla.Rotation(rot.pitch, pose[3], rot.roll))
         return self.synchronize_vehicle(vehicle_id, transform, lights)
 
     def synchronize_traffic_light(self, landmark_id, state):

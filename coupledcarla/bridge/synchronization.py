@@ -57,7 +57,8 @@ class SimulationSynchronization(object):
                  animate_radius=0.0,
                  smooth_paths=True,
                  driver_mix_seed=None,
-                 red_running=False):
+                 red_running=False,
+                 depart_hide_m=0.0):
 
         self.sumo = sumo_simulation
         self.carla = carla_simulation
@@ -89,6 +90,7 @@ class SimulationSynchronization(object):
         # coupled-carla: each new SUMO vehicle gets its own driver (drivermix.py); None: the vTypes' values for all
         self.driver_mix_seed = driver_mix_seed
         self.red_running = red_running
+        self.depart_hide_m = depart_hide_m
         self.smooth_paths = bool(smooth_paths)
         self.smoothers = {}
         self.lane_shapes = None
@@ -146,6 +148,7 @@ class SimulationSynchronization(object):
             self.sumo.subscribe(sumo_actor_id)
             self.sumo2carla_ids[sumo_actor_id] = self.adopted[sumo_actor_id]
         sumo_spawned_actors -= self.adopted.keys()
+        sumo_spawned_actors = self._drop_departures_in_sight(sumo_spawned_actors)
         if getattr(self, "driver_mix_seed", None) is not None:
             import traci  # pylint: disable=import-outside-toplevel
             from coupledcarla import drivermix  # pylint: disable=import-outside-toplevel
@@ -373,6 +376,40 @@ class SimulationSynchronization(object):
                 # Updates all the sumo links related to this landmark.
                 self.sumo.synchronize_traffic_light(landmark_id, sumo_tl_state)
         laps("carla_to_sumo")
+
+    def _drop_departures_in_sight(self, departed):
+        """coupled-carla: a car or bike that SUMO inserts within depart_hide_m of a participant or free camera (a
+        trip starting on an inner street) would appear out of nowhere in front of them (Tokyo clip: a car 40 m from
+        the camera): it is taken out of SUMO before it is shown. Buses (their line's first stop) and CARLA actors'
+        twins stay. Returns the departures that remain."""
+        hide = float(getattr(self, "depart_hide_m", 0.0) or 0.0)
+        if hide <= 0 or not departed or not self.focus:
+            return departed
+        centres = self.focus() or []
+        if not centres:
+            return departed
+        import traci  # pylint: disable=import-outside-toplevel
+        off = BridgeHelper.offset
+        keep = set()
+        for vid in departed:
+            try:
+                if vid.startswith("carla") or traci.vehicle.getVehicleClass(vid) == "bus":
+                    keep.add(vid)
+                    continue
+                x, y = traci.vehicle.getPosition(vid)
+            except traci.TraCIException:
+                keep.add(vid)
+                continue
+            cx, cy = x - off[0], -(y - off[1])
+            if any((cx - c.x) ** 2 + (cy - c.y) ** 2 < hide * hide for c in centres):
+                try:
+                    traci.vehicle.remove(vid)
+                    self.departures_hidden = getattr(self, "departures_hidden", 0) + 1
+                    continue
+                except traci.TraCIException:
+                    pass
+            keep.add(vid)
+        return keep
 
     def _aim(self, sumo_actor_id, speed):
         """coupled-carla: the CARLA point on the vehicle's SUMO path animate.look_ahead(speed) beyond its front

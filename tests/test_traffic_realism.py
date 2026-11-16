@@ -254,3 +254,11 @@ def test_a_bus_pointing_backwards_is_turned_round():
         fx = 0.06 * i
         out = sm.step((fx + 5.0, 0.0, 180.0), 3.0, 10.0, 0.02)     # centre half a length "ahead" of the front
     assert abs(animate.wrap_deg(out[2])) < 1.0 and out[0] < 0.06 * 99
+
+
+def test_glide_slides_onto_the_target():
+    pose, arrived, n = (0.0, 0.0, 0.0, 0.0), False, 0
+    while not arrived and n < 100:
+        pose, arrived = animate.glide(pose, (1.2, 0.0, 0.0, 30.0))
+        n += 1
+    assert arrived and n >= 6 and pose == (1.2, 0.0, 0.0, 30.0)

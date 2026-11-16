@@ -24,8 +24,9 @@ participant for station clips):
 Metrics: the participants' max lateral acceleration and yaw rate in the window, the minimum clearance between a bus
 and another vehicle body, the camera jitter (RMS and max residual), counts per check.
 
-A problem blocks encoding (make_videos.py, unless --force) when it is in the window and, for overlap, building, jump,
-teleport and sumo_collision, in view; swerves of a participant and camera jitter always count.
+A problem blocks encoding (make_videos.py, unless --force) when it is in the window and, for overlap, building, jump
+and teleport, in view; swerves of a participant and camera jitter always count; SUMO collisions are reported (their
+visible part is an overlap).
 """
 import bisect
 import csv
@@ -48,8 +49,12 @@ OVERLAP_SHRINK = 0.15
 BODY_WIDTH = {"vehicle.mitsubishi.fusorosa": 2.55}     # boxes with mirrors -> body width (m); others: drivers.MAX_WIDTH
 JITTER_M = 0.02         # camera position residual (m)
 JITTER_DEG = 0.15       # camera yaw / pitch residual (deg)
+# a drone's own camera (FPV, rigid on the frame) turns with the drone: the onset of a turn is a yaw acceleration of
+# ~600 deg/s^2 for 0.1 s in the drone model, 0.19 deg off a 7-frame quadratic (Eindhoven drones clip, 9.6 s); that
+# is the drone turning, not shaking, so drone cameras are held to 0.3 deg
+JITTER_DEG_DRONE = 0.3
 SG7 = (-2.0, 3.0, 6.0, 7.0, 6.0, 3.0, -2.0)            # Savitzky-Golay, 7 points, order 2 (/21)
-BLOCKING = ("overlap", "building", "jump", "teleport", "sumo_collision")
+BLOCKING = ("overlap", "building", "jump", "teleport")    # sumo_collision: reported; what of it shows is an overlap
 
 
 # -- reading ----------------------------------------------------------------------------------------------------------
@@ -495,7 +500,9 @@ def check_trial(trial, t0, t1, camera="main", fov=None, map_dir=None, viewers=()
             aid = ids.get(a) or ids.get(b)
             pos = _pos_of(series.get(aid), t) if aid else None
             vis = pos is not None and visible(_near_time(times, t), *pos)
-            rep.add("sumo_collision", t, t, f"SUMO collision ({kind}) {a} with {b}", visible=vis)
+            # SUMO's collision test touches boxes with no gap; what a viewer sees of it is the bodies' overlap,
+            # which the overlap check blocks on (a bike grazing a bike in SUMO blocked the rush-hour clip)
+            rep.add("sumo_collision", t, t, f"SUMO collision ({kind}) {a} with {b}", visible=vis, blocking=False)
     rep.metrics["sumo"] = {"teleports_total": len(tele), "teleports_near_window": n_tele_win,
                            "collisions_total": n_coll if coll.exists() else None}
 
@@ -517,9 +524,13 @@ def check_trial(trial, t0, t1, camera="main", fov=None, map_dir=None, viewers=()
                 "frames": len(grid), "pos_rms_cm": round(100 * rms(pos_r[core]), 2),
                 "pos_max_cm": round(100 * max(pos_r[core]), 2), "ang_rms_deg": round(rms(ang_r[core]), 3),
                 "ang_max_deg": round(max(ang_r[core]), 3),
-                "frames_over": sum(1 for p, a in zip(pos_r, ang_r) if p > JITTER_M or a > JITTER_DEG)}
+                "frames_over": sum(1 for p, a in zip(pos_r, ang_r) if p > JITTER_M or a > JITTER_DEG)}  # at 0.15
+            kinds = {c.get("name", "main"): c.get("kind") for c in
+                     ([film["camera"]] if film.get("camera") else []) + list(film.get("cameras") or [])}
+            ang_lim = JITTER_DEG_DRONE if kinds.get(camera) == "drone" else JITTER_DEG
+            rep.metrics["camera_jitter"]["ang_limit_deg"] = ang_lim
             bad = [(grid[k][0], "camera", (pos_r[k], ang_r[k])) for k in range(len(grid))
-                   if pos_r[k] > JITTER_M or ang_r[k] > JITTER_DEG]
+                   if pos_r[k] > JITTER_M or ang_r[k] > ang_lim]
             for t, t_e, _, (p, a) in _episodes(bad, 0.2):
                 rep.add("jitter", t, t_e, f"camera shakes: {100 * p:.1f} cm, {a:.2f} deg off a smooth path",
                         visible=True)

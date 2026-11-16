@@ -390,3 +390,20 @@ class LaneShapes:
 
     def forget(self, vid):
         self.cache.pop(vid, None)
+
+
+
+GLIDE_M = 0.2       # a vehicle off its pose slides back at most this far per tick (10 m/s at 50 Hz) ...
+GLIDE_DEG = 4.0     # ... and turns at most this much per tick
+
+
+def glide(shown, target, step_m=GLIDE_M, step_deg=GLIDE_DEG):
+    """One tick of sliding a shown pose (x, y, z, yaw) onto a target pose: (new pose, arrived)."""
+    dx, dy, dz = target[0] - shown[0], target[1] - shown[1], target[2] - shown[2]
+    d = math.sqrt(dx * dx + dy * dy + dz * dz)
+    dyaw = wrap_deg(target[3] - shown[3])
+    if d <= step_m and abs(dyaw) <= step_deg:
+        return tuple(target), True
+    k = min(1.0, step_m / d) if d > 0 else 1.0
+    yaw = shown[3] + max(-step_deg, min(step_deg, dyaw))
+    return (shown[0] + dx * k, shown[1] + dy * k, shown[2] + dz * k, yaw), False

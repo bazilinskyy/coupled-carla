@@ -409,6 +409,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             smooth_paths=tc["simulation"].get("smooth_paths", True),        # no swerves at SUMO's kinks (animate.py)
             driver_mix_seed=(tc["traffic"].get("seed", 42) if tc["traffic"].get("driver_mix", True) else None),
             red_running=drivermix.red_running(tc),
+            depart_hide_m=tc["simulation"].get("depart_hide_m", 60.0),   # no car appears out of nowhere nearby
             focus=lambda: [a.get_location() for a in focus_actors] or None)
         if town:      # the town's traffic-light actors, run by SUMO through the bridge
             both = sync.sumo.traffic_light_ids & sync.carla.traffic_light_ids
