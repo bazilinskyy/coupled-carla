@@ -1841,7 +1841,8 @@ a 0.9.16 server.
 - **Pedestrians**: SUMO vehicles brake for every walker in or entering their path, using SUMO's own speeds (CARLA
   reads 0 m/s for a vehicle placed with physics off), comfortably when possible and as an emergency stop otherwise
   (`yielding.py`). Crowd walkers cross at signals only when the cars crossing them have red; OSM scramble crossings get
-  an all-pedestrian phase (`pedsignals.py`). Tokyo, 2 runs: vehicle-walker contacts 25 → 0.
+  an all-pedestrian phase (`pedsignals.py`; Shibuya: 30 s a cycle at the crossing's light. The programmes are read
+  from the net as XML: sumolib's reader failed on our nets, and the phase was off until 2026-11-16). Tokyo, 2 runs: vehicle-walker contacts 25 → 0.
 
 - **Models.** SUMO's Extended IDM (EIDM) for car following (human-like reaction and drive-off) with
   `tau = 1.2 s`, `minGap = 2 m`, speed factor N(1.0, 0.1); the sublane model (`--lateral-resolution 0.25`)
@@ -1927,7 +1928,11 @@ in a world built from OpenDRIVE: they have no OpenDRIVE id, so they cannot be li
 
 - each signalled lane's light is **drawn in the world** at its stop line (a pole with a lamp, right of the
   lane), coloured from SUMO, for lights near a participant; the drawing shows in every camera, so the driver
-  sees it;
+  sees it. On CARLA 1.0 with the street content (`map.scenery.street_props`), the heads are the country's: in the
+  Netherlands the black-and-white banded pole with a car head (300 mm lenses on a yellow back plate) or, over a cycle
+  lane, the cyclist head; the UK's and Japan's (horizontal) car heads on CARLA's pole; the lit lens is the mesh's
+  own. On eindhoven_centre all 148 heads were Dutch (70 for cyclists; lin5080, CARLA 1.0 -nullrhi). CARLA 0.9.16 and
+  servers without the content keep CARLA's pole and backboard;
 - each participant's **next light** (id, distance, state) comes from the lane their SUMO twin is on; it drives
   the autopilot, the HUD, the per-frame log (`next_tl*` columns) and a `next_light` event whenever it changes.
 
