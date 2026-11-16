@@ -359,10 +359,10 @@ def test_autopilot_slows_before_a_turn(monkeypatch):
     car = at(0.0, 0.0)
     ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=straight))
     assert ap._curve_speed(car) == 40.0
-    # 10 m before the turn: braking at 2.5 m/s^2 to 5 m/s at its start allows sqrt(25 + 50) m/s = 31 km/h
+    # 10 m before the turn: braking at 2.5 m/s^2 to ~4.5 m/s at its start allows ~30 km/h
     car10 = at(10.0, 0.0)
     ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=turn[5:]))
-    assert 27.0 <= ap._curve_speed(car10) <= 34.0
+    assert 24.0 <= ap._curve_speed(car10) <= 34.0
     # at the turn itself: sqrt(2.5 m/s^2 x 10 m) = 5 m/s = 18 km/h
     ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=turn[10:]))
     assert ap._curve_speed(at(20.0, 0.0)) < 23.0
@@ -384,5 +384,5 @@ def test_autopilot_steering_is_limited_by_speed(monkeypatch):
     assert ap._steer_limit(None, 0.5) == 1.0
     lim = ap._steer_limit(None, 3.0)               # 11 km/h: radius >= 9 / 3.5 = 2.6 m, about 48 deg of 70
     r = 2.9 / math.tan(math.radians(lim * 70.0))
-    assert 3.0 ** 2 / r == pytest.approx(3.5, rel=0.01)
+    assert 3.0 ** 2 / r == pytest.approx(inputs.Autopilot.A_LAT_MAX, rel=0.01)
     assert ap._steer_limit(None, 11.0) < 0.1

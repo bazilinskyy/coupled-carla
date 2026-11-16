@@ -21,9 +21,10 @@ class Autopilot:
     the Lyon clip's car left at one render and straight at the next), and it slows before curves and turns so its
     lateral acceleration stays under A_LAT (it took a junction turn at 39 km/h: 13 m/s^2)."""
     needs_display = False
-    A_LAT = 2.5         # m/s^2: the lateral acceleration it plans its speed for in a curve or turn
-    A_LAT_MAX = 3.5     # m/s^2: never more (steering is limited to it): CARLA's cars steer their wheels up to ~70 deg,
-                        # which at 10 km/h is a 2 m radius and 4-5 m/s^2 (the clip QA blocks a participant at 4)
+    A_LAT = 2.0         # m/s^2: the lateral acceleration it plans its speed for in a curve or turn
+    A_LAT_MAX = 2.6     # m/s^2: never more (steering is limited to it; measured from positions ~25 % more): CARLA's
+                        # cars steer their wheels up to ~70 deg, at 10 km/h a 2 m radius and 4-5 m/s^2 (the clip
+                        # QA blocks a participant at 4)
     B_PLAN = 2.5        # m/s^2: the deceleration it plans with to be slow enough at a curve ahead
 
     def __init__(self, vehicle, target_speed=40.0, seed=None):
