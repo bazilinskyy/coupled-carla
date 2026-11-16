@@ -78,6 +78,16 @@ DEFAULTS = {
                                  # "url" (?key=, a fallback should the header be refused; then in Cesium's logs)
     "attribution": "auto",       # text stamped on saved frames: "auto" = "Google" plus the credits the server
                                  # wrote (~/.config/coupled-carla/google_tiles_credits.txt on the same machine)
+    "data": None,                # the level data file in the pack (Photoreal/<data>.json; default the level's name):
+                                 # e.g. "EhvCentre_road" for a variant prepared with carve: road (prepare --data)
+    "hold": 95,                  # keep the twin visible until the tiles are this far loaded (% of Cesium's load
+                                 # progress, 0 = hide it at once): no blank holes before the first tiles arrive
+    "hold_low": 0,               # show the twin again while the progress is below this (%, 0 = never again)
+    "forbid_holes": True,        # keep a parent tile until all its children are in (coarser, but never blank)
+    "culled_sse": 64,            # tiles outside the spectator's view still load to this error (px; 0 = not at all),
+                                 # so stations, drones and film cameras looking elsewhere do not see gaps
+    "max_loads": 32,             # tiles loading at once
+    "cache_mb": 1024,            # Cesium's tile cache in memory (MB); streamed tiles are never written to disk
 }
 CARVE = ("carriageway", "road", "none")
 HIDE = ("building", "terrain", "ground", "sidewalk", "road", "roadline", "vegetation", "none")
@@ -169,6 +179,14 @@ def problems(cfg):
         out.append(("error", f"height_offset_m {s['height_offset_m']!r}: metres"))
     if not _num(s["carve_grow_m"]) or not -2 <= s["carve_grow_m"] <= 5:
         out.append(("error", f"carve_grow_m {s['carve_grow_m']!r}: metres, -2..5"))
+    for k, lo, hi in (("hold", 0, 100), ("hold_low", 0, 100), ("culled_sse", 0, 1000), ("max_loads", 1, 128),
+                      ("cache_mb", 64, 16384)):
+        if not _num(s[k]) or not lo <= s[k] <= hi:
+            out.append(("error", f"{k} {s[k]!r}: a number {lo}..{hi}"))
+    if not isinstance(s["forbid_holes"], bool):
+        out.append(("error", f"forbid_holes {s['forbid_holes']!r}: true or false"))
+    if s["data"] is not None and not (isinstance(s["data"], str) and re.fullmatch(r"[A-Za-z0-9_-]+", s["data"])):
+        out.append(("error", f"data {s['data']!r}: a file name (letters, digits, _ and -) without .json"))
     if not mc.get("carla_level"):
         out.append(("error", "needs a baked CARLA 1.0 level (map.carla_level) whose buildings it can hide"))
     if not mc.get("opendrive") and s["carve"] != "none":
@@ -187,7 +205,11 @@ def role_options(s, night=False):
     opts = {"carve": 0 if s["carve"] == "none" else 1, "hide": ",".join(hide), "relit": int(relit),
             "night": int(bool(s["night_buildings"])), "sse": s["max_sse"], "day_cap": s["day_cap"],
             "month_cap": s["month_cap"], "run_cap": s["run_cap"], "session_h": s["session_h"],
-            "dz": s["height_offset_m"], "key_in": s["key_in"]}
+            "dz": s["height_offset_m"], "key_in": s["key_in"], "hold": s["hold"], "hold_low": s["hold_low"],
+            "forbid_holes": int(bool(s["forbid_holes"])), "culled_sse": s["culled_sse"], "loads": s["max_loads"],
+            "cache_mb": s["cache_mb"]}
+    if s.get("data"):
+        opts["data"] = s["data"]
     if s.get("test_url"):                 # tools/photoreal_check.py: a local mock server, never Google
         opts["url"] = s["test_url"]
         if s.get("test_refresh_s"):
@@ -750,7 +772,8 @@ def prepare(cfg, xodr=None, pack=PACK, network=True, footprints=None):
     level = data["level"]
     if not level:
         raise PhotorealError("map.carla_level is not set")
-    out = pack_file(level, pack)
+    s = settings(cfg["map"]) or DEFAULTS
+    out = pack_file(s.get("data") or level, pack)      # a variant (another carve) under its own name
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
     mdir = _config.map_dir(cfg)

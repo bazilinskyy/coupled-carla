@@ -166,6 +166,58 @@ def twin_experiment(p, name, summ):
     return exp
 
 
+def real_experiment(p, name, summ):
+    """The "as real as it gets" experiment of a twin (mapmaker --realistic): the same level and SUMO net, Google's
+    Photorealistic 3D Tiles streamed over it as the look (the twin keeps the roads, collision, navigation and the lit
+    buildings at night), and every live data stream switched on: the sun and weather of now, traffic fitted to open
+    counts, the real buses where they are now, cyclists from counters, the national car fleet, a calibrated crowd."""
+    exp = twin_experiment(p, name, summ)
+    exp["name"] = f"{p['slug']}_real"
+    exp["map"]["name"] = f"{p['slug']}_twin"          # the twin's map folder (SUMO net, scenery, parked cars)
+    exp["map"]["photoreal"] = {"provider": "google"}
+    exp["map"]["scenery"] = {"trees": False, "buildings": False}    # the photo mesh has the real ones
+    exp["simulation"] = {"step": 0.02, "time": "now", "weather": "real"}
+    traffic = dict(exp["traffic"])
+    traffic.update({"cars_per_hour": "auto", "counts": "auto", "walkers": {"count": "auto"}})
+    exp["traffic"] = traffic
+    return exp
+
+
+def real_experiment_text(p, name, summ):
+    head = [
+        f"# {p['label']}{', ' + p['country'] if p['country'] else ''}, as real as Coupled CARLA gets: the twin "
+        f"{name} with Google's Photorealistic 3D Tiles over it",
+        f"# (made by coupledcarla.mapmaker --realistic on {time.strftime('%Y-%m-%d')}). The photo mesh is what you see; "
+        "the twin keeps the roads,",
+        "# collision, LiDAR, navigation and, at night, its buildings with lit windows. Live data: the sun and weather "
+        "of now (Open-Meteo),",
+        "# traffic fitted to open counts, the real buses where they are now (GTFS-Realtime), cyclists from counters, "
+        "the country's car fleet,",
+        "# a crowd calibrated with CROWD. Needs YOUR Google Maps Platform key with billing on the server machine "
+        "(README, \"Photorealistic",
+        "# tiles\"; each level load is one billed root request) and the level data in the server's content pack. "
+        "Without a key it runs on the twin.",
+        f"# Drive it:  python -m coupledcarla.run experiments/places/{p['slug']}_real.yaml",
+    ]
+    return "\n".join(head) + "\n" + yaml.safe_dump(real_experiment(p, name, summ), sort_keys=False,
+                                                   allow_unicode=True)
+
+
+def prepare_photoreal(exp_path, out, emit=None):
+    """The level data for the tiles (origin, road cut, footprints) into the repo's content pack; None or the file.
+    Sends nothing to Google (no key needed). A failure is a note, not the end of the twin."""
+    from . import config, photoreal
+    try:
+        cfg = config.load(exp_path)
+        manifest = Path(out) / "ue" / "manifest.json"
+        return photoreal.prepare(cfg, footprints=str(manifest) if manifest.exists() else None)
+    except Exception as err:          # noqa: BLE001 - the twin is still usable without the tiles
+        if emit:
+            emit({"step": "place", "title": "", "state": "note", "at": 0.0,
+                  "text": f"The data for the photorealistic tiles could not be written ({err}); the twin works without."})
+        return None
+
+
 def experiment_text(p, name, summ):
     blds = (summ or {}).get("buildings")
     src = (summ or {}).get("building_source")
@@ -257,7 +309,18 @@ def make_twin(p, emit, force=False, cfg=None, runner=None):
     path = PLACES / f"{p['slug']}_twin.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(experiment_text(p, name, summ), encoding="utf-8")
-    (out / "mapmaker.json").write_text(json.dumps({"experiment": str(path), "level": name}, indent=1))
+    info = {"experiment": str(path), "level": name}
+    if p.get("realistic"):
+        real = PLACES / f"{p['slug']}_real.yaml"
+        real.write_text(real_experiment_text(p, name, summ), encoding="utf-8")
+        info["realistic"] = str(real)
+        data = prepare_photoreal(real, out, emit)
+        if data:
+            info["photoreal_data"] = str(data)
+            emit({"step": "place", "title": "", "state": "note", "at": round(time.time() - t0, 1),
+                  "text": f"Photorealistic tiles: the level data is in {data}; with your Google key on the server, "
+                          f"experiments/places/{real.name} streams them over the twin."})
+    (out / "mapmaker.json").write_text(json.dumps(info, indent=1))
     return path
 
 

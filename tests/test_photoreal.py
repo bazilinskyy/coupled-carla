@@ -207,6 +207,22 @@ def test_settings_and_role_options():
     assert o2["relit"] == "0" and o2["hide"] == "building" and o2["carve"] == "0"
 
 
+
+def test_tile_loading_options_and_data_variant(tmp_path):
+    s = photoreal.settings({"photoreal": "google"})
+    opts = dict(kv.split("=") for kv in photoreal.role_options(s).split(";"))
+    assert opts["hold"] == "95" and opts["forbid_holes"] == "1" and opts["culled_sse"] == "64" and "data" not in opts
+    assert opts["loads"] == "32" and opts["cache_mb"] == "1024"
+    s2 = photoreal.settings({"photoreal": {"data": "EhvCentre_road", "hold": 0, "forbid_holes": False}})
+    o2 = dict(kv.split("=") for kv in photoreal.role_options(s2).split(";"))
+    assert o2["data"] == "EhvCentre_road" and o2["hold"] == "0" and o2["forbid_holes"] == "0"
+    base = {"carla_level": "EhvCentre", "opendrive": "twins/EhvCentre.xodr"}
+    text = " | ".join(m for _, m in photoreal.problems({"map": dict(base, photoreal={
+        "data": "../x", "hold": 150, "culled_sse": -1, "forbid_holes": "yes", "max_loads": 0})}))
+    for frag in ("data '../x'", "hold 150", "culled_sse -1", "forbid_holes 'yes'", "max_loads 0"):
+        assert frag in text
+    assert photoreal.pack_file("EhvCentre_road", tmp_path).name == "EhvCentre_road.json"
+
 def test_problems():
     base = {"carla_level": "EhvCentre", "opendrive": "twins/EhvCentre.xodr"}
     assert photoreal.problems({"map": dict(base, photoreal="google")}) == []

@@ -5,6 +5,7 @@
     python -m coupledcarla.mapmaker "Plaza Mayor, Salamanca" --drive    # then drive it (needs CARLA)
     python -m coupledcarla.mapmaker --web                              # the same as a page in the browser
     python -m coupledcarla.mapmaker "Plaza Mayor, Salamanca" --twin     # a baked CARLA 1.0 digital twin instead
+    python -m coupledcarla.mapmaker "Dam, Amsterdam" --realistic        # the twin + Google's 3D tiles + live data
     python -m coupledcarla.mapmaker                                    # asks for the place (in a terminal)
 
 From Python:
@@ -472,10 +473,13 @@ def settlement_population(place):
 # ------------------------------------------------------------------------------------------------ the plan
 
 
-def plan(place=None, lat=None, lon=None, size="medium", name=None, pedestrians=False, found=None, twin=False):
+def plan(place=None, lat=None, lon=None, size="medium", name=None, pedestrians=False, found=None, twin=False,
+         realistic=False):
     """Everything about a map before it is built: the place, the guesses and the experiment it will write.
     `found`: a place dict already looked up (from search or reverse). twin: a CARLA 1.0 digital twin instead
-    (coupledcarla.twinmaker; experiments/places/<name>_twin.yaml)."""
+    (coupledcarla.twinmaker; experiments/places/<name>_twin.yaml). realistic: the twin plus
+    experiments/places/<name>_real.yaml with Google's photorealistic tiles over it and the live data streams."""
+    twin = twin or realistic
     km = size_km(size)
     if found is None:
         if lat is not None and lon is not None:
@@ -514,7 +518,7 @@ def plan(place=None, lat=None, lon=None, size="medium", name=None, pedestrians=F
             "continent": CONTINENT.get(cc or "", "unknown"), "drive": side, "town": town, "town_why": why,
             "population": pop, "traffic": traffic_for(town, km), "pedestrians": bool(pedestrians),
             "minutes": estimate_minutes(km) + (twin_minutes(km) if twin else 0), "warnings": warnings,
-            "twin": bool(twin),
+            "twin": bool(twin), "realistic": bool(realistic),
             "experiment": str((PLACES / (f"{slug}_twin.yaml" if twin else f"{slug}.yaml")).relative_to(ROOT))}
 
 
@@ -989,7 +993,7 @@ def printer(stream=None):
 
 
 def make_map(place=None, lat=None, lon=None, size="medium", name=None, pedestrians=False, build_it=True,
-             force=False, emit=None, twin=False):
+             force=False, emit=None, twin=False, realistic=False):
     """Make a drivable map of a place. Returns the experiment file (experiments/places/<name>.yaml); the map is built
     into maps/<name>/ with preview.png, summary.json and summary.txt next to it.
 
@@ -999,11 +1003,15 @@ def make_map(place=None, lat=None, lon=None, size="medium", name=None, pedestria
     pedestrians: a crowd of pedestrians on the pavements that behaves like the country's people.
     build_it: False only writes the experiment file (not with twin).
     twin: a baked CARLA 1.0 digital twin instead (needs the toolchain of coupledcarla.twinmaker); returns
-    experiments/places/<name>_twin.yaml."""
+    experiments/places/<name>_twin.yaml.
+    realistic: the twin, and experiments/places/<name>_real.yaml with Google's Photorealistic 3D Tiles over it (your
+    own key on the server) and every live data stream on: the sun and weather of now, traffic fitted to open counts,
+    the real buses where they are now, cyclists from counters, a calibrated crowd."""
+    twin = twin or realistic
     emit = emit or printer()
     t0 = time.time()
     emit({"step": "place", "title": TITLES["place"], "state": "running", "text": "", "at": 0.0})
-    p = plan(place, lat, lon, size, name, pedestrians, twin=twin)
+    p = plan(place, lat, lon, size, name, pedestrians, twin=twin, realistic=realistic)
     emit({"step": "place", "title": TITLES["place"], "state": "done",
           "text": f"{p['place']['full']} ({p['drive']}-hand traffic, {TOWN_WORDS[p['town']]})",
           "at": round(time.time() - t0, 1)})
@@ -1209,6 +1217,8 @@ def main(argv=None):
     ap.add_argument("--build", metavar="EXPERIMENT", help="build an experiment file written before")
     ap.add_argument("--twin", action="store_true",
                     help="make a baked CARLA 1.0 digital twin instead (needs the toolchain: docs/make_a_map.md)")
+    ap.add_argument("--realistic", action="store_true",
+                    help="the digital twin plus Google's photorealistic tiles over it and live data (your own key)")
     ap.add_argument("--web", action="store_true", help="open the map maker page in the browser")
     ap.add_argument("--port", type=int, default=8777, help="port of the page (--web), on 127.0.0.1 only")
     ap.add_argument("--no-browser", action="store_true", help="with --web: do not open a browser")
@@ -1242,6 +1252,7 @@ def main(argv=None):
             t0 = time.time()
             emit = printer()
             emit({"step": "place", "title": TITLES["place"], "state": "running", "text": "", "at": 0.0})
+            args.twin = args.twin or args.realistic
             if args.twin:
                 from . import twinmaker
                 st = twinmaker.status()
@@ -1249,7 +1260,8 @@ def main(argv=None):
                     raise MapMakerError(f"Cannot make a digital twin here: {st['why']}", st["how"])
                 if not st["bake"]:
                     say(f"Note: {st['why']}. {st['how']}")
-            p = plan(query, size=args.size, name=args.name, pedestrians=args.pedestrians, found=found, twin=args.twin)
+            p = plan(query, size=args.size, name=args.name, pedestrians=args.pedestrians, found=found, twin=args.twin,
+                     realistic=args.realistic)
             emit({"step": "place", "title": TITLES["place"], "state": "done",
                   "text": f"{p['place']['full']}", "at": 0.0})
             say(f"    {p['drive']}-hand traffic ({p['country'] or 'country unknown'}); {TOWN_WORDS[p['town']]} "
@@ -1261,6 +1273,9 @@ def main(argv=None):
                     "bake).")
                 exp = make_twin_map(p, emit, force=args.force)
                 say(f"    experiment file: {exp.relative_to(ROOT)}")
+                if args.realistic:
+                    say(f"    as real as it gets: {(PLACES / (p['slug'] + '_real.yaml')).relative_to(ROOT)} "
+                        "(Google's photorealistic tiles with your key on the server, live data)")
             else:
                 exp = write_experiment(p, query)
                 say(f"    experiment file: {exp.relative_to(ROOT)}")

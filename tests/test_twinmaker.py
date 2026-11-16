@@ -219,3 +219,45 @@ def test_twin_env_drops_sumo_proj(monkeypatch):
     monkeypatch.setenv("GDAL_DATA", "/x")
     env = tm.twin_env()
     assert "PROJ_LIB" not in env and "GDAL_DATA" not in env and env["PYTHONUNBUFFERED"] == "1"
+
+
+def test_realistic_writes_the_real_experiment_and_tiles_data(tmp_path, proj, monkeypatch):
+    p = mm.plan(size="small", found=place(), realistic=True)
+    assert p["twin"] and p["realistic"]
+    cfg = toolchain(tmp_path)
+    out = tm.build_dir(cfg, "PlazaMayorSalamanca")
+    prepared = []
+
+    def fake_prepare(c, xodr=None, pack=None, network=True, footprints=None):
+        prepared.append((c["name"], c["map"]["photoreal"], footprints))
+        return tmp_path / "pack" / "PlazaMayorSalamanca.json"
+    from coupledcarla import photoreal
+    monkeypatch.setattr(photoreal, "prepare", fake_prepare)
+    events = []
+    path = tm.make_twin(p, events.append, cfg=cfg, runner=fake_runner(out))
+    real = proj / "experiments" / "places" / "plaza_mayor_salamanca_real.yaml"
+    assert path.name == "plaza_mayor_salamanca_twin.yaml" and real.exists()
+    exp = yaml.safe_load(real.read_text(encoding="utf-8"))
+    assert exp["map"]["photoreal"] == {"provider": "google"} and exp["map"]["name"] == "plaza_mayor_salamanca_twin"
+    assert exp["map"]["carla_level"] == "PlazaMayorSalamanca"
+    assert exp["simulation"]["time"] == "now" and exp["simulation"]["weather"] == "real"
+    assert exp["traffic"]["counts"] == "auto" and exp["traffic"]["walkers"] == {"count": "auto"}
+    assert prepared and prepared[0][0] == "plaza_mayor_salamanca_real"
+    assert any("photorealistic tiles" in e["text"].lower() for e in events if e["state"] == "note")
+    info = json.loads((out / "mapmaker.json").read_text())
+    assert info["realistic"].endswith("plaza_mayor_salamanca_real.yaml") and info["photoreal_data"]
+    from coupledcarla import config
+    assert config.load(real)["map"]["photoreal"]["provider"] == "google"
+
+
+def test_realistic_tiles_failure_is_only_a_note(tmp_path, proj, monkeypatch):
+    p = mm.plan(size="small", found=place(), realistic=True)
+    cfg = toolchain(tmp_path)
+    from coupledcarla import photoreal
+
+    def broken(*a, **k):
+        raise photoreal.PhotorealError("no OpenDRIVE")
+    monkeypatch.setattr(photoreal, "prepare", broken)
+    events = []
+    tm.make_twin(p, events.append, cfg=cfg, runner=fake_runner(tm.build_dir(cfg, "PlazaMayorSalamanca")))
+    assert any("could not be written" in e["text"] for e in events if e["state"] == "note")

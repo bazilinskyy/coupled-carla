@@ -316,6 +316,7 @@ void ACCPhotorealTiles_C::Tick(float DeltaSeconds)
   {
     NextScan = T + 1.0;
     UpdateNight();
+    UpdateHold(T);
     ScanTwinMeshes();
   }
   if (T >= NextCredits)
@@ -527,6 +528,19 @@ void ACCPhotorealTiles_C::SpawnCesium(const FString &Key)
   Tileset->SetCreateNavCollision(false);
   Tileset->SetIgnoreKhrMaterialsUnlit(Opt(TEXT("relit"), TEXT("0")) == TEXT("1"));
   Tileset->SetMaximumScreenSpaceError(OptNum(TEXT("sse"), 16.0));
+  // tile loading (fixed before BeginPlay, so no reload and no extra root request):
+  // forbid_holes: keep a parent tile until its children are in (no blank holes while refining, at a coarser look);
+  // culled_sse: tiles outside the spectator's view are still loaded to this error (px, 0 = not at all), so other
+  // cameras (stations, a drone, a film rig) do not look into gaps; loads / cache_mb: parallel loads, tile cache size
+  Tileset->ForbidHoles = Opt(TEXT("forbid_holes"), TEXT("1")) == TEXT("1");
+  const double CulledSse = OptNum(TEXT("culled_sse"), 64.0);
+  Tileset->EnforceCulledScreenSpaceError = CulledSse > 0.0;
+  if (CulledSse > 0.0)
+  {
+    Tileset->CulledScreenSpaceError = CulledSse;
+  }
+  Tileset->MaximumSimultaneousTileLoads = FMath::Clamp((int32)OptNum(TEXT("loads"), 32.0), 1, 128);
+  Tileset->MaximumCachedBytes = (int64)FMath::Clamp(OptNum(TEXT("cache_mb"), 1024.0), 64.0, 16384.0) * 1024 * 1024;
   Tileset->ShowCreditsOnScreen = true;
   SetClip(false);
   UGameplayStatics::FinishSpawningActor(Tileset, FTransform::Identity);
@@ -632,7 +646,7 @@ void ACCPhotorealTiles_C::ApplyVisibility()
     if (AActor *A = M.Actor.Get())
     {
       // visibility only: collision (cars, walkers, LiDAR) and navigation keep the twin's geometry
-      const bool bShow = M.bBuilding && bNight && bNightBuildings && FootprintPolygons.Num() > 0;
+      const bool bShow = (M.bBuilding && bNight && bNightBuildings && FootprintPolygons.Num() > 0) || !bTilesReady;
       A->SetActorHiddenInGame(!bShow);
       NHidden += bShow ? 0 : 1;
     }
@@ -641,6 +655,38 @@ void ACCPhotorealTiles_C::ApplyVisibility()
   {
     LastHidden = NHidden;
     UE_LOG(LogCoupledPhotoreal, Log, TEXT("CoupledPhotoreal: %d twin meshes hidden under the tiles (collision kept)"), NHidden);
+  }
+}
+
+void ACCPhotorealTiles_C::UpdateHold(double T)
+{
+  const double Hold = OptNum(TEXT("hold"), 95.0);
+  const double Low = OptNum(TEXT("hold_low"), 0.0);
+  const double Progress = Tileset ? Tileset->GetLoadProgress() : 0.0;
+  bool bReady = bTilesReady;
+  if (Hold <= 0.0)
+  {
+    bReady = true;
+  }
+  else if (!bTilesReady)
+  {
+    // loaded this far for two scans in a row (the progress also reads 100 before the first tiles are requested),
+    // or 60 s at most so a slow network cannot keep the twin up for ever
+    ReadySince = Progress >= Hold ? (ReadySince < 0.0 ? T : ReadySince) : -1.0;
+    bReady = (ReadySince >= 0.0 && T - ReadySince >= 1.5) || T - StartTime > OptNum(TEXT("hold_max_s"), 60.0);
+  }
+  else if (Low > 0.0 && Progress < Low)
+  {
+    bReady = false;
+    ReadySince = -1.0;
+  }
+  if (bReady != bTilesReady)
+  {
+    bTilesReady = bReady;
+    UE_LOG(LogCoupledPhotoreal, Log, TEXT("CoupledPhotoreal: tiles %s (load progress %.0f%%, %.1f s after start)"),
+           bReady ? TEXT("loaded: the twin goes under them") : TEXT("loading: the twin shows meanwhile"), Progress,
+           T - StartTime);
+    ApplyVisibility();
   }
 }
 

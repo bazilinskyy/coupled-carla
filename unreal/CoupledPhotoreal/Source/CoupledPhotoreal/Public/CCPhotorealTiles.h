@@ -128,6 +128,11 @@ private:
   FString LastCredits;
   FString PendingStop;
   int32 LastHidden = -1;
+  // hold (option "hold", % of Cesium's load progress): the twin stays visible until the tiles are this far loaded, so
+  // nothing shows blank holes before the first tiles arrive; "hold_low" (% , 0 = off) shows it again below that
+  bool bTilesReady = false;
+  double ReadySince = -1.0;
+  void UpdateHold(double T);
   bool bTestRefreshed = false;
   double NextCredits = 0.0;
 };
