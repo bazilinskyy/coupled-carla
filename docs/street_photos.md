@@ -178,6 +178,31 @@ It is off by default: only this command runs it. Two backends:
 real photos, so only the open sources' photos go to the model; Google Street View is never used (its terms
 forbid it).
 
+**First results with the local model** (2026-11-16, Qwen2.5-VL-7B in 4 bits on lin4080, 30 spots per run spread
+over the scores, about 9 s per spot). The top themes per run, by summed severity:
+
+| Run | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| `eindhoven_centre` 0.9.16 | trees (22 spots) | ground smoother and more uniform (12) | plants (13) | flat lighting, no shadows (12) | sky a solid colour, no clouds (13) |
+| EhvCentre twin | trees missing (29) | ground surface missing or smoother (17) | ground smoother, more uniform (16) | no clouds (14) | even, less dynamic lighting (13) |
+| Campus, Mapillary views | trees, "no leaves" (24) | grass uniform and bright green (23) | asphalt road surface (15) | road (11) | trees' leaves (13) |
+| `eindhoven_centre`, Mapillary views | trees (23) | sky a solid colour (14) | brick texture (10) | ground smoother (9) | ground uniform (9) |
+
+The model agrees with the layout scores (trees first everywhere). It adds what the layout cannot see: ground
+surfaces too smooth and uniform (no bricks, joints or wear), a cloudless solid-colour sky, flat light without
+shadows, and dirt and wear missing.
+
+It is a coarse critic, though:
+- Its items are short and generic ("trees", "plants").
+- Severity is 2 or 3 for 98 % of items.
+- It misses gross errors. On one campus spot the render stands on grass where the photo shows a four-lane road,
+  and the model wrote about the trees' branches.
+
+A first prompt that gave an example sentence and a list of objects was copied into its answers: the example
+appeared in 90 of 120 answers. The prompt now has neither, and `parse_critique` drops items copied from the
+prompt (none in the 120 new answers). Claude was not tried: no `anthropic_api_key` is set. Example spots with
+their critiques are in each run's `critique/`.
+
 ## Street objects
 
 `objects` compares the photos' evidence with what `scenery.json` places:
@@ -341,6 +366,31 @@ It is off by default: only this command runs it. Two backends:
 `--max-spots` (default 40) spreads the critiqued spots from the worst score to the best. The spot images are
 real photos, so only the open sources' photos go to the model; Google Street View is never used (its terms
 forbid it).
+
+**First results with the local model** (2026-11-16, Qwen2.5-VL-7B in 4 bits on lin4080, 30 spots per run spread
+over the scores, about 9 s per spot). The top themes per run, by summed severity:
+
+| Run | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| `eindhoven_centre` 0.9.16 | trees (22 spots) | ground smoother and more uniform (12) | plants (13) | flat lighting, no shadows (12) | sky a solid colour, no clouds (13) |
+| EhvCentre twin | trees missing (29) | ground surface missing or smoother (17) | ground smoother, more uniform (16) | no clouds (14) | even, less dynamic lighting (13) |
+| Campus, Mapillary views | trees, "no leaves" (24) | grass uniform and bright green (23) | asphalt road surface (15) | road (11) | trees' leaves (13) |
+| `eindhoven_centre`, Mapillary views | trees (23) | sky a solid colour (14) | brick texture (10) | ground smoother (9) | ground uniform (9) |
+
+The model agrees with the layout scores (trees first everywhere). It adds what the layout cannot see: ground
+surfaces too smooth and uniform (no bricks, joints or wear), a cloudless solid-colour sky, flat light without
+shadows, and dirt and wear missing.
+
+It is a coarse critic, though:
+- Its items are short and generic ("trees", "plants").
+- Severity is 2 or 3 for 98 % of items.
+- It misses gross errors. On one campus spot the render stands on grass where the photo shows a four-lane road,
+  and the model wrote about the trees' branches.
+
+A first prompt that gave an example sentence and a list of objects was copied into its answers: the example
+appeared in 90 of 120 answers. The prompt now has neither, and `parse_critique` drops items copied from the
+prompt (none in the 120 new answers). Claude was not tried: no `anthropic_api_key` is set. Example spots with
+their critiques are in each run's `critique/`.
 
 ## Street objects
 
