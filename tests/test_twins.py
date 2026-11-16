@@ -24,3 +24,32 @@ def test_nyc_twin_is_the_midtown_city_box():
     s, w, n, e = twin["map"]["bbox"]
     for p in twin["pois"] + [twin["participants"][0]["spawn"]]:
         assert s <= p["lat"] <= n and w <= p["lon"] <= e, p
+
+
+def test_city_twin_names_its_level_and_keeps_every_spawn_in_the_box():
+    cfg = config.load(EXP / "eindhoven_city_twin.yaml")
+    m = cfg["map"]
+    assert m["carla_level"] == "EhvCity" and m["opendrive"] == "twins/EhvCity.xodr"
+    assert config.map_dir(cfg).name == "eindhoven_city_twin"
+    s, w, n, e = m["bbox"]
+    spawns = [cfg["participants"][0]["spawn"]]
+    for t in cfg["trials"]:
+        tc = config.trial_config(cfg, t)
+        spawns.append(tc["participants"][0]["spawn"])
+    assert len({(p["lat"], p["lon"]) for p in spawns}) == 3   # station, TU/e campus, Veldhoven
+    for p in spawns + cfg["pois"]:
+        assert s <= p["lat"] <= n and w <= p["lon"] <= e, p
+
+
+def test_city_real_is_the_city_twin_under_google_tiles_with_live_data():
+    real = config.load(EXP / "eindhoven_city_real.yaml")
+    twin = config.load(EXP / "eindhoven_city_twin.yaml")
+    m = real["map"]
+    assert m["name"] == "eindhoven_city_twin"
+    assert (m["opendrive"], m["carla_level"], m["bbox"]) == (twin["map"]["opendrive"], twin["map"]["carla_level"],
+                                                             twin["map"]["bbox"])
+    assert m["photoreal"]["provider"] == "google" and m["photoreal"]["carve"] == "carriageway"
+    assert m["scenery"]["trees"] is False and m["scenery"]["buildings"] is False
+    assert real["simulation"]["time"] == "now" and real["simulation"]["weather"] == "real"
+    assert real["traffic"]["cars_per_hour"] == "auto"
+    assert [t.get("patch") for t in real["trials"]] == [t.get("patch") for t in twin["trials"]]
