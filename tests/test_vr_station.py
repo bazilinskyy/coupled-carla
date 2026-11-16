@@ -176,6 +176,7 @@ def test_display_argument(station_mod):
 
 
 def test_vr_station_moves_both_eyes_and_submits(station_mod, tmp_path):
+    pytest.importorskip("pygame")          # the station draws its overlay with pygame (not installed in CI)
     mod, carla = station_mod
     srv = socket.socket()
     srv.bind(("127.0.0.1", 0))
