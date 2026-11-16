@@ -44,7 +44,7 @@ function Step($text) { Write-Host ""; Write-Host "== $text" -ForegroundColor Cya
 function Wsl($cmd, $log) {
   Write-Host "   wsl: $cmd"
   if ($Plan) { return }
-  & wsl -d $Distro -u $WslUser -- bash -lc ($wslPrefix + $cmd) 2>&1 | Tee-Object -FilePath (Join-Path $out $log)
+  & wsl.exe -d $Distro -u $WslUser -- bash -lc ($wslPrefix + $cmd) 2>&1 | Tee-Object -FilePath (Join-Path $out $log)
 }
 function WaitPort($port, $seconds) {
   if ($Plan) { Write-Host "   wait for port $port"; return }
