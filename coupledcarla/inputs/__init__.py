@@ -52,11 +52,26 @@ class Autopilot:
         import math
         try:
             queue = list(self.agent.get_local_planner()._waypoints_queue)[:60]
-            loc = vehicle.get_location()
+            tfv = vehicle.get_transform()
         except (AttributeError, RuntimeError):
             return self.target_speed
+        loc = tfv.location
         best = self.target_speed / 3.6
-        s, prev = 0.0, None
+        # the turn the car still has to make towards its target waypoint: the local planner drops the waypoints
+        # within a few metres and aims across a corner, so the curve it is in is no longer in its plan (pure
+        # pursuit: curvature 2 sin(heading error) / distance)
+        hy = math.radians(tfv.rotation.yaw)
+        for wp, _opt in queue:
+            dx, dy = wp.transform.location.x - loc.x, wp.transform.location.y - loc.y
+            L = math.hypot(dx, dy)
+            if L < 3.0:
+                continue
+            err = abs((math.degrees(math.atan2(dy, dx) - hy) + 180.0) % 360.0 - 180.0)
+            k0 = 2.0 * math.sin(math.radians(min(err, 90.0))) / L
+            if k0 > 1e-3:
+                best = min(best, math.sqrt(self.A_LAT / k0))
+            break
+        s, prev = 0.0, (loc.x, loc.y, tfv.rotation.yaw)
         px, py = loc.x, loc.y
         for wp, _opt in queue:
             tf = wp.transform

@@ -352,13 +352,21 @@ def test_autopilot_slows_before_a_turn(monkeypatch):
     turn = [wp(2.0 * i, 0.0, 0.0) for i in range(1, 11)] + \
         [wp(20 + 10 * math.sin(a), -10 + 10 * math.cos(a), -math.degrees(a)) for a in
          [k * math.pi / 2 / 8 for k in range(1, 9)]]
-    car = types.SimpleNamespace(get_location=lambda: _V(0.0, 0.0))
+    def at(x, y, yaw=0.0):
+        return types.SimpleNamespace(get_transform=lambda: types.SimpleNamespace(
+            location=_V(x, y), rotation=types.SimpleNamespace(yaw=yaw)))
+
+    car = at(0.0, 0.0)
     ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=straight))
     assert ap._curve_speed(car) == 40.0
     # 10 m before the turn: braking at 2.5 m/s^2 to 5 m/s at its start allows sqrt(25 + 50) m/s = 31 km/h
-    car10 = types.SimpleNamespace(get_location=lambda: _V(10.0, 0.0))
+    car10 = at(10.0, 0.0)
     ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=turn[5:]))
     assert 27.0 <= ap._curve_speed(car10) <= 34.0
     # at the turn itself: sqrt(2.5 m/s^2 x 10 m) = 5 m/s = 18 km/h
     ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=turn[10:]))
-    assert ap._curve_speed(types.SimpleNamespace(get_location=lambda: _V(20.0, 0.0))) < 23.0
+    assert ap._curve_speed(at(20.0, 0.0)) < 23.0
+    # cutting the corner: its plan only has the road after the turn, 8 m away at 60 deg off its heading
+    ap.agent = types.SimpleNamespace(get_local_planner=lambda: types.SimpleNamespace(_waypoints_queue=[
+        wp(20 + 4.0, -6.93, -90.0), wp(20 + 4.0, -8.93, -90.0), wp(20 + 4.0, -10.93, -90.0)]))
+    assert ap._curve_speed(at(20.0, 0.0)) < 13.0
