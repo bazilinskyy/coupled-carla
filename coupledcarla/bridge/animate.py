@@ -140,6 +140,7 @@ class PathSmoother:
         self.x = self.y = self.h = None      # rear axle position, heading (rad)
         self.k = 0.0
         self.vs = None
+        self._last_yaw = None
         self.trailer = None
         self.snaps = 0
         self.max_off = 0.0
@@ -156,6 +157,14 @@ class PathSmoother:
         """aim: a point on SUMO's path ahead of its front bumper (path_ahead()), to steer at; default the front
         bumper itself (a shorter look-ahead: kinks are smoothed over the body's length only)."""
         ro = rear_offset(length)
+        if length > TRAILER_ONLY_M and not self.participant_mode:
+            # a bus or truck is shown as SUMO places it: the pursuit below swung a 10 m bus's body off its path, and
+            # a trailer-style body turned round where SUMO's heading pointed backwards (Eindhoven rush hour, trial
+            # of 2026-11-16 18:48: 8-10 m jumps); left for later
+            self.vs = max(0.0, speed)
+            yr = wrap_deg(target[2] - self._last_yaw) / dt if self._last_yaw is not None and dt > 0 else 0.0
+            self._last_yaw = target[2]
+            return target[0], target[1], target[2], yr, self.vs
         # SUMO's front bumper is exact; its heading (a chord to its back) flips and jumps: take the body that the
         # front drags behind it (Trailer) as the pose to follow
         h0 = math.radians(target[2])
@@ -175,7 +184,7 @@ class PathSmoother:
         off = abs(-ex * st + ey * ct)          # off SUMO's path, across SUMO's heading
         behind = ex * ct + ey * st - lag       # along it, beyond the lag
         turned = abs(wrap_deg(math.degrees(ht - self.h)))
-        if v < SLOW_MPS and not self.participant_mode and max(off, abs(behind)) < self.snap_m and turned < 120.0:
+        if v < SLOW_MPS and max(off, abs(behind)) < self.snap_m and turned < 120.0:
             # walking pace: glide onto SUMO's own pose (nothing to smooth at this speed; no jump when slowing down)
             w = min(1.0, dt / BLEND_S)
             self.x += (tx - self.x) * w
@@ -268,29 +277,43 @@ class Trailer:
     lane's centre line), the rear axle follows it like a trailer's hitch (it moves toward the front, keeping its
     distance), and the heading is the line from the rear axle to the front. SUMO's own heading (the chord of its
     front and back positions) jumps where its back position passes onto another lane (a bus's centre, half a length
-    behind the front, moved 0.9 m sideways in one tick); this body turns only as fast as the front's path bends, and
-    a long vehicle's rear cuts inside a turn as a real one does. step(front (x, y), sumo_yaw, length) -> (centre x,
-    y, yaw)."""
+    behind the front, moved 0.9 m sideways in one tick) and can point backwards for seconds (a bus driving east at
+    11 km/h with SUMO's angle west, Eindhoven rush hour); this body turns only as fast as the front's path bends,
+    a long vehicle's rear cuts inside a turn as a real one does, and the way the front moves (not SUMO's angle)
+    decides which way the body points. step(front (x, y), sumo_yaw, length, speed) -> (centre x, y, yaw)."""
 
     def __init__(self):
         self.rx = self.ry = None
+        self.anchor = None          # where the front was when the direction of travel was last measured
+
+    def _start(self, fx, fy, yaw_deg, d):
+        h = math.radians(yaw_deg)
+        self.rx, self.ry = fx - d * math.cos(h), fy - d * math.sin(h)
 
     def step(self, front, sumo_yaw, length, speed=10.0):
         """speed: SUMO's (m/s); slower than TRAILER_TRUST_MPS SUMO's heading is not trusted (a bus leaving a stop
         turned 169 -> 20 deg within 0.1 s at 0.4 m/s)."""
         d = 0.5 * length + rear_offset(length)       # front bumper to rear axle
         fx, fy = front
+        travel = None                                 # the direction the front moves in (deg), when measurable
+        if self.anchor is None or math.dist(self.anchor, front) > 3.0:
+            self.anchor = front
+        elif math.dist(self.anchor, front) > TRAVEL_M:
+            travel = math.degrees(math.atan2(fy - self.anchor[1], fx - self.anchor[0]))
+            self.anchor = front
         if self.rx is not None:
             dx, dy = fx - self.rx, fy - self.ry
             n = math.hypot(dx, dy)
+            body = math.degrees(math.atan2(dy, dx))
             if abs(n - d) > TRAILER_JUMP_M or n < 1e-6:     # a teleport or a reset: start again
                 self.rx = None
-            elif speed > TRAILER_TRUST_MPS and \
-                    abs(wrap_deg(math.degrees(math.atan2(dy, dx)) - sumo_yaw)) > TRAILER_TURNED_DEG:
+            elif travel is not None and abs(wrap_deg(body - travel)) > 135.0:
+                self._start(fx, fy, travel, d)              # pointing backwards: turn it round to where it goes
+            elif speed > TRAILER_TRUST_MPS and abs(wrap_deg(body - sumo_yaw)) > TRAILER_TURNED_DEG and \
+                    (travel is None or abs(wrap_deg(sumo_yaw - travel)) < 90.0):
                 self.rx = None          # dragged round while standing (SUMO shuffled the front sideways)
         if self.rx is None:
-            h = math.radians(sumo_yaw)
-            self.rx, self.ry = fx - d * math.cos(h), fy - d * math.sin(h)
+            self._start(fx, fy, sumo_yaw if travel is None or abs(wrap_deg(sumo_yaw - travel)) < 90.0 else travel, d)
         dx, dy = fx - self.rx, fy - self.ry
         n = math.hypot(dx, dy)
         ux, uy = dx / n, dy / n
@@ -299,7 +322,9 @@ class Trailer:
         return fx - 0.5 * length * ux, fy - 0.5 * length * uy, yaw
 
 
+TRAVEL_M = 0.5         # the front's direction of travel is measured over this much movement
 TRAILER_TURNED_DEG = 45.0
+TRAILER_ONLY_M = 7.0      # longer vehicles keep SUMO's pose (PathSmoother)
 TRAILER_TRUST_MPS = 2.0
 TRAILER_JUMP_M = 2.0   # the front moved this much farther than the body's length allows: start again
 
