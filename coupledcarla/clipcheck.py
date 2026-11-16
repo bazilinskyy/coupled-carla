@@ -122,6 +122,41 @@ def load_buildings(path):
     return out
 
 
+def placed_only(blds, scenery_json):
+    """The footprints that the scenery shows as a building mesh (an item of kind "building" inside or within 3 m of
+    the footprint); a footprint the scenery dropped (over a road or a cycle path: Eindhoven's Fellenoord, a 43 m
+    3DBAG building whose outline covers the cycle path) is not there to be driven into. All of them without a
+    scenery.json."""
+    try:
+        items = json.loads(Path(scenery_json).read_text()).get("items") or []
+    except (OSError, ValueError, AttributeError):
+        return blds
+    pts = [(o[1], o[2]) for o in items if o and o[-1] == "building"]
+    if not pts:
+        return blds
+    grid = {}
+    for x, y in pts:
+        grid.setdefault((int(x // 20), int(y // 20)), []).append((x, y))
+    out = []
+    for b in blds:
+        x0, y0, x1, y1, poly = b
+        found = False
+        for gx in range(int((x0 - 3) // 20), int((x1 + 3) // 20) + 1):
+            for gy in range(int((y0 - 3) // 20), int((y1 + 3) // 20) + 1):
+                for x, y in grid.get((gx, gy), ()):
+                    if x0 - 3 <= x <= x1 + 3 and y0 - 3 <= y <= y1 + 3 and \
+                            (point_in_polygon(x, y, poly) or min(math.dist((x, y), q) for q in poly) < 3.0):
+                        found = True
+                        break
+                if found:
+                    break
+            if found:
+                break
+        if found:
+            out.append(b)
+    return out
+
+
 # -- geometry -----------------------------------------------------------------------------------------------------
 
 def point_in_polygon(x, y, poly):
@@ -333,6 +368,8 @@ def check_trial(trial, t0, t1, camera="main", fov=None, map_dir=None, viewers=()
     from . import inbuildings      # a twin's footprints with its passages under buildings cut out, else buildings.json
     fp = inbuildings.footprints_path(map_dir) if map_dir else None
     blds = load_buildings(fp) if fp else []
+    if blds and fp is not None and fp.name == "buildings.json":
+        blds = placed_only(blds, Path(map_dir) / "scenery.json")
     bgrid = {}
     for i, b in enumerate(blds):
         for gx in range(int(b[0] // 20), int(b[2] // 20) + 1):

@@ -262,3 +262,15 @@ def test_glide_slides_onto_the_target():
         pose, arrived = animate.glide(pose, (1.2, 0.0, 0.0, 30.0))
         n += 1
     assert arrived and n >= 6 and pose == (1.2, 0.0, 0.0, 30.0)
+
+
+def test_placed_only_drops_footprints_without_a_building_mesh(tmp_path):
+    import json
+    sq = [(0, 0), (10, 0), (10, 10), (0, 10)]
+    far = [(100, 100), (110, 100), (110, 110), (100, 110)]
+    blds = [(0, 0, 10, 10, sq), (100, 100, 110, 110, far)]
+    (tmp_path / "scenery.json").write_text(json.dumps({"items": [[0, 5.0, 5.0, 0, 0, 1, "building"],
+                                                                 [1, 50.0, 50.0, 0, 0, 1, "tree"]]}))
+    kept = clipcheck.placed_only(blds, tmp_path / "scenery.json")
+    assert [b[0] for b in kept] == [0]
+    assert clipcheck.placed_only(blds, tmp_path / "missing.json") == blds
