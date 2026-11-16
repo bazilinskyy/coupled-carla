@@ -38,3 +38,19 @@ def test_config_and_mute(tmp_path, monkeypatch):
     assert settings.get_config("mute_sound", root=tmp_path) is True
     assert settings.get_config("nothing", 5, root=tmp_path) == 5
     assert settings.mute({"COUPLED_CARLA_MUTE": "1"})
+
+
+def test_set_and_merge_secrets(tmp_path):
+    import stat
+    (tmp_path / "default.secret").write_text(json.dumps({k: "" for k in settings.ENV}))
+    answers = iter(["  MLY|xyz  ", ""])
+    shown = []
+    done = settings.set_secrets(["mapillary_token", "tomtom_api_key"], tmp_path, ask=lambda prompt: next(answers),
+                                out=shown.append)
+    data = json.loads((tmp_path / "secret").read_text())
+    assert done == ["mapillary_token"] and data["mapillary_token"] == "MLY|xyz" and data["tomtom_api_key"] == ""
+    assert not any("xyz" in line for line in shown)
+    assert stat.S_IMODE((tmp_path / "secret").stat().st_mode) == 0o600
+    settings.merge_secrets({"tomtom_api_key": "tt1", "bogus": "x"}, tmp_path)
+    data = json.loads((tmp_path / "secret").read_text())
+    assert data["tomtom_api_key"] == "tt1" and data["mapillary_token"] == "MLY|xyz" and "bogus" not in data

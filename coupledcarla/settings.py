@@ -113,7 +113,63 @@ def mute(env=None):
         return False
 
 
-def main():
+def set_secrets(names, root=None, ask=None, out=print):
+    """Asks for each key in turn without echoing it (getpass) and writes the non-empty answers into the project's
+    `secret` (created from default.secret, mode 600). An empty answer keeps what is there. Returns the names set."""
+    import getpass
+    ask = ask or getpass.getpass
+    root = Path(root or ROOT)
+    path = root / "secret"
+    data = {**_json(root / "default.secret"), **_json(path)}
+    done = []
+    for name in names:
+        if name not in ENV:
+            out(f"{name}: not a known key ({', '.join(ENV)})")
+            continue
+        out(f"{name}: from {HOW[name]}")
+        v = (ask(f"  paste {name} (nothing is shown; Enter alone keeps the current one): ") or "").strip()
+        if v:
+            data[name] = v
+            done.append(name)
+            out(f"  saved ({len(v)} characters)")
+        else:
+            out("  unchanged")
+    _write_secret(path, data)
+    return done
+
+
+def merge_secrets(entries, root=None):
+    """Writes the given {name: value} into the project's `secret` (mode 600), keeping the other entries."""
+    root = Path(root or ROOT)
+    data = {**_json(root / "default.secret"), **_json(root / "secret")}
+    data.update({k: str(v).strip() for k, v in entries.items() if k in ENV and str(v).strip()})
+    _write_secret(root / "secret", data)
+    return sorted(k for k in entries if k in ENV)
+
+
+def _write_secret(path, data):
+    tmp = path.with_name(".secret.tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    os.replace(tmp, path)
+    if os.name != "nt":
+        os.chmod(path, 0o600)
+
+
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--set", nargs="*", metavar="NAME", help="type these keys (default: all) without echo into secret")
+    ap.add_argument("--merge-stdin", action="store_true", help="merge a JSON object of keys from stdin into secret")
+    args = ap.parse_args(argv)
+    if args.merge_stdin:
+        names = merge_secrets(json.loads(sys.stdin.read() or "{}"))
+        print(f"{ROOT / 'secret'}: merged {', '.join(names) or 'nothing'}")
+        return 0
+    if args.set is not None:
+        set_secrets(args.set or list(ENV))
     print(f"{ROOT}: config {'present' if (ROOT / 'config').exists() else 'missing (cp default.config config)'}, "
           f"secret {'present' if (ROOT / 'secret').exists() else 'missing (cp default.secret secret)'}")
     for name in ENV:
