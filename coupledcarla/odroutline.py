@@ -3,8 +3,9 @@
 For the photorealistic tiles (photoreal.py): the photogrammetry's road surface is cut out where the twin's roads are,
 so CARLA's roads (lane markings, a smooth surface) show through. Implements what that needs of OpenDRIVE 1.4-1.8: the
 reference line (line, arc, spiral, poly3, paramPoly3 with arcLength or normalized ranges), laneOffset, lane sections
-and lane width polynomials. Lane heights are not used (the cut is a vertical prism). `border` records and lane
-heights are ignored; a lane without width records counts as 0 m wide.
+and lane width polynomials. `border` records, lane heights and superelevation are ignored; a lane without width
+records counts as 0 m wide. lane_heights() samples the elevation profile across the lanes (the height-limited cut of
+photoreal.cut_mask follows the road surface).
 """
 import math
 import xml.etree.ElementTree as ET
@@ -140,6 +141,7 @@ class Road:
         self.junction = e.get("junction", "-1")
         self.length = float(e.get("length"))
         self.geoms = sorted((Geometry(g) for g in e.findall("planView/geometry")), key=lambda g: g.s)
+        self.elevation = _records(e, "elevationProfile/elevation")
         lanes = e.find("lanes")
         self.offsets = _records(lanes, "laneOffset") if lanes is not None else []
         self.sections = []
@@ -157,6 +159,10 @@ class Road:
                 lanes_.sort(key=lambda t: t[0])   # from the centre outwards
                 sides[sign] = lanes_
             self.sections.append((s0, s1, sides))
+
+    def z(self, s):
+        """The reference line's height at s (the elevation profile; 0 without one)."""
+        return _eval_records(self.elevation, s)
 
     def ref(self, s):
         """x, y, heading of the reference line at s."""
@@ -186,6 +192,37 @@ def _samples(s0, s1, step):
     return [s0 + (s1 - s0) * i / n for i in range(n + 1)]
 
 
+def _runs(lanes, types):
+    """[first, last] index ranges of neighbouring lanes whose type is in `types`."""
+    runs, cur = [], None
+    for idx, (_, typ, _) in enumerate(lanes):
+        if typ in types:
+            if cur is None:
+                cur = [idx, idx]
+            else:
+                cur[1] = idx
+        else:
+            if cur is not None:
+                runs.append(cur)
+            cur = None
+    if cur is not None:
+        runs.append(cur)
+    return runs
+
+
+def _borders(road, s0, ss, sign, lanes):
+    """Per s: the signed offsets (+ left) of the lane borders from the reference line, from the centre outwards."""
+    borders = []
+    for s in ss:
+        t = _eval_records(road.offsets, s)
+        ts = [t]
+        for _, _, widths in lanes:
+            t += sign * max(0.0, _eval_records(widths, s - s0))
+            ts.append(t)
+        borders.append(ts)
+    return borders
+
+
 def lane_outlines(road, types, step=1.0):
     """Polygons (lists of (x, y), open rings) of each run of neighbouring lanes whose type is in `types`, per lane
     section and side. Lanes of other types between them split the run."""
@@ -195,31 +232,10 @@ def lane_outlines(road, types, step=1.0):
         for sign, lanes in sides.items():
             if not lanes:
                 continue
-            # border offsets (from the reference line, signed: + left) at each s, lane by lane outwards
-            runs, cur = [], None
-            for idx, (_, typ, _) in enumerate(lanes):
-                if typ in types:
-                    if cur is None:
-                        cur = [idx, idx]
-                    else:
-                        cur[1] = idx
-                else:
-                    if cur is not None:
-                        runs.append(cur)
-                    cur = None
-            if cur is not None:
-                runs.append(cur)
+            runs = _runs(lanes, types)
             if not runs:
                 continue
-            borders = []    # per s: [t_0 (inner of lane 0), t_1, ...]
-            for s in ss:
-                t = _eval_records(road.offsets, s)
-                ts = [t]
-                for _, _, widths in lanes:
-                    w = max(0.0, _eval_records(widths, s - s0))
-                    t += sign * w
-                    ts.append(t)
-                borders.append(ts)
+            borders = _borders(road, s0, ss, sign, lanes)
             refs = [road.ref(s) for s in ss]
             for a, b in runs:
                 inner, outer = [], []
@@ -232,6 +248,39 @@ def lane_outlines(road, types, step=1.0):
                     continue    # zero-width (a lane that only exists on paper here)
                 out.append(inner + outer[::-1])
     return out
+
+
+def lane_heights(road, types, step=2.0, across=1.5):
+    """(x, y, z) points on the lanes of `types`: every `step` m along the road, at the run's borders and every
+    `across` m between them; z from the elevation profile (lateral slope ignored)."""
+    out = []
+    for s0, s1, sides in road.sections:
+        ss = _samples(s0, s1, step)
+        for sign, lanes in sides.items():
+            runs = _runs(lanes, types) if lanes else []
+            if not runs:
+                continue
+            borders = _borders(road, s0, ss, sign, lanes)
+            for s, ts in zip(ss, borders):
+                x, y, h = road.ref(s)
+                z = road.z(s)
+                nx, ny = -math.sin(h), math.cos(h)
+                for a, b in runs:
+                    ti, to = ts[a], ts[b + 1]
+                    n = max(1, int(math.ceil(abs(to - ti) / across)))
+                    for k in range(n + 1):
+                        t = ti + (to - ti) * k / n
+                        out.append((x + nx * t, y + ny * t, z))
+    return out
+
+
+def heights(xodr, types, step=2.0):
+    """lane_heights() of every road of the file (xodr: a path, its text or parse()'s roads)."""
+    roads = xodr if isinstance(xodr, list) else parse(xodr)[0]
+    pts = []
+    for r in roads:
+        pts.extend(lane_heights(r, types, step))
+    return pts
 
 
 def outlines(xodr, types, step=1.0):

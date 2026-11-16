@@ -48,7 +48,7 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
     bbox = json.loads((Path(map_dir) / "meta.json").read_text())["bbox"]
     reg = fleet.registry(bbox) if tc.get("fleet", "auto") == "auto" else None
     if reg:
-        tc["car_types"] = fleet.car_types(reg)
+        tc["car_types"] = fleet.car_types(reg, fleet.carla_major())    # CARLA 1.0's own cars on a 1.0 client
         log(f"fleet: {reg['source']}: " + ", ".join(f"{k} {100 * v / sum(reg['body'].values()):.0f}%"
                                                   for k, v in sorted(reg["body"].items(), key=lambda x: -x[1])[:5]))
     from . import speeds   # urban limits on roads OSM gives none; drivers' speeds / limit from measured speeds
