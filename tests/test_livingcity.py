@@ -164,8 +164,10 @@ def test_kerbside_numbers():
 
 
 def test_bench_seats_face_the_side_asked():
-    seats = lc.bench_seats([(10.0, 5.0, 0.0, 0.0, "SM_Bench01")], toward=lambda x, y, a, b: b)
+    seats = lc.bench_seats([(10.0, 5.0, 0.0, 0.0, "SM_Bench02")], toward=lambda x, y, a, b: b)
     assert len(seats) == 2 and {round(s[0], 2) for s in seats} == {9.55, 10.45} and seats[0][3] == 270.0
+    seats = lc.bench_seats([(10.0, 5.0, 0.0, 30.0, "SM_Bench01")], toward=lambda x, y, a, b: b)
+    assert seats[0][3] == 120.0          # a bench with a backrest: its seat side (measured), not the road's
     assert lc.bench_share(_lc(), wet=True) == pytest.approx(0.03)
 
 

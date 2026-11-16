@@ -166,6 +166,9 @@ HAIL_POSE = {"crl_arm__R": (0, 110, 0)}
 SIT_DROP_M = 0.22            # a sitter's actor this much lower than standing puts the feet on the ground and the
                              # hips 0.1 m above a 0.45 m seat (measured on 0.9.16's bones: tools/../scratch probe)
 BENCH_MESHES = ("SM_Bench01", "SM_Bench02", "SM_Bench03", "SM_StreetBench")
+# the side a bench's seat faces, in degrees from the mesh's yaw (+90: its +y side), measured on CARLA 0.9.16
+# (lc_probe_bench: a sitter on each side, photographed); None: no backrest, either side (the road's)
+SEAT_FACING = {"SM_Bench01": 90.0, "SM_Bench02": None, "SM_Bench03": None, "SM_StreetBench": 90.0}
 RACK_MESHES = ("SM_BikeParking",)
 SHOP_KINDS = ("food_and_drink", "shopping", "arts_and_entertainment")
 
@@ -576,7 +579,8 @@ def bench_seats(benches, toward=None):
     for x, y, z, yaw, mesh in benches:
         a = math.radians(yaw)
         fa, fb = yaw + 90.0, yaw - 90.0
-        face = toward(x, y, fa, fb) if toward else fa
+        fixed = SEAT_FACING.get(mesh.split(".")[0].replace("_Opt", ""))
+        face = yaw + fixed if fixed is not None else (toward(x, y, fa, fb) if toward else fa)
         for off in (-0.45, 0.45):
             out.append((x + off * math.cos(a), y + off * math.sin(a), z, face % 360.0))
     return out
@@ -837,8 +841,11 @@ class LivingCity:
 
     def _benches(self, initial):
         carla = self.carla
-        if not hasattr(self, "_all_benches"):
-            self._all_benches = scenery_points(self.mdir, BENCH_MESHES)
+        if not hasattr(self, "_all_benches"):     # one bench per spot (the scenery has some meshes on top of others)
+            self._all_benches = []
+            for b in scenery_points(self.mdir, BENCH_MESHES):
+                if all((b[0] - o[0]) ** 2 + (b[1] - o[1]) ** 2 > 1.0 for o in self._all_benches):
+                    self._all_benches.append(b)
         new = [b for b in self._all_benches if (round(b[0], 1), round(b[1], 1)) not in self.seen_benches and
                self.near_participants(b[0], b[1])]
         new.sort(key=lambda b: min(((b[0] - c.x) ** 2 + (b[1] - c.y) ** 2 for c in self._focus), default=0.0))
@@ -874,7 +881,7 @@ class LivingCity:
                               "bench")
         if k is None:
             return False
-        self.at(self.t + 1.0, self._sit_down, k, x - fx * 0.1, y - fy * 0.1, face)
+        self.at(self.t + 1.0, self._sit_down, k, x, y, face)
         return True
 
     def _sit_down(self, k, x, y, face):
