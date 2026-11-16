@@ -1132,7 +1132,6 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 continue
             if face:
                 sign = face
-                pl.counts["sign_osm_face"] += 1
             wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
             if wp is None or wp.transform.location.distance(carla.Location(x=x, y=y, z=wp.transform.location.z)) > 25:
                 continue
@@ -1162,6 +1161,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             pl.add("sign", sign, px, py, face + ms.SIGN_YAW, 1.0,
                    z=gz + cat.size(ms.POST)[2] - H - 0.05, base=(px, py, gz))
             pl.counts["sign_osm"] += 1
+            pl.counts["sign_osm_face"] += bool(face)
         if pl.counts["sign_osm_wrong_country"]:
             log(f"scenery: {pl.counts['sign_osm_wrong_country']} OSM stop/give-way signs left out: CARLA has them only "
                 f"in another country's design ({iso3 or 'country unknown'})")
