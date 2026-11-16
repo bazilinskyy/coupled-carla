@@ -243,16 +243,19 @@ lamps or signs.
 Results from 2026-11-16, made on lin4080 with `pairs` giving Eindhoven's real-vs-real scale. All figures are
 medians over the spots:
 
-- Map score: median spot score × 100.
+- Map score: median spot score × 100, leaving out the spots whose render stands in or against a building
+  (counted in "in a wall": the photo's position is off by a few metres).
 - Index: the realism index of the spot score (0 = a random real place, 1 = the same street).
 
-| Map | CARLA, renders | Views (sources) | Map score | Index | Coarse IoU | Boundary F | Skyline (°) | DINO global | DINO patch |
-|---|---|---|---|---|---|---|---|---|---|
-| `eindhoven_centre` | 0.9.16, lin4080 (renders of 2026-11-15, re-scored) | 350 (Panoramax 196, Commons 90, KartaView 64) | 35.7 | 0.27 | 0.420 | 0.333 | 4.0 | 0.124 | 0.316 |
-| EhvCentre twin (`eindhoven_twin`) | 1.0, win5090 package, `CoupledReal` (renders of 2026-11-16, re-scored) | the same 350 | 37.6 | 0.37 | 0.435 | 0.334 | 3.8 | 0.182 | 0.336 |
-| TU/e campus, south part (`eindhoven_centre --box`) | 0.9.16, lin4080 | 34 (Panoramax 28, KartaView 6) | 32.6 | 0.11 | 0.331 | 0.317 | 4.6 | 0.162 | 0.318 |
-| TUeCampus twin | 1.0 | not rendered: needs a win5090 GPU window (lin5080's GPU is the crowd workers') | | | | | | | |
-| `chernihiv` | 0.9.16, lin4080 | 17 (Commons only) | 24.4 | -0.32 | 0.282 | 0.148 | 8.0 | 0.017 | 0.251 |
+| Map | CARLA, renders | Views (sources) | In a wall | Map score | Index | Coarse IoU | Boundary F | Skyline (°) | DINO global | DINO patch |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `eindhoven_centre` | 0.9.16, lin4080 (renders of 2026-11-15, re-scored) | 350 (Panoramax 196, Commons 90, KartaView 64) | 23 | 36.2 | 0.27 | 0.420 | 0.333 | 4.0 | 0.124 | 0.316 |
+| `eindhoven_centre`, Mapillary views | 0.9.16, lin4080 | 250 (Mapillary: 154 photos, 96 panoramas) | 20 | 33.7 | 0.11 | 0.419 | 0.290 | 4.2 | 0.090 | 0.290 |
+| EhvCentre twin (`eindhoven_twin`) | 1.0, win5090 package, `CoupledReal` (renders of 2026-11-16, re-scored) | the same 350 as the first row | 11 | 38.2 | 0.37 | 0.435 | 0.334 | 3.8 | 0.182 | 0.336 |
+| TU/e campus, south part (`eindhoven_centre --box`) | 0.9.16, lin4080 | 250 (Mapillary 221, Panoramax 23, KartaView 6) | 0 | 32.4 | 0.10 | 0.366 | 0.300 | 2.7 | 0.124 | 0.302 |
+| the same, open sources only (first run) | 0.9.16, lin4080 | 34 (Panoramax 28, KartaView 6) | 0 | 32.6 | 0.11 | 0.331 | 0.317 | 4.6 | 0.162 | 0.318 |
+| TUeCampus twin | 1.0 | not rendered: needs a win5090 GPU window (lin5080's GPU is the crowd workers') | | | | | | | | |
+| `chernihiv` | 0.9.16, lin4080 | 17 (Commons only: Mapillary withholds Ukraine's images) | 0 | 24.4 | -0.32 | 0.282 | 0.148 | 8.0 | 0.017 | 0.251 |
 
 **Layout.** In the two Eindhoven maps, where things are (coarse IoU 0.42-0.44, index 0.44-0.51) and the skyline
 (index 0.9-1.0, as good as a second photo) are halfway or better between a random place and the same street.
@@ -266,9 +269,25 @@ so the renders read as "not a real street" before anything else.
 The campus sample is small. Its photos are 74 % vegetation against 50 % in the renders, and the renders have
 twice the road.
 
+**Mapillary views.** On the same 0.9.16 map they score lower than the open sources' views (33.7 against 36.2).
+Its photos come from many people and cameras (dashcams behind windscreens, phones, 2015-2026), and 2.5 % of each
+view is parked cars against 0.2 % in the renders. Their headings are better than Panoramax's: the alignment search
+moves them a median 9°, against 24° for the campus panoramas.
+
+On the campus, 250 views (221 from Mapillary) confirm the first small run: map score 32.4 against 32.6. They
+also give the main differences:
+
+- missing trees, named 249 times;
+- trees or greenery where the photo has none, 215 times: the campus trees stand in the wrong places;
+- road too wide, 112 times.
+
+A spot can name a difference more than once (on the left and in the middle), so these are counts of mentions,
+not of spots.
+
 **Chernihiv.** The figure rests on 17 Commons photos of landmarks taken from squares, which score lowest
-everywhere (Commons spot score 0.25 in Eindhoven too). It is a weak sample. Mapillary's 4,868 Chernihiv
-panoramas would replace it once the graph API answers.
+everywhere (Commons spot score 0.25 in Eindhoven too). It is a weak sample. Mapillary has 11,993 photos and 4,868
+panoramas there, but in 2026 it serves no image file for any of them: it withholds Ukraine's imagery. Better
+Chernihiv figures need another source.
 
 **By source** (Eindhoven centre, 0.9.16):
 
@@ -278,7 +297,7 @@ panoramas would replace it once the graph API answers.
 | KartaView | 64 | 0.38 |
 | Commons | 90 | 0.26 |
 
-**Most frequent differences** (spots naming each, of 350 for the Eindhoven maps):
+**Most frequent differences** (mentions over all spots; a spot can name one on the left and in the middle):
 
 | Difference | `eindhoven_centre` 0.9.16 | EhvCentre twin | Campus (34) | Chernihiv (17) |
 |---|---|---|---|---|
