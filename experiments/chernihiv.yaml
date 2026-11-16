@@ -1,0 +1,31 @@
+# Chernihiv, Ukraine: the city centre (a 1.4 km square around Krasna Ploshcha, prospekt Myru and prospekt Peremohy),
+# made with the map maker from "Chernihiv" (docs/make_a_map.md; it is the map maker's example). Open data only:
+# OpenStreetMap streets, Overture buildings (the 156 m lattice TV tower is left out), AWS terrain, Meta/WRI tree
+# heights. Right-hand traffic; a city of ~294,000 people: 900 cars, 300 bikes and 4 buses an hour enter the box.
+#   python -m coupledcarla.mapmaker --build experiments/chernihiv.yaml      then      python -m coupledcarla.run experiments/chernihiv.yaml
+name: chernihiv
+city:
+  name: Chernihiv
+  country: Ukraine
+  continent: Europe
+  size: medium
+  population: 293969
+  lat: 51.4941
+  lon: 31.29433
+  drive: right
+  country_code: UA
+map:
+  bbox: [51.48781, 31.28423, 51.50039, 31.30443]
+  lefthand: false
+traffic:
+  cars_per_hour: 900
+  bikes_per_hour: 300
+  buses_per_hour: 4
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 51.4968, lon: 31.2885, heading: 135}     # prospekt Myru, south-east towards the centre
+trials:
+  - {duration_s: 300}
