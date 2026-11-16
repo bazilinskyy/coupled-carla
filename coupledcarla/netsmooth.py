@@ -33,6 +33,8 @@ CURVE_MIN_SPEED = 4.0 # m/s
 NET_ARGS = ["--junctions.limit-turn-speed", f"{TURN_ACC:g}"]
 KINK_DEG = 8.0        # a junction lane with a corner sharper than this (at its ends or inside) is redrawn
 BEZIER_STEP = 1.0     # m between the points of a redrawn junction lane
+JUNCTION_MARGIN_M = 1.0   # a redrawn junction lane stays within the junction's outline and this margin (a 120 deg
+                          # turn's curve bulged over the stop line of a road beside it: a bus across a waiting car)
 FILLET_R = 25.0       # m: corners of a road's lane line are rounded with this radius ...
 FILLET_MAX_M = 0.5    # ... or a smaller one, so the line moves at most this far from the corner (CARLA's road)
 FILLET_MIN_DEG = 4.0  # corners gentler than this are left alone
@@ -195,11 +197,33 @@ def _angle(a, b):
     return abs(math.degrees((a - b + math.pi) % (2 * math.pi) - math.pi))
 
 
-def bezier(p0, d0, p3, d1, step=BEZIER_STEP):
+def _inside(pt, poly, margin):
+    """Whether pt lies in polygon poly or within margin metres of its outline."""
+    x, y = pt[0], pt[1]
+    inside = False
+    n = len(poly)
+    for i in range(n):
+        x1, y1 = poly[i][:2]
+        x2, y2 = poly[(i + 1) % n][:2]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            inside = not inside
+    if inside:
+        return True
+    for i in range(n):
+        ax, ay = poly[i][:2]
+        bx, by = poly[(i + 1) % n][:2]
+        L = (bx - ax) ** 2 + (by - ay) ** 2
+        u = 0.0 if L == 0 else max(0.0, min(1.0, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / L))
+        if math.hypot(x - ax - u * (bx - ax), y - ay - u * (by - ay)) <= margin:
+            return True
+    return False
+
+
+def bezier(p0, d0, p3, d1, step=BEZIER_STEP, handle=1.0 / 3.0):
     """A cubic Bezier from p0 leaving along unit d0 to p3 arriving along unit d1 (3D points: z linear), sampled
     every ~step metres. Its handles are a third of the chord, so the curve meets both lanes with their direction
     (no kink) and bends as evenly as a cubic can."""
-    c = math.dist(p0[:2], p3[:2]) / 3.0
+    c = math.dist(p0[:2], p3[:2]) * handle
     p1 = (p0[0] + d0[0] * c, p0[1] + d0[1] * c)
     p2 = (p3[0] - d1[0] * c, p3[1] - d1[1] * c)
     n = max(2, int(math.ceil(3.0 * c / step)) + 1)
@@ -292,6 +316,8 @@ def redraw_junction_lanes(net_path, log=print):
     tree = ET.parse(net_path)
     root = tree.getroot()
     rounded = round_lane_corners(root)
+    junctions = {j.get("id"): _parse_shape(j.get("shape", "")) for j in root.iter("junction") if j.get("shape")}
+    outside = 0
     lanes = {}
     for edge in root.iter("edge"):
         for ln in edge.iter("lane"):
@@ -313,7 +339,17 @@ def redraw_junction_lanes(net_path, log=print):
         kink = max(_angle(a, b) for a, b in zip(hs, hs[1:]))       # at the joins and inside
         if kink <= KINK_DEG or math.dist(vs[0][:2], vs[-1][:2]) < 1.0:
             continue
-        new = bezier(vs[0], (math.cos(h_in), math.sin(h_in)), vs[-1], (math.cos(h_out), math.sin(h_out)))
+        poly = junctions.get(via[1:].rsplit("_", 2)[0])
+        new = None
+        for handle in (1.0 / 3.0, 0.2, 0.1):     # a sharp turn's curve bulges: keep it on the junction's area
+            cand = bezier(vs[0], (math.cos(h_in), math.sin(h_in)), vs[-1], (math.cos(h_out), math.sin(h_out)),
+                          handle=handle)
+            if not poly or all(_inside(q, poly, JUNCTION_MARGIN_M) for q in cand):
+                new = cand
+                break
+        if new is None:
+            outside += 1
+            continue
         ln = lanes[via]
         ln.set("shape", _fmt_shape(new))
         ln.set("length", f"{max(0.1, polyline_length(new)):.2f}")
@@ -326,7 +362,7 @@ def redraw_junction_lanes(net_path, log=print):
     if n or rounded:
         tree.write(net_path, encoding="UTF-8", xml_declaration=True)
     log(f"lanes: {rounded} with rounded corners; junctions: {n} junction lanes redrawn as smooth curves "
-        f"(kinks over {KINK_DEG:g} deg)")
+        f"(kinks over {KINK_DEG:g} deg), {outside} left as they were (a curve would leave the junction's area)")
     return n
 
 
