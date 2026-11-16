@@ -20,11 +20,14 @@ SOURCES = {
     "panoramax": ("Panoramax, the open federated street-level imagery commons (api.panoramax.xyz)", "CC BY-SA 4.0"),
     "kartaview": ("KartaView street-level photos (api.kartaview.org, keyless v2 API)", "CC BY-SA 4.0"),
     "commons": ("Wikimedia Commons geotagged photos with a camera heading", "per file (CC BY, CC BY-SA, CC0, PD)"),
+    "mapillary": ("Mapillary street-level imagery (tiles + graph API; needs the token mapillary_token)", "CC BY-SA 4.0"),
 }
 # Camera height above the ground (m) by how the photo was taken; the panoramas of the box are from a pole on a
 # cyclist's backpack, the phones are held by pedestrians, KartaView's are phones/dashcams behind a windscreen.
-HEIGHTS = {"pano": 2.1, "action": 1.1, "phone": 1.5, "kartaview": 1.4, "commons": 1.6, "dashcam": 1.4}
-DEFAULT_FOV = {"phone": 69.0, "kartaview": 65.0, "commons": 60.0}
+# Mapillary: panoramas mostly from car roofs (2.2 m), perspective images mostly dashcams and phones behind a windscreen.
+HEIGHTS = {"pano": 2.1, "action": 1.1, "phone": 1.5, "kartaview": 1.4, "commons": 1.6, "dashcam": 1.4,
+           "mly_pano": 2.2, "mapillary": 1.4}
+DEFAULT_FOV = {"phone": 69.0, "kartaview": 65.0, "commons": 60.0, "mapillary": 70.0}
 MIN_SUN = 5.0          # degrees: photos with the sun lower than this (dusk, night, tunnels at night) are left out
 
 # Cityscapes train ids -> groups compared. Dynamic road users (person, rider, motorcycle, bicycle) differ by the
@@ -238,14 +241,27 @@ def commons_record(page, pov=None, sdc_heading=None):
     }
 
 
+def _api_json(get, url, params, tries=4):
+    """A MediaWiki API answer; one that carries an error (maxlag, rate limit) instead of the result is asked again."""
+    for k in range(tries):
+        j = get(url, params).json()
+        if "error" not in j:
+            return j
+        time.sleep(2.0 * 2 ** k)
+    raise RuntimeError(f"Commons API: {j['error'].get('code')}")
+
+
 def fetch_commons(bbox, get=_get):
     s, w, n, e = bbox
     api = "https://commons.wikimedia.org/w/api.php"
     ids = {}
 
+    def ask(params):
+        return _api_json(get, api, params)
+
     def tile(s_, w_, n_, e_, depth=0):
-        g = get(api, {"action": "query", "list": "geosearch", "gsbbox": f"{n_}|{w_}|{s_}|{e_}", "gsnamespace": 6,
-                      "gslimit": 500, "gsprimary": "all", "format": "json"}).json()["query"]["geosearch"]
+        g = ask({"action": "query", "list": "geosearch", "gsbbox": f"{n_}|{w_}|{s_}|{e_}", "gsnamespace": 6,
+                   "gslimit": 500, "gsprimary": "all", "format": "json"})["query"]["geosearch"]
         if len(g) >= 500 and depth < 5:
             ms, mw = (s_ + n_) / 2, (w_ + e_) / 2
             for b in ((s_, w_, ms, mw), (s_, mw, ms, e_), (ms, w_, n_, mw), (ms, mw, n_, e_)):
@@ -258,8 +274,8 @@ def fetch_commons(bbox, get=_get):
     for k in range(0, len(keys), 50):
         chunk = keys[k:k + 50]
         sdc = {}
-        ents = get(api, {"action": "wbgetentities", "ids": "|".join(f"M{i}" for i in chunk),
-                         "format": "json"}).json().get("entities") or {}
+        ents = ask({"action": "wbgetentities", "ids": "|".join(f"M{i}" for i in chunk),
+                    "format": "json"}).get("entities") or {}
         for mid, ent in ents.items():
             for st in ((ent.get("statements") or {}).get("P1259") or []):     # coordinates of the point of view
                 dv = (st.get("mainsnak") or {}).get("datavalue", {}).get("value")
@@ -268,10 +284,9 @@ def fetch_commons(bbox, get=_get):
                     head = float(q["datavalue"]["value"]["amount"])
                 if dv:
                     sdc[int(mid[1:])] = ((dv["latitude"], dv["longitude"]), head)
-        pages = get(api, {"action": "query", "pageids": "|".join(map(str, chunk)),
-                          "prop": "imageinfo|revisions|coordinates", "iiprop": "url|size|mime|commonmetadata|extmetadata",
-                          "iiurlwidth": 1600, "rvprop": "content", "rvslots": "main", "format": "json"}
-                    ).json()["query"]["pages"]
+        pages = ask({"action": "query", "pageids": "|".join(map(str, chunk)),
+                     "prop": "imageinfo|revisions|coordinates", "iiprop": "url|size|mime|commonmetadata|extmetadata",
+                     "iiurlwidth": 1600, "rvprop": "content", "rvslots": "main", "format": "json"})["query"]["pages"]
         for pid, p in pages.items():
             pov, head = sdc.get(int(pid), (None, None))
             r = commons_record(p, pov, head)
@@ -280,7 +295,13 @@ def fetch_commons(bbox, get=_get):
     return out
 
 
-FETCHERS = {"panoramax": fetch_panoramax, "kartaview": fetch_kartaview, "commons": fetch_commons}
+def fetch_mapillary(bbox, cache_dir=None):
+    from . import streetphotos
+    return streetphotos.fetch_mapillary(bbox, cache_dir)
+
+
+FETCHERS = {"panoramax": fetch_panoramax, "kartaview": fetch_kartaview, "commons": fetch_commons,
+            "mapillary": fetch_mapillary}
 
 
 def fetch(mdir, bbox, sources=("panoramax", "kartaview", "commons"), refresh=False, log=log, fetchers=None):
@@ -296,7 +317,8 @@ def fetch(mdir, bbox, sources=("panoramax", "kartaview", "commons"), refresh=Fal
         else:
             try:
                 t0 = time.time()
-                recs = fetchers[src](bbox)
+                recs = fetchers[src](bbox, Path(mdir) / "real" / "streetphotos") if src == "mapillary" and \
+                    fetchers[src] is fetch_mapillary else fetchers[src](bbox)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(json.dumps({"source": SOURCES[src][0], "licence": SOURCES[src][1], "bbox": bbox,
                                             "fetched": datetime.now().strftime("%Y-%m-%d %H:%M"),

@@ -1324,6 +1324,25 @@ What each change did:
 Use it on CARLA 1.0 by copying `coupledcarla/data/postprocess/*.json` into the server's
 `Content/Carla/Config/PostProcess`, then setting `simulation.camera_profile: CoupledReal`.
 
+**Street photos: Mapillary, a score per spot and street objects ([docs/street_photos.md](docs/street_photos.md)).**
+The check takes Mapillary as a fourth source when the `mapillary_token` key is set: its photos, and its map
+features (lamps, signs, poles, bins, benches) placed from many photos. It scores every spot:
+
+- an edge alignment (boundary F-score of road, building, tree and sky outlines);
+- a perceptual similarity (DINOv2, the whole view and patch by patch);
+- a spot score from those and the layout IoU;
+- the main differences in words, such as "missing building on the left", "road too wide" or "skyline 6° too low".
+
+Each spot gets a side-by-side image in `spots/`. Each map gets a score (median spot score × 100: about 50 is as
+alike as two photos of the same street, about 30 as a photo of somewhere else). `realism_check.py objects`
+matches the map's lamps, signs and furniture with Mapillary's features, or with poles found in Panoramax
+panoramas. It reports what a correction would move, add or remove, and `--apply` (or
+`map.scenery.photo_corrections`) does it. Registers (city lamps, NDW signs) are never touched.
+
+Tested against Eindhoven's lighting register, the photo evidence (Mapillary lamps lie a median 2.6 m from the
+register's) makes good positions worse. It helps only where the map's lamps are guesses, as in Chernihiv, so the
+corrections are off by default. Results per map are in the doc.
+
 **New York twin (`experiments/nyc_twin.yaml`).** The same pipeline baked NycMidtown, the box of
 `experiments/cities/new_york_midtown.yaml`: the NYC 3D Building Model's 1,761 buildings with facade styles from
 their PLUTO construction year and use, USGS 3DEP ground under the NYS orthophoto, and OSM roads with US lane
@@ -2237,7 +2256,8 @@ coupledcarla/
   soundscape.py      station sound: vehicles, own car, ambience, AVAS, auditory eHMIs (audio.py synthesises)
   incar.py           cluster, HUD, centre screen, timed messages; haptics.py: wheel/gamepad/UDP cues
   ehmi_design.py     eHMIs from design files (designs.py loads coupled-sim's format)
-  realism.py         street-level photos (Panoramax, KartaView, Commons), view matching and layout metrics
+  realism.py         street-level photos (Panoramax, KartaView, Commons, Mapillary), view matching and layout metrics
+  streetphotos.py    Mapillary (tiles, map features), edge/perceptual scores, differences, street objects + corrections
   labcheck.py        station readiness numbers and thresholds; multigpu.py: CARLA 1.0 secondaries
   data/              meshes_0.9.16.json, meshes_1.0.json: sizes of the CARLA meshes scenery.py places (tools/mesh_catalog.py)
   cities.py          experiment files and maps for experiments/cities.yaml
@@ -2270,7 +2290,7 @@ viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, test_towns.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
                      render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py,
                      crowdpeds_check.py, crowd_table.py, speeds_check.py
-docs/                city_tests.md, town_tests.md, make_a_map.md (the map maker, step by step), img/
+docs/                city_tests.md, town_tests.md, make_a_map.md (the map maker, step by step), street_photos.md, img/
 make_map.bat, make_map.sh, "Make a map.command"   double-click launchers of the map maker (Windows, Linux, macOS)
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
 maps/, logs/         built maps and trial logs (not in git)
