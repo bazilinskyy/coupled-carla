@@ -1072,6 +1072,7 @@ class CrowdSim:
     def _stand(self, k, actor, st, kind, send, face=None):
         carla = self.carla
         send(actor, carla.WalkerControl(speed=0.0))
+        st["moved"] = None                  # standing on purpose: the stuck clock starts again when it walks
         if face is not None and st.get("face") != face:   # turn to face (a shop window, the road), once
             st["face"] = face
             try:
@@ -1089,6 +1090,18 @@ class CrowdSim:
             st["standing"], st["face"] = None, None
             if self.on_walk is not None:
                 self.on_walk(k, actor, st)
+
+    def _check_stuck(self, k, actor, st, t, loc, after_s=20.0):
+        """A walker told to walk that has not moved 0.5 m in after_s: one crowd_stuck event (a wall, a prop, a car)."""
+        mx, my, mt = st.get("moved") or (loc.x, loc.y, t)
+        if (loc.x - mx) ** 2 + (loc.y - my) ** 2 > 0.25:
+            st["moved"], st["stuck"] = (loc.x, loc.y, t), False
+        else:
+            st["moved"] = (mx, my, mt)
+            if t - mt > after_s and not st.get("stuck"):
+                st["stuck"] = True
+                self.events.append(("crowd_stuck", f"{actor.id} {st['tag']} at {loc.x:.1f}, {loc.y:.1f} for "
+                                                   f"{t - mt:.0f} s"))
 
     def _follow(self, k, actor, st, t, send):
         """A group member: beside its leader (offset right/back in the leader's heading), at the leader's pace."""
@@ -1111,6 +1124,7 @@ class CrowdSim:
                         face=lead.get("face") if lead["standing"] == "stop" else None)
             return
         self._walking(k, actor, st)
+        self._check_stuck(k, actor, st, t, loc)
         speed = min(2.5, max(0.0, lead["cmd"]) + 0.8 * d) if d > 0.3 else lead["cmd"]
         if d < 1e-3:
             dx, dy, d = hx, hy, 1.0
@@ -1196,6 +1210,7 @@ class CrowdSim:
                     self._stand(k, actor, st, "blocked", send)     # a vehicle stands in the way: wait for it
                     continue
                 self._walking(k, actor, st)
+                self._check_stuck(k, actor, st, t, loc)
                 speed = st["speed"] * (st["hurry"] if t < st["hurry_until"] else 1.0)
                 st["heading"], st["cmd"] = (dx / d, dy / d), speed
                 send(actor, carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0), speed=speed))

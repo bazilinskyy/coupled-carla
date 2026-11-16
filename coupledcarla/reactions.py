@@ -189,14 +189,17 @@ class Reactions:
         return tf, v, math.hypot(v.x, v.y)
 
     # -- the participant blocking traffic, cutting in, signalling --
-    def _blocking(self, t, p, tf, speed, poses, ids):
+    def _blocking(self, t, p, tf, speed, poses, ids, wp=None):
         rng = rng_for(self.lc, "horn", p.role, int(t))
         b = self.block.setdefault(p.role, {"since": None, "last": -1e9, "honks": 0})
         x, y, yaw = tf.location.x, tf.location.y, tf.rotation.yaw
         go = speed < 0.5
         light = getattr(p, "light", None)
-        if go and light is not None and light[1] < 40.0 and light[2] not in GREEN:
+        green = light is not None and light[1] < 40.0 and light[2] in GREEN
+        if go and light is not None and light[1] < 40.0 and not green:
             go = False                         # waiting at red or yellow: nobody honks
+        if go and not green and wp is not None and _near_junction(wp):
+            go = False                         # waiting to enter or cross a junction (give way): nobody honks
         if go:     # something standing in front of the participant (a queue, a walker): nobody honks either
             c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
             ext = p.actor.bounding_box.extent.x if hasattr(p.actor, "bounding_box") else 2.4
@@ -237,9 +240,8 @@ class Reactions:
             self._honk(follower[0], "blocked", target=p.role, waited_s=round(waited, 1),
                        gap_m=round(follower[1], 1), light=(light[2] if light else None))
 
-    def _lanes(self, t, p, tf, speed, poses, ids):
+    def _lanes(self, t, p, tf, speed, poses, ids, wp):
         import carla
-        wp = self.cmap.get_waypoint(tf.location, project_to_road=True, lane_type=carla.LaneType.Driving)
         if wp is None:
             return
         key = (wp.road_id, wp.lane_id)
@@ -539,9 +541,11 @@ class Reactions:
                 if got is None:
                     continue
                 tf, v, speed = got
+                import carla
+                wp = self.cmap.get_waypoint(tf.location, project_to_road=True, lane_type=carla.LaneType.Driving)
                 if self.opts.get("horns", True):
-                    self._blocking(t, p, tf, speed, poses, ids)
-                self._lanes(t, p, tf, speed, poses, ids)
+                    self._blocking(t, p, tf, speed, poses, ids, wp)
+                self._lanes(t, p, tf, speed, poses, ids, wp)
             if self.opts.get("horns", True):
                 self._queue_honks(t, poses, ids)
                 self._ped_blocking(t)
@@ -551,6 +555,16 @@ class Reactions:
             self._bells(t, types)
         if self.opts.get("near_misses", True):
             self._near_misses(t, vehicles, types)
+
+
+def _near_junction(wp, reach=10.0):
+    """Whether a waypoint is in a junction or one is within reach metres ahead on its lane."""
+    try:
+        if wp.is_junction:
+            return True
+        return any(n.is_junction for n in wp.next(reach)) or any(n.is_junction for n in wp.next(reach / 2))
+    except RuntimeError:
+        return False
 
 
 def _rate_h(lc):
