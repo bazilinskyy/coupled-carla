@@ -44,6 +44,10 @@ DEFAULTS = {
             "shared": True,          # shared bikes and scooters at their GBFS positions (gbfs.py); a trial at
                                      # simulation.time "now" puts them where they are at its start
             "shared_per_station": 10,    # at most this many bikes shown per dock
+            "photo_corrections": False,  # street photos' evidence of lamps, signs and furniture (a list of sources,
+                                         # e.g. ["mapillary"]: real/streetphotos/evidence_<source>.json, saved by
+                                         # tools/realism_check.py objects) moves and adds them after the scenery is
+                                         # built; registers (city lamps, NDW signs) are never moved. Off: unvalidated
             "park_shoulders_m": None,    # [min, max]: OpenDRIVE shoulders this wide count as parking strips (the
                                          # CARLA towns: [2.0, 3.0], their kerb shoulders; highways' are 3.5 m)
         },

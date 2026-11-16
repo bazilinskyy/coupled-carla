@@ -288,6 +288,18 @@ def build_scenery(cfg, out, meta, cmap=None, server_major=None, log=log):
     res = scenery.build(out, cfg, Geo(out / "geo.net.xml"), dem, elev["base_m"] if elev else 0.0, cmap, log,
                         server_major)
     meta["scenery"] = res["counts"]
+    photo = (mc.get("scenery") or {}).get("photo_corrections")
+    if photo:        # street-photo evidence (streetphotos.py): off by default
+        from . import streetphotos
+        ground = None
+        if dem is not None:
+            geo = Geo(out / "geo.net.xml")
+
+            def dem_ground(x, y):
+                return float(dem.sample(*geo.to_latlon(x, y))) - elev["base_m"]
+            ground = dem_ground
+        streetphotos.correct_map(out, [photo] if isinstance(photo, str) else list(photo), apply=True, meta=meta,
+                                 ground=ground, log=log)
     meta["buildings"] = len(json.loads((out / "buildings.json").read_text()))
     srcs = set(res["sources"]) | ({elev["source"]} if elev else set())
     meta["sources"] = {k: {"what": realworld.SOURCES[k][0], "licence": realworld.SOURCES[k][1]}
