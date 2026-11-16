@@ -392,9 +392,13 @@ class PathWalker:
         try:
             cmap = getattr(self, "_cmap", None) or self.walker.get_world().get_map()
             self._cmap = cmap
-            ahead = carla.Location(loc.x + 0.6 * ux, loc.y + 0.6 * uy, loc.z)
-            wp = cmap.get_waypoint(ahead, project_to_road=False, lane_type=carla.LaneType.Any)
             feet = loc.z - self.walker.bounding_box.extent.z
+            wp = ahead = None
+            for d in (0.4, 0.7, 1.0, 1.3):        # the road's edge within a step or two
+                ahead = carla.Location(loc.x + d * ux, loc.y + d * uy, loc.z)
+                wp = cmap.get_waypoint(ahead, project_to_road=False, lane_type=carla.LaneType.Any)
+                if wp is not None:
+                    break
             if wp is None or not 0.1 < wp.transform.location.z - feet < STEP_MAX_M:
                 return
             tf = self.walker.get_transform()

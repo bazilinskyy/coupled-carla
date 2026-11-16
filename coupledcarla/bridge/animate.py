@@ -111,13 +111,15 @@ K_MAX = 0.22         # 1/m: the tightest turn (radius 4.5 m)
 K_RATE = 1.0         # 1/m per s: how fast the curvature changes (about 20 deg/s at the front wheels)
 LAG_S = 0.0          # the smoothed car trails SUMO's by this much travel time
 LONG_S = 0.6         # time constant of the along-path correction
+SPEED_UP = 4.0       # m/s^2: the shown speed changes at most this fast up ...
+SPEED_DOWN = 9.0     # ... and down (an emergency stop)
 SNAP_M = 3.0         # farther off than this: start again at SUMO's pose
 TURNED_DEG = 60.0    # or heading this far from SUMO's
 SLOW_MPS = 2.5       # traffic slower than this glides onto SUMO's pose as it is ...
 BLEND_S = 0.3        # ... with this time constant
 # a participant's car on the SUMO driver (the camera's subject): gentler, and may fall further behind SUMO's path
 PARTICIPANT = {"a_lat": 3.0, "a_lat_hard": 3.5, "hard_m": 3.0, "snap_m": 8.0, "k_rate": 0.08, "lag_s": 0.3,
-               "participant_mode": True}
+               "participant_mode": True, "long_s": 1.0}
 REAR_AXLE = 0.3      # rear axle behind the centre as a share of the length (cars, bikes); buses REAR_AXLE_LONG
 REAR_AXLE_LONG = 0.25
 
@@ -131,11 +133,13 @@ class PathSmoother:
     -> (x, y, yaw, yaw rate deg/s, speed) of the body centre to show. snaps counts the restarts."""
 
     def __init__(self, a_lat=A_LAT, a_lat_hard=A_LAT_HARD, lag_s=LAG_S, k_rate=K_RATE, hard_m=HARD_M,
-                 snap_m=SNAP_M, participant_mode=False):
+                 snap_m=SNAP_M, participant_mode=False, long_s=LONG_S):
         self.a_lat, self.a_lat_hard, self.lag_s, self.k_rate = a_lat, a_lat_hard, lag_s, k_rate
+        self.long_s = long_s
         self.hard_m, self.snap_m, self.participant_mode = hard_m, snap_m, participant_mode
         self.x = self.y = self.h = None      # rear axle position, heading (rad)
         self.k = 0.0
+        self.vs = None
         self.trailer = None
         self.snaps = 0
         self.max_off = 0.0
@@ -146,6 +150,7 @@ class PathSmoother:
 
     def reset(self, rx, ry, h):
         self.x, self.y, self.h, self.k = rx, ry, h, 0.0
+        self.vs = None
 
     def step(self, target, speed, length, dt, aim=None):
         """aim: a point on SUMO's path ahead of its front bumper (path_ahead()), to steer at; default the front
@@ -157,7 +162,7 @@ class PathSmoother:
         front = (target[0] + 0.5 * length * math.cos(h0), target[1] + 0.5 * length * math.sin(h0))
         if self.trailer is None:
             self.trailer = Trailer()
-        target = self.trailer.step(front, target[2], length)
+        target = self.trailer.step(front, target[2], length, speed)
         ht = math.radians(target[2])
         ct, st = math.cos(ht), math.sin(ht)
         tx, ty = target[0] - ro * ct, target[1] - ro * st            # the rear axle to follow
@@ -177,6 +182,7 @@ class PathSmoother:
             self.y += (ty - self.y) * w
             self.h += math.radians(wrap_deg(math.degrees(ht - self.h))) * w
             self.k = 0.0
+            self.vs = v
             cx, cy = self.x + ro * math.cos(self.h), self.y + ro * math.sin(self.h)
             return cx, cy, wrap_deg(math.degrees(self.h)), 0.0, v
         if max(off, behind, -behind - lag - 1.0) > self.snap_m or turned > TURNED_DEG:
@@ -188,10 +194,13 @@ class PathSmoother:
         self.max_off = max(self.max_off, off)
         ch, sh = math.cos(self.h), math.sin(self.h)
         e_long = ex * ch + ey * sh
-        vs = v + max(-3.0, min(4.0, behind / LONG_S))      # keep `lag` behind SUMO's rear axle (along its path)
+        vs = v + max(-3.0, min(4.0, behind / self.long_s))      # keep `lag` behind SUMO's rear axle (along its path)
         if v < 0.05 and abs(e_long) < 0.05:
             vs = 0.0
         vs = max(0.0, vs)
+        if self.vs is not None:        # no speed steps: a car accelerates and brakes, it does not jump
+            vs = max(self.vs - SPEED_DOWN * dt, min(self.vs + SPEED_UP * dt, vs))
+        self.vs = vs
         hard = max(0.0, min(1.0, (off - 0.4) / max(1e-6, self.hard_m - 0.4)))
         a_lat = self.a_lat + (self.a_lat_hard - self.a_lat) * hard
         k_lim = min(K_MAX, a_lat / max(vs, 0.5) ** 2)
@@ -266,7 +275,9 @@ class Trailer:
     def __init__(self):
         self.rx = self.ry = None
 
-    def step(self, front, sumo_yaw, length):
+    def step(self, front, sumo_yaw, length, speed=10.0):
+        """speed: SUMO's (m/s); slower than TRAILER_TRUST_MPS SUMO's heading is not trusted (a bus leaving a stop
+        turned 169 -> 20 deg within 0.1 s at 0.4 m/s)."""
         d = 0.5 * length + rear_offset(length)       # front bumper to rear axle
         fx, fy = front
         if self.rx is not None:
@@ -274,7 +285,8 @@ class Trailer:
             n = math.hypot(dx, dy)
             if abs(n - d) > TRAILER_JUMP_M or n < 1e-6:     # a teleport or a reset: start again
                 self.rx = None
-            elif abs(wrap_deg(math.degrees(math.atan2(dy, dx)) - sumo_yaw)) > TRAILER_TURNED_DEG:
+            elif speed > TRAILER_TRUST_MPS and \
+                    abs(wrap_deg(math.degrees(math.atan2(dy, dx)) - sumo_yaw)) > TRAILER_TURNED_DEG:
                 self.rx = None          # dragged round while standing (SUMO shuffled the front sideways)
         if self.rx is None:
             h = math.radians(sumo_yaw)
@@ -288,6 +300,7 @@ class Trailer:
 
 
 TRAILER_TURNED_DEG = 45.0
+TRAILER_TRUST_MPS = 2.0
 TRAILER_JUMP_M = 2.0   # the front moved this much farther than the body's length allows: start again
 
 

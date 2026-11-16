@@ -177,6 +177,7 @@ def main():
         "tls_entries": entries, "red_light_entries": len(reds), "amber_entries": ambers,
         "red_light_examples": reds[:10],
         "red_light_share_by_class": {k: round(reds_by.get(k, 0) / n, 4) for k, n in entries_by.items()},
+        "signal_entries_by_class": entries_by,
         "lane_changes": lc,
         "fcd": fcd,
     }
