@@ -1486,6 +1486,10 @@ class Scenery:
         self.fallbacks = dict(data.get("fallbacks") or {})     # mesh path -> spawned instead when it fails
         self.bp = world.get_blueprint_library().find("static.prop.mesh")
         self.n = 0
+        # placements the server refused, by mesh path and by reason (a mesh the server lacks: "invalid actor
+        # description"; on the official CARLA 1.0 package without the CARLA meshes most trees are such)
+        import collections
+        self.n_failed, self.failed, self.fail_reasons = 0, collections.Counter(), collections.Counter()
         if self.always:
             self._spawn(("always",), self.always)
 
@@ -1520,6 +1524,10 @@ class Scenery:
         for it, r in zip(items, res):        # which actor stands for which item (take_at: a parked car leaving)
             if not r.error:
                 self.actor_of[id(it)] = r.actor_id
+            else:
+                self.n_failed += 1
+                self.failed[self.meshes[it[0]]] += 1
+                self.fail_reasons[r.error.split(" because ")[-1][:60]] += 1
         ids = [r.actor_id for r in res if not r.error]
         if self.light_bp:
             self.lamps[key] = [r.actor_id for r, is_lamp in zip(res, lamp) if is_lamp and not r.error]
@@ -1656,6 +1664,14 @@ class Scenery:
                                   max(0.0, abs((j + 0.5) * c - p.y) - c / 2)) <= r:
                         out.add((i, j))
         return out
+
+    def failed_summary(self, top=5):
+        """"" when nothing failed, else "; F failed (K meshes: the most refused ...; reasons ...)"."""
+        if not self.n_failed:
+            return ""
+        worst = ", ".join(f"{p.rsplit('.', 1)[-1]} {n}" for p, n in self.failed.most_common(top))
+        why = ", ".join(f"{r} {n}" for r, n in self.fail_reasons.most_common(2))
+        return f"; {self.n_failed} refused ({len(self.failed)} meshes: {worst}; {why})"
 
     def destroy(self):
         import carla
