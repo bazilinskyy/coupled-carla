@@ -133,7 +133,10 @@ def build(a):
     work = Path(a.work or tempfile.mkdtemp(prefix="ccpack-"))
     work.mkdir(parents=True, exist_ok=True)
     (work / "blueprints.json").write_text(json.dumps(street_catalog(), indent=2))
-    (work / "also.json").write_text(json.dumps(carla_assets(), indent=1))
+    also = carla_assets()
+    if a.carla_assets == "lamps":           # without CARLA's meshes: a 24 MB pack instead of 1.2 GB
+        also["meshes"] = []
+    (work / "also.json").write_text(json.dumps(also, indent=1))
     twins = [t for t in a.twins.split(",") if t]
     for t in twins:
         src = carla / "Unreal" / "CarlaUnreal" / "Content" / "Carla" / "Maps" / "Twins" / t / "ATTRIBUTION.md"
@@ -192,6 +195,10 @@ def main(argv=None):
     b.add_argument("--twins", default=",".join(TWINS), help="twins to pack, one pack each (comma-separated)")
     b.add_argument("--only", default="street,twins", help="street, twins or both (comma-separated)")
     b.add_argument("--work", help="scratch folder (catalog, attributions, holder log)")
+    b.add_argument("--carla-assets", choices=["all", "lamps"], default="all",
+                   help="CARLA assets the street pack holds besides coupled-carla's own: all that coupled-carla spawns "
+                        "by path (default; most of the official package's missing trees and props, 1.2 GB) or only "
+                        "the catalog's lamps (for a package that has them, e.g. with CARLA's AdditionalMaps pack)")
     b.add_argument("--dry-run", action="store_true")
     i = sub.add_parser("install", help="install pack tarballs into an official CARLA 1.0 package")
     i.add_argument("packs", nargs="+")
