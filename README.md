@@ -1227,7 +1227,10 @@ ones.
 
 **Tested on 2026-11-17** (lin4080, RTX 4080 SUPER): the official package installed both kinds of pack in under a second
 (street) and 5.4 s (TUeCampus, 0.70 GB), checksums included, and its server came up in 10 s and reported client and
-server 1.0. It ran without rendering (`-nullrhi`): with driver 560 it stops at start-up like the source build above.
+server 1.0. With driver 560 it stops at start-up like the source build above, so the trials below ran without
+rendering (`-nullrhi`) until lin4080 got driver 580: then it renders (`-RenderOffScreen`, Epic). With
+AdditionalMaps, the street pack and the redirector fix, 60 s trials with a driver camera (1280x720, a still every
+15 s): TU/e campus RTF 0.546, Shibuya 0.471, 0 collisions, 0 scenery placements refused (4,996 and 645 placed).
 60 s trials, autopilot driver with SUMO traffic: `Town10HD_Opt` RTF 0.995 and 0.996 (without and with the street
 pack), 0 collisions; `TUeCampus` from its pack RTF 0.993, 0 collisions, Dutch signal programmes on 12 controllers,
 1,613 scenery meshes near the participant. With the street pack 27 of the 29 `blueprint.cc_*` and street meshes spawn
