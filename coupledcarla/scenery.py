@@ -775,7 +775,9 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
             recs.append({"ring": [[g["lon"], g["lat"]] for g in geom], "h": h, "cls": tags.get("building"),
                          "src": "osm", "roof": _roof(tags.get("roof:shape"))})
     recs = _without_open_towers(recs, bbox, rdir, log)
-    near_h = _neighbour_heights(recs, geo, log) if mc.get("scenery", {}).get("height_from_neighbours", True) else None
+    near_h = None
+    if (mc.get("scenery") or {}).get("height_from_neighbours", False):     # the realism pilot's round 1 candidate
+        near_h = _neighbour_heights(recs, geo, log)
     out = []
     for r in recs:
         pts = _ring_xy(geo, r["ring"])
