@@ -331,11 +331,39 @@ def cmd_render(args):
             photo = photoreal.attach(world, cfg, False, lambda m: print(m, flush=True))
             for _ in range(100):       # let the tileset start before the first view
                 world.tick()
-        if not args.no_scenery and (mdir / "scenery.json").exists():
-            scen = Scenery(client, world, mdir, {"radius_m": 0})
+        seasons = {}        # --season photo: each view's leaf state on its photo's date (season.py)
+        if getattr(args, "season", "leaf") == "photo":
+            from datetime import date as _date
+            from coupledcarla import season as season_mod
+            ph = season_mod.phenology(bbox, mdir / "real", quick=True)
+            for v in todo:
+                try:
+                    st_, pr_ = season_mod.leaf_state(_date.fromisoformat(v["local_time"][:10]), ph)
+                except ValueError:
+                    st_, pr_ = "leaf", 0.0
+                seasons[v["id"]] = (st_, round(pr_, 1))
+            todo.sort(key=lambda v: seasons[v["id"]])
+            print("leaf states of the views: " + ", ".join(
+                f"{k[0]} {sum(1 for x in seasons.values() if x == k)}" for k in sorted(set(seasons.values()))),
+                flush=True)
+        scen, scen_state = None, None
+
+        def scenery_for(state):
+            """The scenery spawned for a leaf state (state None: as built, trees in leaf)."""
+            nonlocal scen, scen_state
+            if args.no_scenery or not (mdir / "scenery.json").exists() or (scen is not None and state == scen_state):
+                return
+            if scen is not None:
+                ids = [i for key in scen.loaded for i in scen.loaded[key]]
+                client.apply_batch_sync([carla.command.DestroyActor(i) for i in ids], False)
+                spawned.remove(scen)
+            sea = {"state": state[0], "progress": state[1], "bare": "small"} if state else None
+            scen = Scenery(client, world, mdir, {"radius_m": 0}, season=sea, log=lambda m: None)
             scen.update([])
             spawned.append(scen)
-            print(f"scenery: {scen.n} meshes", flush=True)
+            scen_state = state
+            print(f"scenery: {scen.n} meshes" + (f" (leaves: {state[0]})" if state else ""), flush=True)
+        scenery_for(seasons[todo[0]["id"]] if seasons and todo else None)
         parked_done = False
         cmap = world.get_map()
         lib = world.get_blueprint_library()
@@ -351,7 +379,8 @@ def cmd_render(args):
         # views grouped by camera size, and one camera pair alive at a time: every camera streams a frame each
         # tick, and cameras kept for other sizes filled their queues until WSL ran out of memory (47 GB, the
         # crowd tmux service went down with it; 2026-11-15)
-        todo.sort(key=lambda v: (wide[v["id"]][0], wide[v["id"]][1], round(wide[v["id"]][2], 2)))
+        todo.sort(key=lambda v: (seasons.get(v["id"], ("", 0.0)), wide[v["id"]][0], wide[v["id"]][1],
+                                 round(wide[v["id"]][2], 2)))      # by leaf state first: one scenery per state
         cams = {}
         extra_attrs = dict(kv.split("=", 1) for kv in args.camera_attr.split(",") if "=" in kv)
 
@@ -412,6 +441,8 @@ def cmd_render(args):
                 print(f"time budget of {args.budget_min} min reached: {k} of {len(todo)} rendered; run again to "
                       f"render the rest", flush=True)
                 break
+            if seasons:
+                scenery_for(seasons[v["id"]])
             hour = v["local_time"][:13]
             if hour and hour != weather_key and args.weather != "fixed":
                 from coupledcarla.run import set_weather
@@ -1252,6 +1283,8 @@ def main():
     p.add_argument("--cloud-scale", type=float, default=None,
                    help="CARLA cloudiness per % of real cloud cover (default simulation.cloud_scale)")
     p.add_argument("--again", action="store_true", help="render views that already have a render")
+    p.add_argument("--season", default="leaf", choices=["leaf", "photo"],
+                   help="trees in leaf (default), or each view's leaf state on its photo's date (season.py)")
     p = sub.add_parser("compare", parents=[common, seg])
     p = sub.add_parser("pairs", parents=[common, seg])
     p.add_argument("experiment")
