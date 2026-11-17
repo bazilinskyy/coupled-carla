@@ -1167,13 +1167,14 @@ CARLA 1.0 was released on 2026-11-17 (tag `1.0`). Its package
 ([`CARLA_1.0.tar.gz`](https://downloads.carlasim.com/Linux/CARLA_1.0.tar.gz), 14.1 GB; Windows: `CARLA_1.0.zip`)
 ships Python wheels for 3.10 to 3.15 in `PythonAPI/carla/dist/` and installs [content
 packs](https://carla-ue5.readthedocs.io/en/latest/content_authoring_packs/): cooked maps and assets that a package of
-the same release mounts without being rebuilt. Coupled CARLA's own CARLA 1.0 content comes as two packs, so the
-official package is all you need to download besides them:
+the same release mounts without being rebuilt. Coupled CARLA's own CARLA 1.0 content comes as packs, so the
+official package is all you need to download besides them: one with the street content, which every map uses, and
+one per baked twin, each with its OpenDRIVE, Traffic Manager cache and `Config/<Twin>-ATTRIBUTION.md`:
 
 | Pack | What is in it | Size |
 |---|---|---|
-| `CoupledCarlaStreet` | everything under `/Game/CoupledCarla`: the regional street furniture, signal heads and paving that [street furniture](#street-furniture-that-looks-like-the-place-carla-10) places, the lit regional lamps and CARLA's street lights as `blueprint.cc_*`, the quadrotor drones | STREET_SIZE |
-| `CoupledCarlaTwins` | the eight baked twins (`EhvCentre`, `TUeCampus`, `ShibuyaCrossing`, `ZurichHB`, `SalamancaPlaza`, `HelsinkiSenate`, `AmsterdamDam`, `NycMidtown`), each with its OpenDRIVE, Traffic Manager cache and `Config/<Twin>-ATTRIBUTION` file | TWINS_SIZE |
+| `CoupledCarlaStreet` | everything under `/Game/CoupledCarla`: the regional street furniture, signal heads and paving that [street furniture](#street-furniture-that-looks-like-the-place-carla-10) places, the lit regional lamps and CARLA's street lights as `blueprint.cc_*` (with the two the package lacks), the quadrotor drones | STREET_SIZE |
+TWIN_ROWS
 
 ```bash
 # the official package, unpacked, and a client environment with its wheel
@@ -1182,7 +1183,7 @@ uv venv --python 3.10 .venv10 && grep -v '^carla' requirements.txt > /tmp/req10.
 VIRTUAL_ENV=.venv10 uv pip install -r /tmp/req10.txt ~/carla-1.0/PythonAPI/carla/dist/carla-1.0-cp310-cp310-linux_x86_64.whl
 # the packs (checksums, platform and base release are checked), then start the server as usual
 .venv10/bin/python -m tools.content_pack install CoupledCarlaStreet-1.0.0-carla-1.0-Linux.tar.gz \
-    CoupledCarlaTwins-1.0.0-carla-1.0-Linux.tar.gz --server ~/carla-1.0
+    CoupledCarlaEhvCentre-1.0.0-carla-1.0-Linux.tar.gz --server ~/carla-1.0
 CARLA_ROOT=~/carla-1.0 .venv10/bin/python -m coupledcarla.run experiments/eindhoven_twin.yaml
 ```
 

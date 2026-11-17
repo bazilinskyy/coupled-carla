@@ -134,6 +134,9 @@ def build(a):
             continue
         t0 = time.time()
         if what == "holder level":
+            old = pack_dir(carla, STREET) / "Content" / "Maps" / "CCAssetHolder.umap"
+            if old.exists():                    # a rebuild: the editor refuses to create a level over it
+                old.unlink()
             with ExplicitlyLoadedOff(pack_dir(carla, STREET) / (STREET + ".uplugin")):
                 with open(work / "holder.log", "wb") as log:
                     subprocess.run(argv, cwd=str(engine), stdout=log, stderr=subprocess.STDOUT)
