@@ -1173,7 +1173,7 @@ one per baked twin, each with its OpenDRIVE, Traffic Manager cache and `Config/<
 
 | Pack | What is in it | Size |
 |---|---|---|
-| `CoupledCarlaStreet` | everything under `/Game/CoupledCarla`: the Dutch sign faces, the regional street furniture, signal heads and paving that [street furniture](#street-furniture-that-looks-like-the-place-carla-10) places, the lit regional lamps and CARLA's street lights as `blueprint.cc_*` (with the two the package lacks), the quadrotor drones | 13 MB |
+| `CoupledCarlaStreet` | everything under `/Game/CoupledCarla`: the Dutch sign faces, the regional street furniture, signal heads and paving that [street furniture](#street-furniture-that-looks-like-the-place-carla-10) places, the lit regional lamps and CARLA's street lights as `blueprint.cc_*` (with the two the package lacks), the quadrotor drones | 24 MB |
 | `CoupledCarlaEhvCentre` | the `EhvCentre` twin (Eindhoven city centre) | 1.83 GB |
 | `CoupledCarlaTUeCampus` | the `TUeCampus` twin (the TU/e campus) | 0.70 GB |
 | `CoupledCarlaShibuyaCrossing` | the `ShibuyaCrossing` twin (the Shibuya scramble crossing, Tokyo) | 0.83 GB |
@@ -1210,14 +1210,16 @@ register's lumens). Without the street pack, CARLA's own lamps stand in for the 
 furniture is left out (`blueprint.cc_nl_*`, the drones and `/Game/CoupledCarla` meshes do not spawn on the bare
 package).
 
-**Tested on 2026-11-17** (lin4080, RTX 4080 SUPER): the official package installed both kinds of pack in 0.2 s
+**Tested on 2026-11-17** (lin4080, RTX 4080 SUPER): the official package installed both kinds of pack in under a second
 (street) and 5.4 s (TUeCampus, 0.70 GB), checksums included, and its server came up in 10 s and reported client and
 server 1.0. It ran without rendering (`-nullrhi`): with driver 560 it stops at start-up like the source build above.
 60 s trials, autopilot driver with SUMO traffic: `Town10HD_Opt` RTF 0.995 and 0.996 (without and with the street
 pack), 0 collisions; `TUeCampus` from its pack RTF 0.993, 0 collisions, Dutch signal programmes on 12 controllers,
 1,613 scenery meshes near the participant. With the street pack 27 of the 29 `blueprint.cc_*` and street meshes spawn
 on the official package (without it only CARLA's own lamps: 8 of 29); the two that do not are
-`cc_photoreal_google` (code) and CARLA's `BP_StreetLight06_C`. The packs were cooked on lin5080 in 35 s (street) and
+`cc_photoreal_google` (code) and CARLA's `BP_StreetLight06_C`. With it the TU/e campus shows its 51 Dutch signal
+heads and the Dutch sign faces (1,638 scenery meshes, RTF 0.987, 0 collisions); without it 55 sign meshes fall back
+to CARLA's blank plates. The packs were cooked on lin5080 in 42 s (street: 345 meshes, 352 materials, 22 blueprints) and
 1-14 min per twin, 10-17 GB of memory each; all eight twins in one cook needed over 30 GB.
 
 ### Tested on CARLA 1.0
