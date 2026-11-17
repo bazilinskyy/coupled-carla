@@ -32,7 +32,7 @@ def test_build_steps_order_and_maps(tmp_path):
     holder = dict(steps)["holder level"]
     assert "-EnablePlugins=" + cp.STREET in holder and "-NullRHI" in holder
     script = [x for x in holder if x.startswith("-script=")][0]
-    assert "BP_StreetLight06_C.BP_StreetLight06_C" in script and "/Script/" not in script
+    assert "--also " in script and script.endswith("also.json")
     assert all("--base" in argv for w, argv in steps if w.startswith("cook "))
 
 
@@ -57,3 +57,14 @@ def test_install_dry_run(tmp_path, capsys):
     cp.main(["install", "A.tar.gz", "B.tar.gz", "--server", str(tmp_path), "--dry-run"])
     out = capsys.readouterr().out
     assert out.count("carla_pack.py install") == 2
+
+
+def test_carla_assets_cover_signals_trees_and_lamps():
+    a = cp.carla_assets()
+    assert "/Game/Carla/Static/StreetLight/BP_StreetLight06_E.BP_StreetLight06_E" in a["blueprints"]
+    assert all(p.startswith("/Game/Carla/") for p in a["meshes"] + a["blueprints"])
+    assert any("/Vegetation/" in p for p in a["meshes"])
+    signals = (cp.ROOT / "coupledcarla" / "signals.py").read_text()
+    for name in ("POLE_MESH", "HEAD_MESH"):
+        path = signals.split(name + ' = "', 1)[1].split('"', 1)[0]
+        assert path in a["meshes"]

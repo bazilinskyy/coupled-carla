@@ -1,7 +1,8 @@
 """Holder level for a content pack: one actor per asset of a /Game folder, so the pack's DLC cook takes them along.
 
     UnrealEditor-Cmd <tree>/Unreal/CarlaUnreal/CarlaUnreal.uproject -run=pythonscript \\
-        -script="<repo>/tools/ue_pack_holder.py --pack CoupledCarlaStreet --src /Game/CoupledCarla --result <file>" \\
+        -script="<repo>/tools/ue_pack_holder.py --pack CoupledCarlaStreet --src /Game/CoupledCarla --result <file> \\
+                 --also <also.json>" \\
         -EnablePlugins=CoupledCarlaStreet -NullRHI -unattended -nosplash -nopause
 
 (with "ExplicitlyLoaded": false in the pack's .uplugin for the session; tools/content_pack.py does all of this.)
@@ -28,8 +29,8 @@ def main(argv):
     ap.add_argument("--src", default="/Game/CoupledCarla")
     ap.add_argument("--name", default="CCAssetHolder")
     ap.add_argument("--result", required=True)
-    ap.add_argument("--also", default="", help="more blueprints to hold, comma-separated object paths (Pkg.Name): "
-                    "catalog entries outside --src that the base release did not cook")
+    ap.add_argument("--also", default=None, help="a JSON file {\"blueprints\": [...], \"meshes\": [...]} of more object "
+                    "paths (Pkg.Name) to hold: assets outside --src that the base release may not have cooked")
     a = ap.parse_args(argv)
     level = "/{}/Maps/{}".format(a.pack, a.name)
     out = {"level": level, "src": a.src, "meshes": 0, "blueprints": 0, "materials": 0, "skipped": [], "ok": False}
@@ -37,7 +38,8 @@ def main(argv):
         reg = unreal.AssetRegistryHelpers.get_asset_registry()
         reg.scan_paths_synchronous([a.src, "/" + a.pack], True)
         assets = list(reg.get_assets_by_path(a.src, recursive=True))
-        also = [p for p in a.also.split(",") if p]
+        extra = json.load(open(a.also)) if a.also else {}
+        also = [("bp", p) for p in extra.get("blueprints", [])] + [("mesh", p) for p in extra.get("meshes", [])]
         les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
         if not les.new_level(level, False):
             raise RuntimeError("new_level failed for " + level)
@@ -68,12 +70,20 @@ def main(argv):
                     out["materials"] += 1
             except Exception as e:  # noqa: BLE001 - keep going, report it
                 out["skipped"].append("{} ({}): {}".format(path, cls, e))
-        for path in also:
+        for kind, path in also:
             n += 1
             where = unreal.Vector((n % 40) * 600.0, (n // 40) * 600.0, -2000000.0)
             try:
-                actors.spawn_actor_from_class(unreal.load_object(None, path + "_C"), where, unreal.Rotator(0, 0, 0))
-                out["blueprints"] += 1
+                obj = unreal.load_object(None, path + ("_C" if kind == "bp" else ""))
+                if obj is None:
+                    raise RuntimeError("not found")
+                if kind == "bp":
+                    actors.spawn_actor_from_class(obj, where, unreal.Rotator(0, 0, 0))
+                    out["blueprints"] += 1
+                else:
+                    actor = actors.spawn_actor_from_class(unreal.StaticMeshActor, where, unreal.Rotator(0, 0, 0))
+                    actor.static_mesh_component.set_static_mesh(obj)
+                    out["meshes"] += 1
             except Exception as e:  # noqa: BLE001
                 out["skipped"].append("{} (also): {}".format(path, e))
         les.save_current_level()

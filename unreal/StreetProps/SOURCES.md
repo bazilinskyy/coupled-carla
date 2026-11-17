@@ -47,6 +47,7 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_Any_Stains_A | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Stains_A` | 1.50 x 1.50 x 0.00 | 2 | - | stains | MIT (procedural) |
 | SM_CC_JP_LampGooseneck8 | `/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8` | 2.25 x 0.28 x 8.05 | 784 | SM_StreetLight06_A | lamp_arm | MIT (procedural) |
 | SM_CC_JP_SignalCar | `/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalCar` | 1.44 x 0.40 x 0.72 | 180 | - | signal_car | MIT (procedural) |
+| SM_CC_JP_SignalPole | `/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole` | 0.11 x 0.11 x 3.65 | 128 | - | signal_pole | MIT (procedural) |
 | SM_CC_NL_Amsterdammertje | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Amsterdammertje` | 0.14 x 0.14 x 1.01 | 680 | SM_Bollard_Grey | bollard_amsterdam | MIT (procedural) |
 | SM_CC_NL_BenchEindhoven_DarkBrown | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BenchEindhoven_DarkBrown` | 1.80 x 0.59 x 0.85 | 140 | SM_Bench01 | bench | MIT (procedural) |
 | SM_CC_NL_BenchEindhoven_LightBrown | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BenchEindhoven_LightBrown` | 1.80 x 0.59 x 0.85 | 140 | SM_Bench01 | bench | MIT (procedural) |
@@ -112,3 +113,4 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_UK_BinCast | `/Game/CoupledCarla/Street/UK/Static/SM_CC_UK_BinCast` | 0.54 x 0.54 x 0.97 | 636 | SM_TrashCan01 | bin | MIT (procedural) |
 | SM_CC_UK_LampColumn8 | `/Game/CoupledCarla/Street/UK/Pole/SM_CC_UK_LampColumn8` | 1.31 x 0.25 x 8.14 | 284 | SM_StreetLight06_A | BS EN 40 column | MIT (procedural) |
 | SM_CC_UK_SignalCar | `/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalCar` | 0.72 x 0.40 x 1.44 | 192 | - | signal_car | MIT (procedural) |
+| SM_CC_UK_SignalPole | `/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPole` | 0.11 x 0.11 x 3.65 | 128 | - | signal_pole | MIT (procedural) |

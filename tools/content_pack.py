@@ -9,9 +9,10 @@ The packs (CARLA's carla-pack, Util/ContentPacks in the CARLA tree; see its Docs
 
 - CoupledCarlaStreet: everything under /Game/CoupledCarla (the regional street furniture and signal heads that
   streetlook.py places with static.prop.mesh, the lit regional lamps and CARLA's street lights as blueprint.cc_*,
-  the quadrotor drones), with their BlueprintParameters.json, plus CARLA's street lights that the official package
-  did not cook (BP_StreetLight06_C and _E). Nothing references these assets from a map, so `build` first writes a
-  holder level into the pack (tools/ue_pack_holder.py) that the cook follows.
+  the quadrotor drones, the Dutch sign faces), with their BlueprintParameters.json, plus every CARLA asset
+  coupled-carla spawns by path that the official package did not cook (most of CARLA's trees, props, sign plates
+  and buildings of the scenery catalogue, street lights): carla_assets(). Nothing references these assets from a
+  map, so `build` first writes a holder level into the pack (tools/ue_pack_holder.py) that the cook follows.
 - CoupledCarla<Twin>, one per baked twin (EhvCentre, TUeCampus, ShibuyaCrossing, ...): the map in place
   (/Game/Carla/Maps/Twins/<Twin>) with its OpenDRIVE, Traffic Manager cache and Config/<Twin>-ATTRIBUTION file.
   One pack per twin, because a cook of all eight at once needed more than 30 GB of memory (it was killed on a
@@ -54,6 +55,21 @@ def street_catalog(src=CATALOG):
     return {"Blueprints": [b for b in bps if not b["Path"].startswith("/Script/")]}
 
 
+def carla_assets(root=ROOT):
+    """CARLA's own assets coupled-carla spawns by path or blueprint (scenery's catalogue, fallbacks, signals.py's
+    heads, the catalog's lamps): {"blueprints", "meshes"} of /Game/Carla object paths. The official package cooks
+    only what its default maps use (2026-11-17: 1,272 of these 1,557 meshes were missing, most of the trees among
+    them), so the street pack holds them all; the cook skips those the base release already has."""
+    import re
+    found = set()
+    for f in sorted((root / "coupledcarla").glob("*.py")) + sorted((root / "coupledcarla" / "data").glob("*.json")):
+        found |= set(re.findall(r"/Game/Carla/[A-Za-z0-9_/\-]+\.[A-Za-z0-9_\-]+", f.read_text(errors="ignore")))
+    bps = sorted(b["Path"] for b in street_catalog()["Blueprints"] if b["Path"].startswith("/Game/Carla/"))
+    meshes = sorted(p for p in found if p not in bps and "/Blueprints/" not in p and not p.endswith("_C")
+                    and "/StreetLight/BP_" not in p)
+    return {"blueprints": bps, "meshes": meshes}
+
+
 def pack_dir(carla, name):
     return Path(carla) / "Unreal" / "CarlaUnreal" / "Plugins" / "Packs" / name
 
@@ -76,9 +92,8 @@ def build_steps(carla, base, engine, twins, which, work):
         if not (pack_dir(carla, STREET) / "carla-pack.json").exists():
             steps.append(("init " + STREET, tool(carla) + ["init", STREET, "--description", DESCRIPTIONS[STREET]]))
         steps.append(("catalog", tool(carla) + ["add", STREET, "--blueprints", str(work / "blueprints.json")]))
-        also = [b["Path"] for b in street_catalog()["Blueprints"] if not b["Path"].startswith("/Game/CoupledCarla/")]
         script = "{} --pack {} --src /Game/CoupledCarla --result {} --also {}".format(
-            ROOT / "tools" / "ue_pack_holder.py", STREET, work / "holder.json", ",".join(also))
+            ROOT / "tools" / "ue_pack_holder.py", STREET, work / "holder.json", work / "also.json")
         steps.append(("holder level", [str(editor(engine)), str(project), "-run=pythonscript",
                                        "-script=" + script, "-EnablePlugins=" + STREET, "-NullRHI", "-unattended",
                                        "-nosplash", "-nopause", "-stdout", "-FullStdOutLogOutput"]))
@@ -118,6 +133,7 @@ def build(a):
     work = Path(a.work or tempfile.mkdtemp(prefix="ccpack-"))
     work.mkdir(parents=True, exist_ok=True)
     (work / "blueprints.json").write_text(json.dumps(street_catalog(), indent=2))
+    (work / "also.json").write_text(json.dumps(carla_assets(), indent=1))
     twins = [t for t in a.twins.split(",") if t]
     for t in twins:
         src = carla / "Unreal" / "CarlaUnreal" / "Content" / "Carla" / "Maps" / "Twins" / t / "ATTRIBUTION.md"
