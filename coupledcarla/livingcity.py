@@ -46,6 +46,7 @@ import math
 import random
 import zlib
 from pathlib import Path
+from .compat import left_lane, right_lane
 
 SOURCES = {
     "moussaid2010": "Moussaid M, Perozo N, Garnier S, Helbing D, Theraulaz G (2010). The walking behaviour of "
@@ -1112,7 +1113,7 @@ class LivingCity:
         if wp is None:
             return None, False
         two = False
-        for nb in (wp.get_left_lane(), wp.get_right_lane()):
+        for nb in (left_lane(wp), right_lane(wp)):
             if nb is not None and nb.lane_type == carla.LaneType.Driving and nb.lane_id * wp.lane_id > 0:
                 two = True
         return wp, two
@@ -1210,8 +1211,8 @@ class LivingCity:
             for wp in self.cmap.generate_waypoints(15.0):
                 if wp.lane_type != carla.LaneType.Driving or wp.is_junction:
                     continue
-                outer = wp.get_left_lane() if self.lefthand else wp.get_right_lane()
-                inner = wp.get_right_lane() if self.lefthand else wp.get_left_lane()
+                outer = left_lane(wp) if self.lefthand else right_lane(wp)
+                inner = right_lane(wp) if self.lefthand else left_lane(wp)
                 if outer is not None and outer.lane_type == carla.LaneType.Driving and \
                         outer.lane_id * wp.lane_id > 0:
                     continue                                   # not the outermost driving lane

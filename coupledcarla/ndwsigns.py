@@ -31,6 +31,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import requests
+from .compat import left_lane, right_lane
 
 API = "https://data.ndw.nu/api/rest/static-road-data/traffic-signs/v4/current-state"
 WKD = ("https://geo.rijkswaterstaat.nl/services/ogc/gdr/maximum_snelheden_wegen/ogc/features/v1/collections/"
@@ -327,9 +328,9 @@ class Roads:
                 against = wp
         if against is not None:
             wp = against
-            other = wp.get_left_lane()      # the lanes of the other direction, on the same road
+            other = left_lane(wp)      # the lanes of the other direction, on the same road
             while other is not None and other.lane_id * wp.lane_id > 0:
-                other = other.get_left_lane()
+                other = left_lane(other)
             if other is not None and other.lane_type == c.LaneType.Driving:
                 return other.transform.rotation.yaw, other.transform.location.z, self._roadside(other, False)
             return (wp.transform.rotation.yaw + 180.0) % 360.0, wp.transform.location.z, self._roadside(wp, True)
@@ -344,7 +345,7 @@ class Roads:
         right = (not self.lefthand) != against      # walk to wp's right-hand lanes?
         edge = wp
         for _ in range(8):
-            nxt = edge.get_right_lane() if right else edge.get_left_lane()
+            nxt = right_lane(edge) if right else left_lane(edge)
             if nxt is None or nxt.lane_id * edge.lane_id < 0 or nxt.lane_type != c.LaneType.Driving:
                 break
             edge = nxt

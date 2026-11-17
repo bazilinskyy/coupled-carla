@@ -26,6 +26,7 @@ All decisions draw from random generators seeded by living_city.seed, the reacti
 import math
 
 from .livingcity import rng_for
+from .compat import left_lane, right_lane
 
 SOURCES = {
     "doob1968": "Doob AN, Gross AE (1968). Status of frustrator as an inhibitor of horn-honking responses. Journal of "
@@ -283,7 +284,7 @@ class Reactions:
         left = bool(lights & int(_c.VehicleLightState.LeftBlinker))
         right = bool(lights & int(_c.VehicleLightState.RightBlinker))
         if self.opts.get("courtesy", True) and left != right:
-            nb = wp.get_left_lane() if left else wp.get_right_lane()
+            nb = left_lane(wp) if left else right_lane(wp)
             if nb is not None and nb.lane_type == carla.LaneType.Driving and nb.lane_id * wp.lane_id > 0:
                 nx, ny = nb.transform.location.x, nb.transform.location.y
                 c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))

@@ -35,6 +35,7 @@ from coupledcarla.geo import Geo, ground, heading_to_yaw  # noqa: E402
 from coupledcarla.run import load_world, set_weather  # noqa: E402
 from coupledcarla.scenery import Scenery  # noqa: E402
 from coupledcarla.server import Server  # noqa: E402
+from coupledcarla.compat import left_lane, right_lane  # noqa: E402
 
 SKY = 11      # CARLA 0.9.14+ semantic tag of the sky
 AHEAD = ["vehicle.audi.a2", "vehicle.toyota.prius", "vehicle.volkswagen.t2_2021", "vehicle.mini.cooper_s_2021",
@@ -170,7 +171,7 @@ def main():
             x, y = geo.to_carla(lat, lon)
             wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
             want = heading_to_yaw(heading)
-            for cand in (wp, wp.get_left_lane(), wp.get_right_lane()):
+            for cand in (wp, left_lane(wp), right_lane(wp)):
                 if cand is not None and cand.lane_type == carla.LaneType.Driving and \
                         abs((cand.transform.rotation.yaw - want + 180) % 360 - 180) < 90:
                     wp = cand

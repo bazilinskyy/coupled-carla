@@ -37,6 +37,7 @@ from types import SimpleNamespace
 import numpy as np
 
 from . import nightlights
+from .compat import left_lane, right_lane
 
 DATA = Path(__file__).parent / "data"
 CELL = 100.0          # streaming cell size (m)
@@ -585,7 +586,7 @@ def kerb_lamp(wp, lefthand, carla):
     kerb = -1.0 if lefthand else 1.0
     edge = wp
     for _ in range(8):
-        nxt = edge.get_left_lane() if lefthand else edge.get_right_lane()
+        nxt = left_lane(edge) if lefthand else right_lane(edge)
         if nxt is None or nxt.lane_type in (carla.LaneType.NONE,):
             break
         if nxt.lane_id * edge.lane_id < 0:
@@ -1238,14 +1239,14 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 continue
             wp = placement.approach(wp)     # a sign mapped in a junction belongs at the kerb of the lane into it
             if t.get("direction") == "backward" or t.get("traffic_sign:direction") == "backward":
-                other = wp.get_left_lane()
+                other = left_lane(wp)
                 while other is not None and other.lane_id * wp.lane_id > 0:
-                    other = other.get_left_lane()
+                    other = left_lane(other)
                 if other is not None and other.lane_type == carla.LaneType.Driving:
                     wp = other
             edge = wp
             for _ in range(8):     # the outermost lane on the traffic side
-                nxt = edge.get_left_lane() if lefthand else edge.get_right_lane()
+                nxt = left_lane(edge) if lefthand else right_lane(edge)
                 if nxt is None or nxt.lane_id * edge.lane_id < 0 or nxt.lane_type != carla.LaneType.Driving:
                     break
                 edge = nxt

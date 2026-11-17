@@ -26,6 +26,7 @@ from coupledcarla import config, look, parking, run  # noqa: E402
 from coupledcarla.display import VIEWS  # noqa: E402
 from coupledcarla.geo import Geo, heading_to_yaw  # noqa: E402
 from coupledcarla.scenery import Scenery  # noqa: E402
+from coupledcarla.compat import left_lane, right_lane  # noqa: E402
 
 TAGS = {"road": 1, "sidewalk": 2, "building": 3, "vegetation": 9, "sky": 11}
 EV11 = {"exposure_mode": "manual", "shutter_speed": f"{look.shutter_for_ev(11):.1f}"}
@@ -137,7 +138,7 @@ def main():
             wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
             if a.heading is not None:
                 want = heading_to_yaw(a.heading)
-                for cand in (wp, wp.get_left_lane(), wp.get_right_lane()):
+                for cand in (wp, left_lane(wp), right_lane(wp)):
                     if cand is not None and abs((cand.transform.rotation.yaw - want + 180) % 360 - 180) < 90:
                         wp = cand
                         break

@@ -32,6 +32,7 @@ import re
 import zlib
 from functools import lru_cache
 from pathlib import Path
+from .compat import left_lane, right_lane
 
 DATA = Path(__file__).resolve().parent / "data" / "street_props.json"
 REGION_OF = {"NLD": "NL", "GBR": "UK", "JPN": "JP"}
@@ -285,7 +286,7 @@ def shark_teeth(pl, cat, cmap, carla, points, lefthand=False, log=print):
         lanes, lane = [], end
         while lane is not None and lane.lane_type == carla.LaneType.Driving and lane.lane_id * end.lane_id > 0:
             lanes.append(lane)      # this direction's lanes, from the kerb lane inwards
-            lane = lane.get_left_lane() if not lefthand else lane.get_right_lane()
+            lane = left_lane(lane) if not lefthand else right_lane(lane)
         for ln in lanes:
             key = (ln.road_id, ln.section_id, ln.lane_id)
             if key in done:

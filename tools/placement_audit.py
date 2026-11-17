@@ -39,6 +39,7 @@ import carla
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from coupledcarla import config, placement, run, scenery  # noqa: E402
 from coupledcarla.geo import Geo  # noqa: E402
+from coupledcarla.compat import left_lane, right_lane  # noqa: E402
 
 # what an object may stand on (hits on other objects are skipped by their labels; parts of lamps are labelled None).
 # Some ground tiles have no collision (SM_Square_61, the concrete), so rays miss them: the tiles' top faces are
@@ -305,7 +306,7 @@ def check_facing(cmap, recs, lefthand, oneway_ok=True):
                 continue
             d = abs((r["yaw"] - wp.transform.rotation.yaw + 180.0) % 360.0 - 180.0)
             if d > 150.0:       # parallel and nose against the traffic of the lane beside it
-                other = wp.get_left_lane() if not lefthand else wp.get_right_lane()
+                other = left_lane(wp) if not lefthand else right_lane(wp)
                 two_way = other is not None and other.lane_id * wp.lane_id < 0 and \
                     other.lane_type == carla.LaneType.Driving
                 if two_way or not oneway_ok:
@@ -324,7 +325,7 @@ def kerb_drops(world, cmap, centre, radius, tops, step=4.0):
         if math.hypot(loc.x - centre[0], loc.y - centre[1]) > radius:
             continue
         rv = wp.transform.get_right_vector()
-        for side, nxt in ((1.0, wp.get_right_lane()), (-1.0, wp.get_left_lane())):
+        for side, nxt in ((1.0, right_lane(wp)), (-1.0, left_lane(wp))):
             if nxt is not None and nxt.lane_type in (carla.LaneType.Driving, carla.LaneType.Biking,
                                                      carla.LaneType.Parking, carla.LaneType.Bidirectional,
                                                      carla.LaneType.Sidewalk):

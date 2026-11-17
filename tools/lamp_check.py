@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import carla  # noqa: E402
+from coupledcarla.compat import left_lane, right_lane  # noqa: E402
 
 LAMP_BP = "blueprint.cc_streetlight06_a"
 LIFT = 100.0
@@ -50,7 +51,7 @@ def kerb_row(cmap, start, n, spacing, side):
     for _ in range(n):
         edge = wp
         for _ in range(8):      # the outermost driving lane on that side
-            nxt = edge.get_right_lane() if side > 0 else edge.get_left_lane()
+            nxt = right_lane(edge) if side > 0 else left_lane(edge)
             if nxt is None or nxt.lane_type != carla.LaneType.Driving or nxt.lane_id * edge.lane_id < 0:
                 break
             edge = nxt

@@ -28,6 +28,7 @@ import json
 import math
 import zlib
 from pathlib import Path
+from .compat import left_lane, right_lane
 
 BIKE_COLOURS = ("Black", "Navy", "Grey", "Green", "Red")
 BIKE_COLOUR_SHARE = (0.46, 0.18, 0.14, 0.12, 0.10)     # black dominates Dutch city bikes
@@ -256,7 +257,7 @@ def grime_and_litter(pl, cat, cmap, carla, near, taken, lefthand=False, step=6.0
     for wp in cmap.generate_waypoints(step):
         if wp.lane_type != carla.LaneType.Driving or wp.is_junction:
             continue
-        side = wp.get_left_lane() if lefthand else wp.get_right_lane()
+        side = left_lane(wp) if lefthand else right_lane(wp)
         if side is not None and side.lane_type == carla.LaneType.Driving and side.lane_id * wp.lane_id > 0:
             continue        # not the kerb lane
         tf, loc = wp.transform, wp.transform.location
