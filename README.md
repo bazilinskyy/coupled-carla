@@ -1139,7 +1139,7 @@ The SUMO conversion script that CARLA 1.0 no longer ships is vendored in `bridge
 environment next to the 0.9.16 one:
 
 ```bash
-# the CARLA 1.0 package (UE5 weekly, ~14 GB), extracted to e.g. ~/carla58-pkg/CARLA_1.0
+# the CARLA 1.0 release package (CARLA_1.0.tar.gz, 14.1 GB; see the content pack section below), extracted
 uv venv --python 3.12 .venv10
 grep -v '^carla' requirements.txt > /tmp/req10.txt
 VIRTUAL_ENV=.venv10 uv pip install -r /tmp/req10.txt <package>/PythonAPI/carla/dist/carla-1.0-cp312-cp312-linux_x86_64.whl
@@ -1160,6 +1160,47 @@ RTF 0.82, 0 collisions, every 0.9 blueprint mapped to a 1.0 stand-in. That run u
 cameras or stations), because the RTX 5080 was full with other jobs. The real-world scenery has its own 1.0 mesh
 catalogue ([Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). Install the 1.0 wheel after
 `requirements.txt`, which pins `carla==0.9.16`.
+
+### CARLA 1.0 release + content pack
+
+CARLA 1.0 was released on 2026-11-17 (tag `1.0`). Its package
+([`CARLA_1.0.tar.gz`](https://downloads.carlasim.com/Linux/CARLA_1.0.tar.gz), 14.1 GB; Windows: `CARLA_1.0.zip`)
+ships Python wheels for 3.10 to 3.15 in `PythonAPI/carla/dist/` and installs [content
+packs](https://carla-ue5.readthedocs.io/en/latest/content_authoring_packs/): cooked maps and assets that a package of
+the same release mounts without being rebuilt. Coupled CARLA's own CARLA 1.0 content comes as two packs, so the
+official package is all you need to download besides them:
+
+| Pack | What is in it | Size |
+|---|---|---|
+| `CoupledCarlaStreet` | everything under `/Game/CoupledCarla`: the regional street furniture, signal heads and paving that [street furniture](#street-furniture-that-looks-like-the-place-carla-10) places, the lit regional lamps and CARLA's street lights as `blueprint.cc_*`, the quadrotor drones | STREET_SIZE |
+| `CoupledCarlaTwins` | the eight baked twins (`EhvCentre`, `TUeCampus`, `ShibuyaCrossing`, `ZurichHB`, `SalamancaPlaza`, `HelsinkiSenate`, `AmsterdamDam`, `NycMidtown`), each with its OpenDRIVE, Traffic Manager cache and `Config/<Twin>-ATTRIBUTION` file | TWINS_SIZE |
+
+```bash
+# the official package, unpacked, and a client environment with its wheel
+mkdir ~/carla-1.0 && tar xzf CARLA_1.0.tar.gz -C ~/carla-1.0 --strip-components=1
+uv venv --python 3.10 .venv10 && grep -v '^carla' requirements.txt > /tmp/req10.txt
+VIRTUAL_ENV=.venv10 uv pip install -r /tmp/req10.txt ~/carla-1.0/PythonAPI/carla/dist/carla-1.0-cp310-cp310-linux_x86_64.whl
+# the packs (checksums, platform and base release are checked), then start the server as usual
+.venv10/bin/python -m tools.content_pack install CoupledCarlaStreet-1.0.0-carla-1.0-Linux.tar.gz \
+    CoupledCarlaTwins-1.0.0-carla-1.0-Linux.tar.gz --server ~/carla-1.0
+CARLA_ROOT=~/carla-1.0 .venv10/bin/python -m coupledcarla.run experiments/eindhoven_twin.yaml
+```
+
+The packs are built on a CARLA 1.0 source build (tag `1.0`, with the editor) against the release's metadata
+(`CARLA_1.0_release-metadata.tar.gz`, 2.5 MB, next to the package on the download page):
+`python -m tools.content_pack build --carla <tree> --base CARLA_1.0_release-metadata.tar.gz`
+([`tools/content_pack.py`](tools/content_pack.py); `--dry-run` prints each step). Nothing in a map refers to the
+street content (Coupled CARLA spawns it by path at runtime), so the build first writes a holder level into the
+street pack ([`tools/ue_pack_holder.py`](tools/ue_pack_holder.py)) that the cook follows. A pack fits only the
+release it was cooked against: CARLA 1.0.1 means building them again. They are meant as assets of a GitHub
+release of this repository (GitHub allows 2 GB per file); they are not published yet.
+
+What a pack cannot carry is code, so two things need a CARLA build of your own: the `CoupledPhotoreal` plugin
+(`map.photoreal`, Google's Photorealistic 3D Tiles; without it the twin is shown as baked, and the log says so)
+and the CarlaLight patch (`unreal/patches/`; without it lamps keep CARLA's default intensity instead of the
+register's lumens). Without the street pack, CARLA's own lamps stand in for the regional ones and the regional
+furniture is left out (`blueprint.cc_nl_*`, the drones and `/Game/CoupledCarla` meshes do not spawn on the bare
+package). RESULTS_R10
 
 ### Tested on CARLA 1.0
 

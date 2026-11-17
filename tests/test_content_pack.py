@@ -20,14 +20,19 @@ def test_build_steps_order_and_maps(tmp_path):
     steps = cp.build_steps(carla, tmp_path / "meta.tar.gz", tmp_path / "ue", ["EhvCentre", "TUeCampus"],
                            ["street", "twins"], tmp_path / "work")
     whats = [w for w, _ in steps]
-    # street: init, catalog, holder level, cook; twins: init, a map and its attribution per twin, cook
+    # street: init, catalog, holder level, cook; then per twin its own pack: init, map, attribution, cook
     assert whats[:4] == ["init " + cp.STREET, "catalog", "holder level", "cook " + cp.STREET]
-    assert whats[-1] == "cook " + cp.TWINS_PACK
+    assert whats[4:8] == ["init CoupledCarlaEhvCentre", "map EhvCentre", "attribution EhvCentre",
+                          "cook CoupledCarlaEhvCentre"]
+    assert whats[-1] == "cook CoupledCarlaTUeCampus"
     maps = [argv for w, argv in steps if w.startswith("map ")]
     assert [m[m.index("--map") + 1] for m in maps] == ["/Game/Carla/Maps/Twins/EhvCentre/EhvCentre",
                                                        "/Game/Carla/Maps/Twins/TUeCampus/TUeCampus"]
+    assert [m[m.index("add") + 1] for m in maps] == ["CoupledCarlaEhvCentre", "CoupledCarlaTUeCampus"]
     holder = dict(steps)["holder level"]
     assert "-EnablePlugins=" + cp.STREET in holder and "-NullRHI" in holder
+    script = [x for x in holder if x.startswith("-script=")][0]
+    assert "BP_StreetLight06_C.BP_StreetLight06_C" in script and "/Script/" not in script
     assert all("--base" in argv for w, argv in steps if w.startswith("cook "))
 
 

@@ -3,17 +3,19 @@
     # on a CARLA 1.0 source build (tag 1.0, with the editor), against the release's metadata:
     python -m tools.content_pack build --carla ~/carla58/carla --base CARLA_1.0_release-metadata.tar.gz
     # on any machine with the official package (CARLA_1.0.tar.gz unpacked in ~/carla-1.0):
-    python -m tools.content_pack install CoupledCarlaStreet-*.tar.gz CoupledCarlaTwins-*.tar.gz --server ~/carla-1.0
+    python -m tools.content_pack install CoupledCarlaStreet-*.tar.gz CoupledCarlaEhvCentre-*.tar.gz --server ~/carla-1.0
 
-Two packs (CARLA's carla-pack, Util/ContentPacks in the CARLA tree; see its Docs/content_authoring_packs.md):
+The packs (CARLA's carla-pack, Util/ContentPacks in the CARLA tree; see its Docs/content_authoring_packs.md):
 
 - CoupledCarlaStreet: everything under /Game/CoupledCarla (the regional street furniture and signal heads that
   streetlook.py places with static.prop.mesh, the lit regional lamps and CARLA's street lights as blueprint.cc_*,
   the quadrotor drones), with their BlueprintParameters.json, plus CARLA's street lights that the official package
   did not cook (BP_StreetLight06_C and _E). Nothing references these assets from a map, so `build` first writes a
   holder level into the pack (tools/ue_pack_holder.py) that the cook follows.
-- CoupledCarlaTwins: the baked twins (EhvCentre, TUeCampus, ShibuyaCrossing, ...) as maps in place
-  (/Game/Carla/Maps/Twins/<Name>), each with its OpenDRIVE, Traffic Manager cache and ATTRIBUTION file.
+- CoupledCarla<Twin>, one per baked twin (EhvCentre, TUeCampus, ShibuyaCrossing, ...): the map in place
+  (/Game/Carla/Maps/Twins/<Twin>) with its OpenDRIVE, Traffic Manager cache and Config/<Twin>-ATTRIBUTION file.
+  One pack per twin, because a cook of all eight at once needed more than 30 GB of memory (it was killed on a
+  60 GB machine with other work) and a pack of a twin is up to 1.8 GB, against GitHub's 2 GB per release file.
 
 What a pack cannot carry is code: the CoupledPhotoreal plugin (Google Photorealistic 3D Tiles) and the CarlaLight
 patch (unreal/patches/CarlaLight_SetLightState.patch: a client's lamp intensity reaches the light) need a CARLA
@@ -34,7 +36,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 STREET = "CoupledCarlaStreet"
-TWINS_PACK = "CoupledCarlaTwins"
+TWIN_PACK = "CoupledCarla{}"
 TWINS = ["EhvCentre", "TUeCampus", "ShibuyaCrossing", "ZurichHB", "SalamancaPlaza", "HelsinkiSenate",
          "AmsterdamDam", "NycMidtown"]
 CATALOG = ROOT / "coupledcarla" / "data" / "carla_packs" / "CoupledCarla" / "Content" / "Config" / \
@@ -42,8 +44,8 @@ CATALOG = ROOT / "coupledcarla" / "data" / "carla_packs" / "CoupledCarla" / "Con
 DESCRIPTIONS = {
     STREET: "coupled-carla street content for CARLA 1.0: regional street furniture, signal heads and paving, lit "
             "regional street lamps (blueprint.cc_*) and quadrotor drones, placed by coupled-carla at runtime",
-    TWINS_PACK: "coupled-carla digital twins for CARLA 1.0 (open data; see Config/<Twin>-ATTRIBUTION.*)",
 }
+TWIN_DESCRIPTION = "coupled-carla digital twin {0} for CARLA 1.0 (open data; see Config/{0}-ATTRIBUTION.md)"
 
 
 def street_catalog(src=CATALOG):
@@ -82,16 +84,15 @@ def build_steps(carla, base, engine, twins, which, work):
                                        "-nosplash", "-nopause", "-stdout", "-FullStdOutLogOutput"]))
         steps.append(("cook " + STREET, tool(carla) + ["build", STREET, "--base", str(base)]))
     if "twins" in which:
-        if not (pack_dir(carla, TWINS_PACK) / "carla-pack.json").exists():
-            steps.append(("init " + TWINS_PACK,
-                          tool(carla) + ["init", TWINS_PACK, "--description", DESCRIPTIONS[TWINS_PACK]]))
         for t in twins:
-            steps.append(("map " + t, tool(carla) + ["add", TWINS_PACK, "--map",
-                                                    "/Game/Carla/Maps/Twins/{0}/{0}".format(t)]))
-            steps.append(("attribution " + t, tool(carla) + ["add", TWINS_PACK, "--asset",
+            pk = TWIN_PACK.format(t)
+            if not (pack_dir(carla, pk) / "carla-pack.json").exists():
+                steps.append(("init " + pk, tool(carla) + ["init", pk, "--description", TWIN_DESCRIPTION.format(t)]))
+            steps.append(("map " + t, tool(carla) + ["add", pk, "--map", "/Game/Carla/Maps/Twins/{0}/{0}".format(t)]))
+            steps.append(("attribution " + t, tool(carla) + ["add", pk, "--asset",
                                                             str(work / "{}-ATTRIBUTION.md".format(t)),
                                                             "--dest", "Config/"]))
-        steps.append(("cook " + TWINS_PACK, tool(carla) + ["build", TWINS_PACK, "--base", str(base)]))
+            steps.append(("cook " + pk, tool(carla) + ["build", pk, "--base", str(base)]))
     return steps
 
 
@@ -144,7 +145,7 @@ def build(a):
         else:
             subprocess.run(argv, cwd=str(carla), check=True)
         print("[content_pack] {} done in {:.0f} s".format(what, time.time() - t0), flush=True)
-    for name in (STREET, TWINS_PACK):
+    for name in [STREET] + [TWIN_PACK.format(t) for t in twins]:
         for tar in sorted((pack_dir(carla, name) / "Saved" / "CarlaPack" / "out").glob("*.tar.gz")):
             print("[content_pack] {} ({:.2f} GB)".format(tar, tar.stat().st_size / 1e9))
 
@@ -169,7 +170,7 @@ def main(argv=None):
     b.add_argument("--carla", required=True, help="the CARLA source tree (tag 1.0, editor built)")
     b.add_argument("--base", required=True, help="the release metadata, CARLA_1.0_release-metadata.tar.gz")
     b.add_argument("--engine", help="Unreal Engine 5.8 tree (default: $CARLA_UNREAL_ENGINE_PATH)")
-    b.add_argument("--twins", default=",".join(TWINS), help="twins for " + TWINS_PACK + " (comma-separated)")
+    b.add_argument("--twins", default=",".join(TWINS), help="twins to pack, one pack each (comma-separated)")
     b.add_argument("--only", default="street,twins", help="street, twins or both (comma-separated)")
     b.add_argument("--work", help="scratch folder (catalog, attributions, holder log)")
     b.add_argument("--dry-run", action="store_true")
