@@ -36,7 +36,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from . import nightlights
+from . import nightlights, provenance
 from .compat import left_lane, right_lane
 
 DATA = Path(__file__).parent / "data"
@@ -503,6 +503,7 @@ class Placer:
         self.junctions = junctions      # placement.JunctionAreas: a generated map's paved junctions count as lanes
         self.lane_points = None         # placement.LanePoints of the blocking lanes, for footprints
         self.items, self.counts = [], defaultdict(int)
+        self.prov_of = {}          # id(item) -> (tag, source): provenance.py
         self.lamp_specs = []      # (lamp item, nightlights.lamp_spec) per placed lamp
         self.bases = []          # per item (x, y, z) of the ground it was placed on (placement.settle)
         self.surface = None      # placement.GroundSurface once the ground tiles are laid
@@ -543,9 +544,10 @@ class Placer:
         return True
 
     def add(self, kind, mesh, cx, cy, yaw, scale, sink=0.0, tilt=None, z=None, anchor="bottom", centre=False,
-            base=None):
+            base=None, prov=None):
         """base: (x, y, z) of the ground this item stands on when that is not (cx, cy, z) (a sign's plate: its
-        post's), so placement.settle moves it with what it stands on."""
+        post's), so placement.settle moves it with what it stands on. prov: (tag, source), provenance.py (default:
+        its kind's)."""
         g = self.ground(cx, cy) if z is None else z
         x, y, zz, yaw = self.cat.place(mesh, cx, cy, g, yaw, scale, sink, *(tilt or (0.0, 0.0)), anchor=anchor)
         idx = self.mesh_index.setdefault(mesh, len(self.mesh_index))
@@ -557,12 +559,16 @@ class Placer:
         self.items.append(item)
         self.bases.append(base or (x, y, g))     # (the pivot: a lamp's pole, not the middle of its arm)
         self.counts[kind] += 1
+        if prov is not None:
+            self.prov_of[id(item)] = tuple(prov)
         return item
 
     def companion(self, item, mesh):
         """The same transform with another mesh (a building's separate window glass on CARLA 1.0)."""
         idx = self.mesh_index.setdefault(mesh, len(self.mesh_index))
         self.items.append([idx] + item[1:])
+        if id(item) in self.prov_of:
+            self.prov_of[id(self.items[-1])] = self.prov_of[id(item)]
         k = next((i for i in range(len(self.items) - 2, -1, -1) if self.items[i] is item), None)
         self.bases.append(self.bases[k] if k is not None else None)
 
@@ -840,7 +846,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     # tall buildings stay loaded all trial (the skyline); others stream with their cell
                     it = pl.add("landmark" if b["h"] > 40 else "building", mesh, px, py, yaw + turn, ss, sink=0.3,
                                 z=b["z"], anchor="ground" if ms.GROUND_PIVOT else "bottom",
-                                base=(px, py, b["z"], ss * L, ss * W, yaw))
+                                base=(px, py, b["z"], ss * L, ss * W, yaw), prov=provenance.building(b.get("src")))
                     for extra in ms.COMPANIONS.get(mesh, ()):
                         if extra in cat:
                             pl.companion(it, extra)
@@ -853,6 +859,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     # trees within 3 m of one of theirs, and all OSM and guessed lamps
     muni = rw.municipal_scenery(mc["bbox"], rdir / "municipal.json") if sc.get("municipal", True) else {}
     m_els = muni.get("elements", [])
+    for el in els:
+        el.setdefault("_src", "osm")
+    for el in m_els:
+        el.setdefault("_src", "municipal")
     m_trees = [e for e in m_els if e["tags"].get("natural") == "tree"]
     m_lamps = any(e["tags"].get("highway") == "street_lamp" for e in m_els)
     if m_trees:
@@ -987,7 +997,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 h = _number(t.get("height")) or canopy_h(x, y)
                 fam = _tree_family(t, el["lat"], ms.GENUS)
                 mesh, s = _tree(cat, fam, h, el["id"])
-                pl.add("tree", mesh, x, y, _h(el["id"]) % 360, s, sink=0.1)
+                pl.add("tree", mesh, x, y, _h(el["id"]) % 360, s, sink=0.1, prov=provenance.element(el))
                 season.record(pl, cat, t, fam, mesh, s, el["id"], x, y)
                 tree_pts.append((x, y))
                 pl.counts["tree_osm"] += 1
@@ -1000,7 +1010,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                         continue
                     mesh, s = _tree(cat, fam, _number(t.get("height")) or canopy_h(p.x, p.y),
                                     (el["id"], 0))   # one size per row, unless the canopy map says otherwise
-                    pl.add("tree", mesh, p.x, p.y, _h(el["id"], i) % 360, s, sink=0.1)
+                    pl.add("tree", mesh, p.x, p.y, _h(el["id"], i) % 360, s, sink=0.1,
+                           prov=("inferred", "osm_tree_row"))
                     season.record(pl, cat, t, fam, mesh, s, (el["id"], 0), p.x, p.y)
                     tree_pts.append((p.x, p.y))
                     pl.counts["tree_row"] += 1
@@ -1026,10 +1037,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     if kind == "scrub" or (kind in ("park", "garden") and rng.random() < 0.25):
                         mesh = ms.BUSHES[_h(x, y) % len(ms.BUSHES)]
                         if mesh in cat:
-                            pl.add("bush", mesh, x, y, rng.uniform(0, 360), rng.uniform(0.7, 1.2))
+                            pl.add("bush", mesh, x, y, rng.uniform(0, 360), rng.uniform(0.7, 1.2),
+                                   prov=("generated", f"fill_{kind}"))
                         continue
                     mesh, s = _tree(cat, fam, canopy_h(x, y), (round(x), round(y)))
-                    pl.add("tree", mesh, x, y, rng.uniform(0, 360), s, sink=0.1)
+                    pl.add("tree", mesh, x, y, rng.uniform(0, 360), s, sink=0.1, prov=("generated", f"fill_{kind}"))
                     season.record(pl, cat, {}, fam, mesh, s, (round(x), round(y)), x, y)
                     planted += 1
         pl.counts["tree_planted"] = planted
@@ -1049,7 +1061,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 fam = canopy_family(h, lat0)
                 key = (round(x), round(y), "canopy")
                 mesh, s_ = _tree(cat, fam, h, key)
-                pl.add("tree", mesh, x, y, _h(key) % 360, s_, sink=0.1)
+                pl.add("tree", mesh, x, y, _h(key) % 360, s_, sink=0.1, prov=("inferred", "canopy_map"))
                 season.record(pl, cat, {}, fam, mesh, s_, key, x, y)
                 near.add(x, y)
                 added += 1
@@ -1113,12 +1125,13 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 own = look.street_lamp(t, not far)     # the region's mast for the register's type (streetlook.py)
                 stock, syaw = ms.PARK_LAMP if far else ms.LAMP, 0.0 if far or towards is None else towards + ms.LAMP_YAW
                 if own:
-                    item = pl.add("lamp", own[0], x, y, (towards or 0.0) if own[2] else _h(el["id"]) % 360, own[1])
+                    item = pl.add("lamp", own[0], x, y, (towards or 0.0) if own[2] else _h(el["id"]) % 360, own[1],
+                                  prov=provenance.element(el))
                     pl.lamp_specs.append((item, spec))      # lit as itself (its blueprint, ue_lamp_lights.py)
                     # else at night CARLA's lamp with its light stands in for it
                     item = streetlook.night_stand_in(pl, cat, item, stock, x, y, syaw) or item
                 else:
-                    item = pl.add("lamp", stock, x, y, syaw, 1.0)
+                    item = pl.add("lamp", stock, x, y, syaw, 1.0, prov=provenance.element(el))
                 pl.lamp_specs.append((item, spec))      # its colour and flux for CARLA 1.0's lights
                 lamps += 1
                 continue
@@ -1137,7 +1150,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 continue
             ryaw, towards = road_yaw(x, y)
             yaw = ryaw if towards is None else towards + 90.0     # backs to the buildings, parallel to the road
-            pl.add("furniture", meshes[_h(el["id"]) % len(meshes)], x, y, yaw, 1.0)
+            pl.add("furniture", meshes[_h(el["id"]) % len(meshes)], x, y, yaw, 1.0, prov=provenance.element(el))
         # lamps along the roads where OSM maps few
         lane_km = sum(1 for w in cmap.generate_waypoints(10.0) if w.lane_type == carla.LaneType.Driving) / 100.0
         if sc.get("guess_lamps", True) and lamps < 8 * lane_km and not m_lamps:
@@ -1159,10 +1172,12 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     continue
                 own = look.street_lamp({}, True)
                 if own:
-                    streetlook.night_stand_in(pl, cat, pl.add("lamp", own[0], x, y, yaw, own[1]), ms.LAMP, x, y,
+                    streetlook.night_stand_in(pl, cat, pl.add("lamp", own[0], x, y, yaw, own[1],
+                                                              prov=("inferred", "lamp_spacing")), ms.LAMP, x, y,
                                               yaw + ms.LAMP_YAW)
                 else:
-                    pl.add("lamp", ms.LAMP, x, y, yaw + ms.LAMP_YAW, 1.0)   # arm over road
+                    pl.add("lamp", ms.LAMP, x, y, yaw + ms.LAMP_YAW, 1.0,   # arm over road
+                           prov=("inferred", "lamp_spacing"))
                 done += 1
             log(f"scenery: OSM maps {lamps} street lamps; {done} more along the roads")
         elif m_lamps:
@@ -1338,7 +1353,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             surface.add(x, y, T, z + dz, zx, zy)
             for i, ((dx, dy), s) in enumerate(tile_cover(cat.size(mesh), T)):
                 pl.add("water" if kind == "water" else "ground", mesh, x + dx, y + dy, 0.0, s,
-                       z=z + zx * dx + zy * dy + dz - 0.01 * i, tilt=tilt, anchor="top", centre=True)
+                       z=z + zx * dx + zy * dy + dz - 0.01 * i, tilt=tilt, anchor="top", centre=True,
+                       prov=("register", "bgt") if surf is not None else None)
             kinds[kind] += 1
 
         for x in np.arange(gx0 + TILE / 2, gx1, TILE):
@@ -1392,7 +1408,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     leaf = season.finish(pl)        # deciduous trees' autumn and bare stand-ins (meshes after the placed ones)
     meshes = sorted(pl.mesh_index, key=pl.mesh_index.get)
     out = {"version": 1, "catalog": cat.version, "cell_m": CELL, "meshes": [cat.path(m) for m in meshes],
-           "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources), "leaf": leaf}
+           "items": pl.items, "counts": dict(pl.counts), "sources": sorted(sources), "leaf": leaf,
+           "prov": provenance.encode(pl.items, pl.prov_of)}
     specs = nightlights.spec_rows([it for it, _ in pl.lamp_specs], [sp for _, sp in pl.lamp_specs])
     if specs:           # register lamps' colour temperature and lumens (nightlights.py), by position
         out["lamp_specs"] = specs
@@ -1424,6 +1441,7 @@ class Scenery:
         self.sc = sc
         data = data or json.loads((Path(mdir) / "scenery.json").read_text())   # data: e.g. parking.trial_data
         self.meshes = data["meshes"]
+        self.prov_data = {"items": data["items"], "prov": data.get("prov")}     # provenance(): the trial's log
         kinds = set(sc.get("kinds") or ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water",
                                         "shared"])
         if kinds & {"furniture", "ground"}:     # streetlook.py's markings, surfaces, wear and roofs come with them
@@ -1586,6 +1604,10 @@ class Scenery:
             self.loaded[key] = [i for i in self.loaded[key] if i not in gone]
             self.n -= len(old)
         self._spawn(key, [it for it in self.cells[key] if it[6] == "lamp" and it[0] in self.light_bp], lit=True)
+
+    def provenance(self, near=None, radius=50.0):
+        """Counts of the placements per provenance tag (provenance.py), and within radius of the points near."""
+        return provenance.summary(self.prov_data, near, radius)
 
     def update(self, points):
         """Load the cells within radius_m of any point, unload those beyond radius + one cell."""

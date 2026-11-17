@@ -768,6 +768,34 @@ scenery on `eindhoven_centre` (no real-time sleep), 0.49 / 0.69 on the twin. Sti
 furniture on Eindhoven station's platforms stands at platform height (about 4 m) with no platform under it, and
 objects beside lowered ground tiles at sunken roads float.
 
+### Where each object comes from (provenance)
+
+Every placement in `scenery.json` carries a provenance tag and its source (`coupledcarla/provenance.py`), so an
+analysis can tell measured scenery from invented detail:
+
+| Tag | Meaning | Examples |
+|---|---|---|
+| measured | geometry measured by an instrument | 3DBAG, PLATEAU, Catastro, BD TOPO and NYC buildings; AHN terrain; aerial-photo ground |
+| register | an object recorded at its own position in a public register or map | the city's tree and lamp registers, NDW signs, BGT surfaces, OSM-mapped trees, lamps, benches and signs, shared bikes |
+| inferred | position or form derived by rules from mapped or measured data | OSM or Overture footprints with guessed heights, lamps every 32 m along kerbs, trees from the canopy-height map, tree rows, shop signs |
+| generated | invented detail with no evidence at its position | trees and bushes filling parks, parked cars and bikes, road wear, leaves, roof clutter |
+
+Each trial writes `provenance.json` beside its log: counts per tag, kind and source, the share of generated
+placements within 50 m of the participants at the start, and for a baked twin its layers (terrain, buildings,
+facades, ground photo, roads) with their tags.
+
+### Realism pilot: a score per place
+
+`tools/realism_score.py` scores maps against the real world over a frozen set of places
+(`experiments/pilot/realism_pilot.yaml`: five places to tune the rules on and three held out): 80 street-level
+views per place against real photos (the street-photo comparison and its realism index,
+[docs/street_photos.md](docs/street_photos.md)), and nine 200 m squares rendered straight down against the open
+aerial photo of the same square (`coupledcarla/aerial.py`: PDOK in the Netherlands, PNOA in Spain, IGN in France,
+Geobasis NRW, GSI in Japan; vegetation cover IoU, colour and DINOv2 similarity). `freeze` draws the views and
+squares once, `render` and `score` run a round, `table` puts rounds side by side. A rule change counts as an
+improvement only when the tuning places improve and the held-out places do not get worse. Only open data is a
+target: Google's 3D tiles and Street View are never used to tune anything.
+
 ## Public transport
 
 Buses follow the real lines (`coupledcarla/transit.py`), built with the map:

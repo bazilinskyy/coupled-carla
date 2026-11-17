@@ -339,7 +339,7 @@ def place_bike(pl, cat, taken, x, y, yaw, z, key, out, where):
     mesh = bike_mesh(cat, *key)
     if mesh is None:
         return False
-    pl.add("furniture", mesh, x, y, yaw, 1.0, z=z)
+    pl.add("furniture", mesh, x, y, yaw, 1.0, z=z, prov=("generated", "parked_bikes"))
     r = math.radians(yaw)
     for t in (-0.6, 0.0, 0.6):
         taken.add(x + math.cos(r) * t, y + math.sin(r) * t, 0.3)
@@ -463,7 +463,8 @@ def shop_signs(pl, cat, blds, pts, height=3.2, reach=10.0):
         t = max(1.6, min(L - 1.6, (x - ax) * ex + (y - ay) * ey))
         sx, sy = ax + ex * t + nx * 0.02, ay + ey * t + ny * 0.02
         yaw = math.degrees(math.atan2(ny, nx)) + 90.0       # the face (mesh Unreal -y) out of the wall
-        pl.add("furniture", mesh, sx, sy, yaw, 1.0, z=pl.ground(sx, sy) + height - 0.3)
+        pl.add("furniture", mesh, sx, sy, yaw, 1.0, z=pl.ground(sx, sy) + height - 0.3,
+               prov=("inferred", "shop_signs"))
         n += 1
     return n
 

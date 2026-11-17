@@ -534,6 +534,19 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             from . import gbfs   # a trial at time "now": today's shared bikes and scooters
             gbfs.refresh_scenery(scenery, tc, mdir, geo, world.get_map(), log)
             scenery.update([a.get_location() for a in focus_actors])
+            try:        # measured / register / inferred / generated (provenance.py), for the analysis
+                from . import provenance
+                pv = scenery.provenance([(a.get_location().x, a.get_location().y) for a in focus_actors])
+                if tc["map"].get("carla_level"):
+                    bb = tc["map"].get("bbox") or [0, 0, 0, 0]
+                    cc = (tc.get("city") or {}).get("country_code") or provenance.country_at(
+                        (bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2)
+                    pv["twin_layers"] = provenance.twin_layers(cc)
+                (out / "provenance.json").write_text(json.dumps(pv, indent=1))
+                log("provenance: " + ", ".join(f"{k} {v}" for k, v in sorted(pv["by_tag"].items()))
+                    + f"; generated within 50 m of the participants {pv['near']['generated_share']:.0%}")
+            except Exception as err:  # noqa: BLE001 - the log is a convenience, the trial runs without it
+                log(f"provenance: not written ({err})")
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
                                                   f"{scenery.lights_radius:.0f} m" if scenery.light_bp else "")

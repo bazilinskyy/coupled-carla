@@ -1,0 +1,25 @@
+# The realism pilot's places and its frozen evaluation (tools/realism_score.py, ~/repos/cc-wt/PILOT.md).
+# train: the generator's rules are tuned to improve these; held_out: never tuned on, reported every round, and a
+# change is kept only if they do not get worse. Views and top-down tiles are drawn once (`freeze`) and then fixed.
+# country: the open aerial photo used for the top-down check (coupledcarla/aerial.py); none: no open photo.
+views: 80                  # street-level views per place (spread over the box, all sources)
+tiles: 9                   # top-down tiles per place, 200 m squares
+tile_m: 200
+seed: 17
+places:
+  - {name: ehv_centre, role: train, experiment: experiments/eindhoven_centre.yaml, country: NL,
+     box: [51.436, 5.47, 51.45, 5.4813], sources: "panoramax,kartaview,commons,mapillary"}
+  - {name: tue_campus, role: train, experiment: experiments/eindhoven_centre.yaml, country: NL,
+     box: [51.4453, 5.4813, 51.4524, 5.4991], sources: "panoramax,kartaview,commons,mapillary"}
+  - {name: salamanca, role: train, experiment: experiments/places/plaza_mayor_salamanca.yaml, country: ES,
+     sources: "panoramax,kartaview,commons,mapillary"}
+  - {name: shibuya, role: train, experiment: experiments/cities/tokyo_shibuya.yaml, country: JP,
+     sources: "panoramax,kartaview,commons,mapillary"}
+  - {name: lyon, role: train, experiment: experiments/cities/lyon.yaml, country: FR,
+     sources: "panoramax,kartaview,commons,mapillary"}
+  - {name: kigali, role: held_out, experiment: experiments/cities/kigali.yaml, country: none,
+     sources: "panoramax,kartaview,commons,mapillary"}
+  - {name: chernihiv, role: held_out, experiment: experiments/chernihiv.yaml, country: none,
+     sources: "panoramax,kartaview,commons,mapillary"}
+  - {name: muenster, role: held_out, experiment: experiments/places/muenster.yaml, country: DE-NW,
+     sources: "panoramax,kartaview,commons,mapillary"}

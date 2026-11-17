@@ -420,14 +420,16 @@ def place(pl, cat, signs, xy, roads, log=print, use_faces=True):
             sizes.append((k, H * k))
         stack = sum(h for _, h in sizes) + 0.05 * (len(sizes) - 1)
         height = min(max(CLEAR_M + stack + 0.05, post_h), 2 * post_h)
-        pl.add("sign", ms.POST, px, py, face, 1.0, z=z)
+        pl.add("sign", ms.POST, px, py, face, 1.0, z=z, prov=("register", "ndw"))
         if height > post_h:     # a taller post: a second one in line with the first, reaching up to `height`
-            pl.add("sign", ms.POST, px, py, face, 1.0, z=z + height - post_h, base=(px, py, z))
+            pl.add("sign", ms.POST, px, py, face, 1.0, z=z + height - post_h, base=(px, py, z),
+                   prov=("register", "ndw"))
         top = z + height - 0.05
         r = math.radians(face + 90.0)       # plates hang 5 cm in front of the post
         fx, fy = px + 0.05 * math.cos(r), py + 0.05 * math.sin(r)
         for (_, s, mesh, width, tier), (k, h) in zip(plates, sizes):
-            pl.add("sign", mesh, fx, fy, face + ms.SIGN_YAW, k, z=top - h, base=(px, py, z))
+            pl.add("sign", mesh, fx, fy, face + ms.SIGN_YAW, k, z=top - h, base=(px, py, z),
+                   prov=("register", "ndw"))
             top -= h + 0.05
             pl.counts["sign_ndw"] += 1
             pl.counts[f"sign_ndw_{tier}"] += 1
