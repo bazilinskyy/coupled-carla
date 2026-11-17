@@ -74,3 +74,22 @@ def test_pilot_spread_keeps_far_apart_views():
     assert len(got) == 3
     assert {"lat": 51.45, "lon": 5.48} in got        # the far-away view is always kept
     assert rs.spread(views[:2], 5, seed=1) == views[:2]
+
+
+def test_unknown_building_heights_take_the_neighbours_median():
+    import importlib
+    import sys
+    import types
+    sys.modules.setdefault("carla", types.ModuleType("carla"))
+    scenery = importlib.import_module("coupledcarla.scenery")
+
+    class FlatGeo:
+        def to_carla(self, lat, lon):
+            return lon * 1000.0, -lat * 1000.0
+    ring = lambda x, y: [[x, y], [x + 0.001, y], [x + 0.001, y + 0.001], [x, y + 0.001]]   # noqa: E731
+    recs = [{"ring": ring(0.001 * i, 0.0), "h": 15.0 + i % 3} for i in range(8)]
+    recs.append({"ring": ring(0.004, 0.002), "h": None})
+    near = scenery._neighbour_heights(recs, FlatGeo(), log=lambda m: None)
+    assert near(4.5, -2.5) == 16.0
+    assert near(5000.0, 5000.0) is None                      # nobody known nearby: the default rules
+    assert scenery._neighbour_heights(recs[:3], FlatGeo(), log=lambda m: None) is None

@@ -678,6 +678,44 @@ def _without_open_towers(recs, bbox, rdir, log=print):
     return keep
 
 
+NEIGHBOUR_R = 120.0      # m: buildings with a known height this close stand in for one without
+NEIGHBOUR_MIN = 6        # known heights needed for their median to count
+
+
+def _neighbour_heights(recs, geo, log=print):
+    """A function (x, y) -> the median known height (OSM height or levels, Overture, national data) of the
+    buildings within NEIGHBOUR_R m, or None when fewer than NEIGHBOUR_MIN are known: a building with no height in
+    the data gets its street's height, not a fixed default (old towns of 4-5 storeys read as 2-storey streets
+    otherwise). None when no record has a height."""
+    import numpy as np
+    pts, hs = [], []
+    for r in recs:
+        if r.get("h") and r["h"] > 1.0:
+            ring = r["ring"]
+            x, y = geo.to_carla(sum(p[1] for p in ring) / len(ring), sum(p[0] for p in ring) / len(ring))
+            pts.append((x, y))
+            hs.append(float(r["h"]))
+    if len(hs) < NEIGHBOUR_MIN:
+        return None
+    P, H = np.asarray(pts), np.asarray(hs)
+    cell = NEIGHBOUR_R
+    grid = {}
+    for i, (x, y) in enumerate(P):
+        grid.setdefault((int(x // cell), int(y // cell)), []).append(i)
+
+    def near(x, y):
+        cx, cy = int(x // cell), int(y // cell)
+        idx = [i for dx in (-1, 0, 1) for dy in (-1, 0, 1) for i in grid.get((cx + dx, cy + dy), ())]
+        if len(idx) < NEIGHBOUR_MIN:
+            return None
+        d = np.hypot(P[idx, 0] - x, P[idx, 1] - y)
+        sel = H[idx][d <= NEIGHBOUR_R]
+        return float(np.median(sel)) if len(sel) >= NEIGHBOUR_MIN else None
+    log(f"scenery: {len(hs)} of {len(recs)} buildings have a height; the others take their neighbours' median "
+        f"within {NEIGHBOUR_R:.0f} m where {NEIGHBOUR_MIN} or more are known")
+    return near
+
+
 def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
     """Footprints in CARLA coordinates with height, kind and source: national data (3DBAG, BD TOPO, NYC,
     PLATEAU) > Overture > OSM."""
@@ -737,6 +775,7 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
             recs.append({"ring": [[g["lon"], g["lat"]] for g in geom], "h": h, "cls": tags.get("building"),
                          "src": "osm", "roof": _roof(tags.get("roof:shape"))})
     recs = _without_open_towers(recs, bbox, rdir, log)
+    near_h = _neighbour_heights(recs, geo, log) if mc.get("scenery", {}).get("height_from_neighbours", True) else None
     out = []
     for r in recs:
         pts = _ring_xy(geo, r["ring"])
@@ -749,6 +788,8 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
             continue
         kinds = KIND_OF.get(r["cls"] or "", None)
         h = r["h"]
+        if (h is None or h <= 1.0) and near_h is not None:   # the street's own heights where some are known
+            h = near_h(poly.centroid.x, poly.centroid.y)
         if h is None or h <= 1.0:
             k = kinds[0] if kinds else None
             h = DEFAULT_HEIGHT[k]
