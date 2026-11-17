@@ -60,3 +60,17 @@ def test_vegetation_iou_of_identical_and_disjoint_images():
 def test_aerial_services_listed():
     assert aerial.available("NL") and aerial.available("JP") and aerial.available("DE-NW")
     assert not aerial.available("RW")
+
+
+def test_pilot_spread_keeps_far_apart_views():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("realism_score_mod", Path(__file__).resolve().parent.parent /
+                                                  "tools" / "realism_score.py")
+    rs = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rs)
+    views = [{"lat": 51.44 + i * 1e-5, "lon": 5.47} for i in range(50)] + [{"lat": 51.45, "lon": 5.48}]
+    got = rs.spread(views, 3, seed=1)
+    assert len(got) == 3
+    assert {"lat": 51.45, "lon": 5.48} in got        # the far-away view is always kept
+    assert rs.spread(views[:2], 5, seed=1) == views[:2]

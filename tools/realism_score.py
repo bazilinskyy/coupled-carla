@@ -34,12 +34,13 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tools"))
 from coupledcarla import aerial  # noqa: E402
 from coupledcarla import realism as R  # noqa: E402
+from coupledcarla.provenance import MEASURED_BUILDINGS as MEASURED  # noqa: E402
 
 PILOT = ROOT / "experiments" / "pilot" / "realism_pilot.yaml"
 CHECK = [sys.executable, str(ROOT / "tools" / "realism_check.py")]
 STREET_KEYS = ("spot_score", "al_miou_coarse", "boundary_f", "dino_patch", "dino_global", "al_skyline_mae_deg",
                "colour_hist_sim")
-TOP_KEYS = ("veg_iou", "dino_patch", "dino_global", "colour_hist_sim")
+TOP_KEYS = ("veg_iou", "dino_patch", "dino_global", "colour_hist_sim", "bld_iou", "bld_iou_measured")
 CAM_H = 600.0
 MIN_PAIRS = 30          # a place's own real-vs-real scale needs this many neighbour and random pairs
 
@@ -56,7 +57,8 @@ def places(cfg, only=None):
 def _map(p):
     import realism_check as RC
     cfg, mdir, bbox = RC._map(str(ROOT / p["experiment"]))
-    return cfg, mdir, (p.get("box") or bbox)
+    box = p.get("box") or bbox      # a part of the map, never beyond it (nothing to render there)
+    return cfg, mdir, [max(box[0], bbox[0]), max(box[1], bbox[1]), min(box[2], bbox[2]), min(box[3], bbox[3])]
 
 
 def spread(views, n, seed):
@@ -168,6 +170,8 @@ def _round_dir(args, rnd, name):
 def cmd_render(args):
     cfg = load(args.pilot)
     for p in places(cfg, args.places):
+        if args.twins and not p.get("twin"):
+            continue
         fz = Path(args.root) / "frozen" / p["name"]
         out = _round_dir(args, args.round, p["name"])
         (out / "top").mkdir(parents=True, exist_ok=True)
@@ -176,7 +180,14 @@ def cmd_render(args):
                 shutil.copy(fz / f, out / f)
         for f in ("views.csv", "run.json"):
             shutil.copy(fz / "top" / f, out / "top" / f)
-        exp = str(ROOT / p["experiment"])
+        exp = str(ROOT / (p["twin"] if args.twins else p["experiment"]))
+        if args.twins:      # the twin's box is smaller than the 0.9.16 map's: only the views and squares inside it
+            import realism_check as RC
+            _, tdir, tb = RC._map(exp)
+            for f in (out / "views.csv", out / "top" / "views.csv"):
+                vs = [v for v in R.read_views(f) if tb[0] <= v["lat"] <= tb[2] and tb[1] <= v["lon"] <= tb[3]]
+                R.write_views(f, vs)
+                print(f"{p['name']}: {len(vs)} views in the twin's box ({f.parent.name})", flush=True)
         print(f"== {p['name']}: street views", flush=True)
         subprocess.run(CHECK + ["render", exp, "--out", str(out), "--port", str(args.port),
                                 "--budget-min", str(args.budget_min)] + args.extra, check=False)
@@ -186,8 +197,51 @@ def cmd_render(args):
                                 "--first-settle", "80", "--settle", "20"] + args.extra, check=False)
 
 
+def footprint_iou(mdir, render_row, sem):
+    """IoU of the render's building pixels (CARLA's labels) with the map's building footprints (buildings.json:
+    3DBAG / national data where measured, else OSM / Overture) rasterised in the same frame (north up, ground scale);
+    also the IoU restricted to measured footprints. Tests where the generator put buildings, not how they look."""
+    from PIL import Image, ImageDraw
+    b = getattr(footprint_iou, "_cache", {}).get(str(mdir))
+    if b is None:
+        f = Path(mdir) / "buildings.json"
+        b = json.loads(f.read_text()) if f.exists() else []
+        footprint_iou._cache = {str(mdir): b}
+    if not b:
+        return {}
+    W = sem.shape[1]
+    cx, cy = float(render_row["x"]), float(render_row["y"])
+    dz = float(render_row["cam_z"]) - float(render_row["ground_z"])
+    half = dz * math.tan(math.radians(float(render_row["wide_hfov"])) / 2)
+    k = W / (2 * half)
+    out = {}
+    for name, keep in (("bld_iou", lambda r: True), ("bld_iou_measured", lambda r: r.get("s") in MEASURED)):
+        im = Image.new("L", (W, sem.shape[0]), 0)
+        d = ImageDraw.Draw(im)
+        n = 0
+        for r in b:
+            if not keep(r):
+                continue
+            pts = [((x - cx) * k + W / 2, (y - cy) * k + sem.shape[0] / 2) for x, y in r["p"]]
+            if any(0 <= px < W and 0 <= py < sem.shape[0] for px, py in pts):
+                d.polygon(pts, fill=1)
+                n += 1
+        if not n:
+            continue
+        fp = np.asarray(im) > 0
+        bl = np.isin(sem, (3, 4))       # CARLA 0.9.14+ labels: building, wall
+        union = (fp | bl).sum()
+        out[name] = round(float((fp & bl).sum() / union), 4) if union else None
+    return out
+
+
 def _top_scores(p, fz, out, perc):
     from PIL import Image
+    _, mdir, _ = _map(p)
+    rinfo = {}
+    if (out / "top" / "renders.csv").exists():
+        with (out / "top" / "renders.csv").open(newline="") as f:
+            rinfo = {r["id"]: r for r in csv.DictReader(f)}
     rows = []
     tiles = R.read_views(fz / "top" / "views.csv")
     a_dir, prev_dir = fz / "top" / "aerial", fz / "top" / "aerial_prev"
@@ -201,6 +255,10 @@ def _top_scores(p, fz, out, perc):
         if rp.exists():
             row.update({f"render_{m}": v for m, v in aerial.topdown_metrics(real, np.asarray(
                 Image.open(rp).convert("RGB")), perc).items()})
+            sp = out / "top" / "renders" / f"{tid}_sem.png"
+            if sp.exists() and tid in rinfo:
+                row.update({f"render_{m}": v for m, v in footprint_iou(mdir, rinfo[tid],
+                                                                         np.asarray(Image.open(sp))).items()})
         other = ids[(k + 1) % len(ids)]       # another tile of the box: the "random place" baseline
         if other != tid:
             o = np.asarray(Image.open(a_dir / f"{other}.jpg").convert("RGB"))
@@ -279,7 +337,8 @@ def _fmt(x, nd=2):
 def table_md(root, rounds, cfg):
     lines = []
     cols = ["place", "role", "views", "street index", "IoU idx", "edges idx", "DINO patch idx", "skyline °",
-            "map score", "top tiles", "veg IoU (random, same)", "top DINO patch (random)", "top colour (random)"]
+            "map score", "top tiles", "veg IoU (random, same)", "top DINO patch (random)", "top colour (random)",
+            "footprint IoU (measured)"]
     for rnd in rounds:
         lines += [f"### Round {rnd}", "", "| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
         agg = {"train": [], "held_out": []}
@@ -297,11 +356,19 @@ def table_md(root, rounds, cfg):
                 _fmt(s.get("map_score"), 1), _fmt(t.get("tiles"), 0),
                 f"{_fmt(t.get('render_veg_iou'))} ({_fmt(t.get('random_veg_iou'))}, {_fmt(t.get('same_veg_iou'))})",
                 f"{_fmt(t.get('render_dino_patch'))} ({_fmt(t.get('random_dino_patch'))})",
-                f"{_fmt(t.get('render_colour_hist_sim'))} ({_fmt(t.get('random_colour_hist_sim'))})"]) + " |")
+                f"{_fmt(t.get('render_colour_hist_sim'))} ({_fmt(t.get('random_colour_hist_sim'))})",
+                f"{_fmt(t.get('render_bld_iou'))} ({_fmt(t.get('render_bld_iou_measured'))})"]) + " |")
         for role, xs in agg.items():
             xs = [x for x in xs if x is not None]
             mean = _fmt(sum(xs) / len(xs)) if xs else "–"
             lines.append(f"| **mean {role}** | | | **{mean}** |" + " |" * (len(cols) - 4))
+        lines.append("")
+        lines += ["Most frequent differences per place (street level, mentions over the views):", ""]
+        for p in cfg["places"]:
+            f = Path(root) / "rounds" / rnd / p["name"] / "score.json"
+            if f.exists():
+                d = json.loads(f.read_text()).get("differences", {})
+                lines.append(f"- {p['name']}: " + "; ".join(f"{k} {v}" for k, v in list(d.items())[:5]))
         lines.append("")
     return "\n".join(lines)
 
@@ -329,7 +396,8 @@ def main():
     p.add_argument("--places", default=None)
     p.add_argument("--port", type=int, default=2500)
     p.add_argument("--budget-min", type=float, default=30.0)
-    p.add_argument("extra", nargs=argparse.REMAINDER, help="more realism_check render options after --")
+    p.add_argument("--twins", action="store_true", help="the places' CARLA 1.0 twins (map 'twin'), not the 0.9.16 maps")
+    p.add_argument("--render-args", default="", help="more realism_check render options, e.g. '--profile Dashcam'")
     p = sub.add_parser("score")
     p.add_argument("round")
     p.add_argument("--places", default=None)
@@ -341,8 +409,7 @@ def main():
     p = sub.add_parser("table")
     p.add_argument("rounds", nargs="+")
     args = ap.parse_args()
-    if getattr(args, "extra", None) and args.extra[:1] == ["--"]:
-        args.extra = args.extra[1:]
+    args.extra = getattr(args, "render_args", "").split()
     {"freeze": cmd_freeze, "render": cmd_render, "score": cmd_score, "table": cmd_table}[args.cmd](args)
 
 

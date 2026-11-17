@@ -1,0 +1,37 @@
+# muenster, Germany: a 1.4 km square (medium) around 51.96217, 7.62815.
+# Made by coupledcarla.mapmaker on 2026-11-17 from "Prinzipalmarkt, Münster" (place found with OpenStreetMap Nominatim).
+# Guessed for you; change them here if you know better, then rebuild with --force:
+#   driving side: right-hand traffic (Germany)
+#   traffic: a city (~314,332 people): 2000 cars, 300 bikes and 10 buses an hour enter the box
+# Build the map:  python -m coupledcarla.mapmaker --build experiments/places/muenster.yaml
+# Drive it:       python -m coupledcarla.run experiments/places/muenster.yaml
+# A pedestrian at a station of their own: see experiments/eindhoven_crowd.yaml (participants, kind: pedestrian).
+name: muenster
+city:
+  name: muenster
+  country: Germany
+  continent: Europe
+  size: medium
+  population: 314332
+  lat: 51.96217
+  lon: 7.62815
+  drive: right
+  country_code: DE
+map:
+  bbox:
+  - 51.95588
+  - 7.61794
+  - 51.96846
+  - 7.63835
+  lefthand: false
+traffic:
+  cars_per_hour: 2000
+  bikes_per_hour: 300
+  buses_per_hour: 10
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

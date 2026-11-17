@@ -1,0 +1,37 @@
+# Plaza Mayor, Salamanca, Spain: a 1.4 km square (medium) around 40.96503, -5.66406.
+# Made by coupledcarla.mapmaker on 2026-11-15 from "Plaza Mayor, Salamanca" (place found with OpenStreetMap Nominatim).
+# Guessed for you; change them here if you know better, then rebuild with --force:
+#   driving side: right-hand traffic (Spain)
+#   traffic: a town (~145,583 people): 900 cars, 300 bikes and 4 buses an hour enter the box
+# Build the map:  python -m coupledcarla.mapmaker --build experiments/places/plaza_mayor_salamanca.yaml
+# Drive it:       python -m coupledcarla.run experiments/places/plaza_mayor_salamanca.yaml
+# A pedestrian at a station of their own: see experiments/eindhoven_crowd.yaml (participants, kind: pedestrian).
+name: plaza_mayor_salamanca
+city:
+  name: Plaza Mayor, Salamanca
+  country: Spain
+  continent: Europe
+  size: small
+  population: 145583
+  lat: 40.96503
+  lon: -5.66406
+  drive: right
+  country_code: ES
+map:
+  bbox:
+  - 40.95874
+  - -5.67238
+  - 40.97132
+  - -5.65573
+  lefthand: false
+traffic:
+  cars_per_hour: 900
+  bikes_per_hour: 300
+  buses_per_hour: 4
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300
