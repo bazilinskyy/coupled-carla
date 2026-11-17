@@ -1214,15 +1214,23 @@ The official package cooks only what its default maps (Town10HD, Town12, Town15)
 Coupled CARLA's scenery catalogue and fallbacks name, 1,272 are not in it, among them most of CARLA's trees (on the
 TU/e campus 4,496 of 9,310 placements, nearly all trees; in central Eindhoven 6,447 of 39,930). The street pack
 therefore holds every CARLA asset Coupled CARLA spawns by path that the release did not cook (1,145 meshes found in
-the 1.0 tree; the cook skips what the base already has), which makes it 1.21 GB. CARLA's own `AdditionalMaps` pack
-(the classic towns, 6.8 GB) probably ships many of the same meshes; it is untested here, and with it the
-street pack can be built with `--carla-assets lamps` (24 MB). CARLA 1.0 has no stand-alone traffic-light pole
+the 1.0 tree; the cook skips what the base already has), which makes it 1.21 GB. With CARLA's own `AdditionalMaps`
+pack installed (the classic towns, 6.8 GB) 430 of the 1,272 come back; of the 842 still missing, 759 are 0.9 names
+that CARLA 1.0 does not have and 83 are in the 1.0 tree (legacy trees such as `SM_PlatanusBase01`,
+`SM_QuercusRubra01`, `SM_TreePine01_Lod1`, and two trash cans). With AdditionalMaps installed, build the street pack
+with `--carla-assets additionalmaps` (0.37 GB: those 83 and what they use). Placements on missing meshes, measured
+on lin4080: TU/e campus 4,496 of 9,310 on the bare package, 90 with AdditionalMaps; central Eindhoven 6,447 and 476
+of 39,930; Shibuya 51 and 1 of 806. The scenery log line and the trial summary count the placements a server
+refuses (`scenery_refused`, and `scenery_refused.json` in the trial folder names the meshes). CARLA 1.0 has no stand-alone traffic-light pole
 (0.9's `SM_TrafficLight__VPole_Main` is gone), so the UK and Japanese heads bring their own poles, like the Dutch
 ones.
 
 **Tested on 2026-11-17** (lin4080, RTX 4080 SUPER): the official package installed both kinds of pack in under a second
 (street) and 5.4 s (TUeCampus, 0.70 GB), checksums included, and its server came up in 10 s and reported client and
-server 1.0. It ran without rendering (`-nullrhi`): with driver 560 it stops at start-up like the source build above.
+server 1.0. With driver 560 it stops at start-up like the source build above, so the trials below ran without
+rendering (`-nullrhi`) until lin4080 got driver 580: then it renders (`-RenderOffScreen`, Epic). With
+AdditionalMaps, the street pack and the redirector fix, 60 s trials with a driver camera (1280x720, a still every
+15 s): TU/e campus RTF 0.546, Shibuya 0.471, 0 collisions, 0 scenery placements refused (4,996 and 645 placed).
 60 s trials, autopilot driver with SUMO traffic: `Town10HD_Opt` RTF 0.995 and 0.996 (without and with the street
 pack), 0 collisions; `TUeCampus` from its pack RTF 0.993, 0 collisions, Dutch signal programmes on 12 controllers,
 1,613 scenery meshes near the participant. With the street pack 27 of the 29 `blueprint.cc_*` and street meshes spawn

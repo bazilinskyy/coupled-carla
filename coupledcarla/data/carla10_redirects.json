@@ -1,0 +1,19 @@
+{
+ "_comment": "CARLA 1.0 (tag 1.0): catalogue meshes that are only ObjectRedirectors in the 1.0 tree; a cooked server does not follow redirectors, so static.prop.mesh needs the target path (found 2026-11-17 on the official package)",
+ "redirects": {
+  "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt01_C.SM_Apt01_C": "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt01/SM_Apt01_C.SM_Apt01_C",
+  "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt07_A.SM_Apt07_A": "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt07/SM_Apt07_A.SM_Apt07_A",
+  "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt08_A.SM_Apt08_A": "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt08/SM_Apt08_A.SM_Apt08_A",
+  "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt18_A.SM_Apt18_A": "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt18/SM_Apt18_A.SM_Apt18_A",
+  "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt18_B.SM_Apt18_B": "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt18/SM_Apt18_B.SM_Apt18_B",
+  "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt18_C.SM_Apt18_C": "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt18/SM_Apt18_C.SM_Apt18_C",
+  "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt19_A.SM_Apt19_A": "/Game/Carla/Static/Building/BackgroundBuildings/SM_Apt19_A.SM_Apt19_A",
+  "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Block05_A.SM_Block05_A": "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt05/SM_Apt05_A.SM_Apt05_A",
+  "/Game/Carla/Static/Static/SM_PlantPot01_B.SM_PlantPot01_B": "/Game/Carla/Static/Static/SM_PlantPot01.SM_PlantPot01",
+  "/Game/Carla/Static/Static/SM_PlantPot02_B.SM_PlantPot02_B": "/Game/Carla/Static/Static/SM_PlantPot02.SM_PlantPot02",
+  "/Game/Carla/Static/Static/SM_PlantPot03_B.SM_PlantPot03_B": "/Game/Carla/Static/Static/SM_PlantPot03.SM_PlantPot03",
+  "/Game/Carla/Static/Static/SM_PlantPot04_C.SM_PlantPot04_C": "/Game/Carla/Static/Static/SM_PlantPot04.SM_PlantPot04",
+  "/Game/Carla/Static/Static/SM_TrashCan02.SM_TrashCan02": "/Game/Carla/Static/Other/SM_TrashCan02.SM_TrashCan02",
+  "/Game/Carla/Static/Static/SM_trashCan04.SM_trashCan04": "/Game/Carla/Static/Other/SM_trashCan04.SM_trashCan04"
+ }
+}
