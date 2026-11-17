@@ -320,7 +320,11 @@ def cmd_score(args):
             cmd = CHECK + ["compare", "--out", str(out)]
             if not args.perceptual:
                 cmd.append("--no-perceptual")
-            subprocess.run(cmd, check=False)
+            subprocess.run(cmd + (["--device", args.device] if args.device else []), check=False)
+            if not (out / "summary.json").exists() and args.device != "cpu":
+                # the GPU is shared (another helper's CARLA server can take most of it): again on the CPU
+                print(f"{p['name']}: compare failed on the GPU; again on the CPU", flush=True)
+                subprocess.run(cmd + ["--device", "cpu"], check=False)
         score = {"place": p["name"], "role": p["role"], "round": args.round}
         if (out / "summary.json").exists():
             s = json.loads((out / "summary.json").read_text())
