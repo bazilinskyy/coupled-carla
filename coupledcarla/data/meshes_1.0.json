@@ -14782,6 +14782,19 @@
 0.486
 ]
 },
+"/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPole.SM_CC_UK_SignalPole": {
+"cat": "furniture",
+"ext": [
+0.057,
+0.057,
+1.825
+],
+"off": [
+0.0,
+0.0,
+1.825
+]
+},
 "/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalCar.SM_CC_UK_SignalCar": {
 "cat": "furniture",
 "ext": [
@@ -14806,6 +14819,19 @@
 1.025,
 0.0,
 4.023
+]
+},
+"/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole.SM_CC_JP_SignalPole": {
+"cat": "furniture",
+"ext": [
+0.057,
+0.057,
+1.825
+],
+"off": [
+0.0,
+0.0,
+1.825
 ]
 },
 "/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalCar.SM_CC_JP_SignalCar": {

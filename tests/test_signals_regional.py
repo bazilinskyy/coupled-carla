@@ -13,9 +13,11 @@ def test_regional_style_from_street_props():
     assert len(nl_car["lenses"]) == 3 and nl_car["lenses"][0][2] > nl_car["lenses"][2][2]      # red on top
     nl_bike = signals.regional_style("NL", "bike")
     assert nl_bike["head"].endswith("SM_CC_NL_SignalBike") and nl_bike["mode"] == "bike"
-    uk = signals.regional_style("UK", "bike")          # no UK cyclist head: the UK car head, on CARLA's pole
-    assert uk["head"].endswith("SM_CC_UK_SignalCar") and uk["pole"] is None and uk["mode"] == "car"
+    uk = signals.regional_style("UK", "bike")          # no UK cyclist head: the UK car head, on the UK pole
+    assert uk["head"].endswith("SM_CC_UK_SignalCar") and uk["mode"] == "car"
+    assert uk["pole"].endswith("SM_CC_UK_SignalPole")  # CARLA 1.0 has no stand-alone signal pole of its own
     jp = signals.regional_style("JP", "car")
+    assert jp["pole"].endswith("SM_CC_JP_SignalPole")
     assert abs(jp["lenses"][0][0]) > 0.3 and jp["lenses"][0][2] == 0.0                  # horizontal
     assert signals.regional_style(None, "car") is None and signals.regional_style("US", "car") is None
 

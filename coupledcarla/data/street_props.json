@@ -2921,6 +2921,35 @@
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
   },
+  "SM_CC_UK_SignalPole": {
+   "path": "/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPole.SM_CC_UK_SignalPole",
+   "region": "UK",
+   "folder": "TrafficLight",
+   "role": "signal_pole",
+   "ext": [
+    0.057,
+    0.057,
+    1.825
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.825
+   ],
+   "triangles": 128,
+   "slots": [
+    "PoleBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "top": [
+    0.0,
+    0.0,
+    3.6
+   ]
+  },
   "SM_CC_UK_SignalCar": {
    "path": "/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalCar.SM_CC_UK_SignalCar",
    "region": "UK",
@@ -2999,6 +3028,35 @@
     1.9,
     0.0,
     7.92
+   ]
+  },
+  "SM_CC_JP_SignalPole": {
+   "path": "/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole.SM_CC_JP_SignalPole",
+   "region": "JP",
+   "folder": "TrafficLight",
+   "role": "signal_pole",
+   "ext": [
+    0.057,
+    0.057,
+    1.825
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.825
+   ],
+   "triangles": 128,
+   "slots": [
+    "Galvanised"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "top": [
+    0.0,
+    0.0,
+    3.6
    ]
   },
   "SM_CC_JP_SignalCar": {
