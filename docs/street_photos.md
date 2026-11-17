@@ -20,9 +20,9 @@ Coverage of the boxes used so far (2026-11-16; `realism_check.py sources <experi
 
 | Box | Panoramax | KartaView | Commons (with heading) | Mapillary photos (panoramas) | Mapillary map features |
 |---|---|---|---|---|---|
-| Eindhoven centre (`eindhoven_centre`, 1.6 x 1.6 km) | 1,727 (846 panoramas, 2024-25) | 85 | 218 | 64,219 (19,901), 2009-2026 | 28,121 |
-| TU/e campus (51.4453-51.4524 N, 5.4813-5.4991 E) | 791 (188 panoramas, 2022-26) | 6 | 1 | 11,738 (1,758) | 3,883 |
-| Chernihiv (`chernihiv`, 1.4 x 1.4 km) | 0 | 0 | 71 (22 dated in daylight) | 11,993 (4,868), 2018-2022 | 4,721 |
+| 🇳🇱&nbsp;Eindhoven centre (`eindhoven_centre`, 1.6 x 1.6 km) | 1,727 (846 panoramas, 2024-25) | 85 | 218 | 64,219 (19,901), 2009-2026 | 28,121 |
+| 🇳🇱&nbsp;TU/e campus (51.4453-51.4524 N, 5.4813-5.4991 E) | 791 (188 panoramas, 2022-26) | 6 | 1 | 11,738 (1,758) | 3,883 |
+| 🇺🇦&nbsp;Chernihiv (`chernihiv`, 1.4 x 1.4 km) | 0 | 0 | 71 (22 dated in daylight) | 11,993 (4,868), 2018-2022 | 4,721 |
 
 Requests are spaced per host (Mapillary tiles 0.2 s, graph 0.1 s, Panoramax 0.5 s) and retried with backoff on
 429 and 5xx. Mapillary's published limits are far above that (forum figures: 50,000 graph requests per minute,

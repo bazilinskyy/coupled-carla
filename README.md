@@ -151,16 +151,16 @@ answered 502 and 504 several times and the map maker moved on to the next).
 
 | Typed | Found | What it tests | Size | Build | Roads | Buildings | Trees | Bus lines (timetable) | Hills | Drive: real-time factor, collisions |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `명동, 서울` | Myeong-dong, Seoul, South Korea | Korean script; big city (9.5 M), right-hand | medium | 4.5 min | 40.5 km | 2,527 | 58,728 (Namsan's forest) | 45 (0) | 131 m | 0.980, 0 |
-| `Connaught Place, New Delhi` | New Delhi, India | a left-hand country not yet covered; big city | medium | 3.1 min | 31.4 km | 1,227 | 236 | 40 (0) | 46 m | 0.993, 0 |
-| `Hallstatt` | Hallstatt, Austria | a village of 388 people between a lake and a mountain | small | 2.8 min | 0.8 km | 235 | 39 | none | 516 m | 0.990, 0 (stuck 5 times, put back) |
-| `Plaza Mayor, Salamanca` | Salamanca, Spain | a town | medium | 4.5 min | 26.1 km | 2,328 | 4,204 | 28 (15) | 56 m | 0.981, 0 |
-| (a click on the page) | Kinsale, Ireland | a left-hand small town, built through the web page | small | 3.4 min | 20.2 km | 1,274 | 1,781 | 3 (3) | 64 m | 0.995, 0 |
+| `명동, 서울` | 🇰🇷&nbsp;Myeong-dong, Seoul, South Korea | Korean script; big city (9.5 M), right-hand | medium | 4.5 min | 40.5 km | 2,527 | 58,728 (Namsan's forest) | 45 (0) | 131 m | 0.980, 0 |
+| `Connaught Place, New Delhi` | 🇮🇳&nbsp;New Delhi, India | a left-hand country not yet covered; big city | medium | 3.1 min | 31.4 km | 1,227 | 236 | 40 (0) | 46 m | 0.993, 0 |
+| `Hallstatt` | 🇦🇹&nbsp;Hallstatt, Austria | a village of 388 people between a lake and a mountain | small | 2.8 min | 0.8 km | 235 | 39 | none | 516 m | 0.990, 0 (stuck 5 times, put back) |
+| `Plaza Mayor, Salamanca` | 🇪🇸&nbsp;Salamanca, Spain | a town | medium | 4.5 min | 26.1 km | 2,328 | 4,204 | 28 (15) | 56 m | 0.981, 0 |
+| (a click on the page) | 🇮🇪&nbsp;Kinsale, Ireland | a left-hand small town, built through the web page | small | 3.4 min | 20.2 km | 1,274 | 1,781 | 3 (3) | 64 m | 0.995, 0 |
 
-| Myeong-dong, Seoul | Connaught Place, New Delhi |
+| 🇰🇷&nbsp;Myeong-dong, Seoul | 🇮🇳&nbsp;Connaught Place, New Delhi |
 |---|---|
 | ![Preview of Myeong-dong, Seoul](docs/img/mapmaker_seoul.png) | ![Preview of Connaught Place, New Delhi](docs/img/mapmaker_delhi.png) |
-| **Plaza Mayor, Salamanca** | **Hallstatt** |
+| 🇪🇸&nbsp;**Plaza Mayor, Salamanca** | 🇦🇹&nbsp;**Hallstatt** |
 | ![Preview of Plaza Mayor, Salamanca](docs/img/mapmaker_salamanca.png) | ![Preview of Hallstatt](docs/img/mapmaker_hallstatt.png) |
 
 <img src="docs/img/mapmaker_drives.jpg" width="100%" alt="Chase-camera frames of the test drives: Seoul, New Delhi (left-hand), Hallstatt, Salamanca">
@@ -222,15 +222,15 @@ participant hears (`--record-audio`), outside cameras what can be heard where th
 
 <table>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_eindhoven.mp4"><img src="docs/img/videos/twin_eindhoven.jpg" alt="The Eindhoven digital twin"></a><br><b>The Eindhoven digital twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 4.8 MB<br>3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and street furniture from open data</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_drones.mp4"><img src="docs/img/videos/twin_drones.jpg" alt="Drones over the Eindhoven twin"></a><br><b>Drones over the Eindhoven twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · drone pilot (FPV) · 20 s, 3.1 MB<br>the pilot climbs over the twin's real roof shapes; delivery and swarm drones fly in the cruise band</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_eindhoven.mp4"><img src="docs/img/videos/twin_eindhoven.jpg" alt="The Eindhoven digital twin"></a><br>🇳🇱&nbsp;<b>The Eindhoven digital twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 4.8 MB<br>3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and street furniture from open data</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_drones.mp4"><img src="docs/img/videos/twin_drones.jpg" alt="Drones over the Eindhoven twin"></a><br>🇳🇱&nbsp;<b>Drones over the Eindhoven twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · drone pilot (FPV) · 20 s, 3.1 MB<br>the pilot climbs over the twin's real roof shapes; delivery and swarm drones fly in the cruise band</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_salamanca.mp4"><img src="docs/img/videos/twin_salamanca.jpg" alt="Plaza Mayor, Salamanca"></a><br><b>Plaza Mayor, Salamanca</b><br><sub>Salamanca, Spain, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 4.0 MB<br>a twin of any place from Spain's open data: Catastro buildings with their floors, PNOA aerial photo, MDT05 terrain</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_shibuya.mp4"><img src="docs/img/videos/twin_shibuya.jpg" alt="Shibuya crossing twin"></a><br><b>Shibuya crossing twin</b><br><sub>Tokyo, Japan, CARLA 1.0 twin (left-hand) · driver (autopilot), chase camera · 20 s, 3.2 MB<br>across the scramble crossing in a twin from Japan's open data: PLATEAU buildings with their photo textures, GSI photo and terrain</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_salamanca.mp4"><img src="docs/img/videos/twin_salamanca.jpg" alt="Plaza Mayor, Salamanca"></a><br>🇪🇸&nbsp;<b>Plaza Mayor, Salamanca</b><br><sub>Salamanca, Spain, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 4.0 MB<br>a twin of any place from Spain's open data: Catastro buildings with their floors, PNOA aerial photo, MDT05 terrain</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_shibuya.mp4"><img src="docs/img/videos/twin_shibuya.jpg" alt="Shibuya crossing twin"></a><br>🇯🇵&nbsp;<b>Shibuya crossing twin</b><br><sub>Tokyo, Japan, CARLA 1.0 twin (left-hand) · driver (autopilot), chase camera · 20 s, 3.2 MB<br>across the scramble crossing in a twin from Japan's open data: PLATEAU buildings with their photo textures, GSI photo and terrain</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_rush_hour.mp4"><img src="docs/img/videos/eindhoven_rush_hour.jpg" alt="Rush hour in Eindhoven"></a><br><b>Rush hour in Eindhoven</b><br><sub>Eindhoven centre, Netherlands · driver (autopilot), chase camera · 20 s, 30.3 MB<br>dense mixed traffic around the station, buses of the real lines, cyclists sharing the road</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_rush_hour.mp4"><img src="docs/img/videos/eindhoven_rush_hour.jpg" alt="Rush hour in Eindhoven"></a><br>🇳🇱&nbsp;<b>Rush hour in Eindhoven</b><br><sub>Eindhoven centre, Netherlands · driver (autopilot), chase camera · 20 s, 30.3 MB<br>dense mixed traffic around the station, buses of the real lines, cyclists sharing the road</sub></td>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_pedestrian_ehmi.mp4"><img src="docs/img/videos/eindhoven_pedestrian_ehmi.jpg" alt="Crossing in front of an automated car"></a><br><b>Crossing in front of an automated car</b><br><sub>Eindhoven, east of the station · pedestrian · 9.5 s, 15.0 MB<br>the AV slows, shows I'M STOPPING, then GO AHEAD; its eyes follow the pedestrian</sub></td>
 </tr>
 <tr>
@@ -238,19 +238,19 @@ participant hears (`--record-audio`), outside cameras what can be heard where th
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/robotaxi_passenger.mp4"><img src="docs/img/videos/robotaxi_passenger.jpg" alt="Riding in a robotaxi"></a><br><b>Riding in a robotaxi</b><br><sub>Eindhoven, east of the station · AV passenger (bot station) · 18 s, 47.3 MB<br>the centre screen's message and the eHMI as the AV stops and lets the pedestrian cross</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_cyclist.mp4"><img src="docs/img/videos/eindhoven_cyclist.jpg" alt="Riding with Dutch cyclists"></a><br><b>Riding with Dutch cyclists</b><br><sub>Eindhoven, Vestdijk cycle path · chase camera on a SUMO cyclist · 20 s, 48.1 MB<br>cyclists on the cycle track and the street beside it, overtaking each other</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/tokyo_shibuya.mp4"><img src="docs/img/videos/tokyo_shibuya.jpg" alt="Shibuya crossing, left-hand traffic"></a><br><b>Shibuya crossing, left-hand traffic</b><br><sub>Tokyo (Shibuya), Japan · orbiting camera above the crossing · 20 s, 19.3 MB<br>traffic keeps left, Toei buses, pedestrians crossing at the junction (80 walkers calibrated for Tokyo)</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_cyclist.mp4"><img src="docs/img/videos/eindhoven_cyclist.jpg" alt="Riding with Dutch cyclists"></a><br>🇳🇱&nbsp;<b>Riding with Dutch cyclists</b><br><sub>Eindhoven, Vestdijk cycle path · chase camera on a SUMO cyclist · 20 s, 48.1 MB<br>cyclists on the cycle track and the street beside it, overtaking each other</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/tokyo_shibuya.mp4"><img src="docs/img/videos/tokyo_shibuya.jpg" alt="Shibuya crossing, left-hand traffic"></a><br>🇯🇵&nbsp;<b>Shibuya crossing, left-hand traffic</b><br><sub>Tokyo (Shibuya), Japan · orbiting camera above the crossing · 20 s, 19.3 MB<br>traffic keeps left, Toei buses, pedestrians crossing at the junction (80 walkers calibrated for Tokyo)</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/new_york_avenue.mp4"><img src="docs/img/videos/new_york_avenue.jpg" alt="Up Sixth Avenue"></a><br><b>Up Sixth Avenue</b><br><sub>New York (Midtown), USA · automated driver, chase camera · 20 s, 25.7 MB<br>Midtown's towers at their real heights (NYC Open Data), the avenue's five lanes</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/kigali_hills.mp4"><img src="docs/img/videos/kigali_hills.jpg" alt="Kigali's hills"></a><br><b>Kigali's hills</b><br><sub>Kigali, Rwanda · crane camera over the road · 20 s, 21.6 MB<br>the roads climb and fall with the real terrain (AWS Terrain Tiles); Overture buildings on the slopes</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/new_york_avenue.mp4"><img src="docs/img/videos/new_york_avenue.jpg" alt="Up Sixth Avenue"></a><br>🇺🇸&nbsp;<b>Up Sixth Avenue</b><br><sub>New York (Midtown), USA · automated driver, chase camera · 20 s, 25.7 MB<br>Midtown's towers at their real heights (NYC Open Data), the avenue's five lanes</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/kigali_hills.mp4"><img src="docs/img/videos/kigali_hills.jpg" alt="Kigali's hills"></a><br>🇷🇼&nbsp;<b>Kigali's hills</b><br><sub>Kigali, Rwanda · crane camera over the road · 20 s, 21.6 MB<br>the roads climb and fall with the real terrain (AWS Terrain Tiles); Overture buildings on the slopes</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/lyon_night_rain.mp4"><img src="docs/img/videos/lyon_night_rain.jpg" alt="Rainy night in Lyon"></a><br><b>Rainy night in Lyon</b><br><sub>Lyon (Bellecour), France · driver, chase camera · 20 s, 33.1 MB<br>night after sunset with rain, headlights and lit shop windows (0.9.16's street lamps give no light)</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_drones.mp4"><img src="docs/img/videos/eindhoven_drones.jpg" alt="Drones over Eindhoven"></a><br><b>Drones over Eindhoven</b><br><sub>Eindhoven centre · drone pilot (FPV) · 20 s, 26.9 MB<br>the pilot's gimbal camera climbing out of a square over the roofs to the skyline (coupled-sim's flight model)</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/lyon_night_rain.mp4"><img src="docs/img/videos/lyon_night_rain.jpg" alt="Rainy night in Lyon"></a><br>🇫🇷&nbsp;<b>Rainy night in Lyon</b><br><sub>Lyon (Bellecour), France · driver, chase camera · 20 s, 33.1 MB<br>night after sunset with rain, headlights and lit shop windows (0.9.16's street lamps give no light)</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_drones.mp4"><img src="docs/img/videos/eindhoven_drones.jpg" alt="Drones over Eindhoven"></a><br>🇳🇱&nbsp;<b>Drones over Eindhoven</b><br><sub>Eindhoven centre · drone pilot (FPV) · 20 s, 26.9 MB<br>the pilot's gimbal camera climbing out of a square over the roofs to the skyline (coupled-sim's flight model)</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/chernihiv_avenue.mp4"><img src="docs/img/videos/chernihiv_avenue.jpg" alt="Down prospekt Myru, Chernihiv"></a><br><b>Down prospekt Myru, Chernihiv</b><br><sub>Chernihiv, Ukraine (made with the map maker) · driver (autopilot), chase camera · 20 s, 22.0 MB<br>a map made by typing "Chernihiv" into the map maker; prospekt Myru towards the centre, a bus stopping, people boarding</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/chernihiv_avenue.mp4"><img src="docs/img/videos/chernihiv_avenue.jpg" alt="Down prospekt Myru, Chernihiv"></a><br>🇺🇦&nbsp;<b>Down prospekt Myru, Chernihiv</b><br><sub>Chernihiv, Ukraine (made with the map maker) · driver (autopilot), chase camera · 20 s, 22.0 MB<br>a map made by typing "Chernihiv" into the map maker; prospekt Myru towards the centre, a bus stopping, people boarding</sub></td>
 <td width="50%" valign="top"></td>
 </tr>
 </table>
@@ -479,11 +479,11 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | | |
 |---|---|
 | ![Eindhoven: station square from above, 3DBAG buildings, OSM trees, lamps and bus shelters](docs/img/scenery_eindhoven_centre_station.jpg) | ![Lyon: Bellecour and the Fourvière hill, BD TOPO heights and real terrain](docs/img/scenery_lyon_bellecour.jpg) |
-| Eindhoven centre, 13 November 14:30 with that hour's weather: 3DBAG heights, 1,827 OSM street trees, lamps, bus shelters | Lyon: Place Bellecour, the Saône and the Fourvière hill (135 m of relief), IGN BD TOPO heights |
+| 🇳🇱&nbsp;Eindhoven centre, 13 November 14:30 with that hour's weather: 3DBAG heights, 1,827 OSM street trees, lamps, bus shelters | 🇫🇷&nbsp;Lyon: Place Bellecour, the Saône and the Fourvière hill (135 m of relief), IGN BD TOPO heights |
 | ![Eindhoven at street level](docs/img/scenery_eindhoven_centre_street.jpg) | ![Kigali on its hills](docs/img/scenery_kigali_centre.jpg) |
-| Eindhoven at street level, sun where it stood at 14:30 | Kigali: 188 m of relief, Overture (ML) footprints, OSM tree rows |
+| 🇳🇱&nbsp;Eindhoven at street level, sun where it stood at 14:30 | 🇷🇼&nbsp;Kigali: 188 m of relief, Overture (ML) footprints, OSM tree rows |
 | ![Tokyo Shibuya](docs/img/scenery_tokyo_shibuya.jpg) | ![New York Midtown](docs/img/scenery_new_york_midtown_midtown.jpg) |
-| Tokyo Shibuya: left-hand traffic and Toei buses at the crossing, PLATEAU heights | New York Midtown with NYC Open Data roof heights |
+| 🇯🇵&nbsp;Tokyo Shibuya: left-hand traffic and Toei buses at the crossing, PLATEAU heights | 🇺🇸&nbsp;New York Midtown with NYC Open Data roof heights |
 
 | What | Source (free, no key) | Used for |
 |---|---|---|
@@ -572,10 +572,10 @@ Built from these sources (the test maps of central Eindhoven, Lyon, Kigali and N
 
 | Map | Buildings (heights from) | Trees (OSM street trees) | Lamps (OSM) | Furniture | Signs | Relief |
 |---|---|---|---|---|---|---|
-| Eindhoven centre | 3,654 (3DBAG lidar) | 4,091 (1,827) | 1,079 (101) | 480 | 24 | 11 m (AHN) |
-| Lyon (Bellecour) | 2,675 (IGN BD TOPO) | 5,548 (1,268) | 500 | 2,097 | 38 | 135 m |
-| Kigali | 3,027 (Overture, ML footprints) | 1,449 (401) | 1,247 (26) | 4 | 0 | 187 m |
-| New York (Midtown) | 1,406 (NYC Open Data) | 801 (719) | 1,153 (103) | 339 | 2 | 14 m |
+| 🇳🇱&nbsp;Eindhoven centre | 3,654 (3DBAG lidar) | 4,091 (1,827) | 1,079 (101) | 480 | 24 | 11 m (AHN) |
+| 🇫🇷&nbsp;Lyon (Bellecour) | 2,675 (IGN BD TOPO) | 5,548 (1,268) | 500 | 2,097 | 38 | 135 m |
+| 🇷🇼&nbsp;Kigali | 3,027 (Overture, ML footprints) | 1,449 (401) | 1,247 (26) | 4 | 0 | 187 m |
+| 🇺🇸&nbsp;New York (Midtown) | 1,406 (NYC Open Data) | 801 (719) | 1,153 (103) | 339 | 2 | 14 m |
 
 Where OSM maps few street lamps, lamps line the roads every 32 m (on by default, `guess_lamps`). The lamp
 meshes give no light at night on CARLA 0.9.16, which cannot add lights at run time ([night and rain](#night-and-rain)).
@@ -1460,8 +1460,8 @@ Tested on two places (2026-11-15, lin5080, 1 km and 0.9 km squares, baked headle
 
 | Twin | Data | Roads | Buildings | Textures | Python stages | Bake (peak RAM) | Content | 60 s trial (`--local`, headless) |
 |---|---|---|---|---|---|---|---|---|
-| `SalamancaPlaza` (Plaza Mayor, Salamanca) | IGN PNOA 25 cm photo, IGN MDT05 terrain, Catastro buildings | 568 | 1,221 (5,615 parts; 1,215 with their year: 252 sandstone, 830 render, ...) | 82 (50 MB) | 9 min | 5 min, 7.8 GB | 90 MB | RTF 1.16, 0 collisions, 33 SUMO vehicles, 371 spawn points |
-| `ShibuyaCrossing` (the scramble crossing, Tokyo) | GSI photo and 5 m DEM, PLATEAU LoD 2 with its photo textures, left-hand | 1,399 | 1,648 (54,501 photo-textured surfaces in 18 atlases) | 54 (72 MB) | 38 min (5 with the downloads cached) | 3 min, 7.5 GB | 117 MB | RTF 1.18, 0 collisions, 46 SUMO vehicles, 400 spawn points; the driver kept left for 34 s, then left the lanes on the stacked roads by the station |
+| 🇪🇸&nbsp;`SalamancaPlaza` (Plaza Mayor, Salamanca) | IGN PNOA 25 cm photo, IGN MDT05 terrain, Catastro buildings | 568 | 1,221 (5,615 parts; 1,215 with their year: 252 sandstone, 830 render, ...) | 82 (50 MB) | 9 min | 5 min, 7.8 GB | 90 MB | RTF 1.16, 0 collisions, 33 SUMO vehicles, 371 spawn points |
+| 🇯🇵&nbsp;`ShibuyaCrossing` (the scramble crossing, Tokyo) | GSI photo and 5 m DEM, PLATEAU LoD 2 with its photo textures, left-hand | 1,399 | 1,648 (54,501 photo-textured surfaces in 18 atlases) | 54 (72 MB) | 38 min (5 with the downloads cached) | 3 min, 7.5 GB | 117 MB | RTF 1.18, 0 collisions, 46 SUMO vehicles, 400 spawn points; the driver kept left for 34 s, then left the lanes on the stacked roads by the station |
 
 The levels load in a CARLA 1.0 server and drive with SUMO traffic; what they look like must still be checked on a
 rendering server (`-nullrhi` renders nothing): the PLATEAU photo facades (taken from oblique aerial photos: right in

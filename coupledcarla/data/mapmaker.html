@@ -376,7 +376,7 @@ function showResult(sum, name) {
   if (!sum) return;
   S.shown = name;
   show("result");
-  $("resTitle").textContent = sum.label + (sum.country && sum.country !== "unknown" ? ", " + sum.country : "");
+  $("resTitle").textContent = (sum.country_code ? flag(sum.country_code) + " " : "") + sum.label + (sum.country && sum.country !== "unknown" ? ", " + sum.country : "");
   $("resImg").src = `/maps/${encodeURIComponent(name)}/preview.png?t=${Date.now()}`;
   const h = sum.building_height_m;
   const rows = [
