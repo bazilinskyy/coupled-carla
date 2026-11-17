@@ -1214,9 +1214,14 @@ The official package cooks only what its default maps (Town10HD, Town12, Town15)
 Coupled CARLA's scenery catalogue and fallbacks name, 1,272 are not in it, among them most of CARLA's trees (on the
 TU/e campus 4,496 of 9,310 placements, nearly all trees; in central Eindhoven 6,447 of 39,930). The street pack
 therefore holds every CARLA asset Coupled CARLA spawns by path that the release did not cook (1,145 meshes found in
-the 1.0 tree; the cook skips what the base already has), which makes it 1.21 GB. CARLA's own `AdditionalMaps` pack
-(the classic towns, 6.8 GB) probably ships many of the same meshes; it is untested here, and with it the
-street pack can be built with `--carla-assets lamps` (24 MB). CARLA 1.0 has no stand-alone traffic-light pole
+the 1.0 tree; the cook skips what the base already has), which makes it 1.21 GB. With CARLA's own `AdditionalMaps`
+pack installed (the classic towns, 6.8 GB) 430 of the 1,272 come back; of the 842 still missing, 759 are 0.9 names
+that CARLA 1.0 does not have and 83 are in the 1.0 tree (legacy trees such as `SM_PlatanusBase01`,
+`SM_QuercusRubra01`, `SM_TreePine01_Lod1`, and two trash cans). With AdditionalMaps installed, build the street pack
+with `--carla-assets additionalmaps` (0.37 GB: those 83 and what they use). Placements on missing meshes, measured
+on lin4080: TU/e campus 4,496 of 9,310 on the bare package, 90 with AdditionalMaps; central Eindhoven 6,447 and 476
+of 39,930; Shibuya 51 and 1 of 806. The scenery log line and the trial summary count the placements a server
+refuses (`scenery_refused`, and `scenery_refused.json` in the trial folder names the meshes). CARLA 1.0 has no stand-alone traffic-light pole
 (0.9's `SM_TrafficLight__VPole_Main` is gone), so the UK and Japanese heads bring their own poles, like the Dutch
 ones.
 

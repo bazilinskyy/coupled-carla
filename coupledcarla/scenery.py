@@ -1412,6 +1412,17 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 
 # --- run time ------------------------------------------------------------------------------------------------
 
+REDIRECTS_10 = json.loads((Path(__file__).resolve().parent / "data" / "carla10_redirects.json").read_text())["redirects"]
+
+
+def _server_major(client):
+    try:
+        from .compat import server_major
+        return server_major(client)
+    except Exception:  # noqa: BLE001 - a test double without a version
+        return 0
+
+
 class Scenery:
     """Spawns scenery.json's placements in cells around focus points and removes them behind.
 
@@ -1424,6 +1435,10 @@ class Scenery:
         self.sc = sc
         data = data or json.loads((Path(mdir) / "scenery.json").read_text())   # data: e.g. parking.trial_data
         self.meshes = data["meshes"]
+        if any(m in REDIRECTS_10 for m in self.meshes) and _server_major(client) >= 1:
+            # a map built before the catalogue fix names meshes that CARLA 1.0 moved (a redirector in the source tree,
+            # which a cooked server does not follow)
+            self.meshes = [REDIRECTS_10.get(m, m) for m in self.meshes]
         kinds = set(sc.get("kinds") or ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water",
                                         "shared"])
         if kinds & {"furniture", "ground"}:     # streetlook.py's markings, surfaces, wear and roofs come with them
