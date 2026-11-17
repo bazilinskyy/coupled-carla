@@ -1104,12 +1104,15 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             # tree within canopy_tree_gap_m (canopy.py)
             from . import canopy as canopy_mod
             gap = float(sc.get("canopy_tree_gap_m", CANOPY_GAP_M))
+            # clearance of a crown-filling tree from the lanes (pavements included where they are lanes): the canopy
+            # map is a few metres off and dated, and its trees on the pavement read as trees where the photo has none
+            clear = float(sc.get("canopy_tree_clear_m", 0.6))
             near = _PointHash(gap, [(it[1], it[2]) for it in pl.items if it[6] == "tree"])
             cover0 = canopy_cover(can, mc["bbox"], geo, near, inside_building)
             added = 0
             for lat, lon, c in canopy_mod.crowns(can, mc["bbox"]):
                 x, y = geo.to_carla(lat, lon)
-                if near.any_within(x, y, gap) or not free(x, y, 0.6, pl.tree_masks):
+                if near.any_within(x, y, gap) or not free(x, y, clear, pl.tree_masks):
                     continue
                 h = min(canopy_mod.MAX_M, canopy_mod.CALIBRATION[0] + canopy_mod.CALIBRATION[1] * c)
                 fam = canopy_family(h, lat0)
