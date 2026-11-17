@@ -40,6 +40,7 @@ STREET = "CoupledCarlaStreet"
 TWIN_PACK = "CoupledCarla{}"
 TWINS = ["EhvCentre", "TUeCampus", "ShibuyaCrossing", "ZurichHB", "SalamancaPlaza", "HelsinkiSenate",
          "AmsterdamDam", "NycMidtown"]
+WITH_ADDITIONAL_MAPS = ROOT / "coupledcarla" / "data" / "carla_missing_with_additionalmaps.json"
 CATALOG = ROOT / "coupledcarla" / "data" / "carla_packs" / "CoupledCarla" / "Content" / "Config" / \
     "BlueprintParameters.json"
 DESCRIPTIONS = {
@@ -136,6 +137,8 @@ def build(a):
     also = carla_assets()
     if a.carla_assets == "lamps":           # without CARLA's meshes: a 24 MB pack instead of 1.2 GB
         also["meshes"] = []
+    elif a.carla_assets == "additionalmaps":    # only what the package plus CARLA's AdditionalMaps pack still lack
+        also["meshes"] = json.loads(WITH_ADDITIONAL_MAPS.read_text())
     (work / "also.json").write_text(json.dumps(also, indent=1))
     twins = [t for t in a.twins.split(",") if t]
     for t in twins:
@@ -195,10 +198,11 @@ def main(argv=None):
     b.add_argument("--twins", default=",".join(TWINS), help="twins to pack, one pack each (comma-separated)")
     b.add_argument("--only", default="street,twins", help="street, twins or both (comma-separated)")
     b.add_argument("--work", help="scratch folder (catalog, attributions, holder log)")
-    b.add_argument("--carla-assets", choices=["all", "lamps"], default="all",
+    b.add_argument("--carla-assets", choices=["all", "additionalmaps", "lamps"], default="all",
                    help="CARLA assets the street pack holds besides coupled-carla's own: all that coupled-carla spawns "
-                        "by path (default; most of the official package's missing trees and props, 1.2 GB) or only "
-                        "the catalog's lamps (for a package that has them, e.g. with CARLA's AdditionalMaps pack)")
+                        "by path (default; most of the official package's missing trees and props, 1.2 GB), those "
+                        "that the package with CARLA's AdditionalMaps pack still lacks (data/"
+                        "carla_missing_with_additionalmaps.json, measured 2026-11-17), or only the catalog's lamps")
     b.add_argument("--dry-run", action="store_true")
     i = sub.add_parser("install", help="install pack tarballs into an official CARLA 1.0 package")
     i.add_argument("packs", nargs="+")

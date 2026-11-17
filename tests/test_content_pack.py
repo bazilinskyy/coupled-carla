@@ -78,6 +78,6 @@ def test_scenery_failed_summary():
     assert s.failed_summary() == ""
     s.n_failed = 3
     s.failed.update({"/Game/Carla/Static/Vegetation/SM_Beech01_A.SM_Beech01_A": 2, "/Game/X/SM_Y.SM_Y": 1})
-    s.fail_reasons.update({"invalid actor description": 3})
+    s.fail_reasons.update({"invalid actor description": 3})     # "... because of invalid actor description"
     out = s.failed_summary()
     assert out.startswith("; 3 refused (2 meshes: SM_Beech01_A 2") and "invalid actor description 3" in out

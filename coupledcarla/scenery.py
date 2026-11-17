@@ -1527,7 +1527,7 @@ class Scenery:
             else:
                 self.n_failed += 1
                 self.failed[self.meshes[it[0]]] += 1
-                self.fail_reasons[r.error.split(" because ")[-1][:60]] += 1
+                self.fail_reasons[r.error.split(" because ")[-1].replace("of ", "", 1)[:60]] += 1
         ids = [r.actor_id for r in res if not r.error]
         if self.light_bp:
             self.lamps[key] = [r.actor_id for r, is_lamp in zip(res, lamp) if is_lamp and not r.error]
