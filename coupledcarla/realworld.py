@@ -596,6 +596,8 @@ def _ahn(bbox, res=2.0):
     import tifffile   # AHN tiles are float32 with the floating-point predictor: also needs imagecodecs
     x0, y0, x1, y1 = _rd_bbox(bbox)
     x0, y0, x1, y1 = math.floor(x0) - 20, math.floor(y0) - 20, math.ceil(x1) + 20, math.ceil(y1) + 20
+    # PDOK answers at most 4000 x 4000 px: a city-sized box (EhvCity, 9 km) takes a coarser grid
+    res = max(res, max(x1 - x0, y1 - y0) / 3900.0)
     r = requests.get(AHN_WCS, params={"SERVICE": "WCS", "VERSION": "2.0.1", "REQUEST": "GetCoverage",
                                       "COVERAGEID": "dtm_05m", "FORMAT": "image/tiff",
                                       "SCALEFACTOR": str(0.5 / res),
