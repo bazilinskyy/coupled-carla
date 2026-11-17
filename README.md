@@ -1229,7 +1229,12 @@ pack), 0 collisions; `TUeCampus` from its pack RTF 0.993, 0 collisions, Dutch si
 on the official package (without it only CARLA's own lamps: 8 of 29); the two that do not are
 `cc_photoreal_google` (code) and CARLA's `BP_StreetLight06_C`. With it the TU/e campus shows its 51 Dutch signal
 heads and the Dutch sign faces (1,638 scenery meshes, RTF 0.987, 0 collisions); without it 55 sign meshes fall back
-to CARLA's blank plates. The packs were cooked on lin5080 in 42 s (street: 345 meshes, 352 materials, 22 blueprints) and
+to CARLA's blank plates. With the UK and Japanese poles in the street pack, Shibuya's 129 heads are all Japanese ones
+(they fell back to drawn heads before: CARLA 1.0 has no pole of its own); 60 s, RTF 0.829 (0.918 before, with drawn
+heads; lin4080 was also busy, load 16), 0 collisions. `BP_StreetLight06_C` is in the release's own asset registry,
+so a pack cannot replace it, yet the packaged server refuses it ("invalid actor description"); Coupled CARLA does not
+use it (its lit lamps are 06_A, 03 and the regional ones). The packs were cooked on lin5080 in 35-42 s (street, 24 MB:
+347 meshes, 352 materials, 22 blueprints; 3 min and 1.21 GB with CARLA's meshes) and
 1-14 min per twin, 10-17 GB of memory each; all eight twins in one cook needed over 30 GB.
 
 ### Tested on CARLA 1.0
