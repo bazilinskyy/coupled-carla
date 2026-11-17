@@ -156,7 +156,7 @@ def cmd_freeze(args):
                         aerial.ortho(cc, *t["_bbox"], 512, cache=top / sub / f"{t['id']}.jpg")
                     except Exception as err:  # noqa: BLE001
                         print(f"{t['id']}: {sub} not fetched ({err})", flush=True)
-        if p.get("pairs", True) and not (out / "pairs_summary.json").exists():
+        if p.get("pairs", False) and not (out / "pairs_summary.json").exists():
             if any(v["projection"] == "equirect" for v in views):
                 subprocess.run(CHECK + ["pairs", str(ROOT / p["experiment"]), "--out", str(out)], check=False)
         print(f"{p['name']}: {len(views)} views, {len(tiles)} tiles"
@@ -245,13 +245,19 @@ def _top_scores(p, fz, out, perc):
     rows = []
     tiles = R.read_views(fz / "top" / "views.csv")
     a_dir, prev_dir = fz / "top" / "aerial", fz / "top" / "aerial_prev"
-    if not a_dir.exists():
-        return {}
-    ids = [t["id"] for t in tiles if (a_dir / f"{t['id']}.jpg").exists()]
+    with_photo = [t["id"] for t in tiles if (a_dir / f"{t['id']}.jpg").exists()]
+    ids = with_photo or [t["id"] for t in tiles]       # no open aerial photo: the footprint check only
     for k, tid in enumerate(ids):
-        real = np.asarray(Image.open(a_dir / f"{tid}.jpg").convert("RGB"))
         row = {"id": tid}
         rp = out / "top" / "renders" / f"{tid}.png"
+        if not with_photo:
+            sp = out / "top" / "renders" / f"{tid}_sem.png"
+            if sp.exists() and tid in rinfo:
+                row.update({f"render_{m}": v for m, v in footprint_iou(mdir, rinfo[tid],
+                                                                         np.asarray(Image.open(sp))).items()})
+            rows.append(row)
+            continue
+        real = np.asarray(Image.open(a_dir / f"{tid}.jpg").convert("RGB"))
         if rp.exists():
             row.update({f"render_{m}": v for m, v in aerial.topdown_metrics(real, np.asarray(
                 Image.open(rp).convert("RGB")), perc).items()})
@@ -280,7 +286,7 @@ def _top_scores(p, fz, out, perc):
             xs = [r[f"{kind}_{m}"] for r in rows if f"{kind}_{m}" in r]
             if xs:
                 summ[f"{kind}_{m}"] = round(float(np.median(xs)), 4)
-    summ["tiles"] = sum(1 for r in rows if "render_veg_iou" in r)
+    summ["tiles"] = sum(1 for r in rows if "render_veg_iou" in r or "render_bld_iou" in r)
     for m in TOP_KEYS:      # index where an earlier photo of the same place exists, else the lift over random
         r_, lo, hi = summ.get(f"render_{m}"), summ.get(f"random_{m}"), summ.get(f"same_{m}")
         if r_ is not None and lo is not None:
