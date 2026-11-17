@@ -93,3 +93,16 @@ def test_unknown_building_heights_take_the_neighbours_median():
     assert near(4.5, -2.5) == 16.0
     assert near(5000.0, 5000.0) is None                      # nobody known nearby: the default rules
     assert scenery._neighbour_heights(recs[:3], FlatGeo(), log=lambda m: None) is None
+
+
+def test_tile_grid_covers_the_square_near_scale_one():
+    import importlib
+    import sys
+    import types
+    sys.modules.setdefault("carla", types.ModuleType("carla"))
+    scenery = importlib.import_module("coupledcarla.scenery")
+    copies = scenery.tile_grid((17.0, 17.0, 0.1), 40.0)
+    assert len(copies) == 4 and all(abs(s - 40 / 34) < 1e-9 for _, s in copies)
+    xs = sorted({dx for (dx, _), _ in copies})
+    assert xs == [-10.0, 10.0]
+    assert len(scenery.tile_grid((5.0, 5.0, 0.1), 40.0)) == 36        # at most 6 a side

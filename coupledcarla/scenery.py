@@ -584,6 +584,17 @@ def tile_cover(size, T):
     return [(((o, 0.0) if L < W else (0.0, o)), s) for o in offs]
 
 
+def tile_grid(size, T):
+    """[((dx, dy), scale)]: a grid of copies of a flat mesh of size (L, W) at yaw 0 that covers a T x T square at
+    close to the mesh's own scale (uniform scale T / (n * max(L, W)), n copies a side, at most 6)."""
+    L, W = size[0], size[1]
+    n = max(1, min(6, round(T / max(L, W))))
+    s = T / (n * max(L, W))
+    step = T / n
+    offs = [-T / 2 + step / 2 + i * step for i in range(n)]
+    return [((a, b), s) for a in offs for b in offs]
+
+
 def kerb_lamp(wp, lefthand, carla):
     """(outermost lane, x, y, yaw) of a lamp 1 m beyond the outermost lane on the kerb side of a driving lane's
     waypoint, its arm (+x) over the road; None when the waypoint is not on the outermost driving lane. The kerb is
@@ -1363,6 +1374,9 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         gx1, gy1 = max(xs) + pad, max(ys) + pad
         tiles = lowered = deep = 0
         surface = placement.GroundSurface()
+        # map.scenery.ground_meshes {kind: mesh}: another mesh for a ground kind (the realism pilot's candidates),
+        # laid as a grid at about its own scale so that its pavers or tiles keep their size
+        ground_over = dict(sc.get("ground_meshes") or {})
         bgt_tiles, changed, split, kinds, moves = 0, 0, 0, defaultdict(int), defaultdict(int)
 
         def lay(kind, x, y, T):
@@ -1389,12 +1403,14 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     z += gap - 0.15
                     lowered += 1
             tilt = (math.degrees(math.atan(zx)), -math.degrees(math.atan(zy)))
-            mesh = streetlook.ground_mesh(kind, T, cat, look.region) or ms.GROUND_MESH.get(kind, ms.PAVING)
+            mesh = (ground_over.get(kind) if ground_over.get(kind) in cat else None) or \
+                streetlook.ground_mesh(kind, T, cat, look.region) or ms.GROUND_MESH.get(kind, ms.PAVING)
             if mesh not in cat:
                 mesh, kind = ms.PAVING, "open"
             dz = {"water": -0.5, "open": -0.02}.get(kind, 0.0)
             surface.add(x, y, T, z + dz, zx, zy)
-            for i, ((dx, dy), s) in enumerate(tile_cover(cat.size(mesh), T)):
+            cover = tile_grid if mesh == ground_over.get(kind) and sc.get("ground_grid", True) else tile_cover
+            for i, ((dx, dy), s) in enumerate(cover(cat.size(mesh), T)):
                 pl.add("water" if kind == "water" else "ground", mesh, x + dx, y + dy, 0.0, s,
                        z=z + zx * dx + zy * dy + dz - 0.01 * i, tilt=tilt, anchor="top", centre=True,
                        prov=("register", "bgt") if surf is not None else None)
