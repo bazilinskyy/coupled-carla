@@ -28,8 +28,15 @@ simulation:
   step: 0.02
   time: now
   weather: real
+  # city-sized map: SUMO every 5th tick in a thread, asked only about what is near (bridge/pipeline.py), and the
+  # scenery within 200 m (each mesh is an actor in every tick's snapshot)
+  sumo_step: 0.1
+  sumo_thread: true
+  sumo_near: true
+  scenery: {radius_m: 200}
 
 traffic:
+  crop_radius_m: 1500   # SUMO on the roads within 1.5 km of the start, the city's demand cut to them (sumocrop.py)
   cars_per_hour: auto
   counts: auto
   walkers: {count: auto}

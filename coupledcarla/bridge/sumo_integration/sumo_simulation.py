@@ -16,6 +16,7 @@ import enum
 import logging
 import math
 import os
+import threading
 
 import carla  # pylint: disable=import-error
 import sumolib  # pylint: disable=import-error
@@ -278,6 +279,17 @@ class SumoTLManager(object):
             traci.trafficlight.setLinkState(tlid, link_index, SumoSignalState.OFF)
         self._off = True
 
+    def set_near(self, tl_ids):
+        """coupled-carla (simulation.sumo_near): only these lights are subscribed and read each step (the bridge
+        passes those near the participants); the others keep their last state."""
+        tl_ids = [t for t in sorted(tl_ids) if t in self._tls]
+        old, new = set(self._tl_ids), set(tl_ids)
+        for tlid in sorted(old - new):
+            self.unsubscribe(tlid)
+        for tlid in sorted(new - old):
+            self.subscribe(tlid)
+        self._tl_ids = tl_ids
+
     def tick(self):
         """
         Tick to traffic light manager
@@ -285,6 +297,8 @@ class SumoTLManager(object):
         if self._off is False:
             for tl_id in self._tl_ids:     # coupled-carla: was traci.trafficlight.getIDList(), a round trip
                 results = traci.trafficlight.getSubscriptionResults(tl_id)
+                if traci.constants.TL_CURRENT_PROGRAM not in results:   # coupled-carla: subscribed this step
+                    continue
                 current_program = results[traci.constants.TL_CURRENT_PROGRAM]
                 current_phase = results[traci.constants.TL_CURRENT_PHASE]
 
@@ -384,6 +398,85 @@ class SumoSimulation(object):
         # Traffic light manager.
         self.traffic_light_manager = SumoTLManager()
 
+        # coupled-carla: the pipelined bridge (bridge/pipeline.py): a snapshot get_actor() answers from, the
+        # thread that runs a SUMO step while CARLA ticks, and the participants' focus points (context subscriptions)
+        self.frozen = None
+        self._stepper = None
+        self._step_error = None
+        self._gate_on = False
+        self._focus = {}
+        self._off_net = set()
+
+    # -- coupled-carla: SUMO stepped in a thread (simulation.sumo_thread) --------------------------------------------
+
+    def _gate(self):
+        """Makes every TraCI call wait for a running step first, unless it comes from the step's own thread (the
+        connection is not thread-safe, and the call then sees the step's results, as without the thread)."""
+        if self._gate_on:
+            return
+        conn = traci.getConnection()
+        send = conn._sendExact
+        sim = self
+
+        def gated(*args, **kwargs):
+            t = sim._stepper
+            if t is not None and threading.current_thread() is not t:
+                sim.wait_step()
+            return send(*args, **kwargs)
+        conn._sendExact = gated
+        self._gate_on = True
+
+    def start_step(self):
+        """Runs tick() in a thread; wait_step() joins it."""
+        self._gate()
+
+        def run():
+            try:
+                self.tick()
+            except BaseException as err:  # noqa: BLE001 - raised again in wait_step
+                self._step_error = err
+        self._stepper = threading.Thread(target=run, name="sumo-step", daemon=True)
+        self._stepper.start()
+
+    def wait_step(self):
+        """Waits for the step start_step() began (if any); raises what it raised."""
+        t = getattr(self, "_stepper", None)
+        if t is None:
+            return
+        t.join()
+        self._stepper = None
+        if self._step_error is not None:
+            err, self._step_error = self._step_error, None
+            raise err
+
+    # -- coupled-carla: what is near the participants (simulation.sumo_near) -----------------------------------------
+
+    def set_focus(self, points, radius):
+        """One context subscription per point (SUMO x, y): every vehicle within radius, with its pose. A POI per
+        point carries it; moved, added or removed as the points change."""
+        for i, (x, y) in enumerate(points):
+            pid = f"coupled_focus{i}"
+            if pid not in self._focus:
+                traci.poi.add(pid, x, y, (0, 0, 0, 0), layer=-1)
+                traci.poi.subscribeContext(pid, traci.constants.CMD_GET_VEHICLE_VARIABLE, radius, self.POSE_VARS)
+            elif self._focus[pid] != (x, y):
+                traci.poi.setPosition(pid, x, y)
+            self._focus[pid] = (x, y)
+        for pid in [p for p in self._focus if int(p[len("coupled_focus"):]) >= len(points)]:
+            traci.poi.unsubscribeContext(pid, traci.constants.CMD_GET_VEHICLE_VARIABLE, radius)
+            traci.poi.remove(pid)
+            del self._focus[pid]
+
+    def near_poses(self):
+        """{sumo id: (x, y)} of the vehicles the focus subscriptions saw at the last step."""
+        out = {}
+        for pid in self._focus:
+            for vid, res in (traci.poi.getContextSubscriptionResults(pid) or {}).items():
+                pos = res.get(traci.constants.VAR_POSITION3D)
+                if pos is not None:
+                    out[vid] = (pos[0], pos[1])
+        return out
+
     @property
     def traffic_light_ids(self):
         return self.traffic_light_manager.get_all_landmarks()
@@ -459,11 +552,21 @@ class SumoSimulation(object):
             return (0, 0)
         return self.net.getLocationOffset()
 
-    @staticmethod
-    def get_actor(actor_id):
+    def get_actor(self, actor_id):
         """
         Accessor for sumo actor.
+
+        coupled-carla: while the pipelined bridge holds a snapshot (frozen: {sumo id: SumoActor} taken at the last
+        SUMO-step boundary), the actor from it, or None when it has none; SUMO may be stepping meanwhile.
         """
+        frozen = getattr(self, "frozen", None)
+        if frozen is not None:
+            return frozen.get(actor_id)
+        return self.read_actor(actor_id)
+
+    @staticmethod
+    def read_actor(actor_id):
+        """The actor from its subscription results (KeyError without them)."""
         results = traci.vehicle.getSubscriptionResults(actor_id)
 
         type_id = results[traci.constants.VAR_TYPE]
@@ -579,7 +682,15 @@ class SumoSimulation(object):
         try:
             traci.vehicle.moveToXY(vehicle_id, "", 0, loc_x, loc_y, angle=yaw, keepRoute=0)
         except traci.exceptions.TraCIException:     # no lane for its class nearby (off the road): place it anyway
-            traci.vehicle.moveToXY(vehicle_id, "", 0, loc_x, loc_y, angle=yaw, keepRoute=2)
+            try:
+                traci.vehicle.moveToXY(vehicle_id, "", 0, loc_x, loc_y, angle=yaw, keepRoute=2)
+            except traci.exceptions.TraCIException:   # coupled-carla: no lane at all (out of SUMO's area,
+                off_net = self.__dict__.setdefault('_off_net', set())   # traffic.crop_radius_m): it stays
+                if vehicle_id not in off_net:                              # where it was
+                    off_net.add(vehicle_id)
+                    logging.warning('CARLA car %s is off SUMO\'s roads (outside traffic.crop_radius_m?): its SUMO '
+                                    'twin stays at the last place SUMO had for it', vehicle_id)
+                return False
         if signals is not None:
             traci.vehicle.setSignals(vehicle_id, signals)
         return True

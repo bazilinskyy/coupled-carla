@@ -103,6 +103,13 @@ DEFAULTS = {
         "lod_radius_m": 250.0,       # SUMO actors exist in CARLA only within this distance of a participant
         "animate_radius_m": 60.0,    # ... and within this distance move with physics on (bridge/animate.py): wheels
                                      # roll and steer, cyclists pedal; 0: all placed with physics off as before
+        # city-sized maps (bridge/pipeline.py); all off: SUMO steps with every CARLA tick, as on the other maps
+        "sumo_step": None,           # SUMO's step (s), a multiple of step: e.g. 0.1 = SUMO every 5th tick at 0.02 s,
+                                     # its vehicles' cars interpolated between (shown 0.1 s late); None: = step
+        "sumo_thread": False,        # run each SUMO step in a thread while CARLA ticks (same results either way)
+        "sumo_near": False,          # ask SUMO only about vehicles near the participants (context subscriptions)
+                                     # and run only the traffic lights within sumo_near_m (None: lod_radius_m + 50)
+        "sumo_near_m": None,
         "autopilot": "sumo",         # input autopilot: "sumo" (SUMO drives the car with the traffic's rules,
                                      # sumodriver.py; route: [[lat, lon], ...] or destination: {lat, lon} on the
                                      # participant) or "carla" (CARLA's BasicAgent on random lanes); a participant's
@@ -147,6 +154,9 @@ DEFAULTS = {
     },
     "traffic": {
         "seed": 42,
+        "crop_radius_m": "auto",     # SUMO runs only the roads within this distance of the participants' starts,
+                                     # the map's demand cut to them (sumocrop.py); "auto": 1500 m on maps of 25 km2
+                                     # or more (city twins), else the whole map; 0: always the whole map
         "cars_per_hour": "auto",     # cars entering per hour, or "auto": from the map's lane-km by road class and
                                      # the trial's hour (coupledcarla/counts.py)
         "counts": "auto",            # "auto": fit the cars to open traffic counts where they cover the map

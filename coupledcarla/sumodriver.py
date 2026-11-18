@@ -193,6 +193,8 @@ class SumoDriver:
         log(f"{p['role']}: SUMO driver, route of {len(route)} edges ({length:.0f} m"
             f"{', planned' if self._planned else ', random destination'}), from lane {self.lane.getID()}")
         sync.adopt(self.sid, self.vehicle.id)      # no SUMO twin for this car, now or while it waits
+        if getattr(sync, "pipelined", False):      # SUMO steps less often or in a thread: drive at its steps
+            sync.hooks.append(lambda: self._drive(self.vehicle))
         if self.hold_until is None:
             self._insert()
         else:   # out of the way until the hold ends (below the road, no physics)
@@ -267,6 +269,12 @@ class SumoDriver:
             pass
 
     def control(self, vehicle, events=()):
+        if self.sid is None or getattr(getattr(self, "sync", None), "pipelined", False):
+            return None     # the pipelined bridge calls _drive at each SUMO step (a TraCI call here would wait)
+        return self._drive(vehicle)
+
+    def _drive(self, vehicle):
+        """Inserts, re-inserts, unblocks and extends the SUMO vehicle's route (TraCI); once per SUMO step."""
         if self.sid is None:
             return None
         now = traci.simulation.getTime()

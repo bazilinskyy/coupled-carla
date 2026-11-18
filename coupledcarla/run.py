@@ -378,7 +378,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         log(f"world ready: {len(world.get_map().get_spawn_points())} spawn points")
         level_stream = bool(tc["map"].get("carla_level"))
 
-        sumo = SumoSimulation(str(cfg_file), step)
+        from .bridge import pipeline
+        sumo_ratio = pipeline.ratio_for(tc["simulation"].get("sumo_step"), step)   # CARLA ticks per SUMO step
+        sumo = SumoSimulation(str(cfg_file), step * sumo_ratio)
         carla_sim = CarlaSimulation(tc["server"]["host"], tc["server"]["port"], step)
         # drawings, traffic-light states and the spectator on a connection of their own (see side.py)
         side = Side(tc["server"]["host"], tc["server"]["port"])
@@ -413,6 +415,14 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
                 f"{', meshes' if signals.meshes else ''}) drawn near participants")
         carla_sim._kinds.update({a.id: False for a in signals.actors})     # static: never looked up per tick
+        # city-sized maps: SUMO every few ticks, in a thread, asked only about what is near (bridge/pipeline.py)
+        sync.configure_pipeline(sumo_ratio, tc["simulation"].get("sumo_thread"), tc["simulation"].get("sumo_near"),
+                                tc["simulation"].get("sumo_near_m"))
+        if sync.pipelined:
+            sync.hooks.append(lambda: signals.prefetch([a.get_location() for a in focus_actors]))
+            log(f"SUMO: a step of {step * sumo_ratio:g} s every {sumo_ratio} tick(s), cars interpolated between"
+                f"{'; in a thread while CARLA ticks' if sync.threaded else ''}"
+                f"{'; asked only about vehicles and lights near the participants' if sync.near else ''}")
         world.tick()
 
         # AI agents (scripted cars and walkers); an AV passenger rides in one of them

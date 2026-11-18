@@ -123,6 +123,29 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
         else:
             fleet.paint_routes(rou, lambda bp: "240,240,236")
         routes.append(rou.name)
+    # City-sized maps: SUMO on the roads around the participants only, the demand cut to them (sumocrop.py)
+    from . import sumocrop
+    radius = sumocrop.radius_for(tc.get("crop_radius_m", "auto"), bbox)
+    if radius > 0:
+        pts = sumocrop.centres(cfg)
+        if not pts:
+            log("SUMO area: no participant start given as lat, lon; SUMO runs the whole map")
+        else:
+            import sumolib
+            small, _ = sumocrop.crop_net(net, pts, radius, Path(map_dir) / "sumo_areas", log)
+            stops = pt[1] if pt else None
+            rou, stops_out, n = sumocrop.cut_demand(small, net, routes, work, stops=stops, log=log)
+            snet = sumolib.net.readNet(str(small), withInternal=False, withPedestrianConnections=False)
+            kept_add = []
+            for name in additional:
+                src = work / (stops_out if name == stops else name)
+                dst = work / f"area_{Path(name).name}"
+                kept, dropped = sumocrop.filter_additional(src, snet, dst)
+                if kept:
+                    kept_add.append(dst.name)
+            log(f"SUMO area: {n} vehicles of the map's demand cross it (entering at its edge); "
+                f"{len(kept_add)} of {len(additional)} additional files kept")
+            net, routes, additional = small, [rou], kept_add
     # The router behind --validate copies the vehicle types into each route file, so types.add.xml
     # is not loaded again here (SUMO refuses a type defined twice).
     cfg_file = work / "trial.sumocfg"

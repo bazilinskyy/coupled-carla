@@ -277,13 +277,28 @@ class Signals:
             out = max([out] + [states[tls][i] for i in idxs if i < len(states[tls])], key=lambda s: RANK.get(s, 0))
         return out
 
+    def prefetch(self, centres):
+        """The states of the lights whose heads are near the centres, read now (the pipelined bridge calls it at
+        each SUMO step, where TraCI calls cost no wait); draw() then uses them."""
+        if self.style == "none" or not centres:
+            self.cached = {}
+            return
+        states = {}
+        for (_tls, _idxs, loc, _yaw), links in zip(self.heads, self.head_links):
+            if any(math.hypot(loc.x - c.x, loc.y - c.y) <= self.radius for c in centres):
+                for tls, _ in links:
+                    if tls not in states:
+                        states[tls] = traci.trafficlight.getRedYellowGreenState(tls)
+        self.cached = states
+
     def draw(self, centres):
         if self.style == "none":        # the level's own light actors show SUMO's states (heads kept: livemap)
             return
         self._tick += 1
         if self._tick % self.every or not centres:
             return
-        states = {}
+        cached = getattr(self, "cached", None)
+        states = dict(cached) if cached is not None else {}
         for (_tls, _idxs, loc, yaw), links in zip(self.heads, self.head_links):
             if not any(math.hypot(loc.x - c.x, loc.y - c.y) <= self.radius for c in centres):
                 continue
