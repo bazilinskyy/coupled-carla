@@ -409,21 +409,29 @@ class SumoSimulation(object):
 
     # -- coupled-carla: SUMO stepped in a thread (simulation.sumo_thread) --------------------------------------------
 
+    # every Connection method that writes the shared outgoing buffer (self._string), sends, or reads subscription
+    # results: a call from another thread must not begin packing its command while the step's thread is mid-message
+    _GATED = ("_sendCmd", "_sendExact", "_subscribe", "_subscribeContext", "_addSubscriptionFilter",
+              "_getSubscriptionResults", "simulationStep", "load", "setOrder", "close")
+
     def _gate(self):
         """Makes every TraCI call wait for a running step first, unless it comes from the step's own thread (the
         connection is not thread-safe, and the call then sees the step's results, as without the thread)."""
         if self._gate_on:
             return
         conn = traci.getConnection()
-        send = conn._sendExact
         sim = self
 
-        def gated(*args, **kwargs):
-            t = sim._stepper
-            if t is not None and threading.current_thread() is not t:
-                sim.wait_step()
-            return send(*args, **kwargs)
-        conn._sendExact = gated
+        def gated(fn):
+            def call(*args, **kwargs):
+                t = sim._stepper
+                if t is not None and threading.current_thread() is not t:
+                    sim.wait_step()
+                return fn(*args, **kwargs)
+            return call
+        for name in self._GATED:
+            if hasattr(conn, name):
+                setattr(conn, name, gated(getattr(conn, name)))
         self._gate_on = True
 
     def start_step(self):

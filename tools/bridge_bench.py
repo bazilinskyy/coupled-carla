@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import carla  # noqa: E402
 import sumolib  # noqa: E402
+import traci  # noqa: E402
 
 from coupledcarla.bridge import pipeline  # noqa: E402
 from coupledcarla.bridge.synchronization import (BridgeHelper, SimulationSynchronization,  # noqa: E402
@@ -113,11 +114,14 @@ def run(a):
     loc = carla.Location(fx, -fy, 0.0)
     focus.append(loc)
     mapped = live = 0
+    poked = []
     t_wall = time.perf_counter()
     for n in range(a.ticks):
         loc.x = fx + a.speed * step * n
         laps.start()
         sync.tick()
+        if a.poke:        # a TraCI call between SUMO steps, as signal heads or yielding make (waits for the step)
+            poked.append(round(traci.simulation.getTime(), 3))
         mapped += len(sync.sumo2carla_ids)
         live += len(sync._sumo_live)
     wall = time.perf_counter() - t_wall
@@ -128,7 +132,8 @@ def run(a):
            "setup_s": round(setup_s, 1), "ms_per_tick": round(1000 * wall / a.ticks, 2),
            "parts": {k: round(1000 * v / a.ticks, 2) for k, v in laps.acc.items()},
            "mean_in_carla": round(mapped / a.ticks, 1), "mean_sumo_live": round(live / a.ticks, 1),
-           "digest": fake.digest.hexdigest()[:16]}
+           "digest": fake.digest.hexdigest()[:16],
+           "poke_digest": hashlib.sha1(json.dumps(poked).encode()).hexdigest()[:16] if a.poke else None}
     sumo.close()
     return out
 
@@ -152,6 +157,7 @@ def main():
     ap.add_argument("--speed", type=float, default=0.0)
     ap.add_argument("--net", default=None)
     ap.add_argument("--carla-ms", type=float, default=0.0, help="each CARLA tick takes this long (a stand-in)")
+    ap.add_argument("--poke", action="store_true", help="a TraCI call from the main thread after every tick")
     ap.add_argument("--json", default=None)
     a = ap.parse_args()
     out = run(a)
