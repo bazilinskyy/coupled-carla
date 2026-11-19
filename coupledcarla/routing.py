@@ -13,7 +13,12 @@ import sys
 import carla
 
 sys.path.append(os.path.join(os.environ.get("CARLA_ROOT", ""), "PythonAPI", "carla"))
-from agents.navigation.global_route_planner import GlobalRoutePlanner  # noqa: E402
+try:
+    from agents.navigation.global_route_planner import GlobalRoutePlanner  # noqa: E402
+except ModuleNotFoundError as err:   # the carla wheel has no agents: a client machine needs a CARLA tree's PythonAPI
+    raise ModuleNotFoundError(
+        f"CARLA's navigation agents (PythonAPI/carla/agents) not found ({err}): set CARLA_ROOT to a CARLA folder "
+        f"that has PythonAPI/carla/agents (now {os.environ.get('CARLA_ROOT') or 'unset'})") from err
 
 import numpy as np  # noqa: E402
 
