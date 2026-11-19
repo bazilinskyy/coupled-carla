@@ -12,7 +12,7 @@ map (scenery.json: the city's lamp register in Eindhoven) as CARLA's lit street-
      the mean brightness of the road in each: lamps that really light the street make "on" clearly brighter;
   3. cost: frame_budget.measure_case at night with that radius (server and camera fps, PASS/FAIL against 60).
 
-    python tools/megalights_check.py --scenery maps/tue_campus_twin --level TUeCampus --radii 200,600,100000 \\
+    python tools/megalights_check.py --scenery maps/tue_campus_twin --level TUeCampus --radii 200,600,1000 \\
         --out ~/cc58/megalights/2026-11-17
 
 Run it on win5090 in a GPU window only. For MegaLights off as a baseline, start the server with
@@ -49,7 +49,9 @@ def census_and_evidence(client, world, args, radius, out_dir):
     cmap = world.get_map()
     sp = cmap.get_spawn_points()[args.spawn_index]
     seas = {"state": "leaf", "lights": season.light_blueprints(world, log=log), "lights_radius_m": radius}
-    scen = scenery.Scenery(client, world, args.scenery, {"radius_m": max(250.0, radius)}, log=log, season=seas)
+    # scenery as in a trial (250 m around the camera); only the lamp LIGHT radius changes
+    scen = scenery.Scenery(client, world, args.scenery, {"radius_m": max(250.0, min(radius, 1000.0) + 50.0)}, log=log,
+                           season=seas)
     cam = None
     try:
         scen.update([sp.location])
@@ -106,7 +108,8 @@ def main(argv=None):
     ap.add_argument("--port", type=int, default=2000)
     ap.add_argument("--level", default=None)
     ap.add_argument("--scenery", required=True, help="coupled-carla map folder with scenery.json")
-    ap.add_argument("--radii", default="200,600,100000", help="lamp light radii to try (m)")
+    ap.add_argument("--radii", default="200,600,1000", help="lamp light radii to try (m; the scenery radius follows, "
+                                                         "up to 1 km)")
     ap.add_argument("--sun", type=float, default=-30.0)
     ap.add_argument("--spawn-index", type=int, default=0)
     ap.add_argument("--no-fps", action="store_true", help="census and evidence only")
@@ -134,7 +137,7 @@ def main(argv=None):
             fargs = argparse.Namespace(start=None, spawn_index=args.spawn_index, speed=8.3, warm_s=15.0,
                                        measure_s=30.0, vehicle="vehicle.lincoln.mkz", cam="1920x1080", cams=1,
                                        fov=90.0, profile="", target=60.0, vr=False, stills=True,
-                                       scenery=args.scenery, scenery_radius=max(250.0, r))
+                                       scenery=args.scenery, scenery_radius=250.0, cam_specs="", warmup_s=0.0)
             res["fps"] = fb.measure_case(client, world, fargs, f"night_r{int(r)}", out_dir, f"night_r{int(r)}")
         log(json.dumps(res))
         rows.append(res)

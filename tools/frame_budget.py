@@ -39,7 +39,6 @@ CASES = {   # name -> (sun altitude, lamp lights radius m or None for the season
     "dusk": (2.0, None),
     "night": (-30.0, None),
     "night_r600": (-30.0, 600.0),
-    "night_all": (-30.0, 1e6),
 }
 DEFAULT_VARIANTS = {"current": ""}
 
@@ -99,7 +98,7 @@ def route(cmap, start, metres, step=1.0):
     return out
 
 
-def measure_case(client, world, args, case, out_dir, tag):
+def measure_case(client, world, args, case, out_dir, tag, cam_spec=None):
     """Drive the route with the participant's camera(s) on and measure (asynchronous mode). Returns a dict."""
     import carla
     from coupledcarla import season, scenery
@@ -133,10 +132,18 @@ def measure_case(client, world, args, case, out_dir, tag):
         if args.scenery:
             seas = {"state": "leaf", "lights": season.light_blueprints(world) if sun < 3 and radius != 0 else {},
                     "lights_radius_m": radius if radius is not None else 200.0}
-            scen = scenery.Scenery(client, world, args.scenery, {"radius_m": args.scenery_radius}, log=log,
-                                   season=seas)
-        cw, ch = (int(v) for v in args.cam.split("x"))
+            # lamps only exist within the scenery radius: widen it to the lamp-light radius (up to 1 km; more spawns
+            # the whole map's props, which measures spawning, not rendering)
+            srad = args.scenery_radius if not radius else max(args.scenery_radius, min(radius, 1000.0) + 50.0)
+            scen = scenery.Scenery(client, world, args.scenery, {"radius_m": srad}, log=log, season=seas)
+        spec = cam_spec or args.cam
+        size, _, opt = spec.partition("+")
+        cw, ch = (int(v) for v in size.split("x"))
         cam_bp = lib.find("sensor.camera.rgb")
+        if opt == "dlss":
+            if not cam_bp.has_attribute("enable_dlss"):
+                raise RuntimeError("this server's camera has no enable_dlss attribute")
+            cam_bp.set_attribute("enable_dlss", "true")
         cam_bp.set_attribute("image_size_x", str(cw))
         cam_bp.set_attribute("image_size_y", str(ch))
         cam_bp.set_attribute("fov", str(args.fov))
@@ -217,6 +224,10 @@ def main(argv=None):
     ap.add_argument("--measure-s", type=float, default=30.0)
     ap.add_argument("--vehicle", default="vehicle.lincoln.mkz")
     ap.add_argument("--cam", default="1920x1080")
+    ap.add_argument("--cam-specs", default="", help="comma-separated camera specs measured per case: WxH or "
+                                                   "WxH+dlss (DLSS Super Resolution); default --cam")
+    ap.add_argument("--warmup-s", type=float, default=60.0,
+                    help="per level, an untimed drive first (shaders compile, cells stream in)")
     ap.add_argument("--cams", type=int, default=1)
     ap.add_argument("--fov", type=float, default=90.0)
     ap.add_argument("--profile", default="", help="post_process_profile of the cameras (default: CARLA's)")
@@ -260,28 +271,39 @@ def main(argv=None):
         for level in levels:
             world = client.load_world(level) if level else client.get_world()
             lname = world.get_map().name.split("/")[-1]
+            if args.warmup_s > 0:
+                log(f"warm-up {lname} ({args.warmup_s:.0f} s, not measured)")
+                wa = argparse.Namespace(**{**vars(args), "warm_s": args.warmup_s, "measure_s": 1.0, "stills": False})
+                for wc in dict.fromkeys(cases):
+                    try:
+                        measure_case(client, world, wa, wc, out_dir, "warmup")
+                    except Exception as exc:  # noqa: BLE001
+                        log(f"warm-up {wc}: {exc}")
+            specs = [c for c in args.cam_specs.split(",") if c] or [args.cam]
             for case in cases:
-                tag = f"{vname}_{lname}_{case}"
-                log(f"measuring {tag}")
-                try:
-                    r = measure_case(client, world, args, case, out_dir, tag)
-                except Exception as exc:  # noqa: BLE001 - one failing case must not lose the others
-                    r = {"error": f"{type(exc).__name__}: {exc}"}
-                r.update(variant=vname, level=lname, case=case, server=client.get_server_version(),
-                         cam=args.cam, cams=args.cams)
-                log(json.dumps(r))
-                results.append(r)
-                (out_dir / "frame_budget.json").write_text(json.dumps(results, indent=1))
+                for spec in specs:
+                    tag = f"{vname}_{lname}_{case}" + ("" if len(specs) == 1 else "_" + spec.replace("+", "_"))
+                    log(f"measuring {tag}")
+                    try:
+                        r = measure_case(client, world, args, case, out_dir, tag, spec)
+                    except Exception as exc:  # noqa: BLE001 - one failing case must not lose the others
+                        r = {"error": f"{type(exc).__name__}: {exc}"}
+                    r.update(variant=vname, level=lname, case=case, server=client.get_server_version(),
+                             cam=spec, cams=args.cams)
+                    log(json.dumps(r))
+                    results.append(r)
+                    (out_dir / "frame_budget.json").write_text(json.dumps(results, indent=1))
     if args.server_cmd and args.server_stop_cmd:
         subprocess.run(args.server_stop_cmd, shell=True, check=False)
-    lines = ["| variant | level | case | server fps | 1 % low | camera fps | lamps lit | need | verdict |",
-             "|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| variant | level | case | camera | server fps | 1 % low | camera fps | lamps lit | need | verdict |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     for r in results:
         if "error" in r:
-            lines.append(f"| {r.get('variant')} | {r.get('level', '')} | {r.get('case', '')} | error: "
-                         f"{r['error']} | | | | | |")
+            lines.append(f"| {r.get('variant')} | {r.get('level', '')} | {r.get('case', '')} | {r.get('cam', '')} | "
+                         f"error: {r['error']} | | | | | |")
             continue
-        lines.append(f"| {r['variant']} | {r['level']} | {r['case']} | {r['server_fps']} | {r['low_1pct_fps']} | "
+        lines.append(f"| {r['variant']} | {r['level']} | {r['case']} | {r['cam']} | {r['server_fps']} | "
+                     f"{r['low_1pct_fps']} | "
                      f"{', '.join(map(str, r['camera_fps']))} | {r.get('lamps_lit', '')} | {r['need_fps']} | "
                      f"{'PASS' if r['pass'] else 'FAIL'} |")
     (out_dir / "frame_budget.md").write_text("\n".join(lines) + "\n")
