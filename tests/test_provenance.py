@@ -118,3 +118,27 @@ def test_parked_default_scale():
     assert parking.default_share("tertiary", "europe", 1, scale=1.5) == min(1.0, 1.5 * base)
     assert parking.default_share("residential", "europe", 1, scale=2.0) == 1.0
     assert parking.default_share("tertiary", "europe", 2, scale=2.0) == 0.0     # two lanes one way: none
+
+
+def test_density_factor_and_share():
+    import importlib
+    import sys
+    import types
+    sys.modules.setdefault("carla", types.ModuleType("carla"))
+    scenery = importlib.import_module("coupledcarla.scenery")
+    assert scenery.density_factor(0.05) == 0.6 and scenery.density_factor(0.9) == 1.4
+    assert abs(scenery.density_factor(0.30) - 1.0) < 1e-9 and scenery.density_factor(None) == 1.0
+
+    class FlatGeo:
+        def to_carla(self, lat, lon):
+            return lon, lat
+    sq = lambda x, y, s: [[x, y], [x + s, y], [x + s, y + s], [x, y + s]]   # noqa: E731
+    dense = [{"ring": sq(i * 12.0, j * 12.0, 10.0)} for i in range(10) for j in range(10)]
+    real_ring_xy = scenery._ring_xy
+    scenery._ring_xy = lambda geo, ring: [tuple(pt) for pt in ring]      # the test's plain metres
+    try:
+        share = scenery._built_density(dense, FlatGeo(), log=lambda m: None)
+    finally:
+        scenery._ring_xy = real_ring_xy
+    assert 0.5 < share(60.0, 60.0) <= 1.0
+    assert share(5000.0, 5000.0) == 0.0

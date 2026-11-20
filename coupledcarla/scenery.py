@@ -727,6 +727,51 @@ def _neighbour_heights(recs, geo, log=print):
     return near
 
 
+DENSITY_R = 60.0        # m: the built share around a building is measured within this radius
+
+
+def density_factor(share):
+    """Height factor for a building of unknown height from the share of the ground built within DENSITY_R:
+    detached and sparse (under 0.15) 0.6, dense blocks (over 0.45) 1.4, linear between."""
+    if share is None:
+        return 1.0
+    return 0.6 + 0.8 * min(1.0, max(0.0, (share - 0.15) / 0.30))
+
+
+def _built_density(recs, geo, log=print):
+    """A function (x, y) -> share of the ground covered by footprints within DENSITY_R m (a 10 m raster)."""
+    import numpy as np
+    from shapely.geometry import Polygon
+    polys = []
+    for r in recs:
+        pts = _ring_xy(geo, r["ring"])
+        if len(pts) >= 3:
+            g = Polygon(pts)
+            polys.append(g if g.is_valid else g.buffer(0))
+    if not polys:
+        return None
+    xs = [c for g in polys for c in (g.bounds[0], g.bounds[2])]
+    ys = [c for g in polys for c in (g.bounds[1], g.bounds[3])]
+    cell = 10.0
+    x0, y0 = min(xs) - DENSITY_R, min(ys) - DENSITY_R
+    nx, ny = int((max(xs) - x0 + DENSITY_R) // cell) + 1, int((max(ys) - y0 + DENSITY_R) // cell) + 1
+    grid = np.zeros((nx, ny))
+    for g in polys:     # each footprint's area spread over the cells its bounds touch
+        b = g.bounds
+        i0, i1 = int((b[0] - x0) // cell), int((b[2] - x0) // cell)
+        j0, j1 = int((b[1] - y0) // cell), int((b[3] - y0) // cell)
+        grid[i0:i1 + 1, j0:j1 + 1] += g.area / ((i1 - i0 + 1) * (j1 - j0 + 1))
+    k = int(DENSITY_R // cell)
+    area = (2 * k + 1) ** 2 * cell * cell
+
+    def share(x, y):
+        i, j = int((x - x0) // cell), int((y - y0) // cell)
+        return float(min(1.0, grid[max(0, i - k):i + k + 1, max(0, j - k):j + k + 1].sum() / area))
+    log(f"scenery: unknown building heights scaled by the built share within {DENSITY_R:.0f} m "
+        f"(0.6 below 15 %, 1.4 above 45 %)")
+    return share
+
+
 def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
     """Footprints in CARLA coordinates with height, kind and source: national data (3DBAG, BD TOPO, NYC,
     PLATEAU) > Overture > OSM."""
@@ -789,6 +834,9 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
     near_h = None
     if (mc.get("scenery") or {}).get("height_from_neighbours", False):     # the realism pilot's round 1 candidate
         near_h = _neighbour_heights(recs, geo, log)
+    dens = None
+    if (mc.get("scenery") or {}).get("height_by_density", False):          # the realism pilot's round 11 candidate
+        dens = _built_density(recs, geo, log)
     out = []
     for r in recs:
         pts = _ring_xy(geo, r["ring"])
@@ -810,6 +858,8 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
                 h = 4.0 if poly.area < 50 else 7.5 if poly.area < 160 else 11.0
             if size_class == "large" and h >= 10:
                 h *= 1.5
+            if dens is not None:        # unknown height: low where the town is sparse, taller in dense blocks
+                h *= density_factor(dens(poly.centroid.x, poly.centroid.y))
         lat = sum(p[1] for p in r["ring"]) / len(r["ring"])
         lon = sum(p[0] for p in r["ring"]) / len(r["ring"])
         zs = [dem.sample(p[1], p[0]) - base for p in r["ring"]] if dem is not None else [0.0]
