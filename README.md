@@ -1098,6 +1098,21 @@ eHMI, two AI walkers and SUMO traffic fill the street; two trials (day, dusk).
 .venv/bin/python -m coupledcarla.station --host <host ip> --role driver --input wheel
 ```
 
+**A station on the Windows PC that runs the server: run it on Windows itself, not in WSL.** The camera images come
+from the server raw; WSL's network bridge carries about 140 MB/s, which is 17-18 fps at 1920x1080 and 38 fps at
+1280x720, while a client on Windows itself got 69 fps at 1920x1080 and 77 fps at 1280x720 from the same server (CARLA
+1.0 package, Epic, RTX 5090, 2026-11-20, `tools/camera_stream_test.py`). The station shows each frame straight from
+the camera's buffer (no copy per frame). Setup once (everything under `C:\cc58`, nothing system-wide: a Python 3.10
+for the package's cp310 wheel, a venv with it, pygame, numpy, pyyaml, requests, pillow; needs uv), then run:
+
+```bat
+tools\station_win_setup.cmd
+tools\station_win.cmd --role driver --input wheel --size 1920x1080 --fullscreen
+```
+
+The host (`python -m coupledcarla.run ...`) may stay in WSL on the same PC: with mirrored networking both reach
+127.0.0.1. Keys (`secret`, or `%USERPROFILE%\.config\coupled-carla`) and `COUPLED_CARLA_MUTE` work the same.
+
 `--input bot` runs a station without a human (the experiment's `bot` entry: the pedestrian's path and gaze
 target, the passenger's eHMI schedule, the driver on autopilot), with `--headless --frames-every 0.5` to save
 its view; `run ... --local` runs every station role as a bot on the host, for a quick test without stations.
