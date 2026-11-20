@@ -1534,7 +1534,7 @@ class Scenery:
                         lm.turn_on(lm.get_all_lights(carla.LightGroup.Street))
                     except Exception as err:  # noqa: BLE001 - lamps without light still stand
                         self.log(f"scenery: street lights not switched on ({err})")
-                    if self.lamp_index:
+                    if self.lamp_index is not None:     # also without register specs: kind defaults
                         self.n_lamp_specs += nightlights.apply_lamp_lights(
                             self.world, self.lamps[key], self.lamp_index, self.lamp_scale, self.lamp_colours,
                             self.log)
