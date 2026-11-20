@@ -845,8 +845,12 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 logger.event(t, snap.frame, name, "", detail)
             if crowd is not None:
                 crowd.events.clear()
+            sumo_driven = set(sync.adopted.values())
             for r in records:     # the light states the bridge read this frame (saves a round trip each)
-                r["lights"] = carla_sim.frame_lights.get(r["actor"].id)
+                lights = carla_sim.frame_lights.get(r["actor"].id)
+                if lights is None and r["actor"].id in sumo_driven:   # SUMO drives it: the lights the bridge set
+                    lights = carla_sim.current_lights(r["actor"].id)  # (get_light_state is a server round trip)
+                r["lights"] = lights
             laps("stations_events")
             logger.log(snap, records, ai, sumo_signals, [])
             if drone_world is not None:
