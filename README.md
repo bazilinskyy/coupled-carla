@@ -1167,7 +1167,7 @@ The SUMO conversion script that CARLA 1.0 no longer ships is vendored in `bridge
 environment next to the 0.9.16 one:
 
 ```bash
-# the CARLA 1.0 package (UE5 weekly, ~14 GB), extracted to e.g. ~/carla58-pkg/CARLA_1.0
+# the CARLA 1.0 release package (CARLA_1.0.tar.gz, 14.1 GB; see the content pack section below), extracted
 uv venv --python 3.12 .venv10
 grep -v '^carla' requirements.txt > /tmp/req10.txt
 VIRTUAL_ENV=.venv10 uv pip install -r /tmp/req10.txt <package>/PythonAPI/carla/dist/carla-1.0-cp312-cp312-linux_x86_64.whl
@@ -1188,6 +1188,90 @@ RTF 0.82, 0 collisions, every 0.9 blueprint mapped to a 1.0 stand-in. That run u
 cameras or stations), because the RTX 5080 was full with other jobs. The real-world scenery has its own 1.0 mesh
 catalogue ([Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). Install the 1.0 wheel after
 `requirements.txt`, which pins `carla==0.9.16`.
+
+### CARLA 1.0 release + content pack
+
+CARLA 1.0 was released on 2026-11-17 (tag `1.0`). Its package
+([`CARLA_1.0.tar.gz`](https://downloads.carlasim.com/Linux/CARLA_1.0.tar.gz), 14.1 GB; Windows: `CARLA_1.0.zip`)
+ships Python wheels for 3.10 to 3.15 in `PythonAPI/carla/dist/` and installs [content
+packs](https://carla-ue5.readthedocs.io/en/latest/content_authoring_packs/): cooked maps and assets that a package of
+the same release mounts without being rebuilt. Coupled CARLA's own CARLA 1.0 content comes as packs, so the
+official package is all you need to download besides them: one with the street content, which every map uses, and
+one per baked twin, each with its OpenDRIVE, Traffic Manager cache and `Config/<Twin>-ATTRIBUTION.md`:
+
+| Pack | What is in it | Size |
+|---|---|---|
+| `CoupledCarlaStreet` | everything under `/Game/CoupledCarla`: the Dutch sign faces, the regional street furniture, signal heads and paving that [street furniture](#street-furniture-that-looks-like-the-place-carla-10) places, the UK and Japanese signal poles, the lit regional lamps and CARLA's street lights as `blueprint.cc_*`, the quadrotor drones; by default also the CARLA meshes that Coupled CARLA places and the package lacks (below) | 1.21 GB (24 MB with `--carla-assets lamps`) |
+| `CoupledCarlaEhvCentre` | the `EhvCentre` twin (Eindhoven city centre) | 1.83 GB |
+| `CoupledCarlaTUeCampus` | the `TUeCampus` twin (the TU/e campus) | 0.70 GB |
+| `CoupledCarlaShibuyaCrossing` | the `ShibuyaCrossing` twin (the Shibuya scramble crossing, Tokyo) | 0.83 GB |
+| `CoupledCarlaZurichHB` | the `ZurichHB` twin (Zürich main station) | 0.81 GB |
+| `CoupledCarlaSalamancaPlaza` | the `SalamancaPlaza` twin (Plaza Mayor, Salamanca) | 0.97 GB |
+| `CoupledCarlaHelsinkiSenate` | the `HelsinkiSenate` twin (Senate Square, Helsinki) | 0.66 GB |
+| `CoupledCarlaAmsterdamDam` | the `AmsterdamDam` twin (Dam Square, Amsterdam) | 1.22 GB |
+| `CoupledCarlaNycMidtown` | the `NycMidtown` twin (Midtown Manhattan) | 1.51 GB |
+
+```bash
+# the official package, unpacked, and a client environment with its wheel
+mkdir ~/carla-1.0 && tar xzf CARLA_1.0.tar.gz -C ~/carla-1.0 --strip-components=1
+uv venv --python 3.10 .venv10 && grep -v '^carla' requirements.txt > /tmp/req10.txt
+VIRTUAL_ENV=.venv10 uv pip install -r /tmp/req10.txt ~/carla-1.0/PythonAPI/carla/dist/carla-1.0-cp310-cp310-linux_x86_64.whl
+# the packs (checksums, platform and base release are checked), then start the server as usual
+.venv10/bin/python -m tools.content_pack install CoupledCarlaStreet-1.0.0-carla-1.0-Linux.tar.gz \
+    CoupledCarlaEhvCentre-1.0.0-carla-1.0-Linux.tar.gz --server ~/carla-1.0
+CARLA_ROOT=~/carla-1.0 .venv10/bin/python -m coupledcarla.run experiments/eindhoven_twin.yaml
+```
+
+The packs are built on a CARLA 1.0 source build (tag `1.0`, with the editor) against the release's metadata
+(`CARLA_1.0_release-metadata.tar.gz`, 2.5 MB, next to the package on the download page):
+`python -m tools.content_pack build --carla <tree> --base CARLA_1.0_release-metadata.tar.gz`
+([`tools/content_pack.py`](tools/content_pack.py); `--dry-run` prints each step). Nothing in a map refers to the
+street content (Coupled CARLA spawns it by path at runtime), so the build first writes a holder level into the
+street pack ([`tools/ue_pack_holder.py`](tools/ue_pack_holder.py)) that the cook follows. A pack fits only the
+release it was cooked against: CARLA 1.0.1 means building them again. They are meant as assets of a GitHub
+release of this repository (GitHub allows 2 GB per file); they are not published yet.
+
+What a pack cannot carry is code, so two things need a CARLA build of your own: the `CoupledPhotoreal` plugin
+(`map.photoreal`, Google's Photorealistic 3D Tiles; without it the twin is shown as baked, and the log says so)
+and the CarlaLight patch (`unreal/patches/`; without it lamps keep CARLA's default intensity instead of the
+register's lumens). Without the street pack, CARLA's own lamps stand in for the regional ones and the regional
+furniture is left out (`blueprint.cc_nl_*`, the drones and `/Game/CoupledCarla` meshes do not spawn on the bare
+package).
+
+The official package cooks only what its default maps (Town10HD, Town12, Town15) use: of the 1,557 CARLA meshes
+Coupled CARLA's scenery catalogue and fallbacks name, 1,272 are not in it, among them most of CARLA's trees (on the
+TU/e campus 4,496 of 9,310 placements, nearly all trees; in central Eindhoven 6,447 of 39,930). The street pack
+therefore holds every CARLA asset Coupled CARLA spawns by path that the release did not cook (1,145 meshes found in
+the 1.0 tree; the cook skips what the base already has), which makes it 1.21 GB. With CARLA's own `AdditionalMaps`
+pack installed (the classic towns, 6.8 GB) 430 of the 1,272 come back; of the 842 still missing, 759 are 0.9 names
+that CARLA 1.0 does not have and 83 are in the 1.0 tree (legacy trees such as `SM_PlatanusBase01`,
+`SM_QuercusRubra01`, `SM_TreePine01_Lod1`, and two trash cans). With AdditionalMaps installed, build the street pack
+with `--carla-assets additionalmaps` (0.37 GB: those 83 and what they use). Placements on missing meshes, measured
+on lin4080: TU/e campus 4,496 of 9,310 on the bare package, 90 with AdditionalMaps; central Eindhoven 6,447 and 476
+of 39,930; Shibuya 51 and 1 of 806. The scenery log line and the trial summary count the placements a server
+refuses (`scenery_refused`, and `scenery_refused.json` in the trial folder names the meshes). CARLA 1.0 has no stand-alone traffic-light pole
+(0.9's `SM_TrafficLight__VPole_Main` is gone), so the UK and Japanese heads bring their own poles, like the Dutch
+ones.
+
+**Tested on 2026-11-17** (lin4080, RTX 4080 SUPER): the official package installed both kinds of pack in under a second
+(street) and 5.4 s (TUeCampus, 0.70 GB), checksums included, and its server came up in 10 s and reported client and
+server 1.0. With driver 560 it stops at start-up like the source build above, so the trials below ran without
+rendering (`-nullrhi`) until lin4080 got driver 580: then it renders (`-RenderOffScreen`, Epic). With
+AdditionalMaps, the street pack and the redirector fix, 60 s trials with a driver camera (1280x720, a still every
+15 s): TU/e campus RTF 0.546, Shibuya 0.471, 0 collisions, 0 scenery placements refused (4,996 and 645 placed).
+60 s trials, autopilot driver with SUMO traffic: `Town10HD_Opt` RTF 0.995 and 0.996 (without and with the street
+pack), 0 collisions; `TUeCampus` from its pack RTF 0.993, 0 collisions, Dutch signal programmes on 12 controllers,
+1,613 scenery meshes near the participant. With the street pack 27 of the 29 `blueprint.cc_*` and street meshes spawn
+on the official package (without it only CARLA's own lamps: 8 of 29); the two that do not are
+`cc_photoreal_google` (code) and CARLA's `BP_StreetLight06_C`. With it the TU/e campus shows its 51 Dutch signal
+heads and the Dutch sign faces (1,638 scenery meshes, RTF 0.987, 0 collisions); without it 55 sign meshes fall back
+to CARLA's blank plates. With the UK and Japanese poles in the street pack, Shibuya's 129 heads are all Japanese ones
+(they fell back to drawn heads before: CARLA 1.0 has no pole of its own); 60 s, RTF 0.829 (0.918 before, with drawn
+heads; lin4080 was also busy, load 16), 0 collisions. `BP_StreetLight06_C` is in the release's own asset registry,
+so a pack cannot replace it, yet the packaged server refuses it ("invalid actor description"); Coupled CARLA does not
+use it (its lit lamps are 06_A, 03 and the regional ones). The packs were cooked on lin5080 in 35-42 s (street, 24 MB:
+347 meshes, 352 materials, 22 blueprints; 3 min and 1.21 GB with CARLA's meshes) and
+1-14 min per twin, 10-17 GB of memory each; all eight twins in one cook needed over 30 GB.
 
 ### Tested on CARLA 1.0
 

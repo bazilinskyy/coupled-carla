@@ -1541,6 +1541,17 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 
 # --- run time ------------------------------------------------------------------------------------------------
 
+REDIRECTS_10 = json.loads((Path(__file__).resolve().parent / "data" / "carla10_redirects.json").read_text())["redirects"]
+
+
+def _server_major(client):
+    try:
+        from .compat import server_major
+        return server_major(client)
+    except Exception:  # noqa: BLE001 - a test double without a version
+        return 0
+
+
 class Scenery:
     """Spawns scenery.json's placements in cells around focus points and removes them behind.
 
@@ -1554,6 +1565,10 @@ class Scenery:
         data = data or json.loads((Path(mdir) / "scenery.json").read_text())   # data: e.g. parking.trial_data
         self.meshes = data["meshes"]
         self.prov_data = {"items": data["items"], "prov": data.get("prov")}     # provenance(): the trial's log
+        if any(m in REDIRECTS_10 for m in self.meshes) and _server_major(client) >= 1:
+            # a map built before the catalogue fix names meshes that CARLA 1.0 moved (a redirector in the source tree,
+            # which a cooked server does not follow)
+            self.meshes = [REDIRECTS_10.get(m, m) for m in self.meshes]
         kinds = set(sc.get("kinds") or ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water",
                                         "shared"])
         if kinds & {"furniture", "ground"}:     # streetlook.py's markings, surfaces, wear and roofs come with them
@@ -1616,6 +1631,10 @@ class Scenery:
         self.fallbacks = dict(data.get("fallbacks") or {})     # mesh path -> spawned instead when it fails
         self.bp = world.get_blueprint_library().find("static.prop.mesh")
         self.n = 0
+        # placements the server refused, by mesh path and by reason (a mesh the server lacks: "invalid actor
+        # description"; on the official CARLA 1.0 package without the CARLA meshes most trees are such)
+        import collections
+        self.n_failed, self.failed, self.fail_reasons = 0, collections.Counter(), collections.Counter()
         if self.always:
             self._spawn(("always",), self.always)
 
@@ -1650,6 +1669,10 @@ class Scenery:
         for it, r in zip(items, res):        # which actor stands for which item (take_at: a parked car leaving)
             if not r.error:
                 self.actor_of[id(it)] = r.actor_id
+            else:
+                self.n_failed += 1
+                self.failed[self.meshes[it[0]]] += 1
+                self.fail_reasons[r.error.split(" because ")[-1].replace("of ", "", 1)[:60]] += 1
         ids = [r.actor_id for r in res if not r.error]
         if self.light_bp:
             self.lamps[key] = [r.actor_id for r, is_lamp in zip(res, lamp) if is_lamp and not r.error]
@@ -1790,6 +1813,14 @@ class Scenery:
                                   max(0.0, abs((j + 0.5) * c - p.y) - c / 2)) <= r:
                         out.add((i, j))
         return out
+
+    def failed_summary(self, top=5):
+        """"" when nothing failed, else "; F failed (K meshes: the most refused ...; reasons ...)"."""
+        if not self.n_failed:
+            return ""
+        worst = ", ".join(f"{p.rsplit('.', 1)[-1]} {n}" for p, n in self.failed.most_common(top))
+        why = ", ".join(f"{r} {n}" for r, n in self.fail_reasons.most_common(2))
+        return f"; {self.n_failed} refused ({len(self.failed)} meshes: {worst}; {why})"
 
     def destroy(self):
         import carla

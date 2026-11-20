@@ -550,7 +550,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
                                                   f"{scenery.lights_radius:.0f} m" if scenery.light_bp else "")
-                + (f", {scenery.n_lamp_specs} with their register colour and lumens" if scenery.n_lamp_specs else ""))
+                + (f", {scenery.n_lamp_specs} with their register colour and lumens" if scenery.n_lamp_specs else "")
+                + scenery.failed_summary())
             if not town or towns.own_parked(world, tc, mdir, log):     # a town may keep its own parked cars
                 parked = parking.scenery(client, world, mdir, tc, log,
                                          on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
@@ -1036,6 +1037,12 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                         "station_stats": station_stats, "parked_cars": parked.n if parked is not None else 0})
         if drone_world is not None:
             summary["drones"] = drone_world.summary()
+        if scenery is not None:
+            summary.update({"scenery_meshes": scenery.n, "scenery_refused": scenery.n_failed})
+            if scenery.n_failed:        # which meshes this server lacks (a CARLA package without the content packs)
+                (out / "scenery_refused.json").write_text(json.dumps(
+                    {"refused": scenery.n_failed, "meshes": dict(scenery.failed.most_common()),
+                     "reasons": dict(scenery.fail_reasons)}, indent=1))
         logger.event(t, snap.frame, "trial_end", "", json.dumps(summary))
         log(f"trial done: {summary}")
     finally:

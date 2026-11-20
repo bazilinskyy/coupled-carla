@@ -495,7 +495,7 @@
 22.43
 ]
 },
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt01_C.SM_Apt01_C": {
+"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt01/SM_Apt01_C.SM_Apt01_C": {
 "cat": "building",
 "ext": [
 6.6,
@@ -534,7 +534,7 @@
 8.81
 ]
 },
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt07_A.SM_Apt07_A": {
+"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt07/SM_Apt07_A.SM_Apt07_A": {
 "cat": "building",
 "ext": [
 4.85,
@@ -547,7 +547,7 @@
 4.37
 ]
 },
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt08_A.SM_Apt08_A": {
+"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt08/SM_Apt08_A.SM_Apt08_A": {
 "cat": "building",
 "ext": [
 5.96,
@@ -612,7 +612,7 @@
 -20.6
 ]
 },
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt18_A.SM_Apt18_A": {
+"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt18/SM_Apt18_A.SM_Apt18_A": {
 "cat": "building",
 "ext": [
 20.99,
@@ -625,7 +625,7 @@
 5.87
 ]
 },
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt18_B.SM_Apt18_B": {
+"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt18/SM_Apt18_B.SM_Apt18_B": {
 "cat": "building",
 "ext": [
 21.31,
@@ -638,7 +638,7 @@
 5.87
 ]
 },
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt18_C.SM_Apt18_C": {
+"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt18/SM_Apt18_C.SM_Apt18_C": {
 "cat": "building",
 "ext": [
 21.31,
@@ -651,7 +651,7 @@
 5.87
 ]
 },
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt19_A.SM_Apt19_A": {
+"/Game/Carla/Static/Building/BackgroundBuildings/SM_Apt19_A.SM_Apt19_A": {
 "cat": "building",
 "ext": [
 23.99,
@@ -1353,7 +1353,7 @@
 10.56
 ]
 },
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Block05_A.SM_Block05_A": {
+"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt05/SM_Apt05_A.SM_Apt05_A": {
 "cat": "building",
 "ext": [
 3.98,
@@ -5097,7 +5097,7 @@
 0.6
 ]
 },
-"/Game/Carla/Static/Static/SM_PlantPot01_B.SM_PlantPot01_B": {
+"/Game/Carla/Static/Static/SM_PlantPot01.SM_PlantPot01": {
 "cat": "furniture",
 "ext": [
 0.6,
@@ -5123,7 +5123,7 @@
 0.62
 ]
 },
-"/Game/Carla/Static/Static/SM_PlantPot02_B.SM_PlantPot02_B": {
+"/Game/Carla/Static/Static/SM_PlantPot02.SM_PlantPot02": {
 "cat": "furniture",
 "ext": [
 0.55,
@@ -5149,7 +5149,7 @@
 0.92
 ]
 },
-"/Game/Carla/Static/Static/SM_PlantPot03_B.SM_PlantPot03_B": {
+"/Game/Carla/Static/Static/SM_PlantPot03.SM_PlantPot03": {
 "cat": "furniture",
 "ext": [
 0.97,
@@ -5175,7 +5175,7 @@
 0.68
 ]
 },
-"/Game/Carla/Static/Static/SM_PlantPot04_C.SM_PlantPot04_C": {
+"/Game/Carla/Static/Static/SM_PlantPot04.SM_PlantPot04": {
 "cat": "furniture",
 "ext": [
 0.54,
@@ -5370,7 +5370,7 @@
 0.61
 ]
 },
-"/Game/Carla/Static/Static/SM_TrashCan02.SM_TrashCan02": {
+"/Game/Carla/Static/Other/SM_TrashCan02.SM_TrashCan02": {
 "cat": "furniture",
 "ext": [
 0.4,
@@ -5435,7 +5435,7 @@
 0.09
 ]
 },
-"/Game/Carla/Static/Static/SM_trashCan04.SM_trashCan04": {
+"/Game/Carla/Static/Other/SM_trashCan04.SM_trashCan04": {
 "cat": "furniture",
 "ext": [
 0.26,
@@ -14782,6 +14782,19 @@
 0.486
 ]
 },
+"/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPole.SM_CC_UK_SignalPole": {
+"cat": "furniture",
+"ext": [
+0.057,
+0.057,
+1.825
+],
+"off": [
+0.0,
+0.0,
+1.825
+]
+},
 "/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalCar.SM_CC_UK_SignalCar": {
 "cat": "furniture",
 "ext": [
@@ -14806,6 +14819,19 @@
 1.025,
 0.0,
 4.023
+]
+},
+"/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole.SM_CC_JP_SignalPole": {
+"cat": "furniture",
+"ext": [
+0.057,
+0.057,
+1.825
+],
+"off": [
+0.0,
+0.0,
+1.825
 ]
 },
 "/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalCar.SM_CC_JP_SignalCar": {

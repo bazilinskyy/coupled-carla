@@ -388,6 +388,16 @@ def signal_pole(h=3.6, band=0.25):
     return m, {"top": [0.0, 0.0, h]}
 
 
+def signal_pole_plain(mat, h=3.6):
+    """A plain traffic-light pole (114 mm, one colour, a cap): grey galvanised in Japan, black in the UK. CARLA 1.0
+    has no stand-alone pole mesh for signals.py (0.9's SM_TrafficLight__VPole_Main is gone), so every region with
+    regional heads brings its own."""
+    m = Mesh()
+    tube(m, mat, (0, 0, 0), (0, 0, h), 0.057, seg=16, caps=True)
+    tube(m, mat, (0, 0, h), (0, 0, h + 0.05), 0.057, 0.04, seg=16)
+    return m, {"top": [0.0, 0.0, h]}
+
+
 def signal_head(lenses=3, d=0.30, plate="SignalYellow", border=None, horizontal=False, pole_r=0.057):
     """A signal head: a black body with `lenses` round lenses (diameter d: 300 mm car heads, 200 mm cyclist and
     pedestrian heads) under visors, on a back plate (Dutch yellow, or black with a white border as the UK's). The
@@ -789,9 +799,11 @@ def specs():
     # UK and Japan
     add("LampColumn8", "UK", "Pole", "lamp_arm", lambda: lamp_uk(8.0), "SM_StreetLight06_A", "BS EN 40 column")
     add("BinCast", "UK", "Static", "bin", bin_uk, "SM_TrashCan01")
+    add("SignalPole", "UK", "TrafficLight", "signal_pole", lambda: signal_pole_plain("PoleBlack"))
     add("SignalCar", "UK", "TrafficLight", "signal_car",
         lambda: signal_head(3, 0.30, plate="SignalBlack", border="SignalWhite"))
     add("LampGooseneck8", "JP", "Pole", "lamp_arm", lambda: lamp_jp(8.0), "SM_StreetLight06_A")
+    add("SignalPole", "JP", "TrafficLight", "signal_pole", lambda: signal_pole_plain("Galvanised"))
     add("SignalCar", "JP", "TrafficLight", "signal_car",
         lambda: signal_head(3, 0.30, plate="SignalBlack", horizontal=True))
     return S
