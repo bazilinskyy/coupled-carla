@@ -1,13 +1,14 @@
 """What a synchronous CARLA tick costs with N static props spawned, as the scenery's meshes are (one actor each).
 
-    python tools/tick_probe.py --host 131.155.x.x --port 2000 [--counts 0 1000 2000 4000] [--map-dir maps/<map>]
+    python tools/tick_probe.py --host 131.155.x.x --port 2000 [--counts 0 1000 2000 4000] [--map-dir maps/<map>] [--rpc]
 
 On a server that already has its level loaded (nothing is loaded here; get_map, which downloads the OpenDRIVE, is
 never called). For each count: spawns that many props in a 5 m grid around --x/--y (default: the spectator), then
 times --ticks ticks: world.tick() (the server's step and the snapshot it sends) and the client's work on each
 snapshot as the bridge does it (the ids of every actor in it), and destroys them. The props are static.prop.mesh with
 the most common mesh of the map's scenery.json (--map-dir), else --blueprint. Restores the world's settings.
-Prints a table and, with --json, writes it.
+--rpc adds the cost of the bridge's blocking calls per tick (batch, tick, light state). Prints a table and,
+with --json, writes it.
 """
 import argparse
 import json
@@ -57,6 +58,36 @@ def timed_ticks(world, n):
     return 1000 * t_tick / n, 1000 * t_snap / n, actors
 
 
+def rpc_mix(client, world, n, x0, y0, z):
+    """ms per tick for the bridge's pattern of blocking calls: a tick alone, a command batch (apply_batch_sync) then
+    the tick, and those plus one get_light_state (a server round trip in CARLA 1.0). A client far from the server
+    (an SSH tunnel) pays its round trip once per blocking call."""
+    lib = world.get_blueprint_library()
+    bp = lib.filter("vehicle.*")[0]
+    tf = carla.Transform(carla.Location(x=x0, y=y0, z=z))
+    car = world.try_spawn_actor(bp, tf)
+    if car is None:
+        print("rpc mix: no car spawned")
+        return {}
+    car.set_simulate_physics(False)
+    out = {}
+    try:
+        world.tick()
+        for name in ("tick", "batch+tick", "batch+tick+light"):
+            t0 = time.perf_counter()
+            for _ in range(n):
+                if name != "tick":
+                    client.apply_batch_sync([carla.command.ApplyTransform(car.id, tf)] * 20, False)
+                world.tick()
+                if name.endswith("light"):
+                    car.get_light_state()
+            out[name] = round(1000 * (time.perf_counter() - t0) / n, 2)
+            print(f"rpc mix {name:18s} {out[name]:7.2f} ms per tick")
+    finally:
+        car.destroy()
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--host", default="127.0.0.1")
@@ -70,6 +101,7 @@ def main():
     ap.add_argument("--y", type=float, default=None)
     ap.add_argument("--z", type=float, default=None)
     ap.add_argument("--json", default=None)
+    ap.add_argument("--rpc", action="store_true", help="also the per-tick cost of the bridge's blocking calls")
     a = ap.parse_args()
 
     client = carla.Client(a.host, a.port)
@@ -101,6 +133,8 @@ def main():
                   f"snapshot ids {snap_ms:6.2f} ms")
             if ids:
                 client.apply_batch_sync([carla.command.DestroyActor(i) for i in ids], True)
+        if a.rpc:
+            rows.append({"rpc_mix": rpc_mix(client, world, a.ticks, x0, y0, z)})
     finally:
         world.apply_settings(before)
     if a.json:
