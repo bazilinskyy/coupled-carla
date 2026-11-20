@@ -217,3 +217,28 @@ def set_manual_exposure(bp, shutter):
         bp.set_attribute("exposure_mode", "manual")
     if bp.has_attribute("shutter_speed"):
         bp.set_attribute("shutter_speed", str(shutter))
+
+
+_MAPS = {}
+
+
+def cache_maps(carla_module):
+    """World.get_map() once per episode instead of once per call. Each call fetches the map's whole OpenDRIVE from the
+    server and parses it: on the EhvCity twin (495 MB) 18-35 s, five to seven times before a trial's first tick.
+    Keyed by the episode id (a new one after every load_world), so a reloaded or other map is fetched again; only the
+    latest map is kept. Idempotent."""
+    world_cls = carla_module.World
+    if getattr(world_cls, "_coupled_map_cache", False):
+        return
+    fetch = world_cls.get_map
+
+    def get_map(self):
+        key = self.id
+        cmap = _MAPS.get(key)
+        if cmap is None:
+            cmap = fetch(self)
+            _MAPS.clear()
+            _MAPS[key] = cmap
+        return cmap
+    world_cls.get_map = get_map
+    world_cls._coupled_map_cache = True

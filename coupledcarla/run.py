@@ -360,6 +360,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         else:
             world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery,
                                keep_lights=tc["simulation"]["tls_manager"] == "carla")
+        if tc["map"].get("carla_level"):     # a baked level's OpenDRIVE fetched once, not per get_map() (compat.py)
+            compat.cache_maps(carla)
         if town:      # the town's buildings and trees from its environment objects (sound, drones)
             towns.environment(world, mdir, client.get_server_version(), log)
         wx = set_weather(world, tc["simulation"], config.place(tc), mdir / "real", log)

@@ -321,3 +321,26 @@ def test_plain_tick_unchanged_without_the_switches(mods, monkeypatch):
     sumo = _StepSumo(mods, {})
     s, _ = _bridge(mods, monkeypatch, sumo, 1)
     assert s.pipelined is False
+
+
+# -- the map cache (compat.cache_maps) -------------------------------------------------------------------------------
+
+def test_get_map_fetched_once_per_episode(monkeypatch):
+    from coupledcarla import compat
+    fetched = []
+
+    class World:
+        def __init__(self, episode):
+            self.id = episode
+
+        def get_map(self):
+            fetched.append(self.id)
+            return f"map of {self.id}"
+    monkeypatch.setattr(compat, "_MAPS", {})
+    mod = types.SimpleNamespace(World=World)
+    compat.cache_maps(mod)
+    compat.cache_maps(mod)                       # idempotent: not wrapped twice
+    a, b = World(7), World(7)                    # two World objects of the same episode
+    assert a.get_map() == b.get_map() == "map of 7" and fetched == [7]
+    assert World(8).get_map() == "map of 8" and fetched == [7, 8]     # after a load_world: fetched again
+    assert World(7).get_map() == "map of 7" and fetched == [7, 8, 7]  # only the latest kept
