@@ -28,7 +28,11 @@ class Autopilot:
     B_PLAN = 2.5        # m/s^2: the deceleration it plans with to be slow enough at a curve ahead
 
     def __init__(self, vehicle, target_speed=40.0, seed=None):
-        sys.path.append(os.path.join(os.environ["CARLA_ROOT"], "PythonAPI", "carla"))
+        root = os.environ.get("CARLA_ROOT")
+        if not root:
+            raise SystemExit("the autopilot driver (--input bot / autopilot) needs CARLA's agents: set CARLA_ROOT to a "
+                             "CARLA folder with PythonAPI/carla/agents (tools/station_win.cmd sets it on Windows)")
+        sys.path.append(os.path.join(root, "PythonAPI", "carla"))
         import random
         import zlib
         import agents.navigation.basic_agent as basic_agent
