@@ -178,8 +178,10 @@ def region(bbox):
     return "other"
 
 
-def default_share(highway, reg, lanes_one_way, bgt_covered=False, bgt_strip=False):
-    p = DEFAULT_SIDE.get(reg, DEFAULT_SIDE["other"]).get(highway or "", 0.0)
+def default_share(highway, reg, lanes_one_way, bgt_covered=False, bgt_strip=False, scale=1.0):
+    """Share of a street side with kerb parking where nothing is mapped; scale (map.scenery.parked_default_scale,
+    the realism pilot's lever) multiplies the region's table, capped at 1."""
+    p = min(1.0, scale * DEFAULT_SIDE.get(reg, DEFAULT_SIDE["other"]).get(highway or "", 0.0))
     if lanes_one_way >= 2:
         p = 0.0
     if bgt_covered and not bgt_strip:
@@ -560,6 +562,7 @@ def median_side(lefthand):
 def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
     """parked.json: every stall (kerb and car park) with its car, zone and draw; returns counts for meta.json."""
     import carla
+    default_scale = float(((cfg.get("map") or {}).get("scenery") or {}).get("parked_default_scale", 1.0))
     from shapely.geometry import LineString, Point
     from . import fleet
     from . import realworld as rw
@@ -852,7 +855,8 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
                 elif on_parking_lane:       # its width tells the orientation, as for parking areas
                     d = outer.lane_width
                     src, orient = "parking_lane", "parallel" if d < 3.2 else "diagonal" if d < 4.3 else "perpendicular"
-                elif _u(road, sec, side, "side") < default_share(highway, reg_name, n_drive, bgt_data is not None):
+                elif _u(road, sec, side, "side") < default_share(highway, reg_name, n_drive, bgt_data is not None,
+                                                                   scale=default_scale):
                     src, orient = "default", "parallel"
             if src is None:
                 counts["side_none"] += 1

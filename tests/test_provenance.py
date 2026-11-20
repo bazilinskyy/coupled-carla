@@ -106,3 +106,15 @@ def test_tile_grid_covers_the_square_near_scale_one():
     xs = sorted({dx for (dx, _), _ in copies})
     assert xs == [-10.0, 10.0]
     assert len(scenery.tile_grid((5.0, 5.0, 0.1), 40.0)) == 36        # at most 6 a side
+
+
+def test_parked_default_scale():
+    import importlib
+    import sys
+    import types
+    sys.modules.setdefault("carla", types.ModuleType("carla"))
+    parking = importlib.import_module("coupledcarla.parking")
+    base = parking.default_share("tertiary", "europe", 1)
+    assert parking.default_share("tertiary", "europe", 1, scale=1.5) == min(1.0, 1.5 * base)
+    assert parking.default_share("residential", "europe", 1, scale=2.0) == 1.0
+    assert parking.default_share("tertiary", "europe", 2, scale=2.0) == 0.0     # two lanes one way: none
