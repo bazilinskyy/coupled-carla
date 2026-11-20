@@ -67,9 +67,25 @@ def census_and_evidence(client, world, args, radius, out_dir):
         bp = lib.find("sensor.camera.rgb")
         bp.set_attribute("image_size_x", "1280")
         bp.set_attribute("image_size_y", "720")
-        if bp.has_attribute("exposure_mode"):
+        # exposure: the camera's own auto exposure by default (a daytime manual exposure renders a night black);
+        # --exposure manual keeps it fixed for the off/on comparison at a night shutter (1/30 s, ISO 1600)
+        if args.exposure == "manual" and bp.has_attribute("exposure_mode"):
             bp.set_attribute("exposure_mode", "manual")
-        cam = world.spawn_actor(bp, carla.Transform(sp.location + carla.Location(z=2.0), sp.rotation))
+            for k, v in (("shutter_speed", "30"), ("iso", "1600"), ("fstop", "1.8")):
+                if bp.has_attribute(k):
+                    bp.set_attribute(k, v)
+        # look along the road from next to the nearest lit lamp, so its light is in the frame
+        at = carla.Transform(sp.location + carla.Location(z=2.0), sp.rotation)
+        if street:
+            near = min(street, key=lambda li: li.location.distance(sp.location))
+            wp = cmap.get_waypoint(near.location, project_to_road=True)
+            if wp is not None:
+                at = carla.Transform(wp.transform.location + carla.Location(z=2.0), wp.transform.rotation)
+            res["camera_to_nearest_lamp_m"] = round(near.location.distance(at.location), 1)
+        inten = sorted(li.intensity for li in street)
+        if inten:
+            res["intensity_min_median_max"] = [round(inten[0], 1), round(inten[len(inten) // 2], 1), round(inten[-1], 1)]
+        cam = world.spawn_actor(bp, at)
         got = {}
         cam.listen(lambda im: got.__setitem__("img", im))
 
@@ -78,10 +94,11 @@ def census_and_evidence(client, world, args, radius, out_dir):
             t0 = time.time()
             while "img" not in got and time.time() - t0 < 10:
                 world.wait_for_tick(5.0)
-            for _ in range(3):           # let the frame after the change settle
+            t1 = time.time()             # let the change and the auto exposure settle (~4 s)
+            while time.time() - t1 < 4.0:
                 world.wait_for_tick(5.0)
             got.pop("img", None)
-            while "img" not in got and time.time() - t0 < 20:
+            while "img" not in got and time.time() - t0 < 30:
                 world.wait_for_tick(5.0)
             return got.get("img")
         lm.turn_off(street)
@@ -113,6 +130,7 @@ def main(argv=None):
     ap.add_argument("--sun", type=float, default=-30.0)
     ap.add_argument("--spawn-index", type=int, default=0)
     ap.add_argument("--no-fps", action="store_true", help="census and evidence only")
+    ap.add_argument("--exposure", default="auto", choices=["auto", "manual"])
     ap.add_argument("--out", required=True)
     args = ap.parse_args(argv)
     import os
