@@ -51,6 +51,7 @@ logs/stations/<role>_<time>_cues.csv.
 import argparse
 import csv
 import math
+import os
 import socket
 import sys
 import threading
@@ -74,6 +75,32 @@ VIEWS = {   # driver and passenger: the car's measured seats (cockpit.actor_eye)
 EYE = 0.72        # metres above a walker's actor origin (its centre) to its eyes
 EXIT_TRIAL_DONE, EXIT_HOST_CLOSED, EXIT_QUIT = 0, 3, 4
 
+
+
+class _Profile:
+    """COUPLED_CARLA_PROFILE_DIR set: the trial process runs under cProfile and dumps its stats there every 10 s
+    (station_<pid>.prof; a trial ends the process at once, so the last dump is at most 10 s old). For finding where
+    a station's frame time goes; off otherwise."""
+
+    def __init__(self):
+        d = os.environ.get("COUPLED_CARLA_PROFILE_DIR")
+        self.p = None
+        if d:
+            import cProfile
+            self.path = Path(d) / f"station_{os.getpid()}.prof"
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.p, self.last = cProfile.Profile(), time.time()
+            self.p.enable()
+
+    def maybe_dump(self):
+        if self.p is not None and time.time() - self.last >= 10.0:
+            self.p.disable()
+            self.p.dump_stats(str(self.path))
+            self.p.enable()
+            self.last = time.time()
+
+
+PROFILE = None
 
 
 def frame_rgb_view(raw, width, height):
@@ -528,6 +555,8 @@ class Station:
                              f"{self.image_lag[-1]:.1f}" if self.image_lag else "", *cells])
         self.frames += 1
         self.fps_n += 1
+        if PROFILE is not None:
+            PROFILE.maybe_dump()
         if kind == "pedestrian" and self.frames % 10 == 0:      # where the pedestrian looks (eye contact)
             head = self.vr.head_yaw() if self.vr is not None else 0.0      # VR: the head turns on the body
             self.control.send({"type": "gaze", "yaw": round(self.heading + head, 1)})
@@ -867,6 +896,8 @@ def main():
         import signal
         if hasattr(signal, "SIGUSR1"):      # kill -USR1 <pid> prints every thread's stack (a hung station)
             faulthandler.register(signal.SIGUSR1, all_threads=True)
+        global PROFILE
+        PROFILE = _Profile() if os.environ.get("COUPLED_CARLA_PROFILE_DIR") else None
         raise SystemExit(Station(args).run())
     # Supervisor: every trial runs in a fresh child process. CARLA's client library can abort a process whose
     # server goes away (the host restarts the server for every trial); a child that dies that way after its

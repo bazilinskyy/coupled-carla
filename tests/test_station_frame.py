@@ -25,3 +25,17 @@ def test_bgra_buffer_shows_like_the_rgb_copy():
     assert new.shape == (w, h, 3) and (new == old).all()
     # a composited frame (no camera buffer) still goes through the RGB array
     assert (pygame.surfarray.array3d(frame_surface(pygame, None, rgb)) == old).all()
+
+
+def test_profile_dumps_only_when_asked(tmp_path, monkeypatch):
+    from coupledcarla import station
+    monkeypatch.delenv("COUPLED_CARLA_PROFILE_DIR", raising=False)
+    assert station._Profile().p is None
+    monkeypatch.setenv("COUPLED_CARLA_PROFILE_DIR", str(tmp_path / "prof"))
+    p = station._Profile()
+    sum(i * i for i in range(1000))
+    p.last -= 11.0
+    p.maybe_dump()
+    p.p.disable()
+    import pstats
+    assert pstats.Stats(str(p.path)).total_calls > 0
