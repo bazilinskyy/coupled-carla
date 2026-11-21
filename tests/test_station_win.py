@@ -16,6 +16,8 @@ def test_launcher_and_setup_scripts():
     run, setup = run.decode(), setup.decode()
     assert '-m coupledcarla.station --host 127.0.0.1 %*' in run         # later options win: --host can be overridden
     assert "station_venv" in run and 'cd /d "%~dp0.."' in run
+    assert 'if "%STATION_VENV%"=="" set STATION_VENV=%CC58%\\station_venv' in run      # another venv on request
+    assert '"%STATION_VENV%\\Scripts\\python.exe" -m coupledcarla.station' in run
     assert "cp310-win_amd64.whl" in setup and "UV_PYTHON_INSTALL_DIR=%CC58%\\uvpython" in setup
     assert "--user" not in setup and "setx" not in setup.lower()        # nothing system-wide or per-user global
 

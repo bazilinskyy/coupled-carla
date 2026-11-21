@@ -8,5 +8,7 @@ setlocal
 if "%CC58%"=="" set CC58=C:\cc58
 rem the bot driver (--input bot) plans its route with CARLA's agents (PythonAPI\carla\agents of the package)
 if "%CARLA_ROOT%"=="" set CARLA_ROOT=%CC58%\carla\Build\Package\Carla-1.0-Win64-Shipping
+rem another venv (STATION_VENV), e.g. one with a patched client wheel
+if "%STATION_VENV%"=="" set STATION_VENV=%CC58%\station_venv
 cd /d "%~dp0.."
-"%CC58%\station_venv\Scripts\python.exe" -m coupledcarla.station --host 127.0.0.1 %*
+"%STATION_VENV%\Scripts\python.exe" -m coupledcarla.station --host 127.0.0.1 %*
