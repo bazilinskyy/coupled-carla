@@ -780,13 +780,22 @@ def weather_at(lat, lon, when, cache_dir=None):
         if cached:
             cached.parent.mkdir(parents=True, exist_ok=True)
             cached.write_text(json.dumps(data))
-    off = data.get("utc_offset_seconds", 0)
+    # Open-Meteo gives one utc_offset_seconds per response: the zone's offset when it was asked (in November:
+    # Amsterdam's +1 h), and its hourly times keep that one offset all year. The sun and the hour of a summer date
+    # must use that date's own offset (+2 h): the zone's rules (zoneinfo) give it; Open-Meteo's offset is only the
+    # frame of its hourly times. Until 2026-11-21 summer scenes got the sun of one hour later (realism pilot).
+    om_off = data.get("utc_offset_seconds", 0)
+    off = om_off
     if now:
+        local = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=om_off)
+        off = _zone_offset(data.get("timezone"), local, om_off)
         local = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=off)
     else:
         local = when
+        off = _zone_offset(data.get("timezone"), local, om_off)
     times = data["hourly"]["time"]
-    stamp = local.replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M")
+    om_local = local - timedelta(seconds=off - om_off)      # the same instant in Open-Meteo's hourly frame
+    stamp = om_local.replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M")
     i = times.index(stamp) if stamp in times else len(times) - 1
     rec = {k: v[i] for k, v in data["hourly"].items() if k != "time"}
     rec["precipitation_3h"] = sum(x or 0 for x in data["hourly"]["precipitation"][max(0, i - 2):i + 1])   # 3 h
@@ -794,6 +803,17 @@ def weather_at(lat, lon, when, cache_dir=None):
     rec["time"] = times[i]
     rec["timezone"] = data.get("timezone")
     return rec, local, off
+
+
+def _zone_offset(tzname, local, fallback):
+    """UTC offset (seconds) of a naive local datetime in an IANA zone (summer time included), else fallback."""
+    if not tzname:
+        return fallback
+    try:
+        from zoneinfo import ZoneInfo
+        return int(local.replace(tzinfo=ZoneInfo(tzname)).utcoffset().total_seconds())
+    except Exception:  # noqa: BLE001 - unknown zone or no tz database: Open-Meteo's offset
+        return fallback
 
 
 def sun_position(lat, lon, utc):

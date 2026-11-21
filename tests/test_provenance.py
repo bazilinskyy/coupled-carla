@@ -142,3 +142,12 @@ def test_density_factor_and_share():
         scenery._ring_xy = real_ring_xy
     assert 0.5 < share(60.0, 60.0) <= 1.0
     assert share(5000.0, 5000.0) == 0.0
+
+
+def test_summer_time_offset_for_open_meteo_frames():
+    from datetime import datetime
+    from coupledcarla import realworld as rw
+    assert rw._zone_offset("Europe/Amsterdam", datetime(2024, 10, 8, 16, 40), 3600) == 7200    # CEST
+    assert rw._zone_offset("Europe/Amsterdam", datetime(2024, 11, 8, 16, 40), 3600) == 3600    # CET
+    assert rw._zone_offset(None, datetime(2024, 10, 8, 16, 40), 3600) == 3600
+    assert rw._zone_offset("Not/AZone", datetime(2024, 10, 8, 16, 40), 3600) == 3600
