@@ -344,3 +344,20 @@ def test_get_map_fetched_once_per_episode(monkeypatch):
     assert a.get_map() == b.get_map() == "map of 7" and fetched == [7]
     assert World(8).get_map() == "map of 8" and fetched == [7, 8]     # after a load_world: fetched again
     assert World(7).get_map() == "map of 7" and fetched == [7, 8, 7]  # only the latest kept
+
+
+# -- the autopilot's red-light stop does not use CARLA's light actors -------------------------------------------------
+
+def test_autopilot_brakes_on_sumos_red_without_carla_light_actors():
+    """inputs.Autopilot (CARLA's BasicAgent with ignore_traffic_lights) brakes on the light state the runner gives it
+    from SUMO (signals.next_light), so a level without CARLA's light actors (EhvCity light-free) changes nothing."""
+    carla = pytest.importorskip("carla")
+    from coupledcarla import inputs
+    ap = object.__new__(inputs.Autopilot)
+    ap.agent = types.SimpleNamespace(run_step=lambda: carla.VehicleControl(throttle=0.6))
+    car = types.SimpleNamespace(get_velocity=lambda: carla.Vector3D(10.0, 0.0, 0.0))      # 36 km/h
+    for light, brakes in ((("tl1", 10.0, "r"), True), (("tl1", 10.0, "y"), True), (("tl1", 10.0, "G"), False),
+                          (("tl1", 80.0, "r"), False), (None, False)):
+        ap.light = light
+        ctl = ap.control(car)
+        assert (ctl.brake > 0 and ctl.throttle == 0) == brakes, light
