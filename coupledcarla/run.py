@@ -26,7 +26,7 @@ import yaml
 from . import analysis, compat, config, crowdpeds, drivermix, inputs, livingcity, mapbuild, nightlights, parking, \
     photoreal, reactions, realworld, season, soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, ehmi_inside, levels, livemap, multigpu, placement, stationux
+from . import ehmi_design, ehmi_inside, levels, livemap, multigpu, placement, staticactors, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -534,6 +534,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             from . import gbfs   # a trial at time "now": today's shared bikes and scooters
             gbfs.refresh_scenery(scenery, tc, mdir, geo, world.get_map(), log)
             scenery.update([a.get_location() for a in focus_actors])
+            # a server that omits static props (-carla-omit-static-actors) needs the patched client: checked once
+            staticactors.check_after_spawn(world, [i for ids in scenery.loaded.values() for i in ids][:20],
+                                           tc["server"], log)
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
                                                   f"{scenery.lights_radius:.0f} m" if scenery.light_bp else "")

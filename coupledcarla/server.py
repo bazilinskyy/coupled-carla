@@ -8,7 +8,7 @@ from pathlib import Path
 
 import carla
 
-from . import multigpu, season
+from . import multigpu, season, staticactors
 
 WINDOWS = os.name == "nt"
 
@@ -28,6 +28,7 @@ class Server:
 
     def start(self):
         sc = self.sc
+        staticactors.require_client(sc)     # the setting on with a stock client wheel: stop here, not later
         if sc["launch"] and not _port_open(sc["host"], sc["port"]):
             root = Path(os.environ["CARLA_ROOT"])
             # CARLA 0.9.x ships CarlaUE4.sh, CARLA 1.0 (UE 5.8) CarlaUnreal.sh
@@ -36,6 +37,7 @@ class Server:
             args = [str(exe), f"-carla-rpc-port={sc['port']}", f"-quality-level={sc['quality']}", "-nosound",
                     *(["-RenderOffScreen"] if sc["offscreen"] else []), *season.pack_args(exe.name),
                     *multigpu.primary_args(sc),     # -nullrhi when secondaries render the cameras
+                    *staticactors.server_args(sc),  # -carla-omit-static-actors (server.omit_static_actors)
                     *sc["extra_args"]]      # pack: the street-light blueprints of CARLA 1.0 (season.py)
             self.proc = subprocess.Popen(args, **({} if WINDOWS else {"start_new_session": True}))
             self.log(f"started {exe.name} (pid {self.proc.pid})")

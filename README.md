@@ -2164,6 +2164,23 @@ cyclist** (the bike carries an animated rider), which is why the level of detail
 Epic is about 20 ms, which is the whole budget at 50 Hz; on an unshared GPU (or at `--quality Low`) the trial
 runs in real time. Map building takes 2-4 s per city plus the Overpass downloads.
 
+**Static scenery and CARLA's per-tick world state (CARLA 1.0, opt-in, not upstream yet).**
+- **The cost.** Every scenery mesh is a CARLA actor, and a stock server sends every actor to every client on every
+  tick. On TUeCampus, 7,971 actors within 400 m cost about 8 ms per tick, mostly in sending and parsing that state.
+- **The opt-in.** `server.omit_static_actors: true` starts our server with `-carla-omit-static-actors`. A server and
+  client built from the `cc-static-snapshot` change of win5090's CARLA tree then send static props once, and again
+  only when they change.
+- **Measured** on win5090, 2026-11-21:
+  - a synchronous tick with 7,971 actors: 9.2 → 1.8 ms;
+  - a 60 Hz TUeCampus trial with the native station: real-time factor 0.54 → 0.93.
+- **Both sides must have the change.**
+  - With the setting on, a stock client wheel stops the run at start-up with a message that says which wheel to
+    install.
+  - With it off, a server started with the flag and a stock client also stop the run, after the first scenery
+    spawn (`coupledcarla/staticactors.py`).
+- **What changes.** `world.get_actors()`, provenance and toggling keep working. Only `world.get_snapshot()` no longer
+  lists static props.
+
 ## coupled-sim features in Coupled CARLA
 
 | coupled-sim | Coupled CARLA | Status |

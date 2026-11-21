@@ -96,6 +96,9 @@ DEFAULTS = {
         "quality": "Epic",
         "offscreen": True,
         "extra_args": [],
+        "omit_static_actors": False, # True: the server leaves static props out of the per-tick world state
+                                     # (-carla-omit-static-actors; needs a server AND client wheel with the
+                                     # cc-static-snapshot change, checked: staticactors.py). Off until upstream
         "multigpu": {                # CARLA 1.0 multi-GPU (multigpu.py): secondaries render the cameras
             "secondaries": [],       # {name, host, rpc_port (3000, 4000, ...), gpu, launch, roles: [station roles
                                      # whose camera it renders], root, packs, os, extra_args}; []: one server
