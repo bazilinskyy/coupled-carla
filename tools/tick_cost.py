@@ -111,7 +111,7 @@ def main(argv=None):
     scen = None
     try:
         if a.scenery:
-            from coupledcarla import season, scenery
+            from coupledcarla import scenery
             scen = scenery.Scenery(client, world, a.scenery, {"radius_m": 250.0}, log=print,
                                    season={"state": "leaf", "lights": {}, "lights_radius_m": 0.0})
             scen.update([path[0].location])     # the drive stays within ~200 m of the start
