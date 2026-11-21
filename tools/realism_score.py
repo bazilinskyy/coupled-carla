@@ -163,6 +163,27 @@ def cmd_freeze(args):
               + (f", aerial {c}" if aerial.available(c) else ", no open aerial photo"), flush=True)
 
 
+def cmd_freeze_top(args):
+    """A further frozen top-down set: the same squares (and aerial photos) as "top", the camera at another height
+    with the field of view that still covers the square (lower: less sky-atmosphere haze, more building lean)."""
+    cfg = load(args.pilot)
+    for p in places(cfg, args.places):
+        fz = Path(args.root) / "frozen" / p["name"]
+        src = fz / "top"
+        if not (src / "views.csv").exists():
+            continue
+        dst = fz / args.name
+        dst.mkdir(exist_ok=True)
+        vs = R.read_views(src / "views.csv")
+        half = float(cfg["tile_m"]) / 2
+        for v in vs:
+            v["height_m"] = args.height
+            v["hfov"] = round(math.degrees(2 * math.atan(half / args.height)), 3)
+        R.write_views(dst / "views.csv", vs)
+        shutil.copy(src / "run.json", dst / "run.json")
+        print(f"{p['name']}: {len(vs)} squares at {args.height:.0f} m ({vs[0]['hfov'] if vs else '-'} deg) in {dst}")
+
+
 def _round_dir(args, rnd, name):
     return Path(args.root) / "rounds" / rnd / name
 
@@ -180,11 +201,16 @@ def cmd_render(args):
                 shutil.copy(fz / f, out / f)
         for f in ("views.csv", "run.json"):
             shutil.copy(fz / "top" / f, out / "top" / f)
+        extra_sets = [t for t in args.top_sets.split(",")[1:] if (fz / t / "views.csv").exists()]
+        for t in extra_sets:
+            (out / t).mkdir(parents=True, exist_ok=True)
+            for f in ("views.csv", "run.json"):
+                shutil.copy(fz / t / f, out / t / f)
         exp = str(ROOT / (p["twin"] if args.twins else p["experiment"]))
         if args.twins:      # the twin's box is smaller than the 0.9.16 map's: only the views and squares inside it
             import realism_check as RC
             _, tdir, tb = RC._map(exp)
-            for f in (out / "views.csv", out / "top" / "views.csv"):
+            for f in [out / "views.csv", out / "top" / "views.csv"] + [out / t / "views.csv" for t in extra_sets]:
                 vs = [v for v in R.read_views(f) if tb[0] <= v["lat"] <= tb[2] and tb[1] <= v["lon"] <= tb[3]]
                 R.write_views(f, vs)
                 print(f"{p['name']}: {len(vs)} views in the twin's box ({f.parent.name})", flush=True)
@@ -193,6 +219,11 @@ def cmd_render(args):
                                 "--budget-min", str(args.budget_min)] + args.extra, check=False)
         print(f"== {p['name']}: top-down tiles", flush=True)
         subprocess.run(CHECK + ["render", exp, "--out", str(out / "top"), "--port", str(args.port), "--yaw-margin", "0",
+                                "--pitch-margin", "0", "--weather", "ClearNoon", "--moving-cars", "0",
+                                "--first-settle", "80", "--settle", "20"] + args.extra, check=False)
+        for t in extra_sets:
+            print(f"== {p['name']}: top-down set {t}", flush=True)
+            subprocess.run(CHECK + ["render", exp, "--out", str(out / t), "--port", str(args.port), "--yaw-margin", "0",
                                 "--pitch-margin", "0", "--weather", "ClearNoon", "--moving-cars", "0",
                                 "--first-settle", "80", "--settle", "20"] + args.extra, check=False)
 
@@ -235,23 +266,23 @@ def footprint_iou(mdir, render_row, sem):
     return out
 
 
-def _top_scores(p, fz, out, perc):
+def _top_scores(p, fz, out, perc, sub="top"):
     from PIL import Image
     _, mdir, _ = _map(p)
     rinfo = {}
-    if (out / "top" / "renders.csv").exists():
-        with (out / "top" / "renders.csv").open(newline="") as f:
+    if (out / sub / "renders.csv").exists():
+        with (out / sub / "renders.csv").open(newline="") as f:
             rinfo = {r["id"]: r for r in csv.DictReader(f)}
     rows = []
-    tiles = R.read_views(fz / "top" / "views.csv")
+    tiles = R.read_views(fz / sub / "views.csv")
     a_dir, prev_dir = fz / "top" / "aerial", fz / "top" / "aerial_prev"
     with_photo = [t["id"] for t in tiles if (a_dir / f"{t['id']}.jpg").exists()]
     ids = with_photo or [t["id"] for t in tiles]       # no open aerial photo: the footprint check only
     for k, tid in enumerate(ids):
         row = {"id": tid}
-        rp = out / "top" / "renders" / f"{tid}.png"
+        rp = out / sub / "renders" / f"{tid}.png"
         if not with_photo:
-            sp = out / "top" / "renders" / f"{tid}_sem.png"
+            sp = out / sub / "renders" / f"{tid}_sem.png"
             if sp.exists() and tid in rinfo:
                 row.update({f"render_{m}": v for m, v in footprint_iou(mdir, rinfo[tid],
                                                                          np.asarray(Image.open(sp))).items()})
@@ -261,7 +292,7 @@ def _top_scores(p, fz, out, perc):
         if rp.exists():
             row.update({f"render_{m}": v for m, v in aerial.topdown_metrics(real, np.asarray(
                 Image.open(rp).convert("RGB")), perc).items()})
-            sp = out / "top" / "renders" / f"{tid}_sem.png"
+            sp = out / sub / "renders" / f"{tid}_sem.png"
             if sp.exists() and tid in rinfo:
                 row.update({f"render_{m}": v for m, v in footprint_iou(mdir, rinfo[tid],
                                                                          np.asarray(Image.open(sp))).items()})
@@ -275,7 +306,7 @@ def _top_scores(p, fz, out, perc):
         rows.append(row)
     if not rows:
         return {}
-    with (out / "top" / "topdown.csv").open("w", newline="") as f:
+    with (out / sub / "topdown.csv").open("w", newline="") as f:
         keys = sorted({k for r in rows for k in r})
         wr = csv.DictWriter(f, fieldnames=keys)
         wr.writeheader()
@@ -335,6 +366,9 @@ def cmd_score(args):
             score["differences"] = dict(list(s["map"].get("differences", {}).items())[:8])
             score["pairs_scale"] = "own" if own_ok else args.pairs_ref
         score["top"] = _top_scores(p, fz, out, perc)
+        for sub in args.top_sets.split(",")[1:]:        # further top-down sets (e.g. top150: the same squares, lower)
+            if (out / sub).exists():
+                score[sub] = _top_scores(p, fz, out, perc, sub)
         (out / "score.json").write_text(json.dumps(score, indent=1))
         print(f"{p['name']}: street index {score.get('street_index', {}).get('spot_score')}, top veg IoU "
               f"{score['top'].get('render_veg_iou')} (random {score['top'].get('random_veg_iou')})", flush=True)
@@ -401,17 +435,23 @@ def main():
     p.add_argument("--labels", action="store_true", help="segment the real photos now")
     p.add_argument("--model", default="nvidia/segformer-b2-finetuned-cityscapes-1024-1024")
     p.add_argument("--device", default=None)
+    p = sub.add_parser("freeze-top", help="a further top-down set from the frozen squares at another height")
+    p.add_argument("name")
+    p.add_argument("height", type=float)
+    p.add_argument("--places", default=None)
     p = sub.add_parser("render")
     p.add_argument("round")
     p.add_argument("--places", default=None)
     p.add_argument("--port", type=int, default=2500)
     p.add_argument("--budget-min", type=float, default=30.0)
+    p.add_argument("--top-sets", default="top", help="top-down sets to render, e.g. top,top150")
     p.add_argument("--twins", action="store_true", help="the places' CARLA 1.0 twins (map 'twin'), not the 0.9.16 maps")
     p.add_argument("--render-args", default="", help="more realism_check render options, e.g. '--profile Dashcam'")
     p = sub.add_parser("score")
     p.add_argument("round")
     p.add_argument("--places", default=None)
     p.add_argument("--pairs-ref", default="ehv_centre", help="real-vs-real scale for places without panoramas")
+    p.add_argument("--top-sets", default="top,top150", help="top-down sets to score (the first is score['top'])")
     p.add_argument("--no-perceptual", dest="perceptual", action="store_false")
     p.add_argument("--dino-model", default="facebook/dinov2-base")
     p.add_argument("--device", default=None)
@@ -420,7 +460,8 @@ def main():
     p.add_argument("rounds", nargs="+")
     args = ap.parse_args()
     args.extra = getattr(args, "render_args", "").split()
-    {"freeze": cmd_freeze, "render": cmd_render, "score": cmd_score, "table": cmd_table}[args.cmd](args)
+    {"freeze": cmd_freeze, "freeze-top": cmd_freeze_top, "render": cmd_render, "score": cmd_score,
+     "table": cmd_table}[args.cmd](args)
 
 
 if __name__ == "__main__":
