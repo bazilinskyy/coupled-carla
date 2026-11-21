@@ -40,7 +40,8 @@ PILOT = ROOT / "experiments" / "pilot" / "realism_pilot.yaml"
 CHECK = [sys.executable, str(ROOT / "tools" / "realism_check.py")]
 STREET_KEYS = ("spot_score", "al_miou_coarse", "boundary_f", "dino_patch", "dino_global", "al_skyline_mae_deg",
                "colour_hist_sim")
-TOP_KEYS = ("veg_iou", "dino_patch", "dino_global", "colour_hist_sim", "bld_iou", "bld_iou_measured")
+TOP_KEYS = ("veg_iou", "dino_patch", "dino_global", "colour_hist_sim", "bld_iou", "bld_iou_measured", "veg_recall",
+            "green_excess_render", "green_excess_photo")
 CAM_H = 600.0
 MIN_PAIRS = 30          # a place's own real-vs-real scale needs this many neighbour and random pairs
 

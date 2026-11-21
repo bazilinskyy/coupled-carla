@@ -144,6 +144,13 @@ def topdown_metrics(real, render, perc=None):
     for k in ("lum_mean", "sat_mean", "edge_density"):
         if k in sa and k in sb:
             m[k + "_diff"] = round(float(sb[k] - sa[k]), 4)
+    va = vegetation(real)
+    if va.mean() > 0.01:        # where the photo is green: is the render green there too (lawns, crowns)?
+        m["veg_recall"] = round(float(vegetation(render)[va].mean()), 4)
+        rr = render[va].astype(np.float32).mean(0)
+        pr = real[va].astype(np.float32).mean(0)
+        m["green_excess_render"] = round(float(2 * rr[1] - rr[0] - rr[2]), 2)   # 2G - R - B of the mean colour
+        m["green_excess_photo"] = round(float(2 * pr[1] - pr[0] - pr[2]), 2)
     if perc is not None:
         m.update({k: round(v, 4) for k, v in perc(real, render).items()})
     return m
