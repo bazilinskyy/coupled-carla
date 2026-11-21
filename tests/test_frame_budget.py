@@ -61,3 +61,13 @@ def test_report_tables(tmp_path):
     assert "Errors: epic/TUeCampus/night/1280x720: boom" in text
     assert "| 600 | 120 | 118 | 118/118 | 110 | 4.0 -> 9.0 (x2.25) | 14.0 |" in text
     assert "| TUeCampus | day | 1920x1080+dlss | 27.2 | 32.8 |" in text
+
+
+def test_rpc_and_tick_stats():
+    import rpc_latency
+    import tick_cost
+    assert rpc_latency.stats([]) == {} and tick_cost.stats([]) == {}
+    r = rpc_latency.stats([0.3] * 95 + [40.0] * 5)
+    assert r["median"] == 0.3 and r["p95"] == 40.0 and r["n"] == 100
+    t = tick_cost.stats([10.0, 20.0, 30.0])
+    assert t["median"] == 20.0 and t["mean"] == 20.0
