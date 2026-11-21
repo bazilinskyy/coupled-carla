@@ -1430,6 +1430,9 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         # map.scenery.ground_meshes {kind: mesh}: another mesh for a ground kind (the realism pilot's candidates),
         # laid as a grid at about its own scale so that its pavers or tiles keep their size
         ground_over = dict(sc.get("ground_meshes") or {})
+        # map.scenery.paving_everywhere: the paving squares (pavers at their own size) for open ground in every
+        # region, not only the Netherlands (the realism pilot's round 32 candidate: render pavements read as road)
+        paving_all = bool(sc.get("paving_everywhere", False))
         bgt_tiles, changed, split, kinds, moves = 0, 0, 0, defaultdict(int), defaultdict(int)
 
         def lay(kind, x, y, T):
@@ -1457,7 +1460,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     lowered += 1
             tilt = (math.degrees(math.atan(zx)), -math.degrees(math.atan(zy)))
             mesh = (ground_over.get(kind) if ground_over.get(kind) in cat else None) or \
-                streetlook.ground_mesh(kind, T, cat, look.region) or ms.GROUND_MESH.get(kind, ms.PAVING)
+                streetlook.ground_mesh(kind, T, cat, "NL" if paving_all else look.region) or \
+                ms.GROUND_MESH.get(kind, ms.PAVING)
             if mesh not in cat:
                 mesh, kind = ms.PAVING, "open"
             dz = {"water": -0.5, "open": -0.02}.get(kind, 0.0)
