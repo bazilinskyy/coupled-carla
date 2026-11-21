@@ -87,6 +87,10 @@ def main(argv=None):
     ap.add_argument("--port", type=int, default=2000)
     ap.add_argument("--level", default="")
     ap.add_argument("--scenery", default=None)
+    ap.add_argument("--scenery-radius", type=float, default=250.0, help="scenery cells within this distance (m)")
+    ap.add_argument("--hold-s", type=float, default=0.0,
+                    help="after the cases, keep the scenery this long (prints HOLDING with the actor count), e.g. "
+                         "for timing world.get_actors() from another client")
     ap.add_argument("--cases", default="none,1920x1080,1920x1080+dlss,1280x720")
     ap.add_argument("--step", type=float, default=1 / 60)
     ap.add_argument("--speed", type=float, default=8.3)
@@ -112,15 +116,23 @@ def main(argv=None):
     try:
         if a.scenery:
             from coupledcarla import scenery
-            scen = scenery.Scenery(client, world, a.scenery, {"radius_m": 250.0}, log=print,
+            scen = scenery.Scenery(client, world, a.scenery, {"radius_m": a.scenery_radius}, log=print,
                                    season={"state": "leaf", "lights": {}, "lights_radius_m": 0.0})
             scen.update([path[0].location])     # the drive stays within ~200 m of the start
             for _ in range(5):
                 world.tick()
-        res = {"label": a.label, "server": client.get_server_version(), "step_s": a.step, "cases": {}}
+        res = {"label": a.label, "server": client.get_server_version(), "step_s": a.step, "cases": {},
+               "scenery_radius_m": a.scenery_radius if a.scenery else 0, "actors": len(world.get_actors())}
+        print("actors in the world:", res["actors"], flush=True)
         for spec in [c for c in a.cases.split(",") if c]:
             res["cases"][spec] = measure(client, world, spec, a, path)
             print(spec, json.dumps(res["cases"][spec]), flush=True)
+        if a.hold_s > 0:
+            print(f"HOLDING actors={len(world.get_actors())}", flush=True)
+            t_end = time.time() + a.hold_s
+            while time.time() < t_end:
+                world.tick()
+                time.sleep(0.05)
     finally:
         if scen is not None:
             scen.destroy()
