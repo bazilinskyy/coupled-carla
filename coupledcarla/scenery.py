@@ -1486,6 +1486,7 @@ class Scenery:
         self.fallbacks = dict(data.get("fallbacks") or {})     # mesh path -> spawned instead when it fails
         self.bp = world.get_blueprint_library().find("static.prop.mesh")
         self.n = 0
+        self.refused = {}       # mesh path -> placements the server refused (a mesh not cooked into its package)
         if self.always:
             self._spawn(("always",), self.always)
 
@@ -1517,6 +1518,7 @@ class Scenery:
                      f"light")
         if self.fallbacks:
             res = self._fall_back(items, res)
+        self._note_refused(items, res)
         for it, r in zip(items, res):        # which actor stands for which item (take_at: a parked car leaving)
             if not r.error:
                 self.actor_of[id(it)] = r.actor_id
@@ -1542,6 +1544,22 @@ class Scenery:
         self.n += len(ids)
         if self.on_spawn:
             self.on_spawn(ids)
+
+    def _note_refused(self, items, res):
+        """Logs each mesh the server refuses, the first time: static.prop.mesh fails silently for a mesh the
+        package lacks, and a missing ground square shows the lawn under it (win5090's 2026-11-20 package lacked
+        SideWalkCube and 380 more catalogue meshes; tools/cook_catalog_dirs.py)."""
+        bad = defaultdict(int)
+        for it, r in zip(items, res):
+            if r.error:
+                bad[self.meshes[it[0]]] += 1
+        new = [m for m in bad if m not in self.refused]
+        for m, k in bad.items():
+            self.refused[m] = self.refused.get(m, 0) + k
+        if new:
+            names = ", ".join(m.rsplit(".", 1)[-1] for m in new[:6]) + (", ..." if len(new) > 6 else "")
+            self.log(f"scenery: the server refused {sum(bad[m] for m in new)} placements of {len(new)} meshes "
+                     f"(not in this server's content?): {names}")
 
     def _mesh_cmd(self, it, tf):
         import carla
