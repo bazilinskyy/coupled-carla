@@ -433,7 +433,7 @@ clips:
       tools/landmarks.py) towards Neuron; 3DBAG buildings with facade styles, aerial-photo ground and roofs
     experiment: experiments/tue_campus_twin.yaml
     set: {simulation: {camera_profile: CoupledReal}}
-    time: "2026-10-14 13:00"
+    time: "2026-06-17 13:00"
     hold:
       driver: 15
     patch:
