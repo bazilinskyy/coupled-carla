@@ -217,8 +217,10 @@ SCENE_TAGS = {3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 26, 2
 FIXED_TAGS = {3, 4, 5, 6, 7, 8, 9, 20, 26, 28}       # the same without people and vehicles (an ego car is not a city)
 EMPTY_TAGS = {0, 1, 2, 10, 11, 22, 24, 25}           # unlabelled, roads, sidewalks, terrain, sky, other, ground
 LIMITS = {"scene": 0.10, "fixed": 0.05, "empty": 0.80, "dark": 35.0, "bright": 205.0, "white": 0.05, "black": 0.30,
-          "glow": 0.06}       # glow: the README's glaring passenger view had 16 %, eHMI pedestrian views 0.1-1.7 %,
-                              # colourful street scenes and a sunset sky up to 1.5 %
+          "glow": 0.06}       # glow: the README's glaring passenger view had 10.8 %, the sunlit red-brick junction
+                              # with a blue car on the TU/e campus 3.2 % (at max channel >= 180 they were 16 and 8.7 %:
+                              # that vivid but not glaring frame was rejected); eHMI views and sunset skies lower
+GLOW_MIN = 200      # max channel of a glaring pixel
 
 
 def semantic_shares(tags):
@@ -233,13 +235,13 @@ def semantic_shares(tags):
 
 def image_stats(rgb, tags=None):
     """{mean, white, black, glow} of an H x W x 3 uint8 image: mean luminance, clipped-white and crushed-black
-    shares, and the share of bright, strongly coloured pixels (max channel >= 180, max - min >= 80: an eHMI or a
-    debug drawing glaring with its bloom), outside the sky when the semantic tags are given."""
+    shares, and the share of bright, strongly coloured pixels (max channel >= GLOW_MIN, max - min >= 80: an eHMI or
+    a debug drawing glaring with its bloom), outside the sky when the semantic tags are given."""
     import numpy as np
     a = np.asarray(rgb).astype(np.int16)
     lum = 0.2126 * a[..., 0] + 0.7152 * a[..., 1] + 0.0722 * a[..., 2]
     mx, mn = a.max(-1), a.min(-1)
-    glow = (mx >= 180) & (mx - mn >= 80)
+    glow = (mx >= GLOW_MIN) & (mx - mn >= 80)
     if tags is not None:
         glow &= np.asarray(tags) != 11
     return {"mean": float(lum.mean()), "white": float((mn >= 250).mean()), "black": float((mx <= 8).mean()),
