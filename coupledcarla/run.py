@@ -26,7 +26,7 @@ import yaml
 from . import analysis, compat, config, crowdpeds, drivermix, inputs, livingcity, mapbuild, nightlights, parking, \
     photoreal, reactions, realworld, season, soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, ehmi_inside, levels, livemap, multigpu, placement, stationux
+from . import ehmi_design, ehmi_inside, levels, livemap, multigpu, placement, plates, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -192,6 +192,7 @@ def spawn_vehicle(world, geo, p, log):
     cmap = world.get_map()
     bp = compat.find(world, p.get("vehicle", "vehicle.lincoln.mkz_2020"), "passenger")
     bp.set_attribute("role_name", p["role"])
+    plates.tag(bp)
     sp = p.get("spawn") or {}
     if "lat" in sp:
         x, y = geo.to_carla(sp["lat"], sp["lon"])
@@ -315,6 +316,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     geo = Geo(mdir / "geo.net.xml")
     if not tc["map"].get("bbox"):   # a map built from an OpenDRIVE file: its box is in meta.json
         tc["map"]["bbox"] = json.loads((mdir / "meta.json").read_text())["bbox"]
+    plates.setup(tc, mdir, log)                # country number plates on the vehicles (plates.py)
     town = tc["map"].get("carla_town")       # a CARLA standard map (towns.py)
     if towns.resolve_xy(tc, geo):            # points given as CARLA {x, y}
         log("points given as CARLA x, y converted to lat, lon")

@@ -202,6 +202,8 @@ class ScriptedCar:
         start = cmap.get_waypoint(pts[0], project_to_road=True, lane_type=carla.LaneType.Driving)
         bp = compat.find(world, cfg.get("vehicle", "vehicle.tesla.model3"), "passenger")
         bp.set_attribute("role_name", self.id)
+        from . import plates
+        plates.tag(bp)
         if bp.has_attribute("color") and cfg.get("color"):
             bp.set_attribute("color", cfg["color"])
         tf = start.transform

@@ -155,6 +155,8 @@ class BridgeHelper(object):
             blueprint.set_attribute('driver_id', driver_id)
 
         blueprint.set_attribute('role_name', 'sumo_driver')
+        from coupledcarla import plates   # country number plates
+        plates.tag(blueprint)
 
         logging.debug(
             '''[BridgeHelper] sumo vtype %s will be spawned in carla with the following attributes:

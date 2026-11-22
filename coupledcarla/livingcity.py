@@ -47,6 +47,7 @@ import random
 import zlib
 from pathlib import Path
 from .compat import left_lane, right_lane
+from . import plates
 
 SOURCES = {
     "moussaid2010": "Moussaid M, Perozo N, Garnier S, Helbing D, Theraulaz G (2010). The walking behaviour of "
@@ -1175,6 +1176,7 @@ class LivingCity:
                 return False
             bp, bp_id = got, got.id
             bp.set_attribute("role_name", "delivery")
+            plates.tag(bp)
             if bp.has_attribute("color"):
                 bp.set_attribute("color", rng.choice(["255,255,255", "250,250,250", "40,40,40", "200,200,205",
                                                       "190,20,20", "20,60,150"]))
@@ -1353,6 +1355,7 @@ class LivingCity:
                 continue
             bp = self.lib.filter(bp_id)[0]
             bp.set_attribute("role_name", "parked")
+            plates.tag(bp)
             car = self.world.try_spawn_actor(bp, carla.Transform(carla.Location(x=s["x"], y=s["y"],
                                                                                 z=wp.transform.location.z + 0.05),
                                                                  carla.Rotation(yaw=wp.transform.rotation.yaw)))

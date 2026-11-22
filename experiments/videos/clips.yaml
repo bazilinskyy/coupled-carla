@@ -442,7 +442,7 @@ clips:
           spawn: {lat: 51.44844, lon: 5.48535, heading: 90}
           route: [[51.44844, 5.48535], [51.44844, 5.49095]]
     start_s: 16
-    duration_s: 28
+    duration_s: 25
     camera: {kind: follow, target: driver, offset: [-9.0, 0, 3.2], look_ahead_m: 14, look_up_m: 3.0, smooth_s: 0.8}
     carla: '1.0'
   - name: twin_salamanca
