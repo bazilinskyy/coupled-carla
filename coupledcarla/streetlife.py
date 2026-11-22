@@ -41,6 +41,7 @@ LAMP_BIKE = 0.05           # share of lamp posts near shops with a bike leaning 
 CLINKER_OSM = {"paving_stones", "bricks", "brick", "clinker", "paved:bricks"}
 SETT_OSM = {"sett", "cobblestone", "unhewn_cobblestone", "cobblestone:flattened"}
 SURFACE_WIDTHS = (2, 3, 4, 6, 8, 12)
+NOT_CARRIAGEWAY = {"footway", "path", "cycleway", "steps", "bridleway", "corridor"}    # their surface paves no road
 SIGN_OF = {   # (OSM key, value) -> sign key (tools/street_props.SIGN_WORDS)
     ("shop", "bakery"): "bakkerij", ("amenity", "cafe"): "cafe", ("amenity", "bar"): "cafe",
     ("amenity", "pub"): "cafe", ("amenity", "restaurant"): "restaurant", ("shop", "hairdresser"): "kapper",
@@ -168,7 +169,7 @@ def stone_roads(pl, cat, cmap, carla, geo, xodr, bgt_data, ways, region):
     from shapely.geometry import LineString, Point, Polygon
     from shapely.strtree import STRtree
     from .streetlook import xodr_lanes
-    shapes, kinds = [], []
+    shapes, kinds, lines = [], [], []      # lines: an OSM way's line (its direction), None for a BGT surface
     if region == "NL" and bgt_data:
         for srf in bgt_data.get("surfaces", []):
             f = srf.get("f") or ""
@@ -182,21 +183,35 @@ def stone_roads(pl, cat, cmap, carla, geo, xodr, bgt_data, ways, region):
                     if not poly.is_empty:
                         shapes.append(poly)
                         kinds.append("clinker")
+                        lines.append(None)
     for w in ways:
-        surf = (w.get("tags") or {}).get("surface", "")
+        tags = w.get("tags") or {}
+        surf = tags.get("surface", "")
         kind = "sett" if surf in SETT_OSM else "clinker" if (surf in CLINKER_OSM and region == "NL") else None
-        if kind is None or len(w.get("geometry") or []) < 2:
+        if kind is None or len(w.get("geometry") or []) < 2 or tags.get("highway") in NOT_CARRIAGEWAY:
             continue
         line = LineString([geo.to_carla(g["lat"], g["lon"]) for g in w["geometry"]])
         shapes.append(line.buffer(4.0))
         kinds.append(kind)
+        lines.append(line)
     if not shapes:
         return {}
     tree = STRtree(shapes)
 
-    def kind_at(x, y):
+    def along_way(i, pt, yaw):
+        """The way runs within 30 degrees of yaw near pt (a path ending on the road does not pave it)."""
+        if yaw is None or lines[i] is None:
+            return True
+        d = lines[i].project(pt)
+        a, b = lines[i].interpolate(max(0.0, d - 1.0)), lines[i].interpolate(min(lines[i].length, d + 1.0))
+        if a.distance(b) < 0.1:
+            return True
+        ang = math.degrees(math.atan2(b.y - a.y, b.x - a.x))
+        return abs((ang - yaw + 90) % 180 - 90) <= 30
+
+    def kind_at(x, y, yaw=None):
         pt = Point(x, y)
-        hit = [kinds[i] for i in tree.query(pt) if shapes[i].contains(pt)]
+        hit = [kinds[i] for i in tree.query(pt) if shapes[i].contains(pt) and along_way(i, pt, yaw)]
         return ("sett" if "sett" in hit else "clinker") if hit else None
     # one strip across the whole carriageway (all its driving, parking and bidirectional lanes) per step along the
     # road's first right lane (else its first left one): a quarter of the actors of one strip per lane
@@ -249,7 +264,7 @@ def stone_roads(pl, cat, cmap, carla, geo, xodr, bgt_data, ways, region):
         if wp is None:
             continue
         a, b = width_of(wp)
-        got = strip_mesh(kind_at(*_offset(wp, (a + b) / 2)) or "clinker", b - a, cat)
+        got = strip_mesh(kind_at(*_offset(wp, (a + b) / 2), wp.transform.rotation.yaw) or "clinker", b - a, cat)
         if got is None:
             continue
         # evenly spaced, the first from the road's start, the last to its end (none reaches into a junction), each
@@ -286,7 +301,7 @@ def strip_at(pl, cat, kind_at, wp_at, width_of, out, rid, lid_at, c, L, s0, s1, 
         return False
     a, b = width_of(wp)
     cx, cy = _offset(wp, (a + b) / 2)
-    kind = kind_at(cx, cy)
+    kind = kind_at(cx, cy, wp.transform.rotation.yaw)
     if kind is None:
         return False
     got = strip_mesh(kind, b - a, cat)
