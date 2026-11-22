@@ -10,7 +10,9 @@ Steps (all with SUMO's netconvert; carla.Osm2Odr segfaults in 0.9.16 on Linux an
    that follows lanes can always go on (at the cut edge of the box, roads would otherwise end in the void).
 4. Pruned net -> OpenDRIVE (map.xodr), validated with carla.Map.
 5. OpenDRIVE -> SUMO net with CARLA's netconvert_carla.py (map.net.xml), so SUMO and CARLA share road ids.
-6. Scenery from real-world data (scenery.py, realworld.py): buildings, trees, street furniture, ground.
+6. Paved lanes: OSM brick and sett roads as OpenDRIVE lane materials (road_surfaces.py; map.road_surfaces: false
+   leaves them asphalt).
+7. Scenery from real-world data (scenery.py, realworld.py): buildings, trees, street furniture, ground.
 geo.net.xml keeps the projection, and CARLA (x, y) = (geo x, -geo y), see geo.py.
 
 With map.elevation, every road node gets its ground height from a terrain model (AHN in the Netherlands,
@@ -605,6 +607,12 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
 
     sumo_net(out, internal_junctions=mc.get("internal_junctions", False), smooth=mc.get("smooth_net", True),
              drop_uturns=mc.get("drop_uturns", False))
+    if mc.get("road_surfaces", True):       # brick and sett lanes as OpenDRIVE lane materials (road_surfaces.py)
+        try:
+            from . import road_surfaces
+            road_surfaces.annotate(out, log=log)
+        except Exception as err:  # noqa: BLE001 - plain asphalt lanes still drive
+            log(f"road surfaces not set ({type(err).__name__}: {err})")
     meta = {"name": mc["name"], "lefthand": bool(mc.get("lefthand")), "buildings": 0, "bbox": mc["bbox"],
             "built": time.strftime("%Y-%m-%d %H:%M:%S"),
             "files": {"osm": "map.osm", "geo_net": "geo.net.xml", "xodr": "map.xodr", "sumo_net": "map.net.xml"},
