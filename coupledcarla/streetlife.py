@@ -167,7 +167,7 @@ def stone_roads(pl, cat, cmap, carla, geo, xodr, bgt_data, ways, region):
     carriageways of open paving (NL) and OSM ways with such a surface tag. Returns {kind: strips}."""
     from shapely.geometry import LineString, Point, Polygon
     from shapely.strtree import STRtree
-    from .streetlook import along, xodr_lanes
+    from .streetlook import xodr_lanes
     shapes, kinds = [], []
     if region == "NL" and bgt_data:
         for srf in bgt_data.get("surfaces", []):
@@ -193,6 +193,11 @@ def stone_roads(pl, cat, cmap, carla, geo, xodr, bgt_data, ways, region):
     if not shapes:
         return {}
     tree = STRtree(shapes)
+
+    def kind_at(x, y):
+        pt = Point(x, y)
+        hit = [kinds[i] for i in tree.query(pt) if shapes[i].contains(pt)]
+        return ("sett" if "sett" in hit else "clinker") if hit else None
     # one strip across the whole carriageway (all its driving, parking and bidirectional lanes) per step along the
     # road's first right lane (else its first left one): a quarter of the actors of one strip per lane
     allowed = (carla.LaneType.Driving, carla.LaneType.Parking, carla.LaneType.Bidirectional)
@@ -220,22 +225,168 @@ def stone_roads(pl, cat, cmap, carla, geo, xodr, bgt_data, ways, region):
                 w = getattr(w, step_)()
                 seen += 1
         return (min(lo), max(hi)) if lo else (-wp.lane_width / 2, wp.lane_width / 2)
-    for wp in along(cmap, list(firsts.values()), lambda w: 1.9 * max(1.5, sum(map(abs, width_of(w))))):
-        loc = wp.transform.location
-        a, b = width_of(wp)
-        W = b - a
-        r = wp.transform.get_right_vector()
-        cx, cy = loc.x + r.x * (a + b) / 2, loc.y + r.y * (a + b) / 2
-        p = Point(cx, cy)
-        hit = [kinds[i] for i in tree.query(p) if shapes[i].contains(p)]
-        if not hit:
+
+    def wp_at(rid, lid, s):
+        try:
+            return cmap.get_waypoint_xodr(rid, lid, s)
+        except RuntimeError:
+            return None
+    runs = {}       # per road its lane sections in order: one run of strips over all of them (a run per section
+    for rid, lid, s0, s1 in firsts.values():        # began again at each section: strips 0.1 m apart, z-fighting)
+        runs.setdefault(rid, []).append((s0, s1, lid))
+    n_strip = 0
+    for rid, secs in runs.items():
+        secs.sort()
+        s_lo, s_hi = secs[0][0], secs[-1][1]
+
+        def lid_at(s, secs=secs):
+            return next((lid for a, b, lid in secs if a - 1e-6 <= s <= b + 1e-6), secs[-1][2])
+        first = wp_at(rid, secs[0][2], min(secs[0][1], s_lo + 0.05))
+        if first is None or first.is_junction:      # junctions: one even paving of their own (junction_paving)
             continue
-        kind = "sett" if "sett" in hit else "clinker"
-        got = strip_mesh(kind, W, cat)
+        sw = min(s_hi - 0.05, s_lo + 0.5)
+        wp = wp_at(rid, lid_at(sw), sw)
+        if wp is None:
+            continue
+        a, b = width_of(wp)
+        got = strip_mesh(kind_at(*_offset(wp, (a + b) / 2)) or "clinker", b - a, cat)
         if got is None:
             continue
-        pl.add("surface", got[0], cx, cy, wp.transform.rotation.yaw, got[1], z=loc.z)
-        out[kind] = out.get(kind, 0) + 1
+        # evenly spaced, the first from the road's start, the last to its end (none reaches into a junction), each
+        # overlapping the next by at least a twentieth (a strip is two widths long, street_props)
+        L = 2 * float(got[0].rsplit("_W", 1)[1]) * got[1]
+        length = s_hi - s_lo
+        n = 1 if length <= L else 1 + math.ceil((length - L) / (0.95 * L))
+        for k in range(n):
+            c = (s_lo + s_hi) / 2 if n == 1 else s_lo + L / 2 + k * (length - L) / (n - 1)
+            if strip_at(pl, cat, kind_at, wp_at, width_of, out, rid, lid_at, c, L, s_lo, s_hi, n_strip % 2):
+                n_strip += 1
+    for k, v in junction_paving(pl, cat, cmap, carla, kind_at, width_of, allowed).items():
+        out[k] = out.get(k, 0) + v
+    return out
+
+
+LIFT = 0.015        # strips stand this far over the OpenDRIVE road: a baked twin's road mesh lies a centimetre or so off
+JUNCTION_LIFT = 0.035       # junction tiles over both heights of the strips they meet (placements keep whole cm)
+
+
+def _offset(wp, d):
+    """(x, y) d metres right of a waypoint."""
+    loc, r = wp.transform.location, wp.transform.get_right_vector()
+    return loc.x + r.x * d, loc.y + r.y * d
+
+
+def strip_at(pl, cat, kind_at, wp_at, width_of, out, rid, lid_at, c, L, s0, s1, odd=0):
+    """One strip L m long centred at s = c on road rid (lid_at(s): its lane there): across the carriageway, pitched
+    with the road between its ends and lifted so that neither end sinks under it (flat 14 m strips at their middle's
+    height went under the road wherever it climbed: grey gaps between them); every other one 1 cm higher, so the
+    overlap of two strips does not z-fight. False where the road is not paved with stones there."""
+    wp = wp_at(rid, lid_at(c), c)
+    if wp is None:
+        return False
+    a, b = width_of(wp)
+    cx, cy = _offset(wp, (a + b) / 2)
+    kind = kind_at(cx, cy)
+    if kind is None:
+        return False
+    got = strip_mesh(kind, b - a, cat)
+    if got is None:
+        return False
+    sa, sb = max(s0 + 0.02, c - L / 2), min(s1 - 0.02, c + L / 2)
+    wa, wb = wp_at(rid, lid_at(sa), sa), wp_at(rid, lid_at(sb), sb)
+    pitch, z = 0.0, wp.transform.location.z
+    if wa is not None and wb is not None:
+        pa, pb = wa.transform.location, wb.transform.location
+        f = wp.transform.get_forward_vector()
+        dx, dy = pb.x - pa.x, pb.y - pa.y
+        dist = math.hypot(dx, dy)
+        if dist > 0.5:
+            sign = 1.0 if dx * f.x + dy * f.y >= 0 else -1.0
+            pitch = math.degrees(math.atan2(sign * (pb.z - pa.z), dist))
+        z = max(z, (pa.z + pb.z) / 2)
+    pl.add("surface", got[0], cx, cy, wp.transform.rotation.yaw, got[1], z=z + LIFT + 0.01 * odd,
+           tilt=(round(pitch, 2), 0.0) if abs(pitch) >= 0.05 else None)
+    out[kind] = out.get(kind, 0) + 1
+    return True
+
+
+def junction_paving(pl, cat, cmap, carla, kind_at, width_of, allowed, min_share=0.3):
+    """Junctions of stone-paved roads, paved evenly: tiles of the narrowest strip (2 x 4 m) on one grid aligned with
+    the junction's main road (its widest straight-through lane), starting where that road enters, over the
+    junction's paved area (its lanes' union, placement.junction_area); a tile where at least min_share of it lies
+    on that area. Strips laid along each lane through a junction crossed each other at all angles over a grey middle.
+    Returns {kind: tiles}."""
+    from shapely.geometry import Polygon
+    from .placement import junction_area
+    out = {}
+    pre = {"clinker": "SM_CC_NL_Clinker_W", "sett": "SM_CC_Any_Sett_W"}
+    seen = set()
+    for wp0 in cmap.generate_waypoints(4.0):
+        if not wp0.is_junction or wp0.junction_id in seen:
+            continue
+        seen.add(wp0.junction_id)
+        j = wp0.get_junction()
+        if j is None:
+            continue
+        strips, through = [], []
+        for t in allowed:
+            for a, _b in j.get_waypoints(t):
+                pts = [a] + [w for w in a.next_until_lane_end(1.0) if w.is_junction]
+                strips.append([(w.transform.location.x, w.transform.location.y, w.lane_width / 2) for w in pts])
+                turn = abs((pts[-1].transform.rotation.yaw - a.transform.rotation.yaw + 180) % 360 - 180)
+                if turn < 20 and t == carla.LaneType.Driving:
+                    lo, hi = width_of(a)
+                    through.append((hi - lo, len(pts), a))
+        area = junction_area(strips, pad=0.1)
+        if area is None or area.is_empty:
+            continue
+        c = area.centroid
+        kind = kind_at(c.x, c.y)
+        if kind is None:
+            continue
+        have = [w for w in SURFACE_WIDTHS if f"{pre[kind]}{w}" in cat]
+        if not have:
+            continue
+        tw = min(have)
+        mesh, tl = f"{pre[kind]}{tw}", 2.0 * tw
+        if through:
+            a = max(through, key=lambda x: (round(x[0], 1), x[1]))[2]
+            yaw = a.transform.rotation.yaw
+            lo, hi = width_of(a)
+            ox, oy = _offset(a, (lo + hi) / 2)
+            z0 = a.transform.location.z
+        else:       # the long side of the area's smallest enclosing rectangle
+            ring = list(area.minimum_rotated_rectangle.exterior.coords)
+            e = max(((ring[k], ring[k + 1]) for k in range(4)), key=lambda e: math.dist(*e))
+            yaw = math.degrees(math.atan2(e[1][1] - e[0][1], e[1][0] - e[0][0]))
+            ox, oy, z0 = c.x, c.y, wp0.transform.location.z
+        r = math.radians(yaw)
+        ux, uy, vx, vy = math.cos(r), math.sin(r), -math.sin(r), math.cos(r)
+        us, vs = [], []
+        for x, y in area.exterior.coords if area.geom_type == "Polygon" else \
+                (p for g in area.geoms for p in g.exterior.coords):
+            us.append((x - ox) * ux + (y - oy) * uy)
+            vs.append((x - ox) * vx + (y - oy) * vy)
+        n = 0
+        for i in range(math.floor(min(us) / tl), math.ceil(max(us) / tl)):
+            for k in range(math.floor(min(vs) / tw - 0.5), math.ceil(max(vs) / tw + 0.5)):
+                u, v = (i + 0.5) * tl, k * tw      # rows centred on the main road's middle
+                tx, ty = ox + u * ux + v * vx, oy + u * uy + v * vy
+                corners = [(tx + p * tl / 2 * ux + q * tw / 2 * vx, ty + p * tl / 2 * uy + q * tw / 2 * vy)
+                           for p, q in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+                tile = Polygon(corners)
+                if tile.intersection(area).area < min_share * tile.area:
+                    continue
+                zs = []
+                for x, y in corners + [(tx, ty)]:
+                    w = cmap.get_waypoint(carla.Location(x=x, y=y, z=z0), project_to_road=True,
+                                          lane_type=carla.LaneType.Driving)
+                    if w is not None and abs(w.transform.location.z - z0) < 2.0:
+                        zs.append(w.transform.location.z)
+                pl.add("surface", mesh, tx, ty, yaw, 1.0, z=(max(zs) if zs else z0) + JUNCTION_LIFT)
+                n += 1
+        if n:
+            out[kind] = out.get(kind, 0) + n
     return out
 
 
