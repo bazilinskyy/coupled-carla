@@ -1586,6 +1586,15 @@ class Scenery:
         self.cells = defaultdict(list)
         self.always = []
         items = data["items"]
+        # stone-road overlays (streetlife.stone_roads) where the server builds the paved lanes in their own material
+        # (road_surfaces.py: a generated map whose OpenDRIVE lanes carry <material surface>)
+        strips = {i for i, m in enumerate(self.meshes) if "_Clinker_W" in m or "_Sett_W" in m}
+        if strips:
+            from .road_surfaces import server_paints_surfaces
+            if server_paints_surfaces(world):
+                n = sum(1 for it in items if it is not None and it[0] in strips)
+                items = [None if it is not None and it[0] in strips else it for it in items]
+                log(f"scenery: {n} stone-road overlays left out: the server paves those lanes itself")
         season = season or {}
         if season.get("state", "leaf") != "leaf":
             from . import season as season_mod
