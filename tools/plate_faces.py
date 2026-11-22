@@ -13,8 +13,11 @@ that band, so the plate mesh keeps its UVs:
 * JP: white, green characters and rim, two rows: the issuing office and class (品川 300), a kana and the number
   (あ 12-34); US: New York's current plate (white to gold, blue NEW YORK, ABC-1234, EXCELSIOR).
 
-Long European plates (520 x 110 mm) are wider than CARLA's plate mesh (about 2:1), so they take its full width and
-a dark plate holder fills the rest; Japanese and US plates are 2:1 and fill it. Characters: Barlow Condensed
+Each registration is drawn three times: T_PlateF / T_PlateR, the front and rear plate alone at their real
+proportions (SIZES_CM: 520 x 110 mm in most of Europe, the Swiss front 300 x 80 mm without arms and rear 500 x
+110 mm with them, Finland 442 x 118, Japan 330 x 165, New York 305 x 152), which the server mounts at the real size
+in front of the vehicle's own plate (turned into a dark holder); and T_Plate, the plate in the band of CARLA's plate
+texture, for vehicles whose mesh the server cannot read. Characters: Barlow Condensed
 SemiBold (SIL Open Font License, --latin-font; DejaVu Sans Bold without it), fitted to each format's width;
 Japanese: Noto Sans JP (SIL Open Font License, --jp-font). The server puts them on vehicles whose blueprint attribute license_plate names the country
 (CARLA LicensePlates.cpp); tools/ue_plates.py imports them as /Game/CoupledCarla/Plates/<CC>/MI_Plate_<CC>_NN.
@@ -30,6 +33,15 @@ from PIL import Image, ImageDraw, ImageFont
 
 SIZE = 512
 BAND = (10, 148, 502, 385)          # CARLA's plate rectangle in the texture (x0, y0, x1, y1)
+_SIDE = "band"                      # band (CARLA's plate texture) | front | rear (a plate of its real size)
+_ASPECT = None                      # the plate's width / height for this side (None: 520 x 110 mm)
+_RECT = None                        # the plate drawn last (x0, y0, x1, y1), cropped for front / rear
+# real plate sizes (cm, width x height) per country and side: what the server mounts (CARLA LicensePlates.cpp)
+SIZES_CM = {"NL": {"front": (52.0, 11.0), "rear": (52.0, 11.0)}, "DE": {"front": (52.0, 11.0), "rear": (52.0, 11.0)},
+            "ES": {"front": (52.0, 11.0), "rear": (52.0, 11.0)}, "FR": {"front": (52.0, 11.0), "rear": (52.0, 11.0)},
+            "FI": {"front": (44.2, 11.8), "rear": (44.2, 11.8)},
+            "CH": {"front": (30.0, 8.0), "rear": (50.0, 11.0)},       # front: short, no arms; rear: long, arms
+            "JP": {"front": (33.0, 16.5), "rear": (33.0, 16.5)}, "US": {"front": (30.5, 15.2), "rear": (30.5, 15.2)}}
 HOLDER = (34, 35, 37)               # plate holder around a long plate
 EU_BLUE = (0, 51, 153)
 EU_YELLOW = (255, 204, 0)
@@ -84,11 +96,14 @@ def long_plate(bg, rim=None):
     """A canvas with the holder and an empty long plate: (canvas, draw, (x0, y0, x1, y1) of the plate)."""
     c = Image.new("RGBA", (SIZE, SIZE), HOLDER + (255,))
     d = ImageDraw.Draw(c)
+    global _RECT
     x0, x1 = BAND[0], BAND[2]
-    h = (x1 - x0) / 4.73
+    h = (x1 - x0) / (_ASPECT or 4.73)
     cy = (BAND[1] + BAND[3]) / 2
     y0, y1 = cy - h / 2, cy + h / 2
-    d.rounded_rectangle([x0, y0, x1, y1], radius=6, fill=bg, outline=rim or bg, width=3 if rim else 1)
+    k = SIZE / 512
+    d.rounded_rectangle([x0, y0, x1, y1], radius=6 * k, fill=bg, outline=rim or bg, width=int(3 * k) if rim else 1)
+    _RECT = (x0, y0, x1, y1)
     return c, d, (x0, y0, x1, y1)
 
 
@@ -218,12 +233,15 @@ def ch(rng, fp, jp=None):
     num = str(rng.randint(1, 999999) if rng.random() < 0.15 else rng.randint(10000, 999999))
     c, d, (x0, y0, x1, y1) = long_plate(WHITE, rim=(205, 205, 200))
     h, w = y1 - y0, x1 - x0
-    sw, sh = int(h * 0.62), int(h * 0.76)
-    sy = int(y0 + (h - sh) / 2)
-    c.alpha_composite(canton_arms("CH", sw, sh), (int(x0 + w * 0.028), sy))
-    c.alpha_composite(canton_arms(canton, sw, sh), (int(x1 - w * 0.028 - sw - 2), sy))
     cap = h * 0.70
-    tx0, tx1 = x0 + w * 0.028 + sw + w * 0.02, x1 - w * 0.028 - sw - w * 0.02
+    if _SIDE == "front":                                # the front plate: canton and number only
+        tx0, tx1 = x0 + w * 0.05, x1 - w * 0.05
+    else:
+        sw, sh = int(h * 0.62), int(h * 0.76)
+        sy = int(y0 + (h - sh) / 2)
+        c.alpha_composite(canton_arms("CH", sw, sh), (int(x0 + w * 0.028), sy))
+        c.alpha_composite(canton_arms(canton, sw, sh), (int(x1 - w * 0.028 - sw - 2), sy))
+        tx0, tx1 = x0 + w * 0.028 + sw + w * 0.02, x1 - w * 0.028 - sw - w * 0.02
     groups = [num[max(0, k - 3):k] for k in range(len(num), 0, -3)][::-1]
     parts = [canton, "·"] + groups
     unit = cap * 0.47                                   # a character's width (the plate face is condensed)
@@ -248,7 +266,9 @@ def jp(rng, fp, jpf):
     office, cls = rng.choice(JP_OFFICES), str(rng.randint(300, 599))
     kana, num = rng.choice(JP_KANA), rng.randint(1, 9999)
     numtxt = ("%d" % num) if num < 100 else "%2d-%02d" % (num // 100, num % 100)
+    global _RECT
     green = (0, 102, 60)
+    _RECT = BAND
     c = Image.new("RGBA", (SIZE, SIZE), HOLDER + (255,))
     d = ImageDraw.Draw(c)
     x0, y0, x1, y1 = BAND
@@ -261,7 +281,9 @@ def jp(rng, fp, jpf):
 
 
 def us(rng, fp, jp=None):
+    global _RECT
     reg = "%s-%04d" % ("".join(rng.choice(LETTERS) for _ in range(3)), rng.randint(0, 9999))
+    _RECT = BAND
     c = Image.new("RGBA", (SIZE, SIZE), HOLDER + (255,))
     x0, y0, x1, y1 = BAND
     grad = Image.new("RGBA", (x1 - x0, y1 - y0))
@@ -279,6 +301,30 @@ def us(rng, fp, jp=None):
     paste_center(c, text_block(reg, h * 0.42, (x1 - x0) * 0.8, blue, fp), (x0 + x1) / 2, y0 + h * 0.53)
     paste_center(c, text_block("EXCELSIOR", h * 0.09, (x1 - x0) * 0.3, blue, fp), (x0 + x1) / 2, y0 + h * 0.88)
     return c, reg
+
+
+def render(cc, side, rng, fp, jpf):
+    """One plate: side "band" = CARLA's 512 x 512 plate texture (the plate in its band, a holder around); "front" /
+    "rear" = the plate alone at its real proportions (SIZES_CM), 1024 px wide, drawn on a 2x canvas."""
+    global SIZE, BAND, _SIDE, _ASPECT
+    saved = SIZE, BAND
+    try:
+        _SIDE = side
+        if side == "band":
+            _ASPECT = None
+        else:
+            SIZE, BAND = 1024, tuple(v * 2 for v in BAND)
+            w, h = SIZES_CM[cc][side]
+            _ASPECT = w / h
+        img, reg = COUNTRIES[cc](rng, fp, jpf)
+        if side != "band":
+            x0, y0, x1, y1 = (int(round(v)) for v in _RECT)
+            w, h = SIZES_CM[cc][side]
+            img = img.crop((x0, y0, x1, y1)).resize((1024, int(round(1024 * h / w))), Image.LANCZOS)
+        return img, reg
+    finally:
+        SIZE, BAND = saved
+        _SIDE, _ASPECT = "band", None
 
 
 COUNTRIES = {"NL": nl, "ES": es, "FI": fi, "DE": de, "FR": fr, "CH": ch, "JP": jp, "US": us}
@@ -299,16 +345,22 @@ def main(argv=None):
         if cc == "JP" and not args.jp_font:
             print("JP skipped: no --jp-font")
             continue
-        rng = random.Random(f"{args.seed}-{cc}")
         d = args.out / cc
         d.mkdir(parents=True, exist_ok=True)
         index[cc] = []
         for i in range(args.num):
-            img, reg = COUNTRIES[cc](rng, fp, args.jp_font)
-            img.convert("RGB").save(d / f"T_Plate_{cc}_{i:02d}.png")
+            reg = None
+            for side in ("band", "front", "rear"):
+                img, reg_s = render(cc, side, random.Random(f"{args.seed}-{cc}-{i}"), fp, args.jp_font)
+                reg = reg or reg_s
+                name = {"band": "T_Plate", "front": "T_PlateF", "rear": "T_PlateR"}[side]
+                img.convert("RGB").save(d / f"{name}_{cc}_{i:02d}.png")
             index[cc].append(reg)
         print(cc, index[cc][:4])
-    (args.out / "plates.json").write_text(__import__("json").dumps(index, ensure_ascii=False, indent=1))
+    Image.new("RGB", (8, 8), (28, 29, 31)).save(args.out / "T_PlateHolder.png")   # the holder (ue_plates.py)
+    (args.out / "plates.json").write_text(__import__("json").dumps(
+        {"registrations": index, "sizes_cm": {k: v for k, v in SIZES_CM.items() if k in index}}, ensure_ascii=False,
+        indent=1))
 
 
 if __name__ == "__main__":
