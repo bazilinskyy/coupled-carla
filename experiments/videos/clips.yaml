@@ -439,6 +439,7 @@ clips:
     patch:
       participants:
         driver:
+          vehicle: vehicle.bmw.grandtourer     # a model with a plate surface: the Dutch plates show
           spawn: {lat: 51.44844, lon: 5.48535, heading: 90}
           route: [[51.44844, 5.48535], [51.44844, 5.49095]]
     start_s: 16
