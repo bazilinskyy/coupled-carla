@@ -91,3 +91,11 @@ def test_shop_sign_faces_the_street(cat10):
     fx, fy = math.cos(math.radians(yaw - 90)), math.sin(math.radians(yaw - 90))
     assert fy == pytest.approx(-1.0, abs=1e-6)
     assert [m for m, i in pl.mesh_index.items()] == ["SM_CC_NL_ShopSign_cafe"]
+
+
+def test_level_paving_reads_the_twin_marker(tmp_path):
+    x = tmp_path / "map.xodr"
+    x.write_text('<OpenDRIVE><header name="T"><userData code="twinPaving" value="clinker,sett"/></header></OpenDRIVE>')
+    assert streetlife.level_paving(x) == {"clinker", "sett"}
+    x.write_text('<OpenDRIVE><header name="T"/></OpenDRIVE>')
+    assert streetlife.level_paving(x) == set()

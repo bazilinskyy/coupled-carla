@@ -153,6 +153,15 @@ class Taken:
 
 # --- clinker and sett roads -----------------------------------------------------------------------------------------
 
+def level_paving(xodr):
+    """The paving styles a baked level has in its own road surface: carla-digitaltwins tools/road_paving.py marks
+    the OpenDRIVE header with <userData code="twinPaving" value="clinker,sett"/>. Empty set: none."""
+    import re
+    head = Path(xodr).read_text(encoding="utf-8", errors="replace")[:20000]
+    m = re.search(r'<userData\s+code="twinPaving"\s+value="([^"]*)"', head)
+    return {s for s in (m.group(1).split(",") if m else []) if s}
+
+
 def strip_mesh(kind, width, cat):
     """(mesh, scale) of the clinker or sett strip whose width is nearest `width` (scale within 0.8-1.25), or None."""
     pre = "SM_CC_NL_Clinker_W" if kind == "clinker" else "SM_CC_Any_Sett_W"
@@ -661,7 +670,10 @@ def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, blds, region, bgt_da
     near.points = lambda kinds: [(x, y, k) for x, y, k, _ in pts if k in kinds]
     ways = [e for e in data.get("elements", []) if e.get("type") == "way" and (e.get("tags") or {}).get("surface")]
     xodr = Path(mdir) / "map.xodr"
-    if _on(sc, "stone_roads") and xodr.exists():
+    built_in = level_paving(xodr) if xodr.exists() else set()
+    if built_in:        # a twin baked with its brick and sett roads in the road surface: no overlays on top
+        said.append("stone roads in the level itself (" + ", ".join(sorted(built_in)) + ")")
+    elif _on(sc, "stone_roads") and xodr.exists():
         got = stone_roads(pl, cat, cmap, carla, geo, xodr, bgt_data, ways, region)
         for k, v in got.items():
             pl.counts[f"surface_{k}"] = v

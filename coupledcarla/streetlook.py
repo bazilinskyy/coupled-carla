@@ -433,9 +433,32 @@ SMOOTHNESS = {"excellent": 0.2, "good": 0.6, "intermediate": 1.5, "bad": 4.0, "v
               "very_horrible": 16.0, "impassable": 20.0}
 
 
-def road_wear(pl, cat, cmap, carla, level=1.0, rough=None, step=6.0):
+def stone_paved(mdir, geo):
+    """(x, y) -> True on a carriageway OSM tags as bricks, paving stones or setts (asphalt cracks and patches do not
+    belong there), from the street-life extract (streetlife.osm_streetlife); None without it."""
+    from .streetlife import CLINKER_OSM, NOT_CARRIAGEWAY, SETT_OSM
+    f = Path(mdir) / "real" / "osm_streetlife.json"
+    if not f.exists():
+        return None
+    from shapely.geometry import LineString, Point
+    from shapely.strtree import STRtree
+    shapes = []
+    for e in json.loads(f.read_text()).get("elements", []):
+        tg = e.get("tags") or {}
+        if e.get("type") != "way" or tg.get("highway") in NOT_CARRIAGEWAY or len(e.get("geometry") or []) < 2:
+            continue
+        if tg.get("surface") in CLINKER_OSM | SETT_OSM:
+            shapes.append(LineString([geo.to_carla(g["lat"], g["lon"]) for g in e["geometry"]]).buffer(4.0))
+    if not shapes:
+        return None
+    tree = STRtree(shapes)
+    return lambda x, y: any(shapes[i].contains(Point(x, y)) for i in tree.query(Point(x, y)))
+
+
+def road_wear(pl, cat, cmap, carla, level=1.0, rough=None, step=6.0, skip=None):
     """Cracks, repair patches and potholes on the driving lanes, deterministic per spot. rough: {road id: factor}
-    from OSM smoothness (bad roads get more of everything, potholes most). Returns {kind: count}."""
+    from OSM smoothness (bad roads get more of everything, potholes most); skip(x, y): no wear there (stone-paved
+    roads). Returns {kind: count}."""
     have = {m: v for m, v in WEAR.items() if m in cat}
     out = {}
     if not have or level <= 0:
@@ -455,6 +478,8 @@ def road_wear(pl, cat, cmap, carla, level=1.0, rough=None, step=6.0):
             if kind == "pothole":      # in the wheel tracks
                 lat = (0.9 if _rng(wp.s, "side") < 0.5 else -0.9)
             x, y = tf.location.x + r.x * lat, tf.location.y + r.y * lat
+            if skip is not None and skip(x, y):
+                continue
             yaw = tf.rotation.yaw + (0.0 if kind == "patch" else _rng(wp.s, kind, "yaw") * 360.0)
             pl.add("wear", mesh, x, y, yaw, 0.8 + 0.4 * _rng(wp.s, kind, "s"), z=tf.location.z)
             out[kind] = out.get(kind, 0) + 1
@@ -641,7 +666,12 @@ def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log
                                                           if e.get("tags", {}).get("smoothness")])
         except Exception as err:  # noqa: BLE001 - no smoothness: the same wear everywhere
             log(f"scenery: OSM smoothness and car parks not read ({type(err).__name__}: {err})")
-        got = road_wear(pl, cat, cmap, carla, level, rough)
+        try:
+            skip = stone_paved(mdir, geo)
+        except Exception as err:  # noqa: BLE001 - without it, wear everywhere as before
+            log(f"scenery: stone-paved roads not read for the wear ({type(err).__name__}: {err})")
+            skip = None
+        got = road_wear(pl, cat, cmap, carla, level, rough, skip=skip)
         areas = []
         for e in list(els) + extra.get("elements", []):
             t = e.get("tags", {})
