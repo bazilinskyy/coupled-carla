@@ -423,6 +423,28 @@ clips:
       look_up_m: 1.5
       smooth_s: 0.8
     carla: '1.0'
+  - name: twin_tue_campus
+    title: De Zaale past Atlas, TU/e campus
+    place: TU/e campus, Eindhoven (CARLA 1.0 twin)
+    role: driver (autopilot), chase camera
+    when: weekday 13:00
+    agents: SUMO cars and cyclists on the twin's own roads
+    notice: driving east on De Zaale past Atlas (its glass curtain wall, mullions and fins, carla-digitaltwins
+      tools/landmarks.py) towards Neuron; 3DBAG buildings with facade styles, aerial-photo ground and roofs
+    experiment: experiments/tue_campus_twin.yaml
+    set: {simulation: {camera_profile: CoupledReal}}
+    time: "2026-10-14 13:00"
+    hold:
+      driver: 15
+    patch:
+      participants:
+        driver:
+          spawn: {lat: 51.44844, lon: 5.48535, heading: 90}
+          route: [[51.44844, 5.48535], [51.44844, 5.49095]]
+    start_s: 16
+    duration_s: 28
+    camera: {kind: follow, target: driver, offset: [-9.0, 0, 3.2], look_ahead_m: 14, look_up_m: 3.0, smooth_s: 0.8}
+    carla: '1.0'
   - name: twin_salamanca
     title: Plaza Mayor, Salamanca
     place: Salamanca, Spain (CARLA 1.0 twin)
