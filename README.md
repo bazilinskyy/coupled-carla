@@ -207,7 +207,9 @@ a terminal it asks for the place.
 editor and carla-digitaltwins, named in `~/.config/coupled-carla/twin.json`; [docs/make_a_map.md](docs/make_a_map.md#a-digital-twin-carla-10)),
 the map maker makes a CARLA 1.0 twin of the same square: real building shapes with facade styles, the aerial photo
 on the ground and roofs, the national terrain, CARLA's road materials with lane markings, from the best open data
-of the country ([A twin of any place](#a-twin-of-any-place)). The page shows a checkbox for it only where the
+of the country ([A twin of any place](#a-twin-of-any-place)). Every twin also gets the buildings' entrances, doors
+and steps from OSM, its road and pavement meshes closed where they left gaps (no dark slots across the street),
+and brick and cobblestone streets paved in the road surface itself. The page shows a checkbox for it only where the
 toolchain is configured. It writes `experiments/places/<name>_twin.yaml` (`map.opendrive`, `map.carla_level`) and
 the level `/Game/Carla/Maps/Twins/<Name>/<Name>` in the CARLA 1.0 tree (`coupledcarla/twinmaker.py`).
 
@@ -495,7 +497,7 @@ sun of a real place and time. Everything is fetched once at map build time and c
 | Building footprints | [Overture Maps](https://overturemaps.org) (OSM, Microsoft and Google ML buildings, Esri), GeoParquet on S3 read with DuckDB | building stand-ins, the trial viewer |
 | Building heights | [3DBAG](https://3dbag.nl) (Netherlands, lidar), [IGN BD TOPO](https://geoservices.ign.fr/bdtopo) (France), [NYC Open Data](https://data.cityofnewyork.us) (New York City), [MLIT PLATEAU](https://www.mlit.go.jp/plateau/) (Japan, via Pacific Spatial Solutions' GeoParquet on Source Cooperative); else Overture/OSM heights and floors; else a height by building kind | the height of each stand-in |
 | Trees | OSM `natural=tree` with genus, species, leaf type and height; `tree_row`; parks, gardens, woods | a matching CARLA tree (plane, lime, oak, pine, palm, ...) at the mapped size; planting at a density per kind of green |
-| Street furniture | OSM lamps, benches, bins, bus shelters, bollards, post boxes, bicycle racks, hydrants, fountains, ad columns, cabinets | the matching CARLA prop at the mapped spot, parallel to the road |
+| Street furniture | OSM lamps, benches, bins, bus shelters, bollards, post boxes, bicycle racks, hydrants, fountains, ad columns, cabinets, flagpoles | the matching prop at the mapped spot, parallel to the road; moved up to 1.5 m to the nearest free spot where the mapped one falls on a lane (Lyon: 268 more pieces) |
 | Road signs | OSM `highway=stop/give_way`, `traffic_sign` (NL, DE, FR, US codes; speed limits) | a sign on a post at the edge of the lane it governs, facing its traffic |
 | Ground cover | OSM landuse, leisure, natural, water | grass, water or paving tiles |
 | Ground cover (NL) | [BGT](https://www.pdok.nl/introductie/-/article/basisregistratie-grootschalige-topografie-bgt-) via PDOK's OGC API (CC0) | what covers the ground beside the roads: grass, bricks or tiles, asphalt or concrete, gravel or sand, water; mixed 40 m tiles split in four |
@@ -637,7 +639,9 @@ With the CoupledCarla content cooked into the server (`/Game/CoupledCarla/Street
 and `tools/ue_street_props.py`), the scenery uses a country's own props instead of CARLA's generic ones. In the
 Netherlands, lamp posts follow the street-light register's mast type and height (Eindhoven: 4 m post-top lamps, 6 m
 top-LED masts, 9 and 12 m arms, double arms, cast-iron lanterns). The scenery also places "Model Eindhoven" benches
-and bins in the register's colours, steel bollards (Amsterdammertjes in Amsterdam), rows of bike stands by capacity,
+and bins in the register's colours (places with their own furniture use theirs, `coupledcarla/data/furniture_areas.json`:
+the TU/e campus's anthracite post bins), flagpoles where OSM maps them, steel bollards (Amsterdammertjes in
+Amsterdam), rows of bike stands by capacity,
 shark-teeth give-way lines at NDW B6 signs, red asphalt on BGT cycle paths and cycle lanes, and grey concrete pavers
 on BGT open paving. The UK and Japan get their own lamp columns, and the UK cast litter bins. Everywhere there are
 cracks, repair patches, potholes (more where OSM tags a bad smoothness), oil spots in parking, autumn leaves under
