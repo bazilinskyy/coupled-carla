@@ -113,6 +113,13 @@
    0.8,
    0.35
   ],
+  "PoleWhite": [
+   0.78,
+   0.78,
+   0.77,
+   0.0,
+   0.4
+  ],
   "SignalBlack": [
    0.012,
    0.012,
@@ -154,13 +161,6 @@
    0.045,
    0.0,
    0.1
-  ],
-  "PoleWhite": [
-   0.78,
-   0.78,
-   0.77,
-   0.0,
-   0.4
   ],
   "PoleBlack": [
    0.015,
@@ -947,6 +947,32 @@
    "fallback": "SM_TrashCan02",
    "decal": false,
    "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_BinPost_Anthracite": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinPost_Anthracite.SM_CC_NL_BinPost_Anthracite",
+   "region": "NL",
+   "folder": "Static",
+   "role": "bin",
+   "ext": [
+    0.23,
+    0.193,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.027,
+    0.5
+   ],
+   "triangles": 240,
+   "slots": [
+    "Anthracite",
+    "BinBlack",
+    "Galvanised"
+   ],
+   "fallback": "SM_TrashCan02",
+   "decal": false,
+   "note": "campus / park bin on a post (TU/e campus: data/furniture_areas.json)",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
   },
   "SM_CC_NL_Nietje_x1": {
@@ -1988,6 +2014,34 @@
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
    "length": 1.85
+  },
+  "SM_CC_Any_Flagpole8": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Flagpole8.SM_CC_Any_Flagpole8",
+   "region": "Any",
+   "folder": "Static",
+   "role": "flagpole",
+   "ext": [
+    0.14,
+    0.14,
+    4.055
+   ],
+   "off": [
+    0.0,
+    0.0,
+    4.055
+   ],
+   "triangles": 380,
+   "slots": [
+    "Anthracite",
+    "BinGold",
+    "Concrete",
+    "Galvanised",
+    "PoleWhite"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "8 m aluminium flagpole (OSM man_made=flagpole)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
   },
   "SM_CC_Any_AdColumn_A": {
    "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_A.SM_CC_Any_AdColumn_A",

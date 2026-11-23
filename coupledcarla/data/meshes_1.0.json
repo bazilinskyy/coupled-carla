@@ -495,19 +495,6 @@
 22.43
 ]
 },
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt01/SM_Apt01_C.SM_Apt01_C": {
-"cat": "building",
-"ext": [
-6.6,
-10.17,
-7.34
-],
-"off": [
--0.24,
-0.01,
-7.74
-]
-},
 "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt04_A.SM_Apt04_A": {
 "cat": "building",
 "ext": [
@@ -532,32 +519,6 @@
 4.1,
 4.18,
 8.81
-]
-},
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt07/SM_Apt07_A.SM_Apt07_A": {
-"cat": "building",
-"ext": [
-4.85,
-14.48,
-4.31
-],
-"off": [
--0.02,
--0.01,
-4.37
-]
-},
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt08/SM_Apt08_A.SM_Apt08_A": {
-"cat": "building",
-"ext": [
-5.96,
-14.78,
-5.56
-],
-"off": [
--0.02,
-0.27,
-5.54
 ]
 },
 "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt15_A.SM_Apt15_A": {
@@ -610,58 +571,6 @@
 0.0,
 0.0,
 -20.6
-]
-},
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt18/SM_Apt18_A.SM_Apt18_A": {
-"cat": "building",
-"ext": [
-20.99,
-23.01,
-5.89
-],
-"off": [
--12.34,
--19.9,
-5.87
-]
-},
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt18/SM_Apt18_B.SM_Apt18_B": {
-"cat": "building",
-"ext": [
-21.31,
-23.01,
-5.9
-],
-"off": [
--1.48,
--6.43,
-5.87
-]
-},
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt18/SM_Apt18_C.SM_Apt18_C": {
-"cat": "building",
-"ext": [
-21.31,
-23.05,
-5.9
-],
-"off": [
--1.47,
--6.41,
-5.87
-]
-},
-"/Game/Carla/Static/Building/BackgroundBuildings/SM_Apt19_A.SM_Apt19_A": {
-"cat": "building",
-"ext": [
-23.99,
-10.0,
-12.0
-],
-"off": [
--23.99,
-6.0,
-12.0
 ]
 },
 "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Apt22.SM_Apt22": {
@@ -1351,19 +1260,6 @@
 0.0,
 -0.0,
 10.56
-]
-},
-"/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/00_IndividualComponents/Apt05/SM_Apt05_A.SM_Apt05_A": {
-"cat": "building",
-"ext": [
-3.98,
-5.08,
-12.58
-],
-"off": [
-0.1,
--0.12,
-12.59
 ]
 },
 "/Game/Carla/Static/Building/Buildings/BuildingComplete/00_LegacyAssets/SM_Skysc01.SM_Skysc01": {
@@ -5097,32 +4993,6 @@
 0.6
 ]
 },
-"/Game/Carla/Static/Static/SM_PlantPot01.SM_PlantPot01": {
-"cat": "furniture",
-"ext": [
-0.6,
-0.6,
-0.6
-],
-"off": [
--0.02,
--0.01,
-0.6
-]
-},
-"/Game/Carla/Static/Static/SM_PlantPot02.SM_PlantPot02": {
-"cat": "furniture",
-"ext": [
-0.55,
-0.55,
-0.62
-],
-"off": [
-0.03,
--0.03,
-0.62
-]
-},
 "/Game/Carla/Static/Static/SM_PlantPot02.SM_PlantPot02": {
 "cat": "furniture",
 "ext": [
@@ -5147,32 +5017,6 @@
 -0.04,
 -0.03,
 0.92
-]
-},
-"/Game/Carla/Static/Static/SM_PlantPot03.SM_PlantPot03": {
-"cat": "furniture",
-"ext": [
-0.97,
-0.98,
-0.92
-],
-"off": [
--0.04,
--0.03,
-0.92
-]
-},
-"/Game/Carla/Static/Static/SM_PlantPot04.SM_PlantPot04": {
-"cat": "furniture",
-"ext": [
-0.54,
-0.55,
-0.68
-],
-"off": [
-0.01,
-0.02,
-0.68
 ]
 },
 "/Game/Carla/Static/Static/SM_PlantPot04.SM_PlantPot04": {
@@ -13833,6 +13677,19 @@
 0.5
 ]
 },
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinPost_Anthracite.SM_CC_NL_BinPost_Anthracite": {
+"cat": "furniture",
+"ext": [
+0.23,
+0.193,
+0.5
+],
+"off": [
+0.0,
+0.027,
+0.5
+]
+},
 "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x1.SM_CC_NL_Nietje_x1": {
 "cat": "furniture",
 "ext": [
@@ -14299,6 +14156,19 @@
 -0.005,
 0.129,
 0.559
+]
+},
+"/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Flagpole8.SM_CC_Any_Flagpole8": {
+"cat": "furniture",
+"ext": [
+0.14,
+0.14,
+4.055
+],
+"off": [
+0.0,
+0.0,
+4.055
 ]
 },
 "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_A.SM_CC_Any_AdColumn_A": {

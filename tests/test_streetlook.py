@@ -281,3 +281,16 @@ def test_red_cycle_paths_from_bgt(cat10):
     for kind, mesh, x, y, yaw, s, z in pl.items:
         assert 0 <= x <= 60 and 0 <= y <= 2.5 and s == pytest.approx(2.5, abs=0.1)
         assert yaw % 180 == pytest.approx(0, abs=1) or yaw % 180 == pytest.approx(180, abs=1)
+
+
+def test_campus_bins_and_flagpoles():
+    from coupledcarla import streetlook
+    # inside the TU/e campus (data/furniture_areas.json) a bin is the campus's post bin, outside the region's
+    assert streetlook.area_model("amenity", "waste_basket", 51.4480, 5.4880) == "SM_CC_NL_BinPost_Anthracite"
+    assert streetlook.area_model("amenity", "waste_basket", 51.4380, 5.4780) is None
+    assert streetlook.area_model("amenity", "bench", 51.4480, 5.4880) is None
+    cat = {"SM_CC_NL_BinPost_Anthracite", "SM_CC_Any_Flagpole8", "SM_CC_NL_BinRound_Green", "SM_CC_NL_BinRound_Grey"}
+    look = streetlook.Chooser(cat, "NLD", [51.44, 5.47, 51.46, 5.50])
+    assert look.furniture("amenity", "waste_basket", {}, 1, (51.4480, 5.4880)) == "SM_CC_NL_BinPost_Anthracite"
+    assert look.furniture("amenity", "waste_basket", {}, 1, (51.4380, 5.4780)).startswith("SM_CC_NL_BinRound_")
+    assert look.furniture("man_made", "flagpole", {}, 1) == "SM_CC_Any_Flagpole8"

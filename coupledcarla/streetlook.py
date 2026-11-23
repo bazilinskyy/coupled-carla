@@ -58,6 +58,27 @@ def region(iso3, bbox=None):
     return REGION_OF.get((iso3 or "").upper())
 
 
+_AREAS = None
+
+
+def area_model(key, value, lat, lon):
+    """The mesh a place's own furniture uses for an OSM (key, value) at (lat, lon), or None."""
+    global _AREAS
+    if _AREAS is None:
+        import json
+        from pathlib import Path
+        from shapely.geometry import Polygon
+        p = Path(__file__).with_name("data") / "furniture_areas.json"
+        rows = json.loads(p.read_text()).get("areas", []) if p.exists() else []
+        _AREAS = [(Polygon([(lo, la) for la, lo in a["polygon"]]), a["models"]) for a in rows]
+    want = f"{key}={value}"
+    from shapely.geometry import Point
+    for poly, models in _AREAS:
+        if want in models and poly.contains(Point(lon, lat)):
+            return models[want]
+    return None
+
+
 def in_amsterdam(bbox):
     if not bbox:
         return False
@@ -171,8 +192,19 @@ class Chooser:
         s = 1.0 if not h else max(SCALE_LIMITS[0], min(SCALE_LIMITS[1], h / mesh_h))
         return mesh, round(s, 3), arm
 
-    def furniture(self, key, value, tags, uid=0):
-        """The regional mesh for an OSM-style (key, value) feature, or None (CARLA's)."""
+    def furniture(self, key, value, tags, uid=0, latlon=None):
+        """The regional mesh for an OSM-style (key, value) feature, or None (CARLA's). A place with its own
+        furniture (data/furniture_areas.json: the TU/e campus's bins) wins inside its polygon."""
+        if latlon is not None:
+            own = area_model(key, value, *latlon)
+            if own and self._have(own):
+                self._count(own)
+                return own
+        if (key, value) == ("man_made", "flagpole"):         # any country
+            name = "SM_CC_Any_Flagpole8"
+            if self._have(name):
+                self._count("flagpole")
+                return name
         if (key, value) == ("advertising", "column"):      # a Morris column in any country (three poster sets)
             name = f"SM_CC_Any_AdColumn_{'ABC'[zlib.crc32(str(uid).encode()) % 3]}"
             if self._have(name):

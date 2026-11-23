@@ -27,6 +27,7 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_Any_AdColumn_B | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_B` | 1.40 x 1.40 x 3.68 | 1100 | SM_Billboard1 | Morris column (reclamezuil, Litfass) | MIT (procedural) |
 | SM_CC_Any_AdColumn_C | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_AdColumn_C` | 1.40 x 1.40 x 3.68 | 1100 | SM_Billboard1 | Morris column (reclamezuil, Litfass) | MIT (procedural) |
 | SM_CC_Any_Crack_A | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Crack_A` | 2.00 x 2.00 x 0.00 | 2 | - | wear_crack | MIT (procedural) |
+| SM_CC_Any_Flagpole8 | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Flagpole8` | 0.28 x 0.28 x 8.11 | 380 | - | 8 m aluminium flagpole (OSM man_made=flagpole) | MIT (procedural) |
 | SM_CC_Any_Grime_A | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Grime_A` | 6.00 x 0.60 x 0.00 | 2 | - | grime | MIT (procedural) |
 | SM_CC_Any_Leaves_A | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Leaves_A` | 2.00 x 2.00 x 0.00 | 2 | - | wear_leaves | MIT (procedural) |
 | SM_CC_Any_Litter_A | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Litter_A` | 1.50 x 1.50 x 0.00 | 2 | - | litter | MIT (procedural) |
@@ -63,6 +64,7 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_NL_Bike_Navy | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Navy` | 1.87 x 0.67 x 1.11 | 2024 | - | bike | MIT (procedural) |
 | SM_CC_NL_Bike_Red | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Red` | 1.87 x 0.67 x 1.11 | 2024 | - | bike | MIT (procedural) |
 | SM_CC_NL_Bike_Swapfiets | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Swapfiets` | 1.87 x 0.67 x 1.11 | 2024 | - | bike_swapfiets | MIT (procedural) |
+| SM_CC_NL_BinPost_Anthracite | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinPost_Anthracite` | 0.46 x 0.39 x 1.00 | 240 | SM_TrashCan02 | campus / park bin on a post (TU/e campus: data/furniture_areas.json) | MIT (procedural) |
 | SM_CC_NL_BinRound_Green | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinRound_Green` | 0.43 x 0.43 x 0.95 | 676 | SM_TrashCan01 | bin | MIT (procedural) |
 | SM_CC_NL_BinRound_Grey | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinRound_Grey` | 0.43 x 0.43 x 0.95 | 676 | SM_TrashCan01 | bin | MIT (procedural) |
 | SM_CC_NL_BinSquare_Grey | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinSquare_Grey` | 0.47 x 0.45 x 1.00 | 56 | SM_TrashCan02 | bin | MIT (procedural) |

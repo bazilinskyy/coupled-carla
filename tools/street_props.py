@@ -61,6 +61,7 @@ PALETTE = {
     "BinGrey": ((0.20, 0.205, 0.20), 0.3, 0.45),            # RAL 7037, "Grijs"
     "BinBlack": ((0.015, 0.015, 0.016), 0.2, 0.45),
     "BinGold": ((0.45, 0.30, 0.06), 0.8, 0.35),             # the UK litter bin's band
+    "PoleWhite": ((0.80, 0.80, 0.78), 0.3, 0.35),           # white powder-coated aluminium (flagpoles)
     "SignalBlack": ((0.012, 0.012, 0.013), 0.1, 0.4),
     "SignalYellow": ((0.86, 0.50, 0.0), 0.0, 0.4),          # the Dutch yellow back plate, sRGB ~ (240, 188, 0)
     "SignalWhite": ((0.80, 0.80, 0.80), 0.0, 0.4),          # UK back plates' white border
@@ -345,6 +346,44 @@ def bin_square(colour="BinGrey"):
     prism(m, "BinBlack", [(-0.2, -0.18), (0.2, -0.18), (0.2, 0.18), (-0.2, 0.18)], 0.0, 0.03)
     obox(m, colour, (0, -0.02, 0.93), (0.47, 0.44, 0.08), rot(roll=math.radians(8)))
     obox(m, "BinBlack", (0, 0.205, 0.80), (0.30, 0.01, 0.07), np.eye(3))
+    return m, {}
+
+
+def bin_post(colour="Anthracite"):
+    """A campus / park bin on a post (Vepa, Bammens Aqua type): a rectangular steel body 0.44 x 0.30 m and 0.62 m
+    high hanging on a 60 mm square post behind it, under a rounded hood with the opening at the front (model +y);
+    top 1.05 m. The TU/e campus's bins (furniture_areas.json)."""
+    m = Mesh()
+    obox(m, "Galvanised", (0, -0.19, 0.50), (0.06, 0.06, 1.0), np.eye(3))                 # the post
+    prism(m, colour, [(-0.22, -0.15), (0.22, -0.15), (0.22, 0.15), (-0.22, 0.15)], 0.28, 0.86)
+    obox(m, "BinBlack", (0, 0.152, 0.83), (0.36, 0.006, 0.06), np.eye(3))              # the hood's shadow line
+    # the hood: a half cylinder across the body (axis along x), a little proud of it
+    n = 10
+    for k in range(n):
+        a0, a1 = math.pi * k / n, math.pi * (k + 1) / n
+        y0, z0 = 0.16 * math.cos(a0), 0.86 + 0.13 * math.sin(a0)
+        y1, z1 = 0.16 * math.cos(a1), 0.86 + 0.13 * math.sin(a1)
+        c = ((y0 + y1) / 2, (z0 + z1) / 2)
+        ln = math.hypot(y1 - y0, z1 - z0)
+        ang = math.atan2(z1 - z0, y1 - y0)
+        obox(m, colour, (0, c[0], c[1]), (0.46, ln, 0.012), rot(roll=ang))
+    for x in (-0.23, 0.23):                                                              # the hood's ends
+        prism_pts = [(0.16 * math.cos(math.pi * k / n), 0.86 + 0.13 * math.sin(math.pi * k / n)) for k in range(n + 1)]
+        for k in range(n):
+            (ya, za), (yb, zb) = prism_pts[k], prism_pts[k + 1]
+            quad(m, colour, [(x, 0, 0.86), (x, ya, za), (x, yb, zb), (x, yb, zb)], (1 if x > 0 else -1, 0, 0),
+                 both=True)
+    return m, {}
+
+
+def flagpole(h=8.0):
+    """A white aluminium flagpole (tapered 90 to 55 mm) with a gilt ball and the halyard, on a ground sleeve."""
+    m = Mesh()
+    tube(m, "Concrete", (0, 0, 0), (0, 0, 0.05), 0.14, seg=16)
+    tube(m, "PoleWhite", (0, 0, 0.05), (0, 0, h), 0.045, 0.0275, seg=16)
+    sphere(m, "BinGold", (0, 0, h + 0.05), 0.06, nu=14, nv=8)
+    tube(m, "Anthracite", (0.035, 0, 1.2), (0.035, 0, h - 0.1), 0.004, seg=4)             # the halyard
+    obox(m, "Galvanised", (0.05, 0, 1.2), (0.03, 0.02, 0.12), np.eye(3))                  # its cleat
     return m, {}
 
 
@@ -752,6 +791,8 @@ def specs():
     add("BinRound_Green", "NL", "Static", "bin", lambda: bin_round("BinGreen"), "SM_TrashCan01")
     add("BinRound_Grey", "NL", "Static", "bin", lambda: bin_round("BinGrey"), "SM_TrashCan01")
     add("BinSquare_Grey", "NL", "Static", "bin", lambda: bin_square("BinGrey"), "SM_TrashCan02")
+    add("BinPost_Anthracite", "NL", "Static", "bin", lambda: bin_post("Anthracite"), "SM_TrashCan02",
+        "campus / park bin on a post (TU/e campus: data/furniture_areas.json)")
     add("Nietje_x1", "NL", "Static", "bike_stand", lambda: nietjes(1), "SM_BikeParking01")
     add("Nietje_x3", "NL", "Static", "bike_stand", lambda: nietjes(3), "SM_BikeParking01")
     add("Nietje_x6", "NL", "Static", "bike_stand", lambda: nietjes(6), "SM_BikeParking02")
@@ -784,6 +825,7 @@ def specs():
         add(f"BikeMen_{col}", "NL", "Static", "bike", lambda slot=slot: dutch_bike(slot, False))
     add("Bike_Swapfiets", "NL", "Static", "bike_swapfiets", lambda: dutch_bike("FrameBlack", True, "TyreBlue"))
     add("BikeMen_Swapfiets", "NL", "Static", "bike_swapfiets", lambda: dutch_bike("FrameBlack", False, "TyreBlue"))
+    add("Flagpole8", "Any", "Static", "flagpole", lambda: flagpole(8.0), None, "8 m aluminium flagpole (OSM man_made=flagpole)")
     for key in "ABC":
         add(f"AdColumn_{key}", "Any", "Static", "ad_column", lambda key=key: ad_column(f"Poster_{key}"),
             "SM_Billboard1", "Morris column (reclamezuil, Litfass)")

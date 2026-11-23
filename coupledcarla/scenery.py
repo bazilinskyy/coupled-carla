@@ -163,6 +163,7 @@ FURNITURE = {   # (OSM key, value) -> meshes
     ("information", "board"): ["SM_MapTable"],
     ("playground", "swing"): ["SM_Swing"],
     ("playground", "slide"): ["SM_Slide"],
+    ("man_made", "flagpole"): [],          # only our own flagpole (streetlook.py): CARLA has none
 }
 LAMP, PARK_LAMP = "SM_Streetlight3_group3", "SM_parkLightV2"     # arm towards +x; a park lamp
 POST = "SM_RoadSigns01"          # a 2.3 m sign post; the sign plates have their face towards +y
@@ -1074,6 +1075,21 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     return x + r * math.cos(a), y + r * math.sin(a)
         return None
 
+    def furniture_spot(x, y):
+        """Where a mapped bench, bin or flagpole can stand: its own spot, or the nearest free one within
+        TREE_NUDGE_STEPS (the twin's path lanes are wider than the paths: 11 of the TU/e campus's 64 OSM bins fell
+        on one and were left out), else None."""
+        if free(x, y, 0.2):
+            return x, y
+        for r in TREE_NUDGE_STEPS:
+            for k in range(8):
+                a = k * math.pi / 4
+                if free(x + r * math.cos(a), y + r * math.sin(a), 0.2):
+                    pl.counts["furniture_moved"] += 1
+                    return x + r * math.cos(a), y + r * math.sin(a)
+        pl.counts["furniture_no_spot"] += 1
+        return None
+
     tree_pts = []
     can = None   # Meta/WRI 1 m canopy heights: the size of trees whose height OSM does not give (canopy.py)
     if sc.get("trees", True) and sc.get("canopy", True):
@@ -1248,13 +1264,17 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     in ("yes", "true") else None
             for (k, v), fm in ms.FURNITURE.items():
                 if t.get(k) == v:
-                    own = look.furniture(k, v, t, el["id"])
+                    own = look.furniture(k, v, t, el["id"], (el["lat"], el["lon"]))
                     meshes = [own] if own else fm
             if not meshes:
                 continue
             meshes = [m for m in meshes if m in cat]
-            if not meshes or not free(x, y, 0.2):
+            if not meshes:
                 continue
+            spot = furniture_spot(x, y)
+            if spot is None:
+                continue
+            x, y = spot
             ryaw, towards = road_yaw(x, y)
             yaw = ryaw if towards is None else towards + 90.0     # backs to the buildings, parallel to the road
             pl.add("furniture", meshes[_h(el["id"]) % len(meshes)], x, y, yaw, 1.0, prov=provenance.element(el))
