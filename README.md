@@ -213,44 +213,47 @@ the level `/Game/Carla/Maps/Twins/<Name>/<Name>` in the CARLA 1.0 tree (`coupled
 
 ## Videos
 
-Short clips of what a session looks and sounds like, with sound (9-20 s; the CARLA 0.9.16 clips in full HD, 1920x1080, 15-48 MB; click a picture to play or
+Short clips of what a session looks and sounds like, with sound (9-25 s; the CARLA 0.9.16 clips in full HD, 1920x1080, 15-48 MB; click a picture to play or
 download). They are made headless by [`tools/make_videos.py`](tools/make_videos.py) from the clip list
 [`experiments/videos/clips.yaml`](experiments/videos/clips.yaml), on CARLA 0.9.16 at Epic quality: frames kept at 25
 fps of simulation time, so even a run slower than real time gives a smooth clip; first-person clips carry what the
 participant hears (`--record-audio`), outside cameras what can be heard where the camera is. All files:
-[release demo-videos](https://github.com/bazilinskyy/coupled-carla/releases/tag/demo-videos). The first four are on CARLA 1.0 digital twins (Eindhoven, Salamanca, Shibuya). Watch them in the browser on the [project page](https://bazilinskyy.github.io/coupled-carla/).
+[release demo-videos](https://github.com/bazilinskyy/coupled-carla/releases/tag/demo-videos). The first five are on CARLA 1.0 digital twins (Eindhoven, the TU/e campus, Salamanca, Shibuya), with each country's road signs and number plates; brick and sett streets are paved in the road surface itself. Watch them in the browser on the [project page](https://bazilinskyy.github.io/coupled-carla/).
 
 <table>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_eindhoven.mp4"><img src="docs/img/videos/twin_eindhoven.jpg" alt="The Eindhoven digital twin"></a><br>🇳🇱&nbsp;<b>The Eindhoven digital twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 4.8 MB<br>3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and street furniture from open data</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_drones.mp4"><img src="docs/img/videos/twin_drones.jpg" alt="Drones over the Eindhoven twin"></a><br>🇳🇱&nbsp;<b>Drones over the Eindhoven twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · drone pilot (FPV) · 20 s, 3.1 MB<br>the pilot climbs over the twin's real roof shapes; delivery and swarm drones fly in the cruise band</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_eindhoven.mp4"><img src="docs/img/videos/twin_eindhoven.jpg" alt="The Eindhoven digital twin"></a><br>🇳🇱&nbsp;<b>The Eindhoven digital twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 46.0 MB<br>3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and street furniture from open data</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_tue_campus.mp4"><img src="docs/img/videos/twin_tue_campus.jpg" alt="De Zaale past Atlas, TU/e campus"></a><br>🇳🇱&nbsp;<b>De Zaale past Atlas, TU/e campus</b><br><sub>TU/e campus, Eindhoven, CARLA 1.0 twin · driver (autopilot), chase camera · 25 s, 65.5 MB<br>through the passage under Atlas and past its glass curtain wall; brick streets in herringbone in the road surface itself, Dutch signs and number plates</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_salamanca.mp4"><img src="docs/img/videos/twin_salamanca.jpg" alt="Plaza Mayor, Salamanca"></a><br>🇪🇸&nbsp;<b>Plaza Mayor, Salamanca</b><br><sub>Salamanca, Spain, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 4.0 MB<br>a twin of any place from Spain's open data: Catastro buildings with their floors, PNOA aerial photo, MDT05 terrain</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_shibuya.mp4"><img src="docs/img/videos/twin_shibuya.jpg" alt="Shibuya crossing twin"></a><br>🇯🇵&nbsp;<b>Shibuya crossing twin</b><br><sub>Tokyo, Japan, CARLA 1.0 twin (left-hand) · driver (autopilot), chase camera · 20 s, 3.2 MB<br>across the scramble crossing in a twin from Japan's open data: PLATEAU buildings with their photo textures, GSI photo and terrain</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_drones.mp4"><img src="docs/img/videos/twin_drones.jpg" alt="Drones over the Eindhoven twin"></a><br>🇳🇱&nbsp;<b>Drones over the Eindhoven twin</b><br><sub>Eindhoven centre, CARLA 1.0 twin · drone pilot (FPV) · 20 s, 23.8 MB<br>the pilot climbs over the twin's real roof shapes; delivery and swarm drones fly in the cruise band</sub></td>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_salamanca.mp4"><img src="docs/img/videos/twin_salamanca.jpg" alt="Plaza Mayor, Salamanca"></a><br>🇪🇸&nbsp;<b>Plaza Mayor, Salamanca</b><br><sub>Salamanca, Spain, CARLA 1.0 twin · driver (autopilot), chase camera · 20 s, 26.4 MB<br>a twin of any place from Spain's open data: Catastro buildings with their floors, PNOA aerial photo, MDT05 terrain</sub></td>
 </tr>
 <tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/twin_shibuya.mp4"><img src="docs/img/videos/twin_shibuya.jpg" alt="Shibuya crossing twin"></a><br>🇯🇵&nbsp;<b>Shibuya crossing twin</b><br><sub>Tokyo, Japan, CARLA 1.0 twin (left-hand) · driver (autopilot), chase camera · 20 s, 21.6 MB<br>across the scramble crossing in a twin from Japan's open data: PLATEAU buildings with their photo textures, GSI photo and terrain</sub></td>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_rush_hour.mp4"><img src="docs/img/videos/eindhoven_rush_hour.jpg" alt="Rush hour in Eindhoven"></a><br>🇳🇱&nbsp;<b>Rush hour in Eindhoven</b><br><sub>Eindhoven centre, Netherlands · driver (autopilot), chase camera · 20 s, 30.3 MB<br>dense mixed traffic around the station, buses of the real lines, cyclists sharing the road</sub></td>
+</tr>
+<tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_pedestrian_ehmi.mp4"><img src="docs/img/videos/eindhoven_pedestrian_ehmi.jpg" alt="Crossing in front of an automated car"></a><br><b>Crossing in front of an automated car</b><br><sub>Eindhoven, east of the station · pedestrian · 9.5 s, 15.0 MB<br>the AV slows, shows I'M STOPPING, then GO AHEAD; its eyes follow the pedestrian</sub></td>
-</tr>
-<tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/crossing_four_views.mp4"><img src="docs/img/videos/crossing_four_views.jpg" alt="Four people, one street"></a><br><b>Four people, one street</b><br><sub>Eindhoven, east of the station · pedestrian, AV passenger, driver, drone pilot (four bot stations) · 20 s, 31.6 MB<br>the same moment from four stations, frame-locked in simulation time</sub></td>
+</tr>
+<tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/robotaxi_passenger.mp4"><img src="docs/img/videos/robotaxi_passenger.jpg" alt="Riding in a robotaxi"></a><br><b>Riding in a robotaxi</b><br><sub>Eindhoven, east of the station · AV passenger (bot station) · 18 s, 47.3 MB<br>the centre screen's message and the eHMI as the AV stops and lets the pedestrian cross</sub></td>
-</tr>
-<tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_cyclist.mp4"><img src="docs/img/videos/eindhoven_cyclist.jpg" alt="Riding with Dutch cyclists"></a><br>🇳🇱&nbsp;<b>Riding with Dutch cyclists</b><br><sub>Eindhoven, Vestdijk cycle path · chase camera on a SUMO cyclist · 20 s, 48.1 MB<br>cyclists on the cycle track and the street beside it, overtaking each other</sub></td>
+</tr>
+<tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/tokyo_shibuya.mp4"><img src="docs/img/videos/tokyo_shibuya.jpg" alt="Shibuya crossing, left-hand traffic"></a><br>🇯🇵&nbsp;<b>Shibuya crossing, left-hand traffic</b><br><sub>Tokyo (Shibuya), Japan · orbiting camera above the crossing · 20 s, 19.3 MB<br>traffic keeps left, Toei buses, pedestrians crossing at the junction (80 walkers calibrated for Tokyo)</sub></td>
-</tr>
-<tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/new_york_avenue.mp4"><img src="docs/img/videos/new_york_avenue.jpg" alt="Up Sixth Avenue"></a><br>🇺🇸&nbsp;<b>Up Sixth Avenue</b><br><sub>New York (Midtown), USA · automated driver, chase camera · 20 s, 25.7 MB<br>Midtown's towers at their real heights (NYC Open Data), the avenue's five lanes</sub></td>
+</tr>
+<tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/kigali_hills.mp4"><img src="docs/img/videos/kigali_hills.jpg" alt="Kigali's hills"></a><br>🇷🇼&nbsp;<b>Kigali's hills</b><br><sub>Kigali, Rwanda · crane camera over the road · 20 s, 21.6 MB<br>the roads climb and fall with the real terrain (AWS Terrain Tiles); Overture buildings on the slopes</sub></td>
-</tr>
-<tr>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/lyon_night_rain.mp4"><img src="docs/img/videos/lyon_night_rain.jpg" alt="Rainy night in Lyon"></a><br>🇫🇷&nbsp;<b>Rainy night in Lyon</b><br><sub>Lyon (Bellecour), France · driver, chase camera · 20 s, 33.1 MB<br>night after sunset with rain, headlights and lit shop windows (0.9.16's street lamps give no light)</sub></td>
-<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_drones.mp4"><img src="docs/img/videos/eindhoven_drones.jpg" alt="Drones over Eindhoven"></a><br>🇳🇱&nbsp;<b>Drones over Eindhoven</b><br><sub>Eindhoven centre · drone pilot (FPV) · 20 s, 26.9 MB<br>the pilot's gimbal camera climbing out of a square over the roofs to the skyline (coupled-sim's flight model)</sub></td>
 </tr>
 <tr>
+<td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/eindhoven_drones.mp4"><img src="docs/img/videos/eindhoven_drones.jpg" alt="Drones over Eindhoven"></a><br>🇳🇱&nbsp;<b>Drones over Eindhoven</b><br><sub>Eindhoven centre · drone pilot (FPV) · 20 s, 26.9 MB<br>the pilot's gimbal camera climbing out of a square over the roofs to the skyline (coupled-sim's flight model)</sub></td>
 <td width="50%" valign="top"><a href="https://github.com/bazilinskyy/coupled-carla/releases/download/demo-videos/chernihiv_avenue.mp4"><img src="docs/img/videos/chernihiv_avenue.jpg" alt="Down prospekt Myru, Chernihiv"></a><br>🇺🇦&nbsp;<b>Down prospekt Myru, Chernihiv</b><br><sub>Chernihiv, Ukraine (made with the map maker) · driver (autopilot), chase camera · 20 s, 22.0 MB<br>a map made by typing "Chernihiv" into the map maker; prospekt Myru towards the centre, a bus stopping, people boarding</sub></td>
+</tr>
+<tr>
 <td width="50%" valign="top"></td>
 </tr>
 </table>

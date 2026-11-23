@@ -400,6 +400,8 @@ clips:
     notice: 3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and
       street furniture from open data
     experiment: experiments/eindhoven_twin.yaml
+    # traffic seed 43: with 42 a bus swerved through the camera window (2026-11-23 re-render, realism QA)
+    set: {traffic: {seed: 43}}
     hold:
       driver: 20
     patch:
@@ -429,8 +431,9 @@ clips:
     role: driver (autopilot), chase camera
     when: weekday 13:00
     agents: SUMO cars and cyclists on the twin's own roads
-    notice: driving east on De Zaale past Atlas (its glass curtain wall, mullions and fins, carla-digitaltwins
-      tools/landmarks.py) towards Neuron; 3DBAG buildings with facade styles, aerial-photo ground and roofs
+    notice: driving east on De Zaale through the passage under Atlas, past its glass curtain wall (carla-digitaltwins
+      tools/landmarks.py), towards Neuron; brick streets in herringbone in the road surface itself (tools/road_paving.py),
+      Dutch signs and number plates; 3DBAG buildings with facade styles, aerial-photo ground and roofs
     experiment: experiments/tue_campus_twin.yaml
     set: {simulation: {camera_profile: CoupledReal}}
     time: "2026-06-17 13:00"
@@ -471,7 +474,8 @@ clips:
     notice: driving across the scramble crossing in a twin from Japan's open data (PLATEAU buildings with their photo
       textures, GSI aerial photo and terrain)
     experiment: experiments/shibuya_twin.yaml
-    set: {simulation: {camera_profile: CoupledReal}}
+    # traffic seed 43: with 42 the driver's car jolted sideways at the crossing (2026-11-23 re-render, realism QA)
+    set: {simulation: {camera_profile: CoupledReal}, traffic: {seed: 43}}
     hold:
       driver: 20
     start_s: 38
