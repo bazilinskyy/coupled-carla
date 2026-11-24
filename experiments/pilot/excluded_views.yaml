@@ -1,0 +1,34 @@
+# Reference photos of the realism pilot that are not street views (tools/realism_score.py, realism_check.py compare).
+# Their views stay in compare.csv but are left out of the summary, the realism index and `compare` A/B results:
+# a twin cannot match them however good it is. Looked at one by one (24 Nov 2026, the photos of rounds r40/r41 and
+# the Wikimedia Commons thumbnails); never deleted from the frozen sets. Kinds: indoors; a close-up of one object;
+# people filling the frame; a view from high up; sky only. Photos with no ground (road + sidewalk < 3 %) and no sky
+# (< 2 %) in their own labels are left out without being listed (realism_check.not_street).
+shibuya:
+  com_95642078: indoors (Shibuya station, Inokashira line platforms)
+  com_68666630: indoors (Shibuya Hikarie, corridor and escalators)
+  com_181651443: indoors (a toilet's control panel)
+  com_164329887: close-up of one object (the side of a fuel cell bus)
+  com_79589650: close-up of one object (a notebook; by its title)
+  com_132790988: from high up (sunset over Shibuya station from a tower)
+  com_135680837: sky only (clouds above central Tokyo)
+salamanca:
+  com_163054785: close-up of one object (a stone carving)
+  com_176132611: indoors (a lecture hall of the university, wooden benches)
+lyon:
+  com_175379514: indoors (Lycée Saint-Marc, chapel nave)
+  com_122681284: indoors (Notre-Dame de Fourvière, under the vaults)
+  com_124451271: indoors (Grand Hôtel-Dieu, an exhibition)
+  com_131058777: indoors (Église Sainte-Croix, a side chapel)
+  com_129089377: close-up of one object (a door knocker)
+  com_40521201: close-up of one object (a commemorative plaque; by its title)
+kigali:
+  com_175668782: people filling the frame (a Wikimedia group on a walk)
+  com_175668784: people filling the frame (a group selfie)
+  com_155624167: close-up of one object (a hairstyle; by its title)
+  com_125170385: indoors (a presentation in a meeting room)
+  com_55079275: from high up (suburbs seen from a hill)
+muenster:
+  com_136534678: indoors (a bell in the LWL museum)
+chernihiv:
+  com_81866544: indoors (inside a minibus)

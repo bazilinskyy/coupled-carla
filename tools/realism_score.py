@@ -7,6 +7,9 @@
     # ... then the comparison (CPU or GPU) and the table
     python tools/realism_score.py score r0
     python tools/realism_score.py table r0 [r1 ...]
+    # an A/B pair of rounds: B keeps A's alignment, then the same views compared with a bootstrap interval
+    python tools/realism_score.py score r1 --align-from r0
+    python tools/realism_score.py compare r0 r1 [--places a,b]
 
 Street level is tools/realism_check.py on the frozen views (realism index: 0 = like a photo of a random place in the
 box, 1 = like a second real photo of the same street; docs/street_photos.md). From above, a 200 m square rendered
@@ -15,6 +18,13 @@ vegetation cover IoU, colour histogram, DINOv2 similarity; its baselines are the
 the box ("random") and, in the Netherlands, an earlier year's photo of the same tile ("same").
 Places, roles (train / held_out) and counts: experiments/pilot/realism_pilot.yaml. Outputs under --root
 (default logs/pilot): frozen/<place>/ and rounds/<round>/<place>/; table.md per round.
+
+A/B rounds. The reported index is a median over 30-80 views: it moves by about 0.05 between two rounds of the same
+world, and each round picks each view's alignment (heading and pitch offsets, realism_check compare) anew, so a
+re-picked alignment can pass for a change of the world (round 41). `score --align-from A` keeps round A's alignment
+for every view, and `compare A B` reports the mean change of spot_score over the views both rounds share with a 95 %
+bootstrap interval, separately for the views whose alignment is the same in both. Reference photos that are not
+street views (experiments/pilot/excluded_views.yaml, and photos with no ground and no sky) are left out of both.
 """
 import argparse
 import csv
@@ -37,6 +47,7 @@ from coupledcarla import realism as R  # noqa: E402
 from coupledcarla.provenance import MEASURED_BUILDINGS as MEASURED  # noqa: E402
 
 PILOT = ROOT / "experiments" / "pilot" / "realism_pilot.yaml"
+EXCLUDE = ROOT / "experiments" / "pilot" / "excluded_views.yaml"     # reference photos that are not street views
 CHECK = [sys.executable, str(ROOT / "tools" / "realism_check.py")]
 STREET_KEYS = ("spot_score", "al_miou_coarse", "boundary_f", "dino_patch", "dino_global", "al_skyline_mae_deg",
                "colour_hist_sim")
@@ -348,8 +359,16 @@ def cmd_score(args):
             shutil.copy(own, out / "pairs_summary.json")
         elif ref_pairs.exists():      # too few panoramas here: Eindhoven's real-vs-real scale (100 pairs)
             shutil.copy(ref_pairs, out / "pairs_summary.json")
-        if (out / "renders.csv").exists() and (args.again or not (out / "summary.json").exists()):
-            cmd = CHECK + ["compare", "--out", str(out)]
+        align = None
+        if args.align_from:
+            align = _round_dir(args, args.align_from, p["name"]) / "compare.csv"
+            if not align.exists():
+                print(f"{p['name']}: no {align}: alignment searched as usual", flush=True)
+                align = None
+        if (out / "renders.csv").exists() and (args.again or align is not None or not (out / "summary.json").exists()):
+            cmd = CHECK + ["compare", "--out", str(out), "--exclude", str(EXCLUDE)]
+            if align is not None:
+                cmd += ["--align-from", str(align)]
             if not args.perceptual:
                 cmd.append("--no-perceptual")
             subprocess.run(cmd + (["--device", args.device] if args.device else []), check=False)
@@ -373,6 +392,112 @@ def cmd_score(args):
         (out / "score.json").write_text(json.dumps(score, indent=1))
         print(f"{p['name']}: street index {score.get('street_index', {}).get('spot_score')}, top veg IoU "
               f"{score['top'].get('render_veg_iou')} (random {score['top'].get('random_veg_iou')})", flush=True)
+
+
+COMPARE_KEYS = ("al_miou_coarse", "al_layout_tv", "dino_patch", "dino_global", "al_skyline_mae_deg", "colour_hist_sim",
+                "boundary_f")
+AREA_KEYS = tuple(f"al_render_{k}" for k in ("road", "sidewalk", "building", "pole_sign", "vegetation", "sky", "vehicle"))
+SAME_ALIGN_DEG = 0.5
+
+
+def _rows(path):
+    if not path.exists():
+        return None
+    with path.open(newline="") as f:
+        return {r["id"]: r for r in csv.DictReader(f)}
+
+
+def _f(x):
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return None if math.isnan(v) else v
+
+
+def _boot(d, n=4000, seed=0):
+    """Mean of d with its 95 % bootstrap interval (fixed seed: the same numbers every time)."""
+    if not d:
+        return None, None, None
+    rng = random.Random(seed)
+    means = sorted(sum(rng.choice(d) for _ in d) / len(d) for _ in range(n))
+    return sum(d) / len(d), means[int(0.025 * n)], means[int(0.975 * n) - 1]
+
+
+def compare_rounds(a_rows, b_rows, listed=None, scale=None):
+    """A/B on the views both rounds share, minus the reference photos that are not street views. scale: the place's
+    real-vs-real spread of spot_score (neighbour - random), to give the change in index points too."""
+    import realism_check as RC
+    ids = sorted(set(a_rows) & set(b_rows))
+    out_ex = {}
+    for i in ids:
+        why = RC.not_street(a_rows[i], listed) or RC.not_street(b_rows[i], listed)
+        if why:
+            out_ex[i] = why
+    ids = [i for i in ids if i not in out_ex and _f(a_rows[i].get("spot_score")) is not None
+           and _f(b_rows[i].get("spot_score")) is not None]
+
+    def same(i):
+        ha, hb = _f(a_rows[i].get("heading_error")), _f(b_rows[i].get("heading_error"))
+        pa, pb = _f(a_rows[i].get("pitch_error")), _f(b_rows[i].get("pitch_error"))
+        return None not in (ha, hb, pa, pb) and abs(ha - hb) < SAME_ALIGN_DEG and abs(pa - pb) < SAME_ALIGN_DEG
+
+    def block(sel):
+        d = [_f(b_rows[i]["spot_score"]) - _f(a_rows[i]["spot_score"]) for i in sel]
+        m, lo, hi = _boot(d)
+        res = {"n": len(sel), "mean": m, "ci95": [lo, hi]}
+        if scale and m is not None:
+            res["index_points"] = {"mean": m / scale, "ci95": [lo / scale, hi / scale]}
+        return res
+    aligned = [i for i in ids if same(i)]
+    comps = {}
+    for k in COMPARE_KEYS + AREA_KEYS:
+        d = [_f(b_rows[i].get(k)) - _f(a_rows[i].get(k)) for i in ids
+             if _f(a_rows[i].get(k)) is not None and _f(b_rows[i].get(k)) is not None]
+        comps[k] = sum(d) / len(d) if d else None
+    moved = sorted(ids, key=lambda i: _f(b_rows[i]["spot_score"]) - _f(a_rows[i]["spot_score"]))
+    return {"views": block(ids), "same_alignment": block(aligned), "realigned": len(ids) - len(aligned),
+            "components": comps, "excluded": out_ex,
+            "biggest_drops": [[i, round(_f(b_rows[i]["spot_score"]) - _f(a_rows[i]["spot_score"]), 4)] for i in moved[:5]],
+            "biggest_gains": [[i, round(_f(b_rows[i]["spot_score"]) - _f(a_rows[i]["spot_score"]), 4)]
+                              for i in moved[::-1][:5]]}
+
+
+def _scale(out):
+    try:
+        rr = json.loads((out / "pairs_summary.json").read_text())
+        s = rr["neighbour"]["spot_score"] - rr["random"]["spot_score"]
+        return s if abs(s) > 1e-6 else None
+    except (OSError, KeyError, TypeError, ValueError):
+        return None
+
+
+def cmd_compare(args):
+    import realism_check as RC
+    cfg = load(args.pilot)
+    listed = RC.load_exclusions(args.exclude)
+    res, lines = {}, []
+    for p in places(cfg, args.places):
+        a = _rows(_round_dir(args, args.a, p["name"]) / "compare.csv")
+        b = _rows(_round_dir(args, args.b, p["name"]) / "compare.csv")
+        if a is None or b is None:
+            continue
+        r = compare_rounds(a, b, listed, _scale(_round_dir(args, args.b, p["name"])))
+        res[p["name"]] = r
+        v, s = r["views"], r["same_alignment"]
+
+        def ci(x):
+            return "n/a" if x["mean"] is None else f"{x['mean']:+.4f} [{x['ci95'][0]:+.4f}, {x['ci95'][1]:+.4f}]"
+        idx = f"{v['index_points']['mean']:+.3f}" if v.get("index_points") else ""
+        lines.append(f"| {p['name']} | {v['n']} | {ci(v)} | {idx} | {r['realigned']} | {ci(s)} | {len(r['excluded'])} |")
+    print(f"{args.a} -> {args.b}: mean change of spot_score on the same views [95 % bootstrap]\n")
+    print("| place | views | change | index points | realigned | change, same alignment only | excluded |")
+    print("|---|---|---|---|---|---|---|")
+    print("\n".join(lines))
+    dest = Path(args.out) if args.out else _round_dir(args, args.b, "") / f"compare_{args.a}.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps({"a": args.a, "b": args.b, "places": res}, indent=1))
+    print(f"\n{dest}")
 
 
 def _fmt(x, nd=2):
@@ -457,12 +582,20 @@ def main():
     p.add_argument("--dino-model", default="facebook/dinov2-base")
     p.add_argument("--device", default=None)
     p.add_argument("--again", action="store_true")
+    p.add_argument("--align-from", default=None,
+                   help="a round whose per-view alignment this round keeps (A/B: no re-picked heading or pitch)")
+    p = sub.add_parser("compare", help="A/B: mean change per place on the same views, with a bootstrap interval")
+    p.add_argument("a")
+    p.add_argument("b")
+    p.add_argument("--places", default=None)
+    p.add_argument("--exclude", default=str(EXCLUDE))
+    p.add_argument("--out", default=None, help="the JSON (default rounds/<b>/compare_<a>.json)")
     p = sub.add_parser("table")
     p.add_argument("rounds", nargs="+")
     args = ap.parse_args()
     args.extra = getattr(args, "render_args", "").split()
     {"freeze": cmd_freeze, "freeze-top": cmd_freeze_top, "render": cmd_render, "score": cmd_score,
-     "table": cmd_table}[args.cmd](args)
+     "compare": cmd_compare, "table": cmd_table}[args.cmd](args)
 
 
 if __name__ == "__main__":
