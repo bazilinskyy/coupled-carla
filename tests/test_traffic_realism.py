@@ -227,6 +227,7 @@ def test_bridge_subscribes_to_lane_variables_traci_has():
 def test_u_turns_are_found():
     import pytest
     pytest.importorskip("carla")
+    pytest.importorskip("traci")         # sumodriver imports it
     from coupledcarla import sumodriver
 
     class N:

@@ -1,7 +1,28 @@
 """Provenance tags of placed scenery (coupledcarla/provenance.py) and the realism pilot's top-down metrics."""
 import numpy as np
+import pytest
 
 from coupledcarla import aerial, provenance as P
+
+
+@pytest.fixture
+def bare_carla(monkeypatch):
+    """An empty carla module while the test runs when the real one is missing, taken away after with the
+    coupledcarla modules imported against it: left in sys.modules it broke the later tests that bring their own
+    carla stand-in (test_runtime_core on CI)."""
+    import importlib
+    import sys
+    import types
+    try:
+        importlib.import_module("carla")
+    except ImportError:
+        monkeypatch.setitem(sys.modules, "carla", types.ModuleType("carla"))
+    before = set(sys.modules)
+    yield
+    for m in set(sys.modules) - before:
+        if m.startswith("coupledcarla"):
+            del sys.modules[m]
+
 
 
 def test_building_tags_follow_the_source():
@@ -76,11 +97,8 @@ def test_pilot_spread_keeps_far_apart_views():
     assert rs.spread(views[:2], 5, seed=1) == views[:2]
 
 
-def test_unknown_building_heights_take_the_neighbours_median():
+def test_unknown_building_heights_take_the_neighbours_median(bare_carla):
     import importlib
-    import sys
-    import types
-    sys.modules.setdefault("carla", types.ModuleType("carla"))
     scenery = importlib.import_module("coupledcarla.scenery")
 
     class FlatGeo:
@@ -95,11 +113,8 @@ def test_unknown_building_heights_take_the_neighbours_median():
     assert scenery._neighbour_heights(recs[:3], FlatGeo(), log=lambda m: None) is None
 
 
-def test_tile_grid_covers_the_square_near_scale_one():
+def test_tile_grid_covers_the_square_near_scale_one(bare_carla):
     import importlib
-    import sys
-    import types
-    sys.modules.setdefault("carla", types.ModuleType("carla"))
     scenery = importlib.import_module("coupledcarla.scenery")
     copies = scenery.tile_grid((17.0, 17.0, 0.1), 40.0)
     assert len(copies) == 4 and all(abs(s - 40 / 34) < 1e-9 for _, s in copies)
@@ -108,11 +123,8 @@ def test_tile_grid_covers_the_square_near_scale_one():
     assert len(scenery.tile_grid((5.0, 5.0, 0.1), 40.0)) == 36        # at most 6 a side
 
 
-def test_parked_default_scale():
+def test_parked_default_scale(bare_carla):
     import importlib
-    import sys
-    import types
-    sys.modules.setdefault("carla", types.ModuleType("carla"))
     parking = importlib.import_module("coupledcarla.parking")
     base = parking.default_share("tertiary", "europe", 1)
     assert parking.default_share("tertiary", "europe", 1, scale=1.5) == min(1.0, 1.5 * base)
@@ -120,11 +132,8 @@ def test_parked_default_scale():
     assert parking.default_share("tertiary", "europe", 2, scale=2.0) == 0.0     # two lanes one way: none
 
 
-def test_density_factor_and_share():
+def test_density_factor_and_share(bare_carla):
     import importlib
-    import sys
-    import types
-    sys.modules.setdefault("carla", types.ModuleType("carla"))
     scenery = importlib.import_module("coupledcarla.scenery")
     assert scenery.density_factor(0.05) == 0.6 and scenery.density_factor(0.9) == 1.4
     assert abs(scenery.density_factor(0.30) - 1.0) < 1e-9 and scenery.density_factor(None) == 1.0

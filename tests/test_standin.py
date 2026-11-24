@@ -1,7 +1,9 @@
 """The quick stand-in world (map.standin): the OpenDRIVE cut to a disc around the start."""
-from lxml import etree
+import pytest
 
-from coupledcarla.standin import crop_xodr
+etree = pytest.importorskip("lxml.etree")     # standin.py reads the OpenDRIVE with lxml (CI installs neither SUMO nor lxml)
+
+from coupledcarla.standin import crop_xodr  # noqa: E402
 
 XODR = """<?xml version="1.0" encoding="UTF-8"?>
 <OpenDRIVE>
