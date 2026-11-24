@@ -147,7 +147,8 @@ def main():
             sc["weather"] = args.weather
         if args.sun is not None:
             sc["sun_altitude"] = args.sun
-        bb = cfg["map"]["bbox"]
+        # a twin experiment names no bbox (its OpenDRIVE sets the box): the map build wrote it to meta.json
+        bb = cfg["map"].get("bbox") or json.loads((mdir / "meta.json").read_text())["bbox"]
         wx = set_weather(world, sc, ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2), mdir / "real")
         world.wait_for_tick()       # get_weather() returns the new weather only after a tick
         weather = world.get_weather()
