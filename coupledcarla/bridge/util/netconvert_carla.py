@@ -97,11 +97,17 @@ class SumoTopology(object):
             def piece(edge):
                 base, _, part = edge.partition('#')
                 road, _, sec = base.partition('.')
-                return road, float(sec) if sec else 0.0, int(part) if part.isdigit() else 0
+                try:
+                    sec = float(sec) if sec else 0.0
+                except ValueError:
+                    return None
+                return road, sec, int(part) if part.isdigit() else 0
 
             pieces = [(piece(edge), (edge, lane_index)) for edge, lane_index in sumo_ids]
-            # Ensures that all the related sumo edges belongs to the same opendrive road.
-            assert len(set(p[0] for p, _ in pieces)) == 1
+            # All of one opendrive road. Otherwise (joined roads, ids that are not <road>.<s>#<k>): the first one, as
+            # for a single edge (upstream asserted here; a city-sized twin has thousands of such landmarks).
+            if any(p is None for p, _ in pieces) or len(set(p[0] for p, _ in pieces)) != 1:
+                return sumo_ids[0]
 
             s_coords = sorted(set(p[1] for p, _ in pieces))
             section = s_coords[max(bisect.bisect_left(s_coords, s, lo=1) - 1, 0)]

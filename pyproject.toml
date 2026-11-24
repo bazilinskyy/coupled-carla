@@ -26,6 +26,7 @@ classifiers = [
 dependencies = [
     "eclipse-sumo>=1.20",
     "sumolib",
+    "rtree",                   # sumolib's getNeighboringEdges: brute force without it (30 min on a city net)
     "traci",
     "lxml",
     "networkx",

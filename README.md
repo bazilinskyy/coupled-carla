@@ -1547,6 +1547,44 @@ their PLUTO construction year and use, USGS 3DEP ground under the NYS orthophoto
 markings, kerbs and sidewalks; SUMO drives on the twin's own OpenDRIVE. A 40 s trial on the Windows package ran at
 RTF 0.75 with 707 parked cars and 1,004 scenery meshes around the participant.
 
+**The whole city: EhvCity (`experiments/eindhoven_city_twin.yaml`, `eindhoven_city_real.yaml`).** One World
+Partition level for everything inside Eindhoven's Ring plus Veldhoven (51.395-51.465 N, 5.380-5.509 E, about
+7.8 x 9.0 km): the centre, the TU/e campus, Strijp-S, the PSV stadium, Meerhoven and Veldhoven with ASML. It is the
+carla-digitaltwins city twin (branch `citytwin`): the same data as EhvCentre, with distance-based detail (the
+centre and the campus get 2048 px photo ground tiles, 12 cm, the rest 1024 px; 3DBAG LoD 2.2 inside the Ring and
+LoD 1.3 blocks outside it), building geometry cut clear of the driving lanes and sidewalks (passages with a soffit,
+slivers trimmed to the kerb), and a chunked bake (`ue/bake_city.py`: one editor run per block of 6 x 6 tiles,
+memory-watched and resumable). Its trials start the driver by the station, on the campus (De Zaale) and in
+Veldhoven (De Run by ASML). The level's OpenDRIVE goes to `twins/EhvCity.xodr` (not in git). The Ring phase
+(51.416-51.465 N, 5.434-5.509 E) was built first: 25,923 roads, 2,792 junctions, 74,959 3DBAG buildings, 11,277
+meshes; its map here has 119,229 trees, 16,313 street lamps from the city's register, 11,469 pieces of furniture
+and 32,540 parking stalls streamed around the participants.
+
+**A quick stand-in world (`map.standin`, `experiments/eindhoven_city_quick.yaml`).** A baked city level takes
+minutes to load and CARLA's OpenDRIVE-only world of a whole city builds meshes for every road. `map.standin:
+{radius_m: 800}` generates only the roads within that distance of the first participant from the map's own
+OpenDRIVE (`coupledcarla/standin.py`, an idea from BeamNG.Earth's quick world after a teleport): same road and lane
+ids as the full map, so SUMO's traffic and the logs line up. On the Ring twin (CARLA 0.9.16,
+lin4080): 1,861 of 25,923 roads around the station and 1,568 around the campus, two 60 s trials at RTF 0.98 and
+0.975 with no collisions.
+
+**Real time on a city-sized map.** On EhvCity the plain bridge ran at RTF 0.22-0.26 (win5090, 60 s trials): SUMO
+simulates the whole city (at 20,000 cars and 6,000 bikes an hour it fills by ~400 vehicles a minute, and a 0.02 s
+step costs ~0.021 ms per vehicle with the sublane model: 78 ms at 3,700 vehicles), and TraCI reports every vehicle and
+every traffic light each tick. The city experiments therefore turn on four switches (all off by default, so the
+other maps run as before):
+`traffic.crop_radius_m` (SUMO on the roads within 1.5 km of the participants' starts, the city's demand cut to them
+with SUMO's cutRoutes.py so that trips enter at the cut edge when they would have reached it; `coupledcarla/
+sumocrop.py`; "auto" crops maps of 25 km2 or more), `simulation.sumo_step: 0.1` (SUMO every 5th tick, its cars
+interpolated between two SUMO steps and shown 0.1 s late), `simulation.sumo_thread` (that step runs in a thread while
+CARLA ticks; every TraCI call happens at the step boundary or waits for the step, so the results are the same with or
+without the thread) and `simulation.sumo_near` (one context subscription per participant instead of one per vehicle,
+and only the traffic lights near the participants), plus `simulation.scenery.radius_m: 200`
+(`coupledcarla/bridge/pipeline.py`). `tools/bridge_bench.py` measures the SUMO side without a server (lin4080,
+300 s, a stand-in CARLA tick of 12.4 ms, win5090's empty EhvCity tick): whole city plain 60.0 ms per tick (SUMO step
+44.3 ms), cropped 21.2, cropped at 0.1 s 14.8, plus near 13.9, plus the thread 12.8 ms (SUMO's share 0.4 ms).
+`tools/tick_probe.py` measures what the scenery's actors cost the server's tick.
+
 #### Photorealistic tiles (optional)
 
 `map.photoreal: google` ([`experiments/eindhoven_twin_photoreal.yaml`](experiments/eindhoven_twin_photoreal.yaml))

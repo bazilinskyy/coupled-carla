@@ -1,6 +1,7 @@
 carla==0.9.16; sys_platform != "darwin"    # no macOS build of CARLA: maps can be built there, not driven
 eclipse-sumo>=1.20
 sumolib
+rtree          # sumolib's getNeighboringEdges: without it a brute-force search (a city-size net hung 30 min)
 traci
 lxml
 networkx

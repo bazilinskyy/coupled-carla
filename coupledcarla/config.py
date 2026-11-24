@@ -71,6 +71,9 @@ DEFAULTS = {
         },
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
+        "standin": False,            # {radius_m: 800}: a quick stand-in world, the OpenDRIVE's roads within that
+                                     # distance of the first participant generated in seconds instead of the
+                                     # level or the whole map (standin.py)
         "carla_level": None,         # load this CARLA level (by name) instead of generating an OpenDRIVE-only world
         "level_xodr": "stop",        # map.xodr is not the loaded level's own OpenDRIVE (levelxodr.py): "stop" the run,
                                      # or "warn" and run on (scenery, paving, parked cars may stand on other roads)
@@ -134,6 +137,13 @@ DEFAULTS = {
         "smooth_paths": True,        # SUMO vehicles in CARLA drive a smoothed copy of their SUMO path (lateral
                                      # acceleration and steering rate of a human driver, bridge/animate.py
                                      # PathSmoother): a kink in a SUMO junction lane is a curve, not a swerve
+        # city-sized maps (bridge/pipeline.py); all off: SUMO steps with every CARLA tick, as on the other maps
+        "sumo_step": None,           # SUMO's step (s), a multiple of step: e.g. 0.1 = SUMO every 5th tick at 0.02 s,
+                                     # its vehicles' cars interpolated between (shown 0.1 s late); None: = step
+        "sumo_thread": False,        # run each SUMO step in a thread while CARLA ticks (same results either way)
+        "sumo_near": False,          # ask SUMO only about vehicles near the participants (context subscriptions)
+                                     # and run only the traffic lights within sumo_near_m (None: lod_radius_m + 50)
+        "sumo_near_m": None,
         "autopilot": "sumo",         # input autopilot: "sumo" (SUMO drives the car with the traffic's rules,
                                      # sumodriver.py; route: [[lat, lon], ...] or destination: {lat, lon} on the
                                      # participant) or "carla" (CARLA's BasicAgent on random lanes); a participant's
@@ -189,6 +199,9 @@ DEFAULTS = {
         "cyclist_red_running": "auto",   # a quarter of the cyclists ride on through red when clear: auto = in the
                                      # Netherlands only (SWOV's observations; drivermix.py)
         "seed": 42,
+        "crop_radius_m": "auto",     # SUMO runs only the roads within this distance of the participants' starts,
+                                     # the map's demand cut to them (sumocrop.py); "auto": 1500 m on maps of 25 km2
+                                     # or more (city twins), else the whole map; 0: always the whole map
         "cars_per_hour": "auto",     # cars entering per hour, or "auto": from the map's lane-km by road class and
                                      # the trial's hour (coupledcarla/counts.py)
         "counts": "auto",            # "auto": fit the cars to open traffic counts where they cover the map

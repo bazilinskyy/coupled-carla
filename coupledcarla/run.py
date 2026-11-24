@@ -373,10 +373,19 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # scenery.json names the meshes of one CARLA version's catalogue: rebuilt first when made for the other
         has_scenery = tc["map"].get("scenery", {}).get("enabled", True) and \
             mapbuild.scenery_for_server(tc, mdir, compat.server_major(client), log)
-        world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery,
-                           keep_lights=tc["simulation"]["tls_manager"] == "carla")
-        # a baked level: is map.xodr (SUMO's net, the scenery, the paving) the level's own OpenDRIVE? stops if not
-        levelxodr.check(world, mdir, tc, log)
+        if tc["map"].get("standin"):   # the roads around the start only, generated in seconds (standin.py)
+            from .standin import standin_xodr
+            world = load_world(client, standin_xodr(mdir, tc, log), dict(tc["map"], carla_level=None),
+                               slab=has_scenery, keep_lights=tc["simulation"]["tls_manager"] == "carla")
+        else:
+            world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery,
+                               keep_lights=tc["simulation"]["tls_manager"] == "carla")
+        if tc["map"].get("carla_level"):     # a baked level's OpenDRIVE fetched once, not per get_map() (compat.py)
+            compat.cache_maps(carla)
+        if not tc["map"].get("standin"):
+            # a baked level: is map.xodr (SUMO's net, the scenery, the paving) the level's own OpenDRIVE?
+            # stops if not
+            levelxodr.check(world, mdir, tc, log)
         if town:      # the town's buildings and trees from its environment objects (sound, drones)
             towns.environment(world, mdir, client.get_server_version(), log)
         wx = set_weather(world, tc["simulation"], config.place(tc), mdir / "real", log)
@@ -399,7 +408,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         log(f"world ready: {len(world.get_map().get_spawn_points())} spawn points")
         level_stream = bool(tc["map"].get("carla_level"))
 
-        sumo = SumoSimulation(str(cfg_file), step)
+        from .bridge import pipeline
+        sumo_ratio = pipeline.ratio_for(tc["simulation"].get("sumo_step"), step)   # CARLA ticks per SUMO step
+        sumo = SumoSimulation(str(cfg_file), step * sumo_ratio)
         carla_sim = CarlaSimulation(tc["server"]["host"], tc["server"]["port"], step)
         # drawings, traffic-light states and the spectator on a connection of their own (see side.py)
         side = Side(tc["server"]["host"], tc["server"]["port"])
@@ -448,6 +459,14 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             summary["signals"] = json.loads((out / "sumo" / "signals.json").read_text())
         except (OSError, ValueError):
             pass
+        # city-sized maps: SUMO every few ticks, in a thread, asked only about what is near (bridge/pipeline.py)
+        sync.configure_pipeline(sumo_ratio, tc["simulation"].get("sumo_thread"), tc["simulation"].get("sumo_near"),
+                                tc["simulation"].get("sumo_near_m"))
+        if sync.pipelined:
+            sync.hooks.append(lambda: signals.prefetch([a.get_location() for a in focus_actors]))
+            log(f"SUMO: a step of {step * sumo_ratio:g} s every {sumo_ratio} tick(s), cars interpolated between"
+                f"{'; in a thread while CARLA ticks' if sync.threaded else ''}"
+                f"{'; asked only about vehicles and lights near the participants' if sync.near else ''}")
         world.tick()
 
         # AI agents (scripted cars and walkers); an AV passenger rides in one of them
@@ -938,8 +957,12 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     if host_audio is not None and hasattr(host_audio, "sound_event"):
                         host_audio.sound_event(se)
                 city.sound_events.clear()
+            sumo_driven = set(sync.adopted.values())
             for r in records:     # the light states the bridge read this frame (saves a round trip each)
-                r["lights"] = carla_sim.frame_lights.get(r["actor"].id)
+                lights = carla_sim.frame_lights.get(r["actor"].id)
+                if lights is None and r["actor"].id in sumo_driven:   # SUMO drives it: the lights the bridge set
+                    lights = carla_sim.current_lights(r["actor"].id)  # (get_light_state is a server round trip)
+                r["lights"] = lights
             laps("stations_events")
             logger.log(snap, records, ai, sumo_signals, [])
             if drone_world is not None:

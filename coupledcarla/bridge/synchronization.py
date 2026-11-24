@@ -34,6 +34,7 @@ from .sumo_integration.carla_simulation import CarlaSimulation  # pylint: disabl
 from .sumo_integration.constants import INVALID_ACTOR_ID  # pylint: disable=wrong-import-position
 from .sumo_integration.sumo_simulation import SumoSimulation  # pylint: disable=wrong-import-position
 from . import animate  # pylint: disable=wrong-import-position
+from . import pipeline  # pylint: disable=wrong-import-position
 
 # ==================================================================================================
 # -- synchronization_loop --------------------------------------------------------------------------
@@ -109,6 +110,13 @@ class SimulationSynchronization(object):
         # coupled-carla: laps(name) is called after each part of tick() (run.py times them for its profile line)
         self.laps = lambda name: None
 
+        # coupled-carla: the pipelined tick (bridge/pipeline.py; configure_pipeline() turns it on). hooks run at each
+        # SUMO-step boundary, before the step starts (where TraCI calls cost no wait); sumo_stepped says whether this
+        # tick had a SUMO step (always on the plain tick).
+        self.pipelined, self.ratio, self.threaded, self.near = False, 1, False, False
+        self.hooks = []
+        self.sumo_stepped = True
+
         # Mapped actor ids.
         self.sumo2carla_ids = {}  # Contains only actors controlled by sumo.
         self.carla2sumo_ids = {}  # Contains only actors controlled by carla.
@@ -133,6 +141,8 @@ class SimulationSynchronization(object):
         """
         Tick to simulation synchronization
         """
+        if getattr(self, "pipelined", False):
+            return self._tick_pipelined()
         laps = self.laps
         lod = bool(self.focus and self.radius)
         # -----------------
@@ -148,18 +158,7 @@ class SimulationSynchronization(object):
             self.sumo.subscribe(sumo_actor_id)
             self.sumo2carla_ids[sumo_actor_id] = self.adopted[sumo_actor_id]
         sumo_spawned_actors -= self.adopted.keys()
-        sumo_spawned_actors = self._drop_departures_in_sight(sumo_spawned_actors)
-        if getattr(self, "driver_mix_seed", None) is not None:
-            import traci  # pylint: disable=import-outside-toplevel
-            from coupledcarla import drivermix  # pylint: disable=import-outside-toplevel
-            for sumo_actor_id in sumo_spawned_actors:
-                if sumo_actor_id.startswith("carla"):      # a CARLA actor's twin: driven by CARLA
-                    continue
-                try:
-                    drivermix.apply(sumo_actor_id, traci.vehicle.getVehicleClass(sumo_actor_id), self.driver_mix_seed,
-                                    red_running=getattr(self, "red_running", False))
-                except traci.TraCIException:
-                    pass
+        sumo_spawned_actors = self._new_departures(sumo_spawned_actors)
         for sumo_actor_id in sumo_spawned_actors:
             if lod:
                 self.sumo.subscribe_pose(sumo_actor_id)
@@ -225,79 +224,7 @@ class SimulationSynchronization(object):
                     self.sumo.subscribe_pose(sumo_actor_id)
         laps("lod")
 
-        # Updating sumo actors in carla.
-        # coupled-carla: vehicles whose SUMO bodies touch another's (a SUMO collision, logged, not resolved) are placed
-        # with physics off: with physics on CARLA pushed them apart, and they spun round (bridge/animate.py)
-        touching = set()
-        if self.animate_radius > 0 and self.poses:
-            from coupledcarla.drivecheck import frame_conflicts  # pylint: disable=import-outside-toplevel
-            boxes = {cid: (p[0], p[1], p[2], p[4], p[5]) for cid, p in self.poses.items()}
-            if len(boxes) > 1:
-                pairs, _ = frame_conflicts(boxes, {}, shrink=0.05)
-                touching = {c for pair in pairs for c in pair}
-        self.velocity.clear()
-        self.poses.clear()
-        for sumo_actor_id in self.sumo2carla_ids:
-            carla_actor_id = self.sumo2carla_ids[sumo_actor_id]
-
-            try:
-                sumo_actor = self.sumo.get_actor(sumo_actor_id)
-            except KeyError:     # coupled-carla: off the network for a moment (a SUMO teleport of an adopted car)
-                continue
-
-            carla_transform = BridgeHelper.get_carla_transform(sumo_actor.transform,
-                                                               sumo_actor.extent)
-            loc = carla_transform.location
-            yaw = animate.steady_yaw(self._prev_yaw.get(carla_actor_id), carla_transform.rotation.yaw,
-                                     sumo_actor.speed)
-            if yaw != carla_transform.rotation.yaw:  # a SUMO heading flip is not shown (animate.steady_yaw): the
-                # centre was put half a length behind SUMO's front bumper along the flipped heading; along this one
-                (ox, oy), (nx, ny) = (animate.velocity(sumo_actor.extent.x, carla_transform.rotation.yaw),
-                                      animate.velocity(sumo_actor.extent.x, yaw))
-                loc.x, loc.y = loc.x + ox - nx, loc.y + oy - ny
-                carla_transform.rotation.yaw = yaw
-            yaw_rate = animate.yaw_rate(self._prev_yaw.get(carla_actor_id, yaw), yaw, self.carla.step_length)
-            self._prev_yaw[carla_actor_id] = yaw
-            speed = sumo_actor.speed
-            if getattr(self, "smooth_paths", False):
-                sm = self.smoothers.get(carla_actor_id)
-                if sm is None:
-                    sm = self.smoothers[carla_actor_id] = (animate.PathSmoother.participant()
-                                                           if sumo_actor_id in self.adopted else animate.PathSmoother())
-                aim = self._aim(sumo_actor_id, sumo_actor.speed)
-                loc.x, loc.y, yaw, yaw_rate, speed = sm.step((loc.x, loc.y, yaw), sumo_actor.speed,
-                                                             2.0 * sumo_actor.extent.x, self.carla.step_length,
-                                                             aim=aim)
-                carla_transform.rotation.yaw = yaw
-            self.velocity[carla_actor_id] = animate.velocity(speed, yaw)
-            self.poses[carla_actor_id] = (loc.x, loc.y, yaw, speed, sumo_actor.extent.x,
-                                          sumo_actor.extent.y)
-            animated = False
-            if self.animate_radius > 0 and (centres or sumo_actor_id in self.adopted):
-                reach = self.animate_radius + (10.0 if carla_actor_id in self.carla._physics else 0.0)
-                animated = sumo_actor_id in self.adopted or (carla_actor_id not in touching and any(
-                    (loc.x - c.x) ** 2 + (loc.y - c.y) ** 2 <= reach * reach for c in (centres or ())))
-            if self.sync_vehicle_lights:
-                # coupled-carla: the lights the bridge last gave it, instead of asking the server for every car
-                # every tick (a blocking round trip each)
-                carla_lights = BridgeHelper.get_carla_lights_state(self.carla.current_lights(carla_actor_id),
-                                                                   sumo_actor.signals)
-            else:
-                carla_lights = None
-
-            if animated:
-                self.carla.follow_vehicle(carla_actor_id, carla_transform, speed, yaw_rate,
-                                          2.0 * sumo_actor.extent.x, carla_lights)
-            else:
-                self.carla.place_vehicle(carla_actor_id, carla_transform, carla_lights)
-        for gone in [i for i in self._prev_yaw if i not in self.velocity]:
-            del self._prev_yaw[gone]
-        for gone in [i for i in getattr(self, "smoothers", {}) if i not in self.velocity]:
-            del self.smoothers[gone]
-        if getattr(self, "lane_shapes", None) is not None and len(self.lane_shapes.cache) > 2 * len(self.sumo2carla_ids) + 50:
-            live = set(self.sumo2carla_ids)
-            for vid in [v for v in self.lane_shapes.cache if v not in live]:
-                self.lane_shapes.forget(vid)
+        self._place_sumo_actors(self.sumo.get_actor, centres)
         laps("sumo_to_carla")
 
         # Updates traffic lights in carla based on sumo information.
@@ -377,6 +304,23 @@ class SimulationSynchronization(object):
                 self.sumo.synchronize_traffic_light(landmark_id, sumo_tl_state)
         laps("carla_to_sumo")
 
+    def _new_departures(self, departed):
+        """coupled-carla: SUMO's new vehicles of this step, minus those inserted in sight (_drop_departures_in_sight),
+        each given its own driver (drivermix.py) when driver_mix_seed is set. Plain and pipelined tick alike."""
+        departed = self._drop_departures_in_sight(departed)
+        if getattr(self, "driver_mix_seed", None) is not None:
+            import traci  # pylint: disable=import-outside-toplevel
+            from coupledcarla import drivermix  # pylint: disable=import-outside-toplevel
+            for sumo_actor_id in departed:
+                if sumo_actor_id.startswith("carla"):      # a CARLA actor's twin: driven by CARLA
+                    continue
+                try:
+                    drivermix.apply(sumo_actor_id, traci.vehicle.getVehicleClass(sumo_actor_id), self.driver_mix_seed,
+                                    red_running=getattr(self, "red_running", False))
+                except traci.TraCIException:
+                    pass
+        return departed
+
     def _drop_departures_in_sight(self, departed):
         """coupled-carla: a car or bike that SUMO inserts within depart_hide_m of a participant or free camera (a
         trip starting on an inner street) would appear out of nowhere in front of them (Tokyo clip: a car 40 m from
@@ -413,8 +357,10 @@ class SimulationSynchronization(object):
 
     def _aim(self, sumo_actor_id, speed):
         """coupled-carla: the CARLA point on the vehicle's SUMO path animate.look_ahead(speed) beyond its front
-        bumper (its lane, then the lanes it takes next), or None."""
-        if getattr(self, "lane_shapes", None) is None:
+        bumper (its lane, then the lanes it takes next), or None. None on the pipelined tick (bridge/pipeline.py):
+        its poses are interpolated between SUMO steps and a TraCI call there would wait for the step's thread; the
+        smoother then works over the body only."""
+        if getattr(self, "lane_shapes", None) is None or getattr(self, "pipelined", False):
             return None
         st = self.sumo.get_lane_state(sumo_actor_id)
         if st is None:
@@ -427,6 +373,345 @@ class SimulationSynchronization(object):
             return None
         off = BridgeHelper.offset
         return q[0] - off[0], -(q[1] - off[1])
+
+    def _place_sumo_actors(self, get_actor, centres):
+        """Moves each SUMO actor's CARLA car to where get_actor(sumo id) says (a SumoActor; KeyError: none this
+        tick). The pipelined tick passes an interpolating getter."""
+        # Updating sumo actors in carla.
+        # coupled-carla: vehicles whose SUMO bodies touch another's (a SUMO collision, logged, not resolved) are placed
+        # with physics off: with physics on CARLA pushed them apart, and they spun round (bridge/animate.py)
+        touching = set()
+        if self.animate_radius > 0 and self.poses:
+            from coupledcarla.drivecheck import frame_conflicts  # pylint: disable=import-outside-toplevel
+            boxes = {cid: (p[0], p[1], p[2], p[4], p[5]) for cid, p in self.poses.items()}
+            if len(boxes) > 1:
+                pairs, _ = frame_conflicts(boxes, {}, shrink=0.05)
+                touching = {c for pair in pairs for c in pair}
+        self.velocity.clear()
+        self.poses.clear()
+        for sumo_actor_id in self.sumo2carla_ids:
+            carla_actor_id = self.sumo2carla_ids[sumo_actor_id]
+
+            try:
+                sumo_actor = get_actor(sumo_actor_id)
+            except KeyError:     # coupled-carla: off the network for a moment (a SUMO teleport of an adopted car)
+                continue
+
+            carla_transform = BridgeHelper.get_carla_transform(sumo_actor.transform,
+                                                               sumo_actor.extent)
+            loc = carla_transform.location
+            yaw = animate.steady_yaw(self._prev_yaw.get(carla_actor_id), carla_transform.rotation.yaw,
+                                     sumo_actor.speed)
+            if yaw != carla_transform.rotation.yaw:  # a SUMO heading flip is not shown (animate.steady_yaw): the
+                # centre was put half a length behind SUMO's front bumper along the flipped heading; along this one
+                (ox, oy), (nx, ny) = (animate.velocity(sumo_actor.extent.x, carla_transform.rotation.yaw),
+                                      animate.velocity(sumo_actor.extent.x, yaw))
+                loc.x, loc.y = loc.x + ox - nx, loc.y + oy - ny
+                carla_transform.rotation.yaw = yaw
+            yaw_rate = animate.yaw_rate(self._prev_yaw.get(carla_actor_id, yaw), yaw, self.carla.step_length)
+            self._prev_yaw[carla_actor_id] = yaw
+            speed = sumo_actor.speed
+            if getattr(self, "smooth_paths", False):
+                sm = self.smoothers.get(carla_actor_id)
+                if sm is None:
+                    sm = self.smoothers[carla_actor_id] = (animate.PathSmoother.participant()
+                                                           if sumo_actor_id in self.adopted else animate.PathSmoother())
+                aim = self._aim(sumo_actor_id, sumo_actor.speed)
+                loc.x, loc.y, yaw, yaw_rate, speed = sm.step((loc.x, loc.y, yaw), sumo_actor.speed,
+                                                             2.0 * sumo_actor.extent.x, self.carla.step_length,
+                                                             aim=aim)
+                carla_transform.rotation.yaw = yaw
+            self.velocity[carla_actor_id] = animate.velocity(speed, yaw)
+            self.poses[carla_actor_id] = (loc.x, loc.y, yaw, speed, sumo_actor.extent.x,
+                                          sumo_actor.extent.y)
+            animated = False
+            if self.animate_radius > 0 and (centres or sumo_actor_id in self.adopted):
+                reach = self.animate_radius + (10.0 if carla_actor_id in self.carla._physics else 0.0)
+                animated = sumo_actor_id in self.adopted or (carla_actor_id not in touching and any(
+                    (loc.x - c.x) ** 2 + (loc.y - c.y) ** 2 <= reach * reach for c in (centres or ())))
+            if self.sync_vehicle_lights:
+                # coupled-carla: the lights the bridge last gave it, instead of asking the server for every car
+                # every tick (a blocking round trip each)
+                carla_lights = BridgeHelper.get_carla_lights_state(self.carla.current_lights(carla_actor_id),
+                                                                   sumo_actor.signals)
+            else:
+                carla_lights = None
+
+            if animated:
+                self.carla.follow_vehicle(carla_actor_id, carla_transform, speed, yaw_rate,
+                                          2.0 * sumo_actor.extent.x, carla_lights)
+            else:
+                self.carla.place_vehicle(carla_actor_id, carla_transform, carla_lights)
+        for gone in [i for i in self._prev_yaw if i not in self.velocity]:
+            del self._prev_yaw[gone]
+        for gone in [i for i in getattr(self, "smoothers", {}) if i not in self.velocity]:
+            del self.smoothers[gone]
+        if getattr(self, "lane_shapes", None) is not None and len(self.lane_shapes.cache) > 2 * len(self.sumo2carla_ids) + 50:
+            live = set(self.sumo2carla_ids)
+            for vid in [v for v in self.lane_shapes.cache if v not in live]:
+                self.lane_shapes.forget(vid)
+
+    # ---------------------------------------------------------------------------------------------------------------
+    # coupled-carla: the pipelined tick (bridge/pipeline.py)
+    # ---------------------------------------------------------------------------------------------------------------
+
+    def configure_pipeline(self, ratio=1, threaded=False, near=False, near_m=None):
+        """SUMO every `ratio` CARLA ticks with interpolated poses in between; with `threaded` that step runs while
+        CARLA ticks; with `near` SUMO is asked only about vehicles within the level-of-detail radius (+30 m) and
+        traffic lights within near_m (default radius + 50 m) of the participants. All off: the plain tick."""
+        self.ratio, self.threaded = max(1, int(ratio)), bool(threaded)
+        self.near = bool(near) and bool(self.focus and self.radius)
+        self.pipelined = self.ratio > 1 or self.threaded or self.near
+        self.near_m = float(near_m or ((self.radius or 250.0) + 50.0))
+        self._n = 0
+        self._cur, self._prev = {}, {}
+        self._acc = pipeline.Accumulator()
+        self._tls_xy = None
+        self._boundaries = 0
+        self._new_sumo = set()
+        self.hooks = getattr(self, "hooks", [])
+        self.sumo_stepped = True
+
+    def _sumo_points(self, centres):
+        off = BridgeHelper.offset
+        return [(c.x + off[0], off[1] - c.y) for c in (centres or ())]
+
+    def _tick_pipelined(self):
+        import carla  # pylint: disable=import-outside-toplevel,import-error
+        laps = self.laps
+        k = self.ratio
+        j = self._n % k
+        self._n += 1
+        centres = self.focus() if (self.focus and self.radius) else None
+        if j == 0:
+            # the SUMO-step boundary: the step begun at the last one has finished (or runs now, the first time)
+            if self._n == 1:
+                self.sumo.tick()
+            else:
+                self.sumo.wait_step()
+            laps("sumo_step")
+            self.sumo.frozen = None
+            lost_twins = self._boundary_sumo_events()
+            self._boundary_carla_to_sumo(lost_twins)
+            laps("carla_to_sumo")
+            self._boundary_lod(centres)
+            laps("lod")
+            self._boundary_lights(centres)
+            laps("lights")
+            self._prev, cur = self._cur, {}
+            for sumo_actor_id in self.sumo2carla_ids:
+                try:
+                    cur[sumo_actor_id] = self.sumo.read_actor(sumo_actor_id)
+                except KeyError:
+                    pass
+            self._cur = cur
+            self.sumo.frozen = cur
+            self.sumo_stepped = True
+            for hook in self.hooks:
+                hook()
+            laps("hooks")
+            # the next SUMO step: in a thread while CARLA ticks, or now
+            if self.threaded:
+                self.sumo.start_step()
+            else:
+                self.sumo.tick()
+            laps("sumo_step")
+            self._boundaries += 1
+        else:
+            self.sumo_stepped = False
+            self.arrived_adopted = set()
+        f = (j + 1) / float(k)
+        cur, prev = self._cur, self._prev
+
+        def make(x, y, z, pitch, yaw):
+            return carla.Transform(carla.Location(x, y, z), carla.Rotation(pitch, yaw, 0.0))
+
+        def get(sumo_actor_id):
+            return pipeline.lerp_actor(prev.get(sumo_actor_id), cur[sumo_actor_id], f, make)
+        self._place_sumo_actors(get, centres)
+        laps("sumo_to_carla")
+        self.carla.tick()
+        self._acc.add(self.carla.spawned_actors, self.carla.destroyed_actors)
+        laps("carla_tick")
+
+    def _boundary_sumo_events(self):
+        """SUMO's departures and arrivals of the step that just ran (the plain tick's first part); returns the CARLA
+        actors whose SUMO twin SUMO removed."""
+        lod = bool(self.focus and self.radius)
+        spawned = self.sumo.spawned_actors - set(self.carla2sumo_ids.values())
+        for sumo_actor_id in sorted(spawned & self.adopted.keys()):
+            self.sumo.subscribe(sumo_actor_id)
+            self.sumo2carla_ids[sumo_actor_id] = self.adopted[sumo_actor_id]
+        spawned -= self.adopted.keys()
+        spawned = self._new_departures(spawned)
+        for sumo_actor_id in sorted(spawned):
+            if not self.near:        # near: the focus context subscriptions see them
+                if lod:
+                    self.sumo.subscribe_pose(sumo_actor_id)
+                else:
+                    self.sumo.subscribe(sumo_actor_id)
+            self._sumo_live.add(sumo_actor_id)
+        self._new_sumo = spawned
+        self.arrived_adopted = self.sumo.destroyed_actors & self.adopted.keys()
+        for sumo_actor_id in self.arrived_adopted:
+            self.sumo2carla_ids.pop(sumo_actor_id, None)
+        for sumo_actor_id in sorted(self.sumo.destroyed_actors - self.adopted.keys()):
+            self._sumo_live.discard(sumo_actor_id)
+            if sumo_actor_id in self.sumo2carla_ids:
+                self.carla.destroy_actor(self.sumo2carla_ids.pop(sumo_actor_id))
+        lost_twins = {carla_actor_id for carla_actor_id, sumo_actor_id in self.carla2sumo_ids.items()
+                      if sumo_actor_id in self.sumo.destroyed_actors}
+        for carla_actor_id in sorted(lost_twins):
+            logging.warning('SUMO removed the twin %s of CARLA actor %s; adding a new one',
+                            self.carla2sumo_ids.pop(carla_actor_id), carla_actor_id)
+        return lost_twins
+
+    def _spawn_in_carla(self, sumo_actor_id, carla_transform, lod):
+        """The plain tick's spawn of a SUMO actor in CARLA (subscribed to everything first)."""
+        if lod:
+            self.sumo.subscribe(sumo_actor_id)
+        sumo_actor = self.sumo.read_actor(sumo_actor_id)
+        carla_blueprint = BridgeHelper.get_carla_blueprint(sumo_actor, self.sync_vehicle_color)
+        if carla_blueprint is None:
+            self.sumo.unsubscribe(sumo_actor_id)
+            self._sumo_live.discard(sumo_actor_id)
+            return
+        carla_actor_id = self.carla.spawn_actor(carla_blueprint, carla_transform)
+        if carla_actor_id != INVALID_ACTOR_ID:
+            self.sumo2carla_ids[sumo_actor_id] = carla_actor_id
+        elif lod:
+            self.sumo.unsubscribe(sumo_actor_id)
+            if not self.near:
+                self.sumo.subscribe_pose(sumo_actor_id)
+
+    def _despawn(self, sumo_actor_id, lod):
+        self.carla.destroy_actor(self.sumo2carla_ids.pop(sumo_actor_id))
+        if lod:
+            self.sumo.unsubscribe(sumo_actor_id)
+            if not self.near:
+                self.sumo.subscribe_pose(sumo_actor_id)
+
+    def _boundary_lod(self, centres):
+        """Level of detail at a SUMO-step boundary: near SUMO actors into CARLA, far ones out (as the plain tick's)."""
+        lod = bool(self.focus and self.radius)
+        if self.near:
+            near = self.sumo.near_poses()       # within radius + 30 m of the focus points of the last step
+            self.sumo.set_focus(self._sumo_points(centres), self.radius + 30.0)
+            off = BridgeHelper.offset
+            for sumo_actor_id in sorted(near):
+                if sumo_actor_id in self.adopted or sumo_actor_id not in self._sumo_live \
+                        or sumo_actor_id in self.sumo2carla_ids:
+                    continue
+                x, y = near[sumo_actor_id]
+                cx, cy = x - off[0], off[1] - y
+                if any((cx - c.x) ** 2 + (cy - c.y) ** 2 <= self.radius ** 2 for c in (centres or ())):
+                    self.sumo.subscribe(sumo_actor_id)
+                    pose = self.sumo.get_pose(sumo_actor_id)
+                    if pose is None:
+                        self.sumo.unsubscribe(sumo_actor_id)
+                        continue
+                    self._spawn_in_carla(sumo_actor_id, BridgeHelper.get_carla_transform(*pose), False)
+                    if sumo_actor_id not in self.sumo2carla_ids:
+                        self.sumo.unsubscribe(sumo_actor_id)
+            for sumo_actor_id in sorted(self.sumo2carla_ids):
+                if sumo_actor_id not in self.adopted and sumo_actor_id not in near and self._boundaries > 0:
+                    self._despawn(sumo_actor_id, lod)
+            return
+        every = max(1, int(round(5.0 / self.ratio)))
+        check = self._sumo_live if self._boundaries % every == 0 else self._new_sumo & self._sumo_live
+        for sumo_actor_id in sorted(check):
+            pose = self.sumo.get_pose(sumo_actor_id)
+            if pose is None:
+                continue
+            carla_transform = BridgeHelper.get_carla_transform(*pose)
+            loc = carla_transform.location
+            if centres is None:
+                near = far = None
+            else:
+                d = min((((loc.x - c.x) ** 2 + (loc.y - c.y) ** 2) ** 0.5 for c in centres), default=1e9)
+                near, far = d <= self.radius, d > self.radius + 30.0
+            in_carla = sumo_actor_id in self.sumo2carla_ids
+            if not in_carla and (centres is None or near):
+                self._spawn_in_carla(sumo_actor_id, carla_transform, lod)
+            elif in_carla and far:
+                self._despawn(sumo_actor_id, lod)
+
+    def _boundary_carla_to_sumo(self, lost_twins):
+        """The plain tick's carla-->sumo part, for the CARLA ticks since the last boundary."""
+        spawned, destroyed = self._acc.take(self.carla._active_actors)
+        carla_spawned_actors = (spawned | (lost_twins - destroyed)) - \
+            set(self.sumo2carla_ids.values()) - set(self.adopted.values())
+        for carla_actor_id in sorted(carla_spawned_actors):
+            carla_actor = self.carla.get_actor(carla_actor_id)
+            if carla_actor is None:
+                continue
+            type_id = BridgeHelper.get_sumo_vtype(carla_actor)
+            color = carla_actor.attributes.get('color', None) if self.sync_vehicle_color else None
+            if type_id is not None:
+                sumo_actor_id = self.sumo.spawn_actor(type_id, color)
+                if sumo_actor_id != INVALID_ACTOR_ID:
+                    self.carla2sumo_ids[carla_actor_id] = sumo_actor_id
+                    self.sumo.subscribe(sumo_actor_id)
+        for carla_actor_id in sorted(destroyed):
+            for sid in [k for k, v in self.adopted.items() if v == carla_actor_id]:
+                self.adopted.pop(sid)
+                if self.sumo2carla_ids.pop(sid, None) is not None:
+                    self.sumo.destroy_actor(sid)
+            if carla_actor_id in self.carla2sumo_ids:
+                self.sumo.destroy_actor(self.carla2sumo_ids.pop(carla_actor_id))
+        for carla_actor_id in sorted(self.carla2sumo_ids):
+            sumo_actor_id = self.carla2sumo_ids[carla_actor_id]
+            carla_actor = self.carla.get_actor(carla_actor_id)
+            try:
+                sumo_actor = self.sumo.read_actor(sumo_actor_id)
+            except KeyError:          # added at this boundary: no results before its first step
+                sumo_actor = None
+            sumo_transform = BridgeHelper.get_sumo_transform(carla_actor.get_transform(),
+                                                             carla_actor.bounding_box.extent)
+            sumo_lights = None
+            if self.sync_vehicle_lights:
+                carla_lights = self.carla.get_actor_light_state(carla_actor_id)
+                self.carla.frame_lights[carla_actor_id] = carla_lights
+                if carla_lights is not None and sumo_actor is not None:
+                    sumo_lights = BridgeHelper.get_sumo_lights_state(sumo_actor.signals, carla_lights)
+            self.sumo.synchronize_vehicle(sumo_actor_id, sumo_transform, sumo_lights)
+        if self.tls_manager == 'carla':
+            common_landmarks = self.sumo.traffic_light_ids & self.carla.traffic_light_ids
+            for landmark_id in sorted(common_landmarks):
+                carla_tl_state = self.carla.get_traffic_light_state(landmark_id)
+                sumo_tl_state = BridgeHelper.get_sumo_traffic_light_state(carla_tl_state)
+                self.sumo.synchronize_traffic_light(landmark_id, sumo_tl_state)
+
+    def _tls_positions(self):
+        """{light id: (x, y)} in SUMO's net: the mean end of its incoming lanes."""
+        if self._tls_xy is None:
+            out = {}
+            net = self.sumo.net
+            for tls in (net.getTrafficLights() if net is not None else ()):
+                pts = [conn[0].getEdge().getToNode().getCoord() for conn in tls.getConnections()]
+                if pts:
+                    out[tls.getID()] = (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
+            self._tls_xy = out
+        return self._tls_xy
+
+    def _boundary_lights(self, centres):
+        """SUMO's light states to CARLA (the plain tick's), with near only for the lights near the participants."""
+        if self.tls_manager != 'sumo':
+            return
+        sumo_ids = self.sumo.traffic_light_ids
+        if self._common_landmarks is None or self._common_landmarks[0] != sumo_ids:
+            self._common_landmarks = (sumo_ids, sumo_ids & self.carla.traffic_light_ids)
+        landmarks = self._common_landmarks[1]
+        if self.near:
+            tm = self.sumo.traffic_light_manager
+            near_tls = pipeline.near_ids(self._tls_positions(), self._sumo_points(centres), self.near_m)
+            tm.set_near(near_tls)
+            index = tm._landmark_index()
+            landmarks = {l for l in landmarks if any(t in near_tls for t, _ in index.get(l, ()))}
+        for landmark_id in sorted(landmarks):
+            sumo_tl_state = self.sumo.get_traffic_light_state(landmark_id)
+            carla_tl_state = BridgeHelper.get_carla_traffic_light_state(sumo_tl_state)
+            self.carla.synchronize_traffic_light(landmark_id, carla_tl_state)
 
     def adopt(self, sumo_actor_id, carla_actor_id):
         """
@@ -442,6 +727,11 @@ class SimulationSynchronization(object):
         """
         Cleans synchronization.
         """
+        try:      # coupled-carla: a SUMO step still running in its thread
+            self.sumo.wait_step()
+        except Exception:  # pylint: disable=broad-except
+            pass
+        self.sumo.frozen = None
         # Configuring carla simulation in async mode.
         settings = self.carla.world.get_settings()
         settings.synchronous_mode = False

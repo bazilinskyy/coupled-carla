@@ -238,9 +238,21 @@ def fetch(bbox, path, ua, log=print, timeout=90):
         return json.loads(path.read_text())
     s, w, n, e = bbox
     t0 = time.time()
-    r = requests.get(API, params={"bbox": f"{w},{s},{e},{n}"}, headers=ua, timeout=timeout)
-    r.raise_for_status()
-    feats = r.json().get("features", [])
+    # the service refuses large boxes (400 for the 9 km EhvCity box): ask in parts of at most ~4 km
+    nx = max(1, math.ceil((e - w) * 111.32 * math.cos(math.radians((s + n) / 2)) / 4.0))
+    ny = max(1, math.ceil((n - s) * 111.32 / 4.0))
+    feats, seen = [], set()
+    for i in range(nx):
+        for j in range(ny):
+            tw, te = w + i * (e - w) / nx, w + (i + 1) * (e - w) / nx
+            ts, tn = s + j * (n - s) / ny, s + (j + 1) * (n - s) / ny
+            r = requests.get(API, params={"bbox": f"{tw},{ts},{te},{tn}"}, headers=ua, timeout=timeout)
+            r.raise_for_status()
+            for f in r.json().get("features", []):
+                key = f.get("id") or json.dumps(f.get("geometry"), sort_keys=True)
+                if key not in seen:
+                    seen.add(key)
+                    feats.append(f)
     signs = []
     for f in feats:
         p, g = f.get("properties") or {}, f.get("geometry") or {}

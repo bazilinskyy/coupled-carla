@@ -1,0 +1,40 @@
+# The Eindhoven city twin as a quick stand-in world: the twin's own OpenDRIVE (EhvCity, inside the Ring plus
+# Veldhoven), but instead of loading the baked level (minutes) or generating the whole city's roads, CARLA generates
+# the roads within 800 m of the driver in seconds (map.standin, coupledcarla/standin.py; BeamNG.Earth's quick world
+# after a teleport). SUMO runs the city's traffic within 1.5 km; the scenery streams in as on any map. For trying a
+# start, a route or a scenario before the real run on the baked level (eindhoven_city_twin.yaml); runs on CARLA 0.9.16
+# too.
+name: eindhoven_city_quick
+
+map:
+  name: eindhoven_city_twin           # the twin's SUMO net and scenery
+  opendrive: twins/EhvCity.xodr
+  bbox: [51.395, 5.380, 51.465, 5.509]
+  standin: {radius_m: 800}
+
+simulation:
+  step: 0.02
+  weather: CloudyNoon
+  # city-sized map: SUMO every 5th tick in a thread, asked only about what is near (bridge/pipeline.py), and the
+  # scenery within 200 m (each mesh is an actor in every tick's snapshot)
+  sumo_step: 0.1
+  sumo_thread: true
+  sumo_near: true
+  scenery: {radius_m: 200}
+
+traffic:
+  crop_radius_m: 1500   # SUMO on the roads within 1.5 km of the start, the city's demand cut to them (sumocrop.py)
+  cars_per_hour: 20000   # half the centre twin's density (2,400 an hour on 4 km2): the suburbs are quieter
+  bikes_per_hour: 6000
+
+participants:
+  - role: driver
+    vehicle: vehicle.lincoln.mkz_2020
+    input: keyboard
+    view: driver
+    spawn: {lat: 51.44453, lon: 5.47883}   # Fellenoord by the station
+
+trials:
+  - {duration_s: 300}
+  - {duration_s: 300, patch: {participants: {driver: {spawn: {lat: 51.44790, lon: 5.48800}}}}}   # TU/e campus, De Zaale
+  - {duration_s: 300, patch: {participants: {driver: {spawn: {lat: 51.40670, lon: 5.41480}}}}}   # Veldhoven, De Run by ASML
