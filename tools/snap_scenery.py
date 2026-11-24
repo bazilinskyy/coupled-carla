@@ -7,7 +7,10 @@ heights (AHN in the Netherlands, base 0), which the level's ground follows only 
 two agree within 0.3 m at 58% of the objects, but differ by more than 1 m at 12% (ramps, embankments, the station
 platforms). This tool loads the level, casts a ray down at every such object and moves it so that its bottom
 stands on the level's ground (the ground-like hit nearest the planned height, so an object under a bridge stays
-under it). Road signs stand on the OpenDRIVE road height already and are left alone. It rewrites scenery.json and
+under it). Where the planned heights are off by a whole area (a twin whose level stands on another terrain than
+the map's), each object moves by its area's median offset first; one with nothing at all above or below it (past
+the level's edge) is left out, and so is a rooftop unit with no roof of the level under it. Road signs stand on the
+OpenDRIVE road height already and are left alone. It rewrites scenery.json and
 records what it did there ("snapped"); run it again after each `mapbuild --scenery` of the map.
 
 The parked cars (parked.json, parking.py) are snapped the same way: rays at the four wheels of each car from 3 m
@@ -35,7 +38,28 @@ GROUND = {"terrain", "ground", "sidewalks", "roads", "roadlines"}
 SOFT = {"vegetation", "none", "unlabeled", "other", "sky"}     # leaves, invisible volumes: not in a parked car's way
 SINK = {"tree": 0.1}        # as scenery.build sinks them
 KINDS = ("tree", "bush", "lamp", "furniture")
+ROOF = "roof"               # rooftop units (streetlook.py): onto the level's own roof below them, or left out
+BUILDING = {"buildings", "building"}
+ROOF_MAX_SHIFT = 25.0       # m: a roof further from the planned one is another building's (or none): left out
+REACH = 300.0               # m: a ray this far up and down that hits nothing at all: no level there
+AREA = 100.0                # m: objects in one such square share a planned-height offset
 CELL = 200.0                # the level streams its ground in around the spectator: one cell at a time
+
+
+def drop_items(data, drop):
+    """Take items out of scenery.json and renumber what points at them: lamp_night and leaf rows start with an
+    item index, prov["items"] has one entry per item."""
+    new = {}
+    for i in range(len(data["items"])):
+        if i not in drop:
+            new[i] = len(new)
+    data["items"] = [it for i, it in enumerate(data["items"]) if i not in drop]
+    for key in ("lamp_night", "leaf"):
+        if data.get(key):
+            data[key] = [[new[r[0]]] + list(r[1:]) for r in data[key] if r[0] in new]
+    pv = data.get("prov")
+    if isinstance(pv, dict) and isinstance(pv.get("items"), list):
+        pv["items"] = [v for i, v in enumerate(pv["items"]) if i not in drop]
 
 
 def main():
@@ -70,9 +94,11 @@ def main():
 
     cells = defaultdict(list)
     for i, it in enumerate(data["items"]):
-        if it[6] in KINDS and len(it) <= 7 and not args.parked_only:
+        if ((it[6] in KINDS and len(it) <= 7) or it[6] == ROOF) and not args.parked_only:
             cells[(int(it[1] // CELL), int(it[2] // CELL))].append(i)
     shifts, missed, skipped = [], 0, 0
+    roof_shifts, roof_drop, void = [], set(), set()
+    cand = {}                   # item -> (planned bottom, ground hits): placed after the pass, by its area's offset
     t0 = time.time()
     for (cx, cy), idx in sorted(cells.items()):
         stream(cx, cy)
@@ -85,22 +111,59 @@ def main():
             sink = SINK.get(it[6], 0.0)
             bottom = it[3] + it[5] * (m["off"][2] - m["ext"][2])
             planned = bottom + sink
-            hits = [h.location.z for h in world.cast_ray(carla.Location(x=it[1], y=it[2], z=planned + 30.0),
-                                                         carla.Location(x=it[1], y=it[2], z=planned - 30.0))
-                    if str(h.label).split(".")[-1].lower() in GROUND]
+            if it[6] == ROOF:
+                # the scenery's roofs come from OSM/Overture heights; a twin's level has its own buildings (3DBAG,
+                # PLATEAU, Catastro): the unit goes on the highest building surface under it, or out where the
+                # level has no roof there (Shibuya 2026-11-24: units floating 5-30 m over the PLATEAU roofs)
+                tops = [h.location.z for h in world.cast_ray(carla.Location(x=it[1], y=it[2], z=planned + 80.0),
+                                                             carla.Location(x=it[1], y=it[2], z=planned - 80.0))
+                        if str(h.label).split(".")[-1].lower() in BUILDING]
+                if not tops or abs(max(tops) - planned) > ROOF_MAX_SHIFT:
+                    roof_drop.add(i)
+                    continue
+                d = max(tops) - planned
+                it[3] = round(it[3] + d, 2)
+                roof_shifts.append(d)
+                continue
+            allhits = world.cast_ray(carla.Location(x=it[1], y=it[2], z=planned + REACH),
+                                     carla.Location(x=it[1], y=it[2], z=planned - REACH))
+            if not allhits:         # nothing at all above or below: past the level's edge, it would float in the void
+                void.add(i)
+                continue
+            hits = [h.location.z for h in allhits if str(h.label).split(".")[-1].lower() in GROUND]
             if not hits:
                 missed += 1
                 continue
-            g = min(hits, key=lambda z: abs(z - planned))
-            d = g - planned
-            if abs(d) > args.max_shift:
-                skipped += 1
-                continue
-            it[3] = round(it[3] + d, 2)
-            shifts.append(d)
+            cand[i] = (planned, hits)
+    # the planned heights may be off by a whole area (a twin whose level stands on another terrain than the map's,
+    # Salamanca 2026-11-24: 4-30 m, so 844 objects were left floating or buried): each object moves to the ground
+    # nearest its planned height plus the median offset of its area's objects, and is left alone only when that
+    # ground is more than max_shift from where its neighbours put it (under a bridge, on a deck)
+    near = {i: min(h, key=lambda z, p=p: abs(z - p)) - p for i, (p, h) in cand.items()}
+    area = defaultdict(list)
+    for i, d in near.items():
+        it = data["items"][i]
+        area[(int(it[1] // AREA), int(it[2] // AREA))].append(d)
+    offs = {k: statistics.median(v) for k, v in area.items()}
+    for i, (planned, hits) in cand.items():
+        it = data["items"][i]
+        off = offs[(int(it[1] // AREA), int(it[2] // AREA))]
+        g = min(hits, key=lambda z: abs(z - planned - off))
+        d = g - planned
+        if abs(d - off) > args.max_shift:
+            skipped += 1
+            continue
+        it[3] = round(it[3] + d, 2)
+        shifts.append(d)
+    if roof_drop or void:
+        drop_items(data, roof_drop | void)
     a = sorted(abs(d) for d in shifts)
-    data["snapped"] = {"level": cfg["map"]["carla_level"], "items": len(shifts), "no_ground": missed,
-                       "left_alone": skipped, "median_shift_m": round(statistics.median(shifts), 2) if shifts else 0,
+    ra = sorted(abs(d) for d in roof_shifts)
+    data["snapped"] = {"roof_units": len(roof_shifts), "roof_units_left_out": len(roof_drop),
+                       "roof_p95_abs_shift_m": round(ra[int(0.95 * (len(ra) - 1))], 2) if ra else 0,
+                       "level": cfg["map"]["carla_level"], "items": len(shifts), "no_ground": missed,
+                       "left_alone": skipped, "past_the_level_left_out": len(void),
+                       "median_shift_m": round(statistics.median(shifts), 2) if shifts else 0,
                        "p95_abs_shift_m": round(a[int(0.95 * (len(a) - 1))], 2) if a else 0,
                        "when": time.strftime("%Y-%m-%d %H:%M")}
     if not args.parked_only:
