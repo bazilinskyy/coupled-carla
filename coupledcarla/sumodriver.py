@@ -181,7 +181,7 @@ class SumoDriver:
         if got is None:
             raise RuntimeError(f"{p['role']}: no SUMO lane near the spawn for the SUMO driver")
         self.lane, self.pos = got
-        vias = []
+        vias, legs = [], [(tf.location.x, tf.location.y)]
         for lat, lon in (p.get("route") or []) + ([[p["destination"]["lat"], p["destination"]["lon"]]]
                                                    if p.get("destination") else []):
             cx, cy = geo.to_carla(lat, lon)
@@ -192,6 +192,7 @@ class SumoDriver:
                 log(f"{p['role']}: route point {lat:.5f},{lon:.5f} has no lane within 40 m; skipped")
                 continue
             vias.append(near[0].getEdge())
+            legs.append((cx, cy))
             z = levels.lane_z(near[0], near[1])
         start = self.lane.getEdge()
         route = plan_route(net, start, vias) if vias else None
@@ -210,6 +211,11 @@ class SumoDriver:
         self.route = route
         self.vtype = self._vtype()
         length = sum(net.getEdge(e).getLength() for e in route)
+        straight = sum(math.hypot(bx - ax, by - ay) for (ax, ay), (bx, by) in zip(legs, legs[1:]))
+        if self._planned and length > 2.0 * straight + 100.0:
+            # a point on the wrong lane (the opposite direction) makes SUMO drive a loop to reach it
+            log(f"{p['role']}: WARNING the planned route is {length:.0f} m for {straight:.0f} m between its points: "
+                f"a route point on a lane of the other direction? (SUMO drives a detour to reach it)")
         log(f"{p['role']}: SUMO driver, route of {len(route)} edges ({length:.0f} m"
             f"{', planned' if self._planned else ', random destination'}), from lane {self.lane.getID()}")
         sync.adopt(self.sid, self.vehicle.id)      # no SUMO twin for this car, now or while it waits
