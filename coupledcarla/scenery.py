@@ -136,6 +136,8 @@ GENUS = {
     "spathodea": "tropical", "cassia": "tropical", "pongamia": "tropical", "melia": "tropical",
 }
 TREE_NUDGE_STEPS = (0.5, 1.0, 1.5)      # m: a mapped tree on a lane moves this far at most to a free spot
+FURNITURE_NUDGE_STEPS = TREE_NUDGE_STEPS + (2.0, 2.5, 3.0)   # m: a mapped bench, bin or flagpole (smaller than a crown:
+# a bin beside a path the twin models 2-3 m wider than it is stays at the path, not left out: TU/e campus 4 of 64)
 BUSHES = ["SM_Bush_M_v1", "SM_Bush_M_v3", "SM_Bush_L_v1", "SM_Bush_L_v3", "SM_oldBush_01", "SM_longLeavesBush_01"]
 
 FURNITURE = {   # (OSM key, value) -> meshes
@@ -1077,11 +1079,11 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 
     def furniture_spot(x, y):
         """Where a mapped bench, bin or flagpole can stand: its own spot, or the nearest free one within
-        TREE_NUDGE_STEPS (the twin's path lanes are wider than the paths: 11 of the TU/e campus's 64 OSM bins fell
-        on one and were left out), else None."""
+        FURNITURE_NUDGE_STEPS (the twin's path lanes are wider than the paths: 11 of the TU/e campus's 64 OSM bins fell
+        on one and were left out at 1.5 m, 4 still at 1.5 m), else None."""
         if free(x, y, 0.2):
             return x, y
-        for r in TREE_NUDGE_STEPS:
+        for r in FURNITURE_NUDGE_STEPS:
             for k in range(8):
                 a = k * math.pi / 4
                 if free(x + r * math.cos(a), y + r * math.sin(a), 0.2):
