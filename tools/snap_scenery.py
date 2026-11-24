@@ -94,7 +94,7 @@ def main():
 
     cells = defaultdict(list)
     for i, it in enumerate(data["items"]):
-        if ((it[6] in KINDS and len(it) <= 7) or it[6] == ROOF) and not args.parked_only:
+        if not args.parked_only:     # every item is checked for a level under it; KINDS and ROOF are moved too
             cells[(int(it[1] // CELL), int(it[2] // CELL))].append(i)
     shifts, missed, skipped = [], 0, 0
     roof_shifts, roof_drop, void = [], set(), set()
@@ -111,6 +111,13 @@ def main():
             sink = SINK.get(it[6], 0.0)
             bottom = it[3] + it[5] * (m["off"][2] - m["ext"][2])
             planned = bottom + sink
+            if not ((it[6] in KINDS and len(it) <= 7) or it[6] == ROOF):
+                # signs (on the OpenDRIVE's heights), wear and the rest stay where they are, unless the level ends
+                # before them (Salamanca 2026-11-24: signs on roads of map.xodr past the level floated in the void)
+                if not world.cast_ray(carla.Location(x=it[1], y=it[2], z=planned + REACH),
+                                      carla.Location(x=it[1], y=it[2], z=planned - REACH)):
+                    void.add(i)
+                continue
             if it[6] == ROOF:
                 # the scenery's roofs come from OSM/Overture heights; a twin's level has its own buildings (3DBAG,
                 # PLATEAU, Catastro): the unit goes on the highest building surface under it, or out where the
