@@ -811,6 +811,16 @@ squares once, `render` and `score` run a round, `table` puts rounds side by side
 improvement only when the tuning places improve and the held-out places do not get worse. Only open data is a
 target: Google's 3D tiles and Street View are never used to tune anything.
 
+Two rounds are compared on the same views, not on their indices. The index is a median over 30-80 views and moves
+by about 0.05 between two rounds of the same world, and each round picks every view's alignment (its heading and
+pitch offset against the photo) anew, so a re-picked alignment can pass for a change of the world. `score B
+--align-from A` keeps round A's alignment for every view, and `compare A B` gives per place the mean change of the
+spot score over the views both rounds share with a 95 % bootstrap interval, in index points too, how many views
+were aligned differently, and the change on the views aligned the same. Reference photos that are not street
+views are left out of the summary, the index and `compare`: those listed with a reason in
+`experiments/pilot/excluded_views.yaml` (indoors, a close-up of one object, people filling the frame, a view from
+high up, sky only; looked at one by one) and any photo whose own labels show no ground and no sky.
+
 ## Public transport
 
 Buses follow the real lines (`coupledcarla/transit.py`), built with the map:

@@ -605,8 +605,9 @@ def _fit(g, w, h):
 
 
 def view_metrics(v, real, wide_rgb, wide_lab, wide_hfov, gt_wide=None, yaw_range=12.0, pitch_range=6.0,
-                 pano_yaw_range=30.0):
-    """All metrics of one view, at the stated pose (nom_) and at the best alignment (al_).
+                 pano_yaw_range=30.0, fixed=None):
+    """All metrics of one view, at the stated pose (nom_) and at the best alignment (al_), or at `fixed` = (heading
+    error, pitch error) taken from an earlier round's compare.csv (no search: the same alignment in both rounds).
 
     real: ("photo", rgb, labels) for a pinhole photo (the render is cut at offsets from its wider frame), or
     ("pano", pano_rgb, pano_labels, src_yaw) for a panorama (the photo is cut at offsets, the render stays)."""
@@ -620,8 +621,12 @@ def view_metrics(v, real, wide_rgb, wide_lab, wide_hfov, gt_wide=None, yaw_range
         p0 = float(v.get("pitch") or 0.0)      # the render's camera pitch
         rg = R.reproject(pg, "equirect", w, h, hfov, pitch=p0, src_yaw=src_yaw, nearest=True)
         m = {f"nom_{k}": val for k, val in R.compare_labels(rg, nominal_g, hfov).items()}
-        err, perr, real_al_g, am, (cy, cp) = R.align_pano(pg, nominal_g, hfov, w, h, src_yaw, pano_yaw_range,
-                                                          pitch_range, pitch0=p0)
+        if fixed is None:
+            err, perr, real_al_g, am, (cy, cp) = R.align_pano(pg, nominal_g, hfov, w, h, src_yaw, pano_yaw_range,
+                                                              pitch_range, pitch0=p0)
+        else:       # align_pano reports the cut negated
+            err, perr, real_al_g, am, (cy, cp) = R.align_pano(pg, nominal_g, hfov, w, h, src_yaw, 0.0, 0.0,
+                                                              pitch0=p0, center=(-fixed[0], -fixed[1]))
         real_rgb = R.reproject(pano_rgb, "equirect", w, h, hfov, yaw=cy, pitch=p0 + cp, src_yaw=src_yaw)
         ren_g, ren_rgb, real_g = nominal_g, nominal_rgb, real_al_g
     else:
@@ -631,7 +636,10 @@ def view_metrics(v, real, wide_rgb, wide_lab, wide_hfov, gt_wide=None, yaw_range
             from PIL import Image
             real_rgb = np.asarray(Image.fromarray(real_rgb).resize((w, h), Image.BILINEAR))
         m = {f"nom_{k}": val for k, val in R.compare_labels(rg, nominal_g, hfov).items()}
-        err, perr, ren_g, am = R.align(rg, wg, hfov, w, h, wide_hfov, yaw_range, pitch_range)
+        if fixed is None:
+            err, perr, ren_g, am = R.align(rg, wg, hfov, w, h, wide_hfov, yaw_range, pitch_range)
+        else:
+            err, perr, ren_g, am = R.align(rg, wg, hfov, w, h, wide_hfov, 0.0, 0.0, center=fixed)
         ren_rgb = R.reproject(wide_rgb, "pinhole", w, h, hfov, yaw=err, pitch=perr, src_hfov=wide_hfov)
         real_g = rg
     m.update({f"al_{k}": val for k, val in am.items()})
@@ -740,6 +748,50 @@ def _write_rows(path, rows):
         wr.writerows(rows)
 
 
+NOT_STREET_GROUND, NOT_STREET_SKY = 0.03, 0.02
+
+
+def load_exclusions(path):
+    """{view id: reason} from a YAML file of {place: {view id: reason}} (view ids are the sources' own, unique)."""
+    if not path or not Path(path).exists():
+        return {}
+    import yaml
+    data = yaml.safe_load(Path(path).read_text()) or {}
+    return {str(i): str(r) for ids in data.values() for i, r in (ids or {}).items()}
+
+
+def not_street(row, listed=None):
+    """Why a reference photo is not a street view, or "". Listed (looked at: indoors, a close-up of one object,
+    people filling the frame, a view from high up, sky only), or seen by its own labels at the stated pose: no ground
+    (road + sidewalk under 3 %) and no sky (under 2 %), i.e. a wall, a hedge or an interior fills it. Such a photo
+    says nothing about the street the twin has to match; its views are left out of the summary and the index."""
+    if listed and str(row.get("id")) in listed:
+        return listed[str(row["id"])]
+    if row.get("nom_real_road") in (None, ""):
+        return ""
+    try:
+        ground = float(row.get("nom_real_road") or 0) + float(row.get("nom_real_sidewalk") or 0)
+        sky = float(row.get("nom_real_sky") or 0)
+    except (TypeError, ValueError):
+        return ""
+    if ground < NOT_STREET_GROUND and sky < NOT_STREET_SKY:
+        return "no ground and no sky in the photo (a wall, a hedge or an interior)"
+    return ""
+
+
+def read_alignment(path):
+    """{view id: (heading error, pitch error)} from an earlier round's compare.csv."""
+    out = {}
+    if path and Path(path).exists():
+        with Path(path).open(newline="") as f:
+            for r in csv.DictReader(f):
+                try:
+                    out[r["id"]] = (float(r["heading_error"]), float(r["pitch_error"]))
+                except (KeyError, TypeError, ValueError):
+                    pass
+    return out
+
+
 def cmd_compare(args):
     from PIL import Image
     out = Path(args.out)
@@ -750,6 +802,10 @@ def cmd_compare(args):
             renders[r["id"]] = r
     labels = Labels(out, args.model, args.device)
     perc = Perceptual(args) if args.perceptual else None
+    listed = load_exclusions(args.exclude)
+    fixed = read_alignment(args.align_from)
+    if args.align_from:
+        print(f"alignment of {len(fixed)} views taken from {args.align_from}", flush=True)
     rows, sheet_rows = [], []
     t0 = time.time()
     for k, (vid, rr) in enumerate(renders.items()):
@@ -767,8 +823,9 @@ def cmd_compare(args):
         gt = np.asarray(Image.open(sp)) if sp.exists() else None
         m, rg, ag, arg, real_rgb = view_metrics(v, real, wide_rgb, labels(f"render_{vid}", wide_rgb),
                                                 float(rr["wide_hfov"]), gt, args.yaw_margin, args.pitch_margin,
-                                                args.pano_yaw)
+                                                args.pano_yaw, fixed=fixed.get(vid))
         extra_metrics(m, rg, ag, real_rgb, arg, v["hfov"], perc)
+        m["excluded"] = not_street({"id": vid, **m}, listed)
         if gt is not None:      # CARLA's own labels: a view that is nearly all wall stands in or against a building
             from coupledcarla import streetphotos as SP
             m["wall_share"] = SP.wall_share(gt)
@@ -786,11 +843,14 @@ def cmd_compare(args):
             print(f"{k + 1}/{len(renders)} compared ({(time.time() - t0) / (k + 1):.1f} s each)", flush=True)
     _write_rows(out / "compare.csv", rows)
     from coupledcarla import streetphotos as SP
-    summ = {"views": summarise(rows), "model": args.model, "groups": R.GROUPS,
-            "ignored": "person, rider, motorcycle, bicycle (both images)", "map": SP.map_score(rows),
+    kept = [r for r in rows if not r.get("excluded")]       # not street views: in compare.csv, not in the summary
+    summ = {"views": summarise(kept), "model": args.model, "groups": R.GROUPS,
+            "ignored": "person, rider, motorcycle, bicycle (both images)", "map": SP.map_score(kept),
             "perceptual_model": args.dino_model if args.perceptual else None,
+            "excluded": {r["id"]: r["excluded"] for r in rows if r.get("excluded")},
+            "aligned_from": args.align_from or None,
             "worst": [{"id": r["id"], "spot_score": round(r["spot_score"], 3), "differences": r["differences"]}
-                      for r in sorted(rows, key=lambda r: _num(r["spot_score"]))[:20]]}
+                      for r in sorted(kept, key=lambda r: _num(r["spot_score"]))[:20]]}
     pairs = out / "pairs_summary.json"
     if pairs.exists():
         summ["real_vs_real"] = json.loads(pairs.read_text())
@@ -1286,6 +1346,12 @@ def main():
     p.add_argument("--season", default="leaf", choices=["leaf", "photo"],
                    help="trees in leaf (default), or each view's leaf state on its photo's date (season.py)")
     p = sub.add_parser("compare", parents=[common, seg])
+    p.add_argument("--exclude", default=None,
+                   help="YAML {place: {view id: reason}}: reference photos that are not street views (left out of the "
+                        "summary; photos with no ground and no sky are left out anyway)")
+    p.add_argument("--align-from", default=None,
+                   help="an earlier round's compare.csv: each view keeps that round's alignment (no search), so an "
+                        "A/B difference cannot come from a re-picked alignment")
     p = sub.add_parser("pairs", parents=[common, seg])
     p.add_argument("experiment")
     p.add_argument("--max-pairs", type=int, default=60)

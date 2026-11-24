@@ -668,14 +668,15 @@ def _score(m):
     return m["miou_coarse"] if not math.isnan(m["miou_coarse"]) else -1.0
 
 
-def align(real_g, wide_g, hfov, w, h, wide_hfov, yaw_range=12.0, pitch_range=6.0, step=3.0):
+def align(real_g, wide_g, hfov, w, h, wide_hfov, yaw_range=12.0, pitch_range=6.0, step=3.0, center=(0.0, 0.0)):
     """Photo with a fixed frame (a pinhole photo): the yaw/pitch offset (deg) of the render view, cut from the wider
     render, that best matches the photo's layout (coarse mIoU). It separates pose errors of the photo (heading,
     unknown pitch) from differences of the twin. Returns (heading error = the offset: the photo looks that much
-    right of / above its stated direction, dpitch, render group map there, metrics)."""
+    right of / above its stated direction, dpitch, render group map there, metrics). The search runs around
+    `center`; ranges 0 take `center` as it is (an alignment reused from an earlier round)."""
     best = None
-    for dy in np.arange(-yaw_range, yaw_range + 1e-6, step):
-        for dp in np.arange(-pitch_range, pitch_range + 1e-6, step):
+    for dy in center[0] + np.arange(-yaw_range, yaw_range + 1e-6, step):
+        for dp in center[1] + np.arange(-pitch_range, pitch_range + 1e-6, step):
             g = reproject(wide_g, "pinhole", w, h, hfov, yaw=float(dy), pitch=float(dp), src_hfov=wide_hfov,
                           nearest=True, fill=IGNORE)
             m = compare_labels(real_g, g, hfov)
@@ -684,14 +685,15 @@ def align(real_g, wide_g, hfov, w, h, wide_hfov, yaw_range=12.0, pitch_range=6.0
     return best[1], best[2], best[3], best[4]
 
 
-def align_pano(pano_g, render_g, hfov, w, h, src_yaw, yaw_range=30.0, pitch_range=6.0, step=3.0, pitch0=0.0):
+def align_pano(pano_g, render_g, hfov, w, h, src_yaw, yaw_range=30.0, pitch_range=6.0, step=3.0, pitch0=0.0,
+               center=(0.0, 0.0)):
     """Panorama photo: the render stays at the stated pose and the photo is cut at yaw/pitch offsets from its labelled
     panorama (no margin needed, so a wider yaw range: the panoramas' headings come from the GPS track). Returns
     (heading error: the true direction of the stated heading's column is stated + this, dpitch, the photo's group map
-    there, metrics, (dy, dp) of the cut)."""
+    there, metrics, (dy, dp) of the cut). The search runs around the cut `center`; ranges 0 take it as it is."""
     best = None
-    for dy in np.arange(-yaw_range, yaw_range + 1e-6, step):
-        for dp in np.arange(-pitch_range, pitch_range + 1e-6, step):
+    for dy in center[0] + np.arange(-yaw_range, yaw_range + 1e-6, step):
+        for dp in center[1] + np.arange(-pitch_range, pitch_range + 1e-6, step):
             g = reproject(pano_g, "equirect", w, h, hfov, yaw=float(dy), pitch=pitch0 + float(dp), src_yaw=src_yaw,
                           nearest=True)
             m = compare_labels(g, render_g, hfov)
