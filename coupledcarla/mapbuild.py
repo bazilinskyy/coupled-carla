@@ -440,10 +440,12 @@ def build_from_opendrive(cfg, out):
     xodr = out / "map.xodr"
     # without geoid grids (SUMO's and pyproj's PROJ have none; the vertical datum does not matter for x, y). The
     # server reads the level's own copy, this one is SUMO's.
-    xodr.write_text(re.sub(r"\s*\+geoidgrids=\S+|\s*\+vunits=\S+", "", src.read_text(encoding="utf-8")),
+    xodr.write_text(re.sub(r"\s*\+geoidgrids=[^\s\]<]+|\s*\+vunits=[^\s\]<]+", "", src.read_text(encoding="utf-8")),
                     encoding="utf-8")
     name_signals(xodr)
     stats = check_xodr(xodr)
+    from . import levelxodr     # what the run compares with the level's own OpenDRIVE (levelxodr.check)
+    xsig = levelxodr.store_signature(out)
     netconvert("--opendrive-files", str(xodr), "--offset.disable-normalization", "--no-internal-links",
                "-o", str(out / "geo.net.xml"))
     sumo_net(out, guess_tls=not mc.get("carla_town"),   # a CARLA town's lights are its own signals: none guessed
@@ -454,7 +456,7 @@ def build_from_opendrive(cfg, out):
             "built": time.strftime("%Y-%m-%d %H:%M:%S"), "opendrive": str(src), "carla_level": mc.get("carla_level"),
             **({"town": mc["carla_town"]} if mc.get("carla_town") else {}),
             "files": {"geo_net": "geo.net.xml", "xodr": "map.xodr", "sumo_net": "map.net.xml"},
-            "xodr": stats, "elevation": None}
+            "xodr": stats, "xodr_signature": xsig, "elevation": None}
     if mc.get("elevation"):
         try:
             meta["elevation"] = absolute_elevation(bbox, out)

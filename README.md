@@ -1348,6 +1348,17 @@ share their roads; the real bus lines and GTFS timetables are matched onto it as
 loads the level by name instead of generating an OpenDRIVE-only world. First run, headless on lin5080 (no
 GPU): 90 s, 35 SUMO vehicles shown in CARLA, 0 collisions, RTF 0.72 with the machine's other jobs running.
 
+**The map must be built from the level's own OpenDRIVE.** Everything coupled-carla adds to a baked level (SUMO's
+net, surface tiles, paving, parked cars, signs) comes from `maps/<name>/map.xodr`; the level drives on its own copy.
+When the level is rebaked or carla-digitaltwins marks its paving afterwards, `twins/<Name>.xodr` goes stale (on
+2026-11-24 a clinker tile stood 13 m up across the De Zaale passage, placed on a road the level no longer has).
+After loading a level the run compares the server's OpenDRIVE with `map.xodr` (roads, lanes, junctions and the
+paving mark; not the sign signals the bake drops) and stops on a difference, saving the level's copy as
+`maps/<name>/level.xodr` (`map.level_xodr: warn` runs anyway). `python tools/level_xodr.py <experiment> --from
+<the bake's input, e.g. EhvCentre_pave.xodr>` (or without `--from`: from a running server) replaces `twins/<Name>.xodr`
+(old file kept as `.before-xodr-refresh`) and rebuilds the map; then run `tools/snap_scenery.py`. A package needs the
+same file as `Content/Carla/Maps/Twins/<Name>/OpenDrive/<Name>.xodr` and `Content/Carla/Maps/OpenDrive/<Name>.xodr`.
+
 **Rendered on Windows (2026-11-14).** CARLA 1.0 also builds natively on Windows 11 (win5090: VS 2022, the
 engine fork with `GenerateProjectFiles` and msbuild, CARLA with CMake and Ninja) and packages: a Shipping
 server cooked with `-DCARLA_MAPS_TO_COOK=.../Town10HD_Opt+.../OpenDriveMap+.../TestMaps/EmptyMap+.../Twins/EhvCentre/EhvCentre`
