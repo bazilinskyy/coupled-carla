@@ -768,7 +768,11 @@ from the cached data in `real/`). 0.9.16's scenery is byte for byte what it was.
 On a baked level (`map.carla_level`, e.g. the Eindhoven twin) the scenery adds only trees, bushes, lamps, street
 furniture and signs (9,578 in the twin), at the terrain model's absolute heights (AHN, base 0).
 `python tools/snap_scenery.py <experiment>` then stands them on the level's own ground (needs a server with the
-level; run it again after `mapbuild --scenery`). `python tools/scenery_check.py <experiment>` checks scenery
+level, or `--export <twin export>/ue` to cast the rays at the export the level was baked from; run it again after
+`mapbuild --scenery`). An object with one ground surface under it goes onto it however far the terrain model put it
+(Salamanca's is 4-20 m off: 398 objects were left floating or buried); under a bridge or a deck its neighbours'
+offset decides. Wear, puddles and leaves that float are put down too (Eindhoven 1,409 bits of litter and stains
+0.3-0.8 m over the ground), and a tree under an arcade or an overhang is left out (TU/e 23, Eindhoven 50). `python tools/scenery_check.py <experiment>` checks scenery
 heights on a headless (`-nullrhi`) server: meshes the server refuses, and how far each mesh stands from the ground.
 Measured headless on lin5080: every mesh within 1 cm of its planned place; RTF 0.69 with and 1.10 without
 scenery on `eindhoven_centre` (no real-time sleep), 0.49 / 0.69 on the twin. Still visible in the numbers:
