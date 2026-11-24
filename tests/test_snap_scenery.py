@@ -8,16 +8,17 @@ from tools import snap_scenery as ss
 
 
 class _Cat:
-    """scenery.Catalog's lookups: a 1 m cube pivoted at its bottom, and a 12 m tall tree."""
+    """scenery.Catalog's lookups: a 1 m cube pivoted at its bottom, a 12 m tall tree and a 2 cm strip."""
     by_name = {"Cube": (0, {"off": [0, 0, 0.5], "ext": [0.5, 0.5, 0.5]}),
-               "Tree": (1, {"off": [0, 0, 6.0], "ext": [3.0, 3.0, 6.0]})}
+               "Tree": (1, {"off": [0, 0, 6.0], "ext": [3.0, 3.0, 6.0]}),
+               "Strip": (2, {"off": [0, 0, 0.0], "ext": [3.0, 0.5, 0.01]})}
 
     def __contains__(self, name):
         return name in self.by_name
 
 
 def _data(items):
-    return {"meshes": ["/Game/X/Cube.Cube", "/Game/X/Tree.Tree"], "items": items}
+    return {"meshes": ["/Game/X/Cube.Cube", "/Game/X/Tree.Tree", "/Game/X/Strip.Strip"], "items": items}
 
 
 def _level(surfaces):
@@ -124,3 +125,23 @@ def test_export_ground_answers_like_the_level(tmp_path):
     assert g.ray(5.0, 5.0, 100.0, -100.0) == [(9.0, "buildings"), (2.0, "roads"), (1.5, "ground")]
     assert g.ray(5.0, -5.0, 1.8, -100.0) == [(1.5, "ground")]      # only within the ray's span
     assert g.ray(80.0, 0.0, 100.0, -100.0) == []                   # past the level's edge
+
+
+def test_road_surface_strips_lie_on_the_levels_road_not_on_the_opendrive():
+    # red asphalt strips at the OpenDRIVE's heights: 0.4 m over the baked road, 0.3 m in it, one right; under the
+    # road the export's ground plane (0.35 m lower) is one layer with it: the strip goes on the road, its top
+    lvl = _level([(-10, 100, 10.0, "roads"), (-10, 100, 9.65, "ground")])
+    bottom = lambda it: it[3] - 0.01                                     # noqa: E731  (pivot 1 cm over the bottom)
+    d = _data([[2, 0.0, 0.0, 10.42, 0, 1.0, "surface"], [2, 5.0, 0.0, 9.71, 0, 1.0, "surface"],
+               [2, 10.0, 0.0, 10.02, 0, 1.0, "surface"]])
+    res = ss.snap_items(d, _Cat(), lvl)
+    assert [round(bottom(it), 3) for it in d["items"]] == [10.01, 10.01, 10.01]
+    assert res["surfaces_moved"] == 2
+
+
+def test_a_puddle_goes_on_the_road_not_the_ground_plane_under_it():
+    lvl = _level([(-10, 100, 10.0, "roads"), (-10, 100, 9.65, "ground")])
+    d = _data([[0, 0.0, 0.0, 9.0, 0, 1.0, "puddle"], [0, 1.0, 0.0, 9.65, 0, 1.0, "puddle"]]
+              + [[0, 20.0 + i, 0.0, 10.0, 0, 1.0, "puddle"] for i in range(5)])
+    ss.snap_items(d, _Cat(), lvl)
+    assert [it[3] for it in d["items"][:2]] == [10.0, 10.0]      # also one lying on the hidden plane already

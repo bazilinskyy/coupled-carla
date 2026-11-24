@@ -69,6 +69,9 @@ def drop_items(data, drop):
 LAYER_GAP = 2.0             # m: ground hits closer than this are one surface (a kerb, a ramp); further: decks, bridges
 LOCAL = 30.0                # m: unambiguous neighbours this close give a multi-layer object its offset
 FLAT = ("wear", "puddle", "leaves", "marking")      # flat things lying on the ground: moved only when > ON_GROUND off
+SURFACE = ("surface",)      # road surfaces laid over the road (streetlook: red asphalt on Dutch cycle paths)
+SURFACE_LIFT = 0.01         # m: they lie this far over the level's road (not in it, not over it)
+SURFACE_ON = 0.01           # m: closer than this to that height they stay
 ON_GROUND = 0.2             # m: an object this close to the ground under it counts as standing on it
 UNDER = 0.5                 # m: a building surface more than this above an object's ground and below its top cuts it
 
@@ -98,6 +101,9 @@ def snap_items(data, cat, ray, stream=lambda cx, cy: None, max_shift=4.0):
       surface above its ground (a tree under an arcade or a passage) is left out.
     - flat things (FLAT: wear, puddles, leaves, markings) the same, moved only when more than ON_GROUND off, and
       kept at their kind's usual lift over the ground.
+    - road surfaces (SURFACE: red asphalt strips) onto the level's road, SURFACE_LIFT over it: they come from the
+      OpenDRIVE's lane heights (else the terrain model's), and a twin's baked road lies elsewhere (TUeCampus
+      2026-11-24: 413 of 608 strips more than 0.1 m above or in the road, the map's OpenDRIVE being the level's).
     - rooftop units (ROOF) onto the highest building surface under them, or left out; everything with no level
       above or below it (past the level's edge) is left out; the rest (signs on the OpenDRIVE heights) stays."""
     cells = defaultdict(list)
@@ -117,7 +123,7 @@ def snap_items(data, cat, ray, stream=lambda cx, cy: None, max_shift=4.0):
             sink = SINK.get(it[6], 0.0)
             bottom = it[3] + it[5] * (m["off"][2] - m["ext"][2])
             planned = bottom + sink
-            moved = (it[6] in KINDS and len(it) <= 7) or it[6] in FLAT
+            moved = (it[6] in KINDS and len(it) <= 7) or it[6] in FLAT or it[6] in SURFACE
             if not moved and it[6] != ROOF:
                 # signs (on the OpenDRIVE's heights) and the rest stay where they are, unless the level ends
                 # before them (Salamanca 2026-11-24: signs on roads of map.xodr past the level floated in the void)
@@ -150,18 +156,22 @@ def snap_items(data, cat, ray, stream=lambda cx, cy: None, max_shift=4.0):
     # the objects with one ground surface under them say by how much, around each object and per AREA square
     # (flat things come from the OpenDRIVE's heights, the rest from the terrain model's: each has its own offsets)
     near = {i: min(h, key=lambda z, p=p: abs(z - p)) - p for i, (p, h, _b, _t) in cand.items()}
+    for i, (p, h, _b, _t) in cand.items():      # flat things and road surfaces: from the visible top of that layer
+        if data["items"][i][6] in FLAT + SURFACE:
+            g = p + near[i]
+            near[i] = max(next(lay for lay in layers(h) if g in lay)) - p
     sure = {i for i, (_p, h, _b, _t) in cand.items() if len(layers(h)) == 1}
     area, local = defaultdict(list), defaultdict(list)
     for i, d in near.items():
         it = data["items"][i]
-        grp = it[6] in FLAT
+        grp = it[6] in FLAT + SURFACE
         area[(grp, int(it[1] // AREA), int(it[2] // AREA))].append(d)
         if i in sure:
             local[(grp, int(it[1] // LOCAL), int(it[2] // LOCAL))].append((it[1], it[2], d))
     offs = {k: statistics.median(v) for k, v in area.items()}
 
     def offset(it):
-        grp, kx, ky = it[6] in FLAT, int(it[1] // LOCAL), int(it[2] // LOCAL)
+        grp, kx, ky = it[6] in FLAT + SURFACE, int(it[1] // LOCAL), int(it[2] // LOCAL)
         ds = [d for dx in (-1, 0, 1) for dy in (-1, 0, 1) for x, y, d in local.get((grp, kx + dx, ky + dy), ())
               if (x - it[1]) ** 2 + (y - it[2]) ** 2 <= LOCAL ** 2]
         return statistics.median(ds) if ds else offs[(grp, int(it[1] // AREA), int(it[2] // AREA))]
@@ -169,12 +179,15 @@ def snap_items(data, cat, ray, stream=lambda cx, cy: None, max_shift=4.0):
     for k in FLAT:
         v = [near[i] for i in cand if data["items"][i][6] == k and abs(near[i]) <= ON_GROUND]
         lift[k] = statistics.median(v) if v else 0.0
-    shifts, flat = [], 0
+    lift.update({k: -SURFACE_LIFT for k in SURFACE})     # (ground - object, as near: over it is negative)
+    shifts, flat, surf = [], 0, 0
     for i, (planned, hits, bldg, height) in cand.items():
         it = data["items"][i]
-        flat_kind = it[6] in FLAT
+        flat_kind, surf_kind = it[6] in FLAT, it[6] in SURFACE
         if flat_kind and abs(near[i]) <= ON_GROUND:
             continue                            # lies on the ground already
+        if surf_kind and abs(near[i] + SURFACE_LIFT) <= SURFACE_ON:
+            continue                            # lies on the road already
         off = offset(it)
         g = min(hits, key=lambda z: abs(z - planned - off))
         if abs(g - planned - off) > max_shift:
@@ -183,20 +196,25 @@ def snap_items(data, cat, ray, stream=lambda cx, cy: None, max_shift=4.0):
                 continue
             g = max(hits)                       # one surface: its top, what the object stands on
             far += 1
-        if not flat_kind and any(g + UNDER < z < g + height for z in bldg):
+        if flat_kind or surf_kind:
+            # the visible top of that surface: a road and the ground plane 0.35 m under it are one layer, and a
+            # strip or a puddle on the hidden plane would be under the road
+            g = max(next(lay for lay in layers(hits) if g in lay))
+        if not (flat_kind or surf_kind) and any(g + UNDER < z < g + height for z in bldg):
             under.add(i)                        # would reach into the building above it
             continue
-        d = g - planned - (lift[it[6]] if flat_kind else 0.0)
-        it[3] = round(it[3] + d, 2)
+        d = g - planned - (lift[it[6]] if flat_kind or surf_kind else 0.0)
+        it[3] = round(it[3] + d, 3 if surf_kind else 2)
         shifts.append(d)
         flat += flat_kind
+        surf += surf_kind
     if roof_drop or void or under:
         drop_items(data, roof_drop | void | under)
     a = sorted(abs(d) for d in shifts)
     ra = sorted(abs(d) for d in roof_shifts)
     return {"roof_units": len(roof_shifts), "roof_units_left_out": len(roof_drop),
             "roof_p95_abs_shift_m": round(ra[int(0.95 * (len(ra) - 1))], 2) if ra else 0,
-            "items": len(shifts), "flat_items_moved": flat, "far_on_the_only_ground": far, "no_ground": missed,
+            "items": len(shifts), "flat_items_moved": flat, "surfaces_moved": surf, "far_on_the_only_ground": far, "no_ground": missed,
             "left_alone": skipped, "past_the_level_left_out": len(void), "under_a_building_left_out": len(under),
             "median_shift_m": round(statistics.median(shifts), 2) if shifts else 0,
             "p95_abs_shift_m": round(a[int(0.95 * (len(a) - 1))], 2) if a else 0,

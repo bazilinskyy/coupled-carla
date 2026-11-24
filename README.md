@@ -772,7 +772,11 @@ level, or `--export <twin export>/ue` to cast the rays at the export the level w
 `mapbuild --scenery`). An object with one ground surface under it goes onto it however far the terrain model put it
 (Salamanca's is 4-20 m off: 398 objects were left floating or buried); under a bridge or a deck its neighbours'
 offset decides. Wear, puddles and leaves that float are put down too (Eindhoven 1,409 bits of litter and stains
-0.3-0.8 m over the ground), and a tree under an arcade or an overhang is left out (TU/e 23, Eindhoven 50). `python tools/scenery_check.py <experiment>` checks scenery
+0.3-0.8 m over the ground), and a tree under an arcade or an overhang is left out (TU/e 23, Eindhoven 50). The red
+asphalt strips on Dutch cycle paths come from the OpenDRIVE's lane heights, and a twin's baked road lies elsewhere:
+they go onto the level's road, 1 cm over it (TU/e 413 of 608 strips and Eindhoven 823 of 1,427 were more than
+0.1 m above or in the road; after: none). Flat things and strips go on the top of what is under them, not on the
+ground plane hidden under a road. `python tools/scenery_check.py <experiment>` checks scenery
 heights on a headless (`-nullrhi`) server: meshes the server refuses, and how far each mesh stands from the ground.
 Measured headless on lin5080: every mesh within 1 cm of its planned place; RTF 0.69 with and 1.10 without
 scenery on `eindhoven_centre` (no real-time sleep), 0.49 / 0.69 on the twin. Still visible in the numbers:
