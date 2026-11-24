@@ -37,7 +37,7 @@ class Server:
             args = [str(exe), f"-carla-rpc-port={sc['port']}", f"-quality-level={sc['quality']}", "-nosound",
                     *(["-RenderOffScreen"] if sc["offscreen"] else []), *season.pack_args(exe.name),
                     *multigpu.primary_args(sc),     # -nullrhi when secondaries render the cameras
-                    *staticactors.server_args(sc),  # -carla-omit-static-actors (server.omit_static_actors)
+                    *staticactors.server_args(sc),  # -carla-omit-static-actors (cc-static-snapshot builds)
                     *sc["extra_args"]]      # pack: the street-light blueprints of CARLA 1.0 (season.py)
             self.proc = subprocess.Popen(args, **({} if WINDOWS else {"start_new_session": True}))
             self.log(f"started {exe.name} (pid {self.proc.pid})")

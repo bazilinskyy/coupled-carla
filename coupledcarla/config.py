@@ -96,9 +96,10 @@ DEFAULTS = {
         "quality": "Epic",
         "offscreen": True,
         "extra_args": [],
-        "omit_static_actors": False, # True: the server leaves static props out of the per-tick world state
-                                     # (-carla-omit-static-actors; needs a server AND client wheel with the
-                                     # cc-static-snapshot change, checked: staticactors.py). Off until upstream
+        "omit_static_actors": False, # True: start our server with -carla-omit-static-actors, which leaves static
+                                     # props out of the per-tick world state on a cc-static-snapshot build (needs
+                                     # its client wheel, checked: staticactors.py). A server from upstream ue58-dev
+                                     # since f5fb36aed (24 Nov 2026) always does that, whatever this says
         "multigpu": {                # CARLA 1.0 multi-GPU (multigpu.py): secondaries render the cameras
             "secondaries": [],       # {name, host, rpc_port (3000, 4000, ...), gpu, launch, roles: [station roles
                                      # whose camera it renders], root, packs, os, extra_args}; []: one server

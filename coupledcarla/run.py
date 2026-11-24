@@ -534,7 +534,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             from . import gbfs   # a trial at time "now": today's shared bikes and scooters
             gbfs.refresh_scenery(scenery, tc, mdir, geo, world.get_map(), log)
             scenery.update([a.get_location() for a in focus_actors])
-            # a server that omits static props (-carla-omit-static-actors) needs the patched client: checked once
+            # a server that omits static props (upstream since f5fb36aed, or our tree with the flag) needs a client
+            # wheel from the same tree, or world.get_actors() misses the scenery: checked once
             staticactors.check_after_spawn(world, [i for ids in scenery.loaded.values() for i in ids][:20],
                                            tc["server"], log)
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
