@@ -378,3 +378,36 @@ def test_regional_lamp_lit_as_itself(monkeypatch, tmp_path):
     sc.update([SimpleNamespace(x=0.0, y=0.0)])
     assert [(c.bp, round(c.tf.location.x, 1)) for c in client.spawned] == [("blueprint.cc_streetlight06_a", 10.5)]
     assert any("0 lit as themselves, 1 as CARLA's" in m for m in msgs)
+
+
+class _MeshRefusingClient(_Client):
+    """A server without some meshes in its content: static.prop.mesh refuses them."""
+
+    def __init__(self, missing):
+        super().__init__()
+        self.missing = set(missing)
+
+    def apply_batch_sync(self, cmds, _due=False):
+        out = []
+        for c in cmds:
+            if c.kind == "spawn" and c.attrs.get("mesh_path") in self.missing:
+                out.append(SimpleNamespace(actor_id=0, error="Spawn failed because of invalid actor description"))
+            else:
+                out += super().apply_batch_sync([c])
+        return out
+
+    apply_batch = apply_batch_sync
+
+
+def test_scenery_logs_meshes_the_server_refuses_once(monkeypatch, tmp_path):
+    _fake_carla(monkeypatch)
+    _scenery_json(tmp_path)
+    maple = "/Game/Carla/Static/Vegetation/00_LegacyAssets/Trees/SM_Maple01_L_A.SM_Maple01_L_A"
+    client, msgs = _MeshRefusingClient({maple}), []
+    sc = scenery.Scenery(client, _World(), tmp_path, {"radius_m": 100.0}, msgs.append, season={"state": "leaf"})
+    sc.update([SimpleNamespace(x=0.0, y=0.0)])
+    said = [m for m in msgs if "refused" in m]
+    assert len(said) == 1 and "SM_Maple01_L_A" in said[0] and "1 placements of 1 meshes" in said[0]
+    assert sc.refused == {maple: 1} and sc.n == 1
+    sc.update([SimpleNamespace(x=400.0, y=0.0)])      # more cells, the same mesh: no second line
+    assert len([m for m in msgs if "refused" in m]) == 1

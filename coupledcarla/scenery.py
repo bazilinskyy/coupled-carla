@@ -1697,6 +1697,7 @@ class Scenery:
         # description"; on the official CARLA 1.0 package without the CARLA meshes most trees are such)
         import collections
         self.n_failed, self.failed, self.fail_reasons = 0, collections.Counter(), collections.Counter()
+        self.refused = {}       # mesh path -> placements the server refused (a mesh not cooked into its package)
         if self.always:
             self._spawn(("always",), self.always)
 
@@ -1728,6 +1729,7 @@ class Scenery:
                      f"light")
         if self.fallbacks:
             res = self._fall_back(items, res)
+        self._note_refused(items, res)
         for it, r in zip(items, res):        # which actor stands for which item (take_at: a parked car leaving)
             if not r.error:
                 self.actor_of[id(it)] = r.actor_id
@@ -1749,7 +1751,7 @@ class Scenery:
                         lm.turn_on(lm.get_all_lights(carla.LightGroup.Street))
                     except Exception as err:  # noqa: BLE001 - lamps without light still stand
                         self.log(f"scenery: street lights not switched on ({err})")
-                    if self.lamp_index:
+                    if self.lamp_index is not None:     # also without register specs: kind defaults
                         self.n_lamp_specs += nightlights.apply_lamp_lights(
                             self.world, self.lamps[key], self.lamp_index, self.lamp_scale, self.lamp_colours,
                             self.log)
@@ -1757,6 +1759,22 @@ class Scenery:
         self.n += len(ids)
         if self.on_spawn:
             self.on_spawn(ids)
+
+    def _note_refused(self, items, res):
+        """Logs each mesh the server refuses, the first time: static.prop.mesh fails silently for a mesh the
+        package lacks, and a missing ground square shows the lawn under it (win5090's 2026-11-20 package lacked
+        SideWalkCube and 380 more catalogue meshes; tools/cook_catalog_dirs.py)."""
+        bad = defaultdict(int)
+        for it, r in zip(items, res):
+            if r.error:
+                bad[self.meshes[it[0]]] += 1
+        new = [m for m in bad if m not in self.refused]
+        for m, k in bad.items():
+            self.refused[m] = self.refused.get(m, 0) + k
+        if new:
+            names = ", ".join(m.rsplit(".", 1)[-1] for m in new[:6]) + (", ..." if len(new) > 6 else "")
+            self.log(f"scenery: the server refused {sum(bad[m] for m in new)} placements of {len(new)} meshes "
+                     f"(not in this server's content?): {names}")
 
     def _mesh_cmd(self, it, tf):
         import carla

@@ -25,7 +25,10 @@ On CARLA 1.0 the lamps that carry a light (season.LAMP_LIGHTS) get that colour a
 (`apply_lamp_lights`). Note: CARLA ue58-dev applies a client's set_intensity/set_color only to its own record, not
 to the light components, until UCarlaLight::SetLightState applies them (unreal/patches/CarlaLight_SetLightState.patch);
 without the patch the lamps keep CARLA's 27,000 lm and warm white. CARLA's street-light intensity is lumens, but
-values under 1,000 are read as kilolumens (UCarlaLight::StreetIntensityToLumens), so at least 1,000 lm is sent.
+values under 1,000 are read as kilolumens (UCarlaLight::StreetIntensityToLumens), so at least 1,000 lm is sent (and a
+reported intensity of 20 is 20 klm, the blueprints' Light Defaults). A lamp's light is matched to its pole (the
+nearest spawned lamp within ARM_REACH_M), and lamps the register does not list get a typical flux for their kind
+(DEFAULT_LUMEN, inferred).
 CARLA 0.9.16 cannot add a light at run time: its lamp meshes stay dark.
 
 Vehicle lights (RVV 1990, art. 32 and 34). Dipped beam at night, and by day "indien het zicht ernstig wordt belemmerd"
@@ -214,28 +217,78 @@ def lamp_settings(lights, index, scale=1.0, colours=True):
     return out
 
 
+ARM_REACH_M = 4.0           # a lamp's light hangs at its luminaire, up to an arm's length from the pole it stands on
+# Lamps the register does not list (OSM lamps, and every lamp outside cities with a register): a typical LED flux for
+# the lamp's kind and height (EN 13201 practice: residential P-class post-tops 1,500-4,000 lm, main-road M-class arms
+# at 8-12 m 6,000-15,000 lm; Eindhoven centre register median 3,500 lm). Provenance: inferred. Before, they kept the
+# blueprint's Light Defaults (20 klm, the reported intensity 20), five times a real campus LED.
+DEFAULT_LUMEN = {
+    "blueprint.cc_nl_lampposttop4": 2500.0, "blueprint.cc_nl_lamptopled6": 4500.0,
+    "blueprint.cc_nl_lamparm9": 8000.0, "blueprint.cc_nl_lamparm12": 12000.0,
+    "blueprint.cc_nl_lampdouble10": 6000.0, "blueprint.cc_nl_lampheritage4": 2000.0,
+    "blueprint.cc_uk_lampcolumn8": 6000.0, "blueprint.cc_jp_lampgooseneck8": 6000.0,
+    "blueprint.cc_streetlight06_a": 8000.0, "blueprint.cc_streetlight03": 2500.0,
+}
+DEFAULT_LUMEN_ANY = 4000.0
+DEFAULT_CCT = 3000          # LED street lighting (the register's own codes: mostly 2700-3000 K)
+
+
+def assign_lamp_lights(lights, owners, index, scale=1.0, colours=True):
+    """[(light, (r, g, b) or None, intensity, source)] for the street lights of the lamps just spawned: each light goes
+    to the nearest owner lamp within ARM_REACH_M (owners: [(x, y, blueprint id)] at the poles, where the scenery placed
+    them), then gets the register spec at that pole (SpecIndex, 0.5 m) or the default of the lamp's kind (source
+    "register" or "default"). Lights of no owner (the level's own lamps) are left out.
+
+    The light's own location is the luminaire, 1-3 m out on an arm, so matching it against the pole positions (as
+    before, 0.5-1 m) found 10 of 277 lamps on the campus."""
+    cells = {}
+    for o in owners:
+        cells.setdefault((int(o[0] // ARM_REACH_M), int(o[1] // ARM_REACH_M)), []).append(o)
+    out = []
+    for lt in lights:
+        x, y = lt.location.x, lt.location.y
+        best, bd = None, ARM_REACH_M
+        cx, cy = int(x // ARM_REACH_M), int(y // ARM_REACH_M)
+        for i in (-1, 0, 1):
+            for j in (-1, 0, 1):
+                for o in cells.get((cx + i, cy + j), ()):
+                    d = math.hypot(o[0] - x, o[1] - y)
+                    if d <= bd:
+                        best, bd = o, d
+        if best is None:
+            continue
+        row = index.at(best[0], best[1]) if index else None
+        k = lm = None
+        if row is not None:
+            _, _, k, lm = row
+        src = "register" if lm else "default"
+        lm = lm or DEFAULT_LUMEN.get(best[2], DEFAULT_LUMEN_ANY)
+        k = k or DEFAULT_CCT
+        out.append((lt, kelvin_rgb(k) if colours else None, carla_lumen(lm, scale), src))
+    return out
+
+
 def apply_lamp_lights(world, actor_ids, index, scale=1.0, colours=True, log=print):
-    """Give the street lights of the lamps just spawned (actor_ids) the colour and flux of their register entry.
-    Returns how many lights were set. Fails soft (a server without the light API keeps CARLA's defaults)."""
-    if not index or not actor_ids:
+    """Give the street lights of the lamps just spawned (actor_ids) the colour and flux of their register entry, or
+    the default of their kind (assign_lamp_lights). Returns how many lights were set. Fails soft (a server without the
+    light API keeps CARLA's defaults)."""
+    if not actor_ids:
         return 0
     import carla
     try:
-        # the lamps just spawned, by position (a CARLA light reports its owner actor's location)
-        where = [a.get_location() for a in world.get_actors(list(actor_ids))]
-        spawned = SpecIndex([[p.x, p.y, 0, 0] for p in where])
+        owners = []
+        for a in world.get_actors(list(actor_ids)):
+            p = a.get_location()
+            owners.append((p.x, p.y, getattr(a, "type_id", "")))
         lm = world.get_lightmanager()
-        mine = [lt for lt in lm.get_all_lights(carla.LightGroup.Street)
-                if spawned.at(lt.location.x, lt.location.y, 1.0) is not None]
-        sets = lamp_settings(mine, index, scale, colours)
-        col = [(lt, c) for lt, c, _ in sets if c]
-        inten = [(lt, v) for lt, _, v in sets if v]
+        sets = assign_lamp_lights(lm.get_all_lights(carla.LightGroup.Street), owners, index, scale, colours)
+        col = [(lt, c) for lt, c, _, _ in sets if c]
         if col:
             lm.set_colors([lt for lt, _ in col], [carla.Color(int(c[0] * 255), int(c[1] * 255), int(c[2] * 255))
                                                   for _, c in col])
-        if inten:
-            lm.set_intensities([lt for lt, _ in inten], [float(v) for _, v in inten])
-        return len(sets)
+        if sets:
+            lm.set_intensities([lt for lt, _, _, _ in sets], [float(v) for _, _, v, _ in sets])
+        return sum(1 for s in sets if s[3] == "register")
     except Exception as err:  # noqa: BLE001 - the lamps keep CARLA's own light
         log(f"scenery: lamp colours and lumens not set ({err})")
         return 0

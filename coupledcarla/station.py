@@ -51,6 +51,7 @@ logs/stations/<role>_<time>_cues.csv.
 import argparse
 import csv
 import math
+import os
 import socket
 import sys
 import threading
@@ -75,6 +76,47 @@ EYE = 0.72        # metres above a walker's actor origin (its centre) to its eye
 EXIT_TRIAL_DONE, EXIT_HOST_CLOSED, EXIT_QUIT = 0, 3, 4
 
 
+
+class _Profile:
+    """COUPLED_CARLA_PROFILE_DIR set: the trial process runs under cProfile and dumps its stats there every 10 s
+    (station_<pid>.prof; a trial ends the process at once, so the last dump is at most 10 s old). For finding where
+    a station's frame time goes; off otherwise."""
+
+    def __init__(self):
+        d = os.environ.get("COUPLED_CARLA_PROFILE_DIR")
+        self.p = None
+        if d:
+            import cProfile
+            self.path = Path(d) / f"station_{os.getpid()}.prof"
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.p, self.last = cProfile.Profile(), time.time()
+            self.p.enable()
+
+    def maybe_dump(self):
+        if self.p is not None and time.time() - self.last >= 10.0:
+            self.p.disable()
+            self.p.dump_stats(str(self.path))
+            self.p.enable()
+            self.last = time.time()
+
+
+PROFILE = None
+
+
+def frame_rgb_view(raw, width, height):
+    """The camera's BGRA bytes as an H x W x 3 RGB view (no copy)."""
+    return np.frombuffer(raw, dtype=np.uint8).reshape(height, width, 4)[:, :, 2::-1]
+
+
+def frame_surface(pygame, raw, rgb):
+    """A pygame surface of the newest frame: straight on the camera's BGRA buffer when there is one (raw = (bytes,
+    width, height); no copy, the blit converts it), else from an RGB array (a composited or downscaled frame).
+    The buffer must outlive the blit: the caller holds raw until the next frame replaces it."""
+    if raw is not None:
+        data, w, h = raw
+        return pygame.image.frombuffer(data, (w, h), "BGRA")
+    return pygame.surfarray.make_surface(rgb.swapaxes(0, 1))
+
 class Station:
     def __init__(self, args):
         self.args = args
@@ -89,6 +131,7 @@ class Station:
         self.welcome = None
         self.client = self.world = self.actor = self.camera = None
         self.image = None
+        self.raw = None
         self.flash_until = 0.0
         self.heading = 0.0
         self.input = None
@@ -415,6 +458,7 @@ class Station:
                 pass
         self.camera = self.actor = self.input = self.bot = None
         self.image = None
+        self.raw = None
         # Let go of the CARLA client before the host stops the server: a client whose server goes away
         # while it still holds streams can abort the whole process.
         self.world = self.client = None
@@ -511,6 +555,8 @@ class Station:
                              f"{self.image_lag[-1]:.1f}" if self.image_lag else "", *cells])
         self.frames += 1
         self.fps_n += 1
+        if PROFILE is not None:
+            PROFILE.maybe_dump()
         if kind == "pedestrian" and self.frames % 10 == 0:      # where the pedestrian looks (eye contact)
             head = self.vr.head_yaw() if self.vr is not None else 0.0      # VR: the head turns on the body
             self.control.send({"type": "gaze", "yaw": round(self.heading + head, 1)})
@@ -704,15 +750,19 @@ class Station:
                     return
                 look.save_frame(image, out / f"{image.frame:08d}.jpg", self.size)
             return
-        arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(image.height, image.width, 4)
         if getattr(self, "rhd", None) is not None:
+            arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(image.height, image.width, 4)
             self.rhd.put(image.frame, np.ascontiguousarray(look.downscale(arr[:, :, 2::-1], self.size)), None)
             return
-        self.image = arr[:, :, 2::-1]
+        # shown as it arrives: the camera's BGRA buffer itself, no copy here (render() wraps it in a pygame surface
+        # and lets the blit convert it); self.image stays the RGB view for code that reads pixels
+        self.raw = (image.raw_data, image.width, image.height)
+        self.image = frame_rgb_view(image.raw_data, image.width, image.height)
 
     def _use_frame(self, path, rgb):
         """A finished camera frame (H x W x 3 RGB): shown (path None) or saved with the in-car displays over it."""
         if path is None:
+            self.raw = None
             self.image = rgb
         elif self.ux is not None and self.ux.wants_frames():
             self.ux.save_frame(rgb, path, self.args.fov)
@@ -723,7 +773,8 @@ class Station:
         if self.screen is None or self.image is None:
             return
         import pygame
-        self.screen.blit(pygame.surfarray.make_surface(self.image.swapaxes(0, 1)), (0, 0))
+        raw = getattr(self, "raw", None)
+        self.screen.blit(frame_surface(pygame, raw, self.image), (0, 0))
         v = self.actor.get_velocity()
         rtt = self.control.rtt()
         lines = [f"{self.args.role}  {3.6 * math.hypot(v.x, v.y):5.1f} km/h  t {t:6.1f} s",
@@ -845,6 +896,8 @@ def main():
         import signal
         if hasattr(signal, "SIGUSR1"):      # kill -USR1 <pid> prints every thread's stack (a hung station)
             faulthandler.register(signal.SIGUSR1, all_threads=True)
+        global PROFILE
+        PROFILE = _Profile() if os.environ.get("COUPLED_CARLA_PROFILE_DIR") else None
         raise SystemExit(Station(args).run())
     # Supervisor: every trial runs in a fresh child process. CARLA's client library can abort a process whose
     # server goes away (the host restarts the server for every trial); a child that dies that way after its

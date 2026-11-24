@@ -397,6 +397,8 @@ class Rig:
                 want = None
                 if self.look_target is not None:
                     a = snap.find(self.look_target.id)
+                    if a is None and self.look_target.is_alive:   # a static actor: not in the snapshot (CARLA
+                        a = self.look_target                       # ue58-dev since f5fb36aed), read it directly
                     if a is not None:
                         lt = a.get_transform().location
                         want = (lt.x, lt.y, lt.z + float(c.get("look_at_up_m", 0.6)))

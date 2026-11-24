@@ -281,3 +281,26 @@ def test_weather_record_has_rain_before(tmp_path, monkeypatch):
     rec, _, _ = rw.weather_at(51.44, 5.48, datetime(2026, 11, 16, 17, 20), tmp_path)
     assert rec["precipitation_before_3h"] == pytest.approx(1.0)
     assert rec["precipitation_3h"] == pytest.approx(2.8)
+
+
+def test_lights_go_to_their_pole_and_unlisted_lamps_get_their_kind_default():
+    """A light hangs at its luminaire, metres out on an arm: it is matched to the nearest spawned pole within the arm's
+    reach, gets the register spec of that pole, or (no register entry) the default flux of the lamp's kind."""
+    from types import SimpleNamespace as NS
+    idx = nl.SpecIndex([[10.0, 20.0, 2000, 7000]])                  # the register lists the first pole only
+    owners = [(10.0, 20.0, "blueprint.cc_nl_lamparm9"), (50.0, 20.0, "blueprint.cc_nl_lampposttop4"),
+              (90.0, 20.0, "blueprint.someone_else")]
+    lights = [NS(location=NS(x=12.4, y=21.0)),      # 2.6 m out on the arm of pole 1: register 7,000 lm, 2000 K
+              NS(location=NS(x=50.2, y=20.1)),      # post-top of pole 2: no register entry, the kind's default
+              NS(location=NS(x=93.0, y=20.0)),      # pole 3, unknown kind: the general default
+              NS(location=NS(x=200.0, y=0.0))]      # the level's own lamp: not ours
+    out = nl.assign_lamp_lights(lights, owners, idx)
+    assert [o[3] for o in out] == ["register", "default", "default"]
+    assert out[0][2] == 7000 and out[0][1] == nl.kelvin_rgb(2000)
+    assert out[1][2] == nl.DEFAULT_LUMEN["blueprint.cc_nl_lampposttop4"] and out[1][1] == nl.kelvin_rgb(nl.DEFAULT_CCT)
+    assert out[2][2] == nl.DEFAULT_LUMEN_ANY
+    assert all(1500 <= v <= 15000 for v in nl.DEFAULT_LUMEN.values())   # plausible street-lamp fluxes
+    # the old match (the light's own location against the pole, 0.5 m) would have found none of them
+    assert idx.at(12.4, 21.0) is None
+    # without a register: every lamp gets its kind's default
+    assert [o[3] for o in nl.assign_lamp_lights(lights, owners, nl.SpecIndex([]))] == ["default"] * 3

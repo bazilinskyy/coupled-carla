@@ -1137,6 +1137,21 @@ eHMI, two AI walkers and SUMO traffic fill the street; two trials (day, dusk).
 .venv/bin/python -m coupledcarla.station --host <host ip> --role driver --input wheel
 ```
 
+**A station on the Windows PC that runs the server: run it on Windows itself, not in WSL.** The camera images come
+from the server raw; WSL's network bridge carries about 140 MB/s, which is 17-18 fps at 1920x1080 and 38 fps at
+1280x720, while a client on Windows itself got 69 fps at 1920x1080 and 77 fps at 1280x720 from the same server (CARLA
+1.0 package, Epic, RTX 5090, 2026-11-20, `tools/camera_stream_test.py`). The station shows each frame straight from
+the camera's buffer (no copy per frame). Setup once (everything under `C:\cc58`, nothing system-wide: a Python 3.10
+for the package's cp310 wheel, a venv with it, pygame, numpy, pyyaml, requests, pillow; needs uv), then run:
+
+```bat
+tools\station_win_setup.cmd
+tools\station_win.cmd --role driver --input wheel --size 1920x1080 --fullscreen
+```
+
+The host (`python -m coupledcarla.run ...`) may stay in WSL on the same PC: with mirrored networking both reach
+127.0.0.1. Keys (`secret`, or `%USERPROFILE%\.config\coupled-carla`) and `COUPLED_CARLA_MUTE` work the same.
+
 `--input bot` runs a station without a human (the experiment's `bot` entry: the pedestrian's path and gaze
 target, the passenger's eHMI schedule, the driver on autopilot), with `--headless --frames-every 0.5` to save
 its view; `run ... --local` runs every station role as a bot on the host, for a quick test without stations.
@@ -2282,6 +2297,30 @@ Each SUMO vehicle in CARLA costs server time every tick: about 0.4 ms for a car 
 cyclist** (the bike carries an animated rider), which is why the level of detail matters. The base frame time at
 Epic is about 20 ms, which is the whole budget at 50 Hz; on an unshared GPU (or at `--quality Low`) the trial
 runs in real time. Map building takes 2-4 s per city plus the Overpass downloads.
+
+**Static scenery and CARLA's per-tick world state (CARLA 1.0).**
+- **The cost.** Every scenery mesh is a CARLA actor, and a stock server sends every actor to every client on every
+  tick. On TUeCampus, 7,971 actors within 400 m cost about 8 ms per tick, mostly in sending and parsing that state.
+- **Upstream since 24 Nov 2026.** CARLA's `ue58-dev` from commit f5fb36aed
+  ([carla-simulator/carla#10381](https://github.com/carla-simulator/carla/pull/10381), built on our
+  [carla-simulator/carla#10377](https://github.com/carla-simulator/carla/pull/10377)) always leaves static actors
+  out: `static.prop.mesh` without `mass` (our scenery) and traffic signs. There is no flag; its client wheel lists
+  them with `world.get_static_actors()` and in `world.get_actors()`.
+- **Our own tree.** A server built from the `cc-static-snapshot` change of win5090's CARLA tree does the same only
+  when started with `-carla-omit-static-actors`: `server.omit_static_actors: true` (off by default) adds the flag to
+  the server we launch. A server from upstream ignores the flag.
+- **Measured** on win5090, 2026-11-21:
+  - a synchronous tick with 7,971 actors: 9.2 → 1.8 ms;
+  - a 60 Hz TUeCampus trial with the native station: real-time factor 0.54 → 0.93.
+- **Client and server from the same tree.** The two versions say which static actors changed in different ways,
+  and a stock client sees none of them.
+  - With the setting on, a stock client wheel stops the run at start-up with a message that says which wheel to
+    install.
+  - Whatever the setting, a server that leaves the props out while this client's `world.get_actors()` does not list
+    them stops the run after the first scenery spawn (`coupledcarla/staticactors.py`).
+- **What changes.** `world.get_actors()`, provenance and toggling keep working. Only `world.get_snapshot()` no longer
+  lists static props (and, upstream, traffic signs): code that follows a static actor reads `actor.get_transform()`
+  (a film's `look_at` does).
 
 ## coupled-sim features in Coupled CARLA
 

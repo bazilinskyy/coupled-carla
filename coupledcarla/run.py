@@ -26,7 +26,8 @@ import yaml
 from . import analysis, compat, config, crowdpeds, drivermix, inputs, livingcity, mapbuild, nightlights, parking, \
     photoreal, reactions, realworld, season, soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, ehmi_inside, levels, levelxodr, livemap, multigpu, placement, plates, stationux
+from . import ehmi_design, ehmi_inside, levels, levelxodr, livemap, multigpu, placement, plates, staticactors, \
+    stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -551,6 +552,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                     + f"; generated within 50 m of the participants {pv['near']['generated_share']:.0%}")
             except Exception as err:  # noqa: BLE001 - the log is a convenience, the trial runs without it
                 log(f"provenance: not written ({err})")
+            # a server that omits static props (upstream since f5fb36aed, or our tree with the flag) needs a client
+            # wheel from the same tree, or world.get_actors() misses the scenery: checked once
+            staticactors.check_after_spawn(world, [i for ids in scenery.loaded.values() for i in ids][:20],
+                                           tc["server"], log)
             log(f"scenery: {scenery.n} meshes within {scenery.radius:.0f} m of the participants "
                 f"({time.time() - t_s:.1f} s)" + (f"; {scenery.n_lights} lamps with light within "
                                                   f"{scenery.lights_radius:.0f} m" if scenery.light_bp else "")
