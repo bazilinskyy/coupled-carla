@@ -871,6 +871,31 @@ def building_records(mc, rdir, geo, dem, base, size_class=None, log=print):
     return out, src_used
 
 
+DEM_LEVEL_TOL_M = 1.0    # median |terrain model - road| above which a baked level's ground is not that terrain model
+
+
+def dem_fits_level(dem, base, geo, cmap, log=print, step=25.0, tol=DEM_LEVEL_TOL_M):
+    """Whether the map's terrain model is the baked level's ground: the median difference to the level's own road
+    heights (its OpenDRIVE) at most `tol`. A Dutch twin's level is built on AHN, as is its terrain model (TU/e campus:
+    0.1 m); a twin elsewhere may stand on another terrain than the global one the map build fetched (Salamanca: its
+    scenery planned 4-30 m above or below the level's plaza, and snap_scenery leaves moves over 4 m alone)."""
+    import numpy as np
+    d = []
+    for wp in cmap.generate_waypoints(step):
+        loc = wp.transform.location
+        lat, lon = geo.to_latlon(loc.x, loc.y)
+        z = dem.sample(lat, lon)
+        if z is not None and np.isfinite(z):
+            d.append(abs(z - base - loc.z))
+    if not d:
+        return True
+    med = float(np.median(d))
+    ok = med <= tol
+    log(f"scenery: terrain model vs the level's roads: median {med:.2f} m over {len(d)} points -> "
+        f"{'terrain model' if ok else 'the roads heights (the terrain model is not this level)'}")
+    return ok
+
+
 def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major=None):
     """Write scenery.json (placements) and buildings.json (footprints for the viewer) for a built map."""
     import carla
@@ -892,11 +917,13 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         cmap = carla.Map(mc["name"], (mdir / "map.xodr").read_text(encoding="utf-8"))
     lat0 = (mc["bbox"][0] + mc["bbox"][2]) / 2
 
+    if dem is not None and mc.get("carla_level") and not dem_fits_level(dem, base, geo, cmap, log=log):
+        dem = None      # the terrain model is not the level's ground: the level's own road heights instead
     if dem is not None:
         def ground(x, y):
             lat, lon = geo.to_latlon(x, y)
             return dem.sample(lat, lon) - base
-    elif mc.get("carla_level"):     # a baked level without a terrain model: its nearest road's height
+    elif mc.get("carla_level"):     # a baked level without a (matching) terrain model: its nearest road's height
         def ground(x, y):
             wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
             return wp.transform.location.z if wp is not None else 0.0
