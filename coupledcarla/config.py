@@ -72,6 +72,8 @@ DEFAULTS = {
         "opendrive": None,           # build the map from this OpenDRIVE file instead of OSM (a baked level's own,
                                      # e.g. a carla-digitaltwins twin); SUMO's net is made from it too
         "carla_level": None,         # load this CARLA level (by name) instead of generating an OpenDRIVE-only world
+        "level_xodr": "stop",        # map.xodr is not the loaded level's own OpenDRIVE (levelxodr.py): "stop" the run,
+                                     # or "warn" and run on (scenery, paving, parked cars may stand on other roads)
         "carla_town": None,          # a CARLA standard map (Town01..Town07, Town10HD, their _Opt variants; on 1.0 the
                                      # _Opt towns, Mine_01): its level, its OpenDRIVE for SUMO (maps/<town>/) and
                                      # per-feature defaults for a town (coupledcarla/towns.py)

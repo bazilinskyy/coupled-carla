@@ -26,7 +26,7 @@ import yaml
 from . import analysis, compat, config, crowdpeds, drivermix, inputs, livingcity, mapbuild, nightlights, parking, \
     photoreal, reactions, realworld, season, soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, ehmi_inside, levels, livemap, multigpu, placement, plates, stationux
+from . import ehmi_design, ehmi_inside, levels, levelxodr, livemap, multigpu, placement, plates, stationux
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -374,6 +374,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             mapbuild.scenery_for_server(tc, mdir, compat.server_major(client), log)
         world = load_world(client, mdir / "map.xodr", tc["map"], slab=has_scenery,
                            keep_lights=tc["simulation"]["tls_manager"] == "carla")
+        # a baked level: is map.xodr (SUMO's net, the scenery, the paving) the level's own OpenDRIVE? stops if not
+        levelxodr.check(world, mdir, tc, log)
         if town:      # the town's buildings and trees from its environment objects (sound, drones)
             towns.environment(world, mdir, client.get_server_version(), log)
         wx = set_weather(world, tc["simulation"], config.place(tc), mdir / "real", log)
