@@ -52,7 +52,13 @@ NOMINATIM = "https://nominatim.openstreetmap.org/reverse"
 
 FACTOR_MAX = 4.0                     # crossing and density factors are clipped to [1/4, 4] x the world's
 HCM_START_S = 2.0                    # HCM pedestrian start-up and clearance time in t_c = L / S_p + t_s
-DEFAULTS = {"behaviour": "auto", "places": "auto", "walkers_per_km": 8.0, "max_count": 80,
+# walkers_per_km (per km of kerb, at the world's CROWD pedestrians per minute): 14. A car passing a crowd of lambda
+# walkers per kerb-km at u km/min meets about 2 * lambda * u new walkers a minute, a CROWD dashcam's count; the
+# re-filmed twin clips (2026-11-24) saw 1.5 x that (walkers gather at shops and stops). The world's 18.1 persons a
+# minute at an urban 25 km/h then needs about 14.5. With 8 the clips saw about half their place's CROWD rate
+# (Eindhoven 8.7 vs 15.8 a minute, Salamanca 12.2 vs Spain's 21.6); CROWD records no dashcam speed, so this rests on
+# the 25 km/h (tools/crowd_seen.py measures a trial against CROWD).
+DEFAULTS = {"behaviour": "auto", "places": "auto", "walkers_per_km": 14.0, "max_count": 80,
             "crossings_per_km": 2.0, "speed_mps": "auto", "jaywalk_share": "auto"}
 # place weights by Overture's top category (taxonomy.hierarchy[0]); stations and stops are found by name
 PLACE_WEIGHT = {"food_and_drink": 3.0, "shopping": 2.0, "arts_and_entertainment": 2.0, "cultural_and_historic": 2.0,
@@ -383,6 +389,71 @@ def snap_crossings(segments, points_xy, max_off=4.0):
             s.crossings = sorted(set(s.crossings) | {i})
             n += 1
     return n
+
+
+ROUTE_AHEAD_MAX_M = 1500.0       # m of a driving participant's route the crowd also covers (crowd planned at the start)
+ROUTE_SPEED_MPS = 13.9           # m/s: how far a driver gets in the trial, for that length (50 km/h)
+ROUTE_STEP_M = 60.0              # m between the corridor's centres (the crop radius is 120 m)
+
+
+def route_reach(duration_s):
+    """m of a driving participant's route ahead that its crowd covers: what it can drive in the trial, capped."""
+    return min(ROUTE_AHEAD_MAX_M, ROUTE_SPEED_MPS * float(duration_s or 0.0))
+
+
+def route_centres(polylines, step=ROUTE_STEP_M):
+    """Points every `step` m along each polyline [(x, y), ...] (CARLA x, y), first and last included: extra crowd
+    centres along a driving participant's route. The crowd was planned only around where the participants start, so a
+    car that drove off left it behind (TU/e twin clip, 2026-11-24: no walker seen in 13 s of driving)."""
+    out = []
+    for line in polylines:
+        pts = [(float(x), float(y)) for x, y in (line or [])]
+        if not pts:
+            continue
+        out.append(pts[0])
+        carry = 0.0
+        for (ax, ay), (bx, by) in zip(pts, pts[1:]):
+            seg = math.hypot(bx - ax, by - ay)
+            d = step - carry
+            while d <= seg:
+                f = d / seg
+                out.append((ax + f * (bx - ax), ay + f * (by - ay)))
+                d += step
+            carry = (carry + seg) % step if seg else carry
+        if out[-1] != pts[-1]:
+            out.append(pts[-1])
+    return out
+
+
+def edges_xy(net, edges, offset, max_m, start_pos=0.0):
+    """The shapes of `edges` (SUMO ids, in driving order) in CARLA x, y, up to max_m along them from start_pos on the
+    first edge; edges the net lacks are skipped."""
+    out, left = [], float(max_m)
+    for k, e in enumerate(edges):
+        try:
+            edge = net.getEdge(e)
+        except (KeyError, AttributeError):
+            continue
+        shape = list(edge.getShape())
+        skip = start_pos if k == 0 else 0.0
+        for (ax, ay), (bx, by) in zip(shape, shape[1:]):
+            seg = math.hypot(bx - ax, by - ay)
+            if skip >= seg:
+                skip -= seg
+                continue
+            f0 = skip / seg if seg else 0.0
+            skip = 0.0
+            p0 = (ax + f0 * (bx - ax), ay + f0 * (by - ay))
+            if not out:
+                out.append((p0[0] - offset[0], offset[1] - p0[1]))
+            run = seg * (1.0 - f0)
+            if run >= left:
+                f1 = f0 + (left / seg if seg else 0.0)
+                out.append((ax + f1 * (bx - ax) - offset[0], offset[1] - (ay + f1 * (by - ay))))
+                return out
+            out.append((bx - offset[0], offset[1] - by))
+            left -= run
+    return out
 
 
 def crop(segments, centres, radius):

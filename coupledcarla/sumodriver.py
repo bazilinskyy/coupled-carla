@@ -165,6 +165,13 @@ class SumoDriver:
             self.inserted = False
             self._hide()
 
+    def route_xy(self, max_m):
+        """The planned route ahead of the car in CARLA x, y, up to max_m (crowdpeds covers it with walkers)."""
+        if not getattr(self, "route", None) or getattr(self, "net", None) is None:
+            return []
+        from .crowdpeds import edges_xy
+        return edges_xy(self.net, self.route, self.offset, max_m, float(getattr(self, "pos", 0.0) or 0.0))
+
     def _hide(self):
         tf = self.vehicle.get_transform()
         self.vehicle.set_simulate_physics(False)
