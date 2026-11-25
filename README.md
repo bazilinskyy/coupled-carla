@@ -1096,8 +1096,13 @@ flowchart LR
 - **Pedestrian crowd** (`traffic.walkers`, `coupledcarla/crowdpeds.py`, [`experiments/eindhoven_crowd.yaml`](experiments/eindhoven_crowd.yaml)):
   pedestrians near the participants who behave like the real pedestrians of the map's country, calibrated with
   [CROWD](https://github.com/crowd-dataset/crowd) (dashcam videos from 238 countries with automatic pedestrian
-  tracks). `count: auto` gives `walkers_per_km` (8) per km of kerb, scaled by CROWD's pedestrians per minute of the
-  city (else country, continent, world: 18.1) and its night/day ratio. Speeds are the place's median crossing speed
+  tracks). `count: auto` gives `walkers_per_km` (14) per km of kerb, scaled by CROWD's pedestrians per minute of the
+  city (else country, continent, world: 18.1) and its night/day ratio. 14 makes a car at an urban 25 km/h meet about
+  as many walkers a minute as CROWD's dashcams count (with 8 the re-filmed twin clips saw about half: Eindhoven 8.7
+  against 15.8 a minute); `tools/crowd_seen.py` measures a trial's rate against CROWD. A SUMO-driven participant's
+  crowd also covers its planned route ahead, as far as it can drive in the trial (at most 1.5 km): planned only around
+  the start, the crowd was left behind by a car that drove off. The cap `max_count` (80) bounds the cost (about
+  0.4 ms per walker per tick). Speeds are the place's median crossing speed
   and quartiles (crowd-city). Walkers cross `crossings_per_km` (2.0) times per km, scaled by the share of tracked
   pedestrians that crossed; a crossing is mid-block with the country's measured share (crowd-jaywalking: Japan
   0.45%, France 1.5%, Netherlands 7.1%, Vietnam 30%, Bangladesh 77%; modelled from pedestrians per minute

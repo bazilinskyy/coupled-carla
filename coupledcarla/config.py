@@ -275,7 +275,8 @@ DEFAULTS = {
                                      # dataset; "off": walk up and down beside the roads, never crossing (ai.Crowd)
             "places": "auto",        # walkers start where Overture/OSM places, transit stops and open pedestrian
                                      # counts (NYC DOT, City of Sydney) are; false: evenly along the kerbs
-            "walkers_per_km": 8,     # count "auto": walkers per km of kerb at CROWD's world pedestrian rate
+            "walkers_per_km": 14,    # count "auto": walkers per km of kerb at CROWD's world pedestrian rate (was 8:
+                                     # the twin clips saw half their CROWD rate; crowdpeds.DEFAULTS says why)
             "max_count": 80,         # cap on count "auto" (30 walkers cost the server ~12 ms per tick)
             "crossings_per_km": 2.0, # crossings per km walked where CROWD's crossing share is the median city's
             "speed_mps": "auto",     # median walking speed, or "auto": the place's CROWD crossing speed

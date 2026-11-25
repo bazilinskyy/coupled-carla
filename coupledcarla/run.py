@@ -601,8 +601,15 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # the pedestrian crowd: calibrated with CROWD for the map's country (crowdpeds.py), or with behaviour off
         # ai.Crowd beside the roads; its walkers join walkers_now (cars yield to them) only while on the road
         livingcity.apply_crowd_default(tc, livingcity.settings(tc), log)   # a living city has a crowd
-        crowd = crowdpeds.make_crowd(world, geo, tc, mdir, [p.actor.get_location() for p in parts], wx["night"],
-                                     duration, log)
+        crowd_centres = [p.actor.get_location() for p in parts]
+        ahead = [p.input.route_xy(crowdpeds.route_reach(duration)) for p in parts
+                 if callable(getattr(p.input, "route_xy", None))]
+        if any(ahead):      # a driver leaves the start: its crowd also covers the route it will drive
+            extra = crowdpeds.route_centres(ahead)
+            crowd_centres += [carla.Location(x, y, 0.0) for x, y in extra]
+            log(f"crowd: also along the drivers' routes ahead ({len(extra)} points, "
+                f"{crowdpeds.route_reach(duration):.0f} m at most)")
+        crowd = crowdpeds.make_crowd(world, geo, tc, mdir, crowd_centres, wx["night"], duration, log)
         wai = (tc["traffic"].get("walkers") or {}).get("ai") or {}
         if int(wai.get("count") or 0) > 0 and tc["map"].get("carla_level"):   # CARLA's AI walkers (navigation mesh)
             navw = towns.NavWalkers(client, world, wai, [p.actor.get_location() for p in parts], log)
