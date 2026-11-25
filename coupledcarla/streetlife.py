@@ -699,5 +699,7 @@ def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, blds, region, bgt_da
         n = shop_signs(pl, cat, blds, pts)
         pl.counts["shop_signs"] = n
         said.append(f"{n} shop signs on the facades of {len(pts)} shops, cafes and stations")
+    from . import screens       # big screens and vertical shop signs (Japanese twins; mapped screens anywhere)
+    said += screens.add_to_scenery(pl, cat, blds, pts, region, mc, sc, mdir, geo, log)
     if said:
         log("scenery: street life: " + "; ".join(said))

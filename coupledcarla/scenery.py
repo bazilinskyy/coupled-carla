@@ -1625,7 +1625,7 @@ class Scenery:
         kinds = set(sc.get("kinds") or ["building", "tree", "bush", "lamp", "furniture", "sign", "ground", "water",
                                         "shared"])
         if kinds & {"furniture", "ground"}:     # streetlook.py's markings, surfaces, wear and roofs come with them
-            kinds |= {"marking", "surface", "wear", "roof"}
+            kinds |= {"marking", "surface", "wear", "roof", "facade"}     # (facade: screens.py)
         if (season or {}).get("state") == "autumn" and "tree" in kinds:
             kinds.add("leaves")         # leaf litter under deciduous trees only in autumn
         if "ground" in kinds and _wet_road(world):

@@ -39,6 +39,14 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_Any_RoofACLarge | `/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofACLarge` | 2.30 x 1.20 x 1.30 | 216 | - | roof_ac_large | MIT (procedural) |
 | SM_CC_Any_RoofBulkhead | `/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofBulkhead` | 3.10 x 2.70 x 2.66 | 36 | - | roof_bulkhead | MIT (procedural) |
 | SM_CC_Any_RoofVent | `/Game/CoupledCarla/Street/Any/Building/SM_CC_Any_RoofVent` | 0.44 x 0.44 x 0.82 | 160 | - | roof_vent | MIT (procedural) |
+| SM_CC_Any_ScreenTall_A | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_ScreenTall_A` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_Any_ScreenTall_B | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_ScreenTall_B` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_Any_ScreenTall_C | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_ScreenTall_C` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_Any_ScreenTall_D | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_ScreenTall_D` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_Any_Screen_A | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Screen_A` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, scrolling generic content (scaled to 6-18 m) | MIT (procedural) |
+| SM_CC_Any_Screen_B | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Screen_B` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, scrolling generic content (scaled to 6-18 m) | MIT (procedural) |
+| SM_CC_Any_Screen_C | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Screen_C` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, scrolling generic content (scaled to 6-18 m) | MIT (procedural) |
+| SM_CC_Any_Screen_D | `/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Screen_D` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, scrolling generic content (scaled to 6-18 m) | MIT (procedural) |
 | SM_CC_Any_Sett_W12 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W12` | 24.00 x 12.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Sett_W2 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W2` | 4.00 x 2.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Sett_W3 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W3` | 6.00 x 3.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
@@ -47,6 +55,17 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_Any_Sett_W8 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W8` | 16.00 x 8.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Stains_A | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Stains_A` | 1.50 x 1.50 x 0.00 | 2 | - | stains | MIT (procedural) |
 | SM_CC_JP_LampGooseneck8 | `/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8` | 2.25 x 0.28 x 8.05 | 784 | SM_StreetLight06_A | lamp_arm | MIT (procedural) |
+| SM_CC_JP_SignV_biyo | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_biyo` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 美容室 (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_cafe | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_cafe` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: カフェ (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_fuku | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_fuku` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 洋服 (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_izakaya | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_izakaya` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 居酒屋 (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_karaoke | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_karaoke` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: カラオケ (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_kusuri | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_kusuri` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: くすり (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_mise | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_mise` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 営業中 (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_ramen | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_ramen` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: ラーメン (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_shokudo | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_shokudo` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 食堂 (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_shoten | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_shoten` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 書店 (a generic word) | MIT (procedural) |
+| SM_CC_JP_SignV_sushi | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_sushi` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 寿司 (a generic word) | MIT (procedural) |
 | SM_CC_JP_SignalCar | `/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalCar` | 1.44 x 0.40 x 0.72 | 180 | - | signal_car | MIT (procedural) |
 | SM_CC_JP_SignalPole | `/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole` | 0.11 x 0.11 x 3.65 | 128 | - | signal_pole | MIT (procedural) |
 | SM_CC_NL_Amsterdammertje | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Amsterdammertje` | 0.14 x 0.14 x 1.01 | 680 | SM_Bollard_Grey | bollard_amsterdam | MIT (procedural) |

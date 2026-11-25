@@ -1,0 +1,7 @@
+{
+ "about": "Places known for big screens on their facades (screens.py): the screens go on the tall walls around each centre that face it. Locations are facts (no content, brand or image of any screen is used). Add a place: name, lat, lon, r (m), screens (at most).",
+ "places": [
+  {"name": "Shibuya scramble crossing", "lat": 35.65950, "lon": 139.70050, "r": 90, "screens": 6},
+  {"name": "Times Square", "lat": 40.75800, "lon": -73.98550, "r": 130, "screens": 12}
+ ]
+}

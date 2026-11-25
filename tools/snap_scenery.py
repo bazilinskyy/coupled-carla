@@ -70,6 +70,7 @@ LAYER_GAP = 2.0             # m: ground hits closer than this are one surface (a
 LOCAL = 30.0                # m: unambiguous neighbours this close give a multi-layer object its offset
 FLAT = ("wear", "puddle", "leaves", "marking")      # flat things lying on the ground: moved only when > ON_GROUND off
 SURFACE = ("surface",)      # road surfaces laid over the road (streetlook: red asphalt on Dutch cycle paths)
+FACADE = ("facade",)        # screens and vertical signs on walls (screens.py): their area's ground offset, no more
 SURFACE_LIFT = 0.01         # m: they lie this far over the level's road (not in it, not over it)
 SURFACE_ON = 0.01           # m: closer than this to that height they stay
 ON_GROUND = 0.2             # m: an object this close to the ground under it counts as standing on it
@@ -105,13 +106,16 @@ def snap_items(data, cat, ray, stream=lambda cx, cy: None, max_shift=4.0):
       OpenDRIVE's lane heights (else the terrain model's), and a twin's baked road lies elsewhere (TUeCampus
       2026-11-24: 413 of 608 strips more than 0.1 m above or in the road, the map's OpenDRIVE being the level's).
     - rooftop units (ROOF) onto the highest building surface under them, or left out; everything with no level
-      above or below it (past the level's edge) is left out; the rest (signs on the OpenDRIVE heights) stays."""
+      above or below it (past the level's edge) is left out; the rest (signs on the OpenDRIVE heights) stays.
+    - things on facades (FACADE: screens.py's screens and vertical signs) move by the ground offset of the objects
+      around them (their own rays hit the building they hang on), so they keep their height over the street."""
     cells = defaultdict(list)
     for i, it in enumerate(data["items"]):
         cells[(int(it[1] // CELL), int(it[2] // CELL))].append(i)
     missed, skipped, far = 0, 0, 0
     roof_shifts, roof_drop, void, under = [], set(), set(), set()
     cand = {}       # item -> (planned bottom, ground hits, building hits, height)
+    facade = []     # items on facades (FACADE)
     for (cx, cy), idx in sorted(cells.items()):
         stream(cx, cy)
         for i in idx:
@@ -123,6 +127,9 @@ def snap_items(data, cat, ray, stream=lambda cx, cy: None, max_shift=4.0):
             sink = SINK.get(it[6], 0.0)
             bottom = it[3] + it[5] * (m["off"][2] - m["ext"][2])
             planned = bottom + sink
+            if it[6] in FACADE:     # on a wall, metres above the street: moved with their area's ground (below)
+                facade.append(i)
+                continue
             moved = (it[6] in KINDS and len(it) <= 7) or it[6] in FLAT or it[6] in SURFACE
             if not moved and it[6] != ROOF:
                 # signs (on the OpenDRIVE's heights) and the rest stay where they are, unless the level ends
@@ -175,6 +182,16 @@ def snap_items(data, cat, ray, stream=lambda cx, cy: None, max_shift=4.0):
         ds = [d for dx in (-1, 0, 1) for dy in (-1, 0, 1) for x, y, d in local.get((grp, kx + dx, ky + dy), ())
               if (x - it[1]) ** 2 + (y - it[2]) ** 2 <= LOCAL ** 2]
         return statistics.median(ds) if ds else offs[(grp, int(it[1] // AREA), int(it[2] // AREA))]
+    facade_moved = 0
+    for i in facade:        # the ground's offset around them (their own rays hit the wall's building)
+        it = data["items"][i]
+        kx, ky = int(it[1] // LOCAL), int(it[2] // LOCAL)
+        ds = [d for dx in (-1, 0, 1) for dy in (-1, 0, 1) for x, y, d in local.get((False, kx + dx, ky + dy), ())
+              if (x - it[1]) ** 2 + (y - it[2]) ** 2 <= LOCAL ** 2]
+        d = statistics.median(ds) if ds else offs.get((False, int(it[1] // AREA), int(it[2] // AREA)), 0.0)
+        if abs(d) > 0.005:
+            it[3] = round(it[3] + d, 2)
+            facade_moved += 1
     lift = {}           # a flat kind's usual height over the ground (leaves lie a little above it)
     for k in FLAT:
         v = [near[i] for i in cand if data["items"][i][6] == k and abs(near[i]) <= ON_GROUND]
@@ -214,7 +231,7 @@ def snap_items(data, cat, ray, stream=lambda cx, cy: None, max_shift=4.0):
     ra = sorted(abs(d) for d in roof_shifts)
     return {"roof_units": len(roof_shifts), "roof_units_left_out": len(roof_drop),
             "roof_p95_abs_shift_m": round(ra[int(0.95 * (len(ra) - 1))], 2) if ra else 0,
-            "items": len(shifts), "flat_items_moved": flat, "surfaces_moved": surf, "far_on_the_only_ground": far, "no_ground": missed,
+            "items": len(shifts), "flat_items_moved": flat, "facade_items_moved": facade_moved, "surfaces_moved": surf, "far_on_the_only_ground": far, "no_ground": missed,
             "left_alone": skipped, "past_the_level_left_out": len(void), "under_a_building_left_out": len(under),
             "median_shift_m": round(statistics.median(shifts), 2) if shifts else 0,
             "p95_abs_shift_m": round(a[int(0.95 * (len(a) - 1))], 2) if a else 0,

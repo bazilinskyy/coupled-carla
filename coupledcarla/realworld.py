@@ -111,7 +111,7 @@ def osm_scenery(bbox, path):
   node["leisure"="picnic_table"]{b};
   node["barrier"~"^(bollard|planter)$"]{b};
   node["emergency"="fire_hydrant"]{b};
-  node["advertising"~"^(column|billboard|board|poster_box)$"]{b};
+  node["advertising"~"^(column|billboard|board|poster_box|screen)$"]{b};
   node["public_transport"="platform"]["bus"="yes"]{b};
   node["man_made"="street_cabinet"]{b};
   node["highway"~"^(stop|give_way)$"]{b};
