@@ -93,7 +93,7 @@ def test_encode_command():
     cmd = mv.encode_cmd("f/%06d.jpg", "o.mp4", 25, 27, audio="a.wav", audio_ss=40.0, duration=20, scale=(960, 540),
                         filters=["drawtext=x"])
     s = " ".join(cmd)
-    assert cmd[:2] == ["ffmpeg", "-y"]
+    assert cmd[:3] == ["ffmpeg", "-nostdin", "-y"]     # -nostdin: no hang under timeout in a terminal
     assert "-framerate 25 -start_number 0 -i f/%06d.jpg" in s
     assert "-ss 40.000 -t 20.000 -i a.wav" in s           # the sound trimmed to the clip's start
     assert "scale=960:540:flags=lanczos,drawtext=x,format=yuv420p" in s

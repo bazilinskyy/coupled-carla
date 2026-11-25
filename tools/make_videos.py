@@ -20,6 +20,9 @@ runs headless with a film section: frames at `fps` on a grid of simulation time 
 whatever the real-time factor. Sound: the runner's own `--record-audio` (audio.wav from trial time 0) when it has the
 flag, else the station soundscape rendered offline from frames.csv at the camera (filmaudio.py). ffmpeg makes the
 H.264/AAC mp4 with a small caption, a poster JPEG and an animated WebP preview.
+Every ffmpeg runs with -nostdin: under `timeout` (its own process group) in a tmux pane, an ffmpeg that
+touches the terminal is stopped by SIGTTOU and the render hangs until the timeout (2026-11-24: four
+clips, 35 min each, right after the clip QA).
 
 The server: by default the runner starts CARLA itself on --port (2500) and a watchdog kills that server when its
 memory passes --max-rss-gb or free memory falls under --min-free-gb (Linux). --no-launch attaches to a server that is
@@ -216,7 +219,7 @@ def caption_filter(title_file, line_file, out_h, font, font_bold, fade_s=7.0, po
 def encode_cmd(frames_pattern, out, fps, crf, preset="slow", audio=None, audio_ss=0.0, duration=None,
                scale=None, filters=(), audio_kbps=96, start_number=0, ffmpeg="ffmpeg"):
     """The ffmpeg command for one clip: an image sequence (+ a WAV) -> H.264 + AAC mp4 for the web."""
-    cmd = [ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-framerate", f"{fps:g}",
+    cmd = [ffmpeg, "-nostdin", "-y", "-hide_banner", "-loglevel", "error", "-framerate", f"{fps:g}",
            "-start_number", str(start_number), "-i", str(frames_pattern)]
     if audio:
         if audio_ss:
@@ -242,20 +245,20 @@ def encode_cmd(frames_pattern, out, fps, crf, preset="slow", audio=None, audio_s
 
 
 def poster_cmd(frame, out, width=640, q=4, ffmpeg="ffmpeg"):
-    return [ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-i", str(frame), "-vf",
+    return [ffmpeg, "-nostdin", "-y", "-hide_banner", "-loglevel", "error", "-i", str(frame), "-vf",
             f"scale={width}:-2:flags=lanczos", "-q:v", str(q), str(out)]
 
 
 def preview_cmd(frames_pattern, out, fps_in, start_number, seconds, width=480, fps=12, quality=55,
                 ffmpeg="ffmpeg"):
-    return [ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-framerate", f"{fps_in:g}",
+    return [ffmpeg, "-nostdin", "-y", "-hide_banner", "-loglevel", "error", "-framerate", f"{fps_in:g}",
             "-start_number", str(start_number), "-i", str(frames_pattern), "-t", f"{seconds:g}",
             "-vf", f"fps={fps},scale={width}:-2:flags=lanczos", "-c:v", "libwebp", "-lossless", "0",
             "-q:v", str(quality), "-compression_level", "6", "-loop", "0", "-an", str(out)]
 
 
 def remux_cmd(video, audio, out, audio_ss=0.0, duration=None, audio_kbps=96, ffmpeg="ffmpeg"):
-    cmd = [ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-i", str(video)]
+    cmd = [ffmpeg, "-nostdin", "-y", "-hide_banner", "-loglevel", "error", "-i", str(video)]
     if audio_ss:
         cmd += ["-ss", f"{audio_ss:.3f}"]
     cmd += ["-i", str(audio), "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac",
@@ -755,7 +758,7 @@ def qa_gate(ctx, clip):
 
 
 def ssim_of(ctx, mp4, fdir, fps):
-    cmd = [ctx.ffmpeg, "-hide_banner", "-i", str(mp4), "-framerate", f"{fps:g}", "-i", str(fdir / "%06d.jpg"),
+    cmd = [ctx.ffmpeg, "-nostdin", "-hide_banner", "-i", str(mp4), "-framerate", f"{fps:g}", "-i", str(fdir / "%06d.jpg"),
            "-lavfi", "[0:v]format=yuv420p[a];[1:v]format=yuv420p[b];[a][b]ssim", "-f", "null", "-"]
     err = subprocess.run(cmd, capture_output=True, text=True).stderr
     m = re.search(r"All:([0-9.]+)", err)
