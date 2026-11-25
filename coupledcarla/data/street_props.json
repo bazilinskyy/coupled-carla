@@ -544,6 +544,171 @@
    0.0,
    0.5,
    "sign_winkel"
+  ],
+  "Screen_A": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.25,
+   "screen_a",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Screen_B": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.25,
+   "screen_b",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Screen_C": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.25,
+   "screen_c",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Screen_D": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.25,
+   "screen_d",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "SignV_izakaya": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_izakaya",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_ramen": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_ramen",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_sushi": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_sushi",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_shokudo": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_shokudo",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_cafe": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_cafe",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_karaoke": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_karaoke",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_kusuri": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_kusuri",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_biyo": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_biyo",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_shoten": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_shoten",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_fuku": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_fuku",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "SignV_mise": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.4,
+   "signv_mise",
+   2.0,
+   0.0,
+   0.0
   ]
  },
  "decal_slots": [
@@ -3083,6 +3248,508 @@
     0.0,
     7.92
    ]
+  },
+  "SM_CC_Any_Screen_A": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Screen_A.SM_CC_Any_Screen_A",
+   "region": "Any",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Screen_A",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, scrolling generic content (scaled to 6-18 m)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_Any_ScreenTall_A": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_ScreenTall_A.SM_CC_Any_ScreenTall_A",
+   "region": "Any",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Screen_A",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_Any_Screen_B": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Screen_B.SM_CC_Any_Screen_B",
+   "region": "Any",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Screen_B",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, scrolling generic content (scaled to 6-18 m)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_Any_ScreenTall_B": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_ScreenTall_B.SM_CC_Any_ScreenTall_B",
+   "region": "Any",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Screen_B",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_Any_Screen_C": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Screen_C.SM_CC_Any_Screen_C",
+   "region": "Any",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Screen_C",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, scrolling generic content (scaled to 6-18 m)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_Any_ScreenTall_C": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_ScreenTall_C.SM_CC_Any_ScreenTall_C",
+   "region": "Any",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Screen_C",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_Any_Screen_D": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_Screen_D.SM_CC_Any_Screen_D",
+   "region": "Any",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Screen_D",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, scrolling generic content (scaled to 6-18 m)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_Any_ScreenTall_D": {
+   "path": "/Game/CoupledCarla/Street/Any/Static/SM_CC_Any_ScreenTall_D.SM_CC_Any_ScreenTall_D",
+   "region": "Any",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Screen_D",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_JP_SignV_izakaya": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_izakaya.SM_CC_JP_SignV_izakaya",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_izakaya"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u5c45\u9152\u5c4b (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_ramen": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_ramen.SM_CC_JP_SignV_ramen",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_ramen"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u30e9\u30fc\u30e1\u30f3 (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_sushi": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_sushi.SM_CC_JP_SignV_sushi",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_sushi"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u5bff\u53f8 (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_shokudo": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_shokudo.SM_CC_JP_SignV_shokudo",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_shokudo"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u98df\u5802 (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_cafe": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_cafe.SM_CC_JP_SignV_cafe",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_cafe"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u30ab\u30d5\u30a7 (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_karaoke": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_karaoke.SM_CC_JP_SignV_karaoke",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_karaoke"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u30ab\u30e9\u30aa\u30b1 (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_kusuri": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_kusuri.SM_CC_JP_SignV_kusuri",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_kusuri"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u304f\u3059\u308a (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_biyo": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_biyo.SM_CC_JP_SignV_biyo",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_biyo"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u7f8e\u5bb9\u5ba4 (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_shoten": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_shoten.SM_CC_JP_SignV_shoten",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_shoten"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u66f8\u5e97 (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_fuku": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_fuku.SM_CC_JP_SignV_fuku",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_fuku"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u6d0b\u670d (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
+  },
+  "SM_CC_JP_SignV_mise": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_mise.SM_CC_JP_SignV_mise",
+   "region": "JP",
+   "folder": "Static",
+   "role": "sign_vertical",
+   "ext": [
+    0.061,
+    0.425,
+    1.8
+   ],
+   "off": [
+    0.0,
+    -0.425,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "SignBack",
+    "SignV_mise"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "vertical shop sign: \u55b6\u696d\u4e2d (a generic word)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.85
   },
   "SM_CC_JP_SignalPole": {
    "path": "/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole.SM_CC_JP_SignalPole",

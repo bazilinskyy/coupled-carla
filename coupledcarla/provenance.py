@@ -28,6 +28,7 @@ DEFAULT = {
     "shared": ("register", "gbfs"), "parked": ("generated", "parking"),
     "marking": ("inferred", "lanes"), "surface": ("inferred", "streetlook"), "wear": ("generated", "streetlook"),
     "leaves": ("generated", "season"), "roof": ("generated", "streetlook"), "puddle": ("generated", "streetlife"),
+    "facade": ("inferred", "screens"),
 }
 
 

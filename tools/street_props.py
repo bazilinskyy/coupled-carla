@@ -32,6 +32,7 @@ products (zitbanken0 "Model Eindhoven", afvalbakken0 "Bammens Prestige" 50 l, th
 """
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -108,6 +109,21 @@ PALETTE = {
 SIGN_KEYS = ["bakkerij", "cafe", "restaurant", "kapper", "apotheek", "mode", "fietsen", "bloemen", "supermarkt",
              "slagerij", "optiek", "snackbar", "lunchroom", "boeken", "schoenen", "winkel"]
 PALETTE.update({f"Sign_{k}": ((1.0, 1.0, 1.0), 0.0, 0.5, f"sign_{k}") for k in SIGN_KEYS})
+# round 3: big screens and vertical shop signs (screens.py): emissive, so they read by day and glow at night. The extra
+# entries are the emissive strength and the texture's pan (u, v per second): a screen's content scrolls slowly.
+SCREEN_KEYS = ["a", "b", "c", "d"]
+PALETTE.update({f"Screen_{k.upper()}": ((1.0, 1.0, 1.0), 0.0, 0.25, f"screen_{k}", 6.0, 0.0, 0.02) for k in SCREEN_KEYS})
+# vertical shop signs (tategaki) of Japanese streets: generic words, no names or brands (screens.SIGNV_OF)
+SIGNV_WORDS = {"izakaya": "居酒屋", "ramen": "ラーメン", "sushi": "寿司", "shokudo": "食堂", "cafe": "カフェ",
+               "karaoke": "カラオケ", "kusuri": "くすり", "biyo": "美容室", "shoten": "書店", "fuku": "洋服",
+               "mise": "営業中"}
+SIGNV_COLOURS = {"izakaya": ((150, 20, 20), (255, 236, 200)), "ramen": ((235, 190, 20), (60, 20, 10)),
+                 "sushi": ((245, 245, 240), (20, 30, 60)), "shokudo": ((30, 70, 140), (255, 255, 255)),
+                 "cafe": ((60, 40, 30), (250, 230, 200)), "karaoke": ((220, 30, 120), (255, 255, 255)),
+                 "kusuri": ((20, 120, 70), (255, 255, 255)), "biyo": ((250, 250, 250), (140, 40, 100)),
+                 "shoten": ((20, 60, 40), (240, 220, 160)), "fuku": ((20, 20, 25), (255, 255, 255)),
+                 "mise": ((200, 60, 20), (255, 255, 255))}
+PALETTE.update({f"SignV_{k}": ((1.0, 1.0, 1.0), 0.0, 0.4, f"signv_{k}", 2.0, 0.0, 0.0) for k in SIGNV_WORDS})
 DECAL = {"Crack", "Patch", "Pothole", "Oil", "Leaves", "RedAsphalt", "Clinker", "Sett", "Grime", "Puddle", "Stains",
          "Litter"}    # masked, two-sided, no collision
 
@@ -753,6 +769,35 @@ def shop_sign(face, width=3.0, height=0.6):
     return m, {"width": width}
 
 
+def screen(face, width=4.0, height=2.25, depth=0.12):
+    """A big screen on a facade: a dark housing width x height x depth, its face (an emissive texture that scrolls,
+    M_CC_Street_Glow) towards model +y (out of the wall, like shop_sign); origin at the middle of its back. Placed at
+    the scale of the screen it stands for (screens.py: 6-18 m wide)."""
+    m = Mesh()
+    obox(m, "SignBack", (0, depth / 2, 0), (width + 0.08, depth, height + 0.08), np.eye(3))
+    quad(m, face, [(width / 2, depth + 0.001, -height / 2), (-width / 2, depth + 0.001, -height / 2),
+                   (-width / 2, depth + 0.001, height / 2), (width / 2, depth + 0.001, height / 2)],
+         (0, 1, 0), ((0, 1), (1, 1), (1, 0), (0, 0)))
+    return m, {"width": width, "height": height}
+
+
+def blade_sign(face, out=0.7, height=3.6, thick=0.12, gap=0.15):
+    """A vertical shop sign (tategaki) sticking out of a facade: a board `out` m from the wall (after a `gap` on two
+    brackets) by `height`, its text on both faces, readable from either direction along the street. The wall is the
+    model's y = 0 plane, the board along +y (out of the wall, as shop_sign's face); origin at the wall, mid height."""
+    m = Mesh()
+    y0, y1, t, h = gap, gap + out, thick / 2, height / 2
+    obox(m, "SignBack", (0, (y0 + y1) / 2, 0), (thick, out, height), np.eye(3))
+    for zb in (-h + 0.25, h - 0.25):
+        obox(m, "SignBack", (0, y0 / 2, zb), (0.05, y0, 0.05), np.eye(3))
+    # +x face: u along +y (the viewer's right), v top to bottom; -x face: u along -y
+    quad(m, face, [(t + 0.001, y0, -h), (t + 0.001, y1, -h), (t + 0.001, y1, h), (t + 0.001, y0, h)], (1, 0, 0),
+         ((0, 1), (1, 1), (1, 0), (0, 0)))
+    quad(m, face, [(-t - 0.001, y1, -h), (-t - 0.001, y0, -h), (-t - 0.001, y0, h), (-t - 0.001, y1, h)], (-1, 0, 0),
+         ((0, 1), (1, 1), (1, 0), (0, 0)))
+    return m, {"out": y1}
+
+
 def surface_strip(mat, w=1.0, l=2.0, tile_m=2.0, z=0.009):
     """A road-surface overlay w x l (scaled by the lane width at placement: one per 1.9 widths), its texture
     repeating every tile_m metres at scale 1."""
@@ -845,6 +890,15 @@ def specs():
     add("SignalCar", "UK", "TrafficLight", "signal_car",
         lambda: signal_head(3, 0.30, plate="SignalBlack", border="SignalWhite"))
     add("LampGooseneck8", "JP", "Pole", "lamp_arm", lambda: lamp_jp(8.0), "SM_StreetLight06_A")
+    # round 3: big screens (any region, screens.py) and Japanese vertical shop signs
+    for k in SCREEN_KEYS:
+        add(f"Screen_{k.upper()}", "Any", "Static", "screen", lambda k=k: screen(f"Screen_{k.upper()}"), None,
+            "facade screen, 16:9, scrolling generic content (scaled to 6-18 m)")
+        add(f"ScreenTall_{k.upper()}", "Any", "Static", "screen_tall",
+            lambda k=k: screen(f"Screen_{k.upper()}", 2.25, 4.0), None, "facade screen, 9:16")
+    for k in SIGNV_WORDS:
+        add(f"SignV_{k}", "JP", "Static", "sign_vertical", lambda k=k: blade_sign(f"SignV_{k}"), None,
+            f"vertical shop sign: {SIGNV_WORDS[k]} (a generic word)")
     add("SignalPole", "JP", "TrafficLight", "signal_pole", lambda: signal_pole_plain("Galvanised"))
     add("SignalCar", "JP", "TrafficLight", "signal_car",
         lambda: signal_head(3, 0.30, plate="SignalBlack", horizontal=True))
@@ -1126,6 +1180,92 @@ def textures2(out, seed=11):
     save("litter", img)
 
 
+TEXTURES3 = Path(__file__).resolve().parent.parent / "unreal" / "StreetProps" / "textures"
+CJK_FONTS = ("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",       # Noto Sans CJK (SIL Open Font Licence)
+             "/usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc", "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Bold.ttc")
+
+
+def textures3(out, render=False, seed=23):
+    """Round 3 textures: the screens' scrolling content (four 16:9 frames stacked, so a vertical pan loops) and the
+    vertical shop signs' faces. Generic only: colour, shapes and common words, no brand, logo, name or real ad.
+    The Japanese text needs a CJK font (Noto Sans CJK, SIL OFL), which Windows has not: the PNGs are kept in git
+    (unreal/StreetProps/textures, made with --render-textures where the font is) and copied from there."""
+    import shutil
+    names = [f"screen_{k}" for k in SCREEN_KEYS] + [f"signv_{k}" for k in SIGNV_WORDS]
+    if not render and all((TEXTURES3 / f"T_CC_{n}.png").exists() for n in names):
+        for n in names:
+            shutil.copyfile(TEXTURES3 / f"T_CC_{n}.png", out / f"T_CC_{n}.png")
+        return
+    from PIL import Image, ImageDraw, ImageFont
+    import matplotlib
+    font_path = os.environ.get("CC_CJK_FONT") or next((f for f in CJK_FONTS if Path(f).exists()), None)
+    if font_path is None:
+        raise SystemExit("textures3: no CJK font (Noto Sans CJK) for the Japanese signs; set CC_CJK_FONT, or use the "
+                         f"PNGs in {TEXTURES3}")
+    latin = str(Path(matplotlib.__file__).parent / "mpl-data" / "fonts" / "ttf" / "DejaVuSans-Bold.ttf")
+
+    def cjk(size):
+        return ImageFont.truetype(font_path, size, index=0)     # face 0 of the collection: Japanese
+    rng = np.random.default_rng(seed)
+    W, H = 768, 432
+    words = [("NEW", "新発売"), ("OPEN", "ようこそ"), ("SALE", "セール"), ("NEWS", "ニュース"), ("LIVE", "本日"),
+             ("MUSIC", "音楽"), ("TODAY", "天気"), ("CITY", "夏")]
+    palettes = [((255, 70, 120), (40, 20, 120)), ((20, 200, 255), (10, 30, 80)), ((255, 200, 40), (200, 40, 20)),
+                ((80, 255, 160), (10, 60, 90)), ((250, 250, 250), (230, 30, 60)), ((170, 90, 255), (20, 10, 40))]
+
+    def frame(kind):
+        img = Image.new("RGB", (W, H))
+        d = ImageDraw.Draw(img)
+        a, b = palettes[rng.integers(len(palettes))]
+        for y in range(H):              # a vertical gradient between the two colours
+            t = y / (H - 1)
+            d.line([(0, y), (W, y)], fill=tuple(int(a[i] * (1 - t) + b[i] * t) for i in range(3)))
+        if kind == 0:                   # a big common word, Latin and Japanese, and lines of "small print"
+            lw, jw = words[rng.integers(len(words))]
+            d.text((40, 60), lw, font=ImageFont.truetype(latin, 150), fill=(255, 255, 255))
+            d.text((44, 250), jw, font=cjk(96), fill=(255, 255, 255))
+            for k in range(3):
+                d.rectangle([W - 260, 300 + k * 30, W - 40 - rng.integers(0, 120), 314 + k * 30], fill=(255, 255, 255))
+        elif kind == 1:                 # abstract: overlapping discs
+            for _ in range(9):
+                r = int(rng.integers(40, 170))
+                x, y = int(rng.integers(0, W)), int(rng.integers(0, H))
+                c = tuple(int(v) for v in rng.integers(60, 256, 3))
+                d.ellipse([x - r, y - r, x + r, y + r], fill=c)
+        elif kind == 2:                 # a ticker: a dark panel, a headline bar and rows of text-like bars
+            d.rectangle([0, 0, W, H], fill=(12, 14, 22))
+            d.rectangle([0, 0, W, 86], fill=b)
+            d.text((24, 10), words[rng.integers(len(words))][1], font=cjk(60), fill=(255, 255, 255))
+            for k in range(7):
+                y = 120 + k * 42
+                d.rectangle([24, y, 24 + int(rng.integers(260, 700)), y + 18], fill=(200, 205, 215))
+        else:                           # bold stripes and a square "product" block
+            for k in range(0, W, 64):
+                if (k // 64) % 2:
+                    d.polygon([(k, 0), (k + 48, 0), (k - 120, H), (k - 168, H)], fill=a)
+            d.rounded_rectangle([W // 2 - 110, H // 2 - 110, W // 2 + 110, H // 2 + 110], 30, fill=(250, 250, 250))
+            d.text((W // 2 - 80, H // 2 - 58), words[rng.integers(len(words))][1][:2], font=cjk(110), fill=b)
+        return img
+    for i, k in enumerate(SCREEN_KEYS):
+        atlas = Image.new("RGB", (W, 4 * H))
+        for j in range(4):
+            atlas.paste(frame((i + j) % 4), (0, j * H))
+        atlas.save(out / f"T_CC_screen_{k}.png", optimize=True)
+    for k, word in SIGNV_WORDS.items():
+        bg, fg = SIGNV_COLOURS[k]
+        img = Image.new("RGB", (256, 1280), bg)
+        d = ImageDraw.Draw(img)
+        d.rectangle([10, 10, 245, 1269], outline=fg, width=8)
+        chars = [("丨" if c == "ー" else c) for c in word]      # the long vowel mark stands upright in vertical text
+        size = min(190, int(1150 / len(chars) * 0.86))
+        f = cjk(size)
+        step = 1150 / len(chars)
+        for n, c in enumerate(chars):
+            w = d.textlength(c, font=f)
+            d.text(((256 - w) / 2, 60 + n * step + (step - size * 1.16) / 2), c, font=f, fill=fg)
+        img.save(out / f"T_CC_signv_{k}.png", optimize=True)
+
+
 def build(out_dir):
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -1142,8 +1282,8 @@ def build(out_dir):
         print(f"{n}: {tris} triangles, {2 * ext[0]:.2f} x {2 * ext[1]:.2f} x {2 * ext[2]:.2f} m")
     textures(out)
     textures2(out)
-    manifest = {"root": ROOT, "palette": {k: list(v[0]) + list(v[1:3]) + ([v[3]] if len(v) > 3 else [])
-                                          for k, v in PALETTE.items()},
+    textures3(out)
+    manifest = {"root": ROOT, "palette": {k: list(v[0]) + list(v[1:3]) + list(v[3:]) for k, v in PALETTE.items()},
                 "decal_slots": sorted(DECAL), "meshes": meshes}
     (out / "street_props.json").write_text(json.dumps(manifest, indent=1))
     (out / "SOURCES.md").write_text(sources_md(manifest))
@@ -1210,6 +1350,9 @@ def write_data(manifest, repo=Path(__file__).resolve().parent.parent):
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if "--render-textures" in sys.argv:      # the round 3 PNGs into git (needs a CJK font: Noto Sans CJK)
+        TEXTURES3.mkdir(parents=True, exist_ok=True)
+        textures3(TEXTURES3, render=True)
     m = build(args[0] if args else "build/street_props")
     if "--data" in sys.argv:
         write_data(m)

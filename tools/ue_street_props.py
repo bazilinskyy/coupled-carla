@@ -9,6 +9,7 @@ Writes /Game/CoupledCarla/Street (cook it: +DirectoriesToAlwaysCook=(Path="/Game
 Config/DefaultGame.ini, which C:\\cc58 has since the Dutch sign faces):
   Materials/M_CC_Street_Lit       BaseColor, Metallic, Roughness parameters
   Materials/M_CC_Street_Decal     masked, two-sided: texture "Tex" (RGBA, alpha = opacity mask) x Tint, Roughness
+  Materials/M_CC_Street_Glow      emissive: "Tex" x Tint x Emissive, panned (PanU, PanV) per second (screens, signs)
   Materials/MI_CC_<slot>          one constant instance per PALETTE slot of the manifest
   Textures/T_CC_<key>             the decal textures (sRGB, never streamed: a prop spawned at run time has no
                                   streaming data and would keep a low mip)
@@ -97,6 +98,48 @@ def m_decal():
     return m
 
 
+def m_glow():
+    """Emissive and lit at once (a screen, a lit sign): BaseColor = Tex x Tint x 0.2, Emissive = Tex x Tint x
+    Emissive, the texture panned by (PanU, PanV) per second (a screen's content scrolls; 0 for signs)."""
+    m = new_material("M_CC_Street_Glow")
+    mp = unreal.MaterialProperty
+    tc = expr(m, unreal.MaterialExpressionTextureCoordinate, -1300, 0)
+    t = expr(m, unreal.MaterialExpressionTime, -1300, 150)
+    pu = expr(m, unreal.MaterialExpressionScalarParameter, -1300, 250, parameter_name="PanU", default_value=0.0)
+    pv = expr(m, unreal.MaterialExpressionScalarParameter, -1300, 350, parameter_name="PanV", default_value=0.0)
+    speed = expr(m, unreal.MaterialExpressionAppendVector, -1100, 300)
+    MEL.connect_material_expressions(pu, "", speed, "A")
+    MEL.connect_material_expressions(pv, "", speed, "B")
+    shift = expr(m, unreal.MaterialExpressionMultiply, -950, 200)
+    MEL.connect_material_expressions(t, "", shift, "A")
+    MEL.connect_material_expressions(speed, "", shift, "B")
+    uv = expr(m, unreal.MaterialExpressionAdd, -800, 50)
+    MEL.connect_material_expressions(tc, "", uv, "A")
+    MEL.connect_material_expressions(shift, "", uv, "B")
+    tex = expr(m, unreal.MaterialExpressionTextureSampleParameter2D, -600, 0, parameter_name="Tex")
+    tex.set_editor_property("texture", unreal.load_asset("/Engine/EngineResources/DefaultTexture.DefaultTexture"))
+    MEL.connect_material_expressions(uv, "", tex, "UVs")
+    tint = expr(m, unreal.MaterialExpressionVectorParameter, -600, 250, parameter_name="Tint",
+                default_value=unreal.LinearColor(1, 1, 1, 1))
+    col = expr(m, unreal.MaterialExpressionMultiply, -350, 50)
+    MEL.connect_material_expressions(tex, "RGB", col, "A")
+    MEL.connect_material_expressions(tint, "", col, "B")
+    base = expr(m, unreal.MaterialExpressionMultiply, -150, 0)
+    MEL.connect_material_expressions(col, "", base, "A")
+    base.set_editor_property("const_b", 0.2)
+    MEL.connect_material_property(base, "", mp.MP_BASE_COLOR)
+    glow = expr(m, unreal.MaterialExpressionScalarParameter, -350, 250, parameter_name="Emissive", default_value=4.0)
+    em = expr(m, unreal.MaterialExpressionMultiply, -150, 150)
+    MEL.connect_material_expressions(col, "", em, "A")
+    MEL.connect_material_expressions(glow, "", em, "B")
+    MEL.connect_material_property(em, "", mp.MP_EMISSIVE_COLOR)
+    MEL.connect_material_property(expr(m, unreal.MaterialExpressionScalarParameter, -350, 400,
+                                       parameter_name="Roughness", default_value=0.3), "", mp.MP_ROUGHNESS)
+    MEL.recompile_material(m)
+    EAL.save_asset(MATS + "/M_CC_Street_Glow", only_if_is_dirty=False)
+    return m
+
+
 def import_texture(src, name):
     t = unreal.AssetImportTask()
     t.set_editor_property("filename", src)
@@ -120,6 +163,7 @@ def import_texture(src, name):
 
 def instances(manifest, src):
     lit, dec = m_lit(), m_decal()
+    glow_m = m_glow() if any(len(spec) > 6 for spec in manifest["palette"].values()) else None
     out = {}
     for slot, spec in manifest["palette"].items():
         rgb, metal, rough = spec[0:3], spec[3], spec[4]
@@ -128,7 +172,15 @@ def instances(manifest, src):
         path = "%s/%s" % (MATS, name)
         inst = load(path) or tools().create_asset(name, MATS, unreal.MaterialInstanceConstant,
                                                   unreal.MaterialInstanceConstantFactoryNew())
-        if tex_key:
+        if tex_key and len(spec) > 6:        # [.., texture, emissive, pan u, pan v]: a screen or a lit sign
+            MEL.set_material_instance_parent(inst, glow_m)
+            tx = import_texture(os.path.join(src, "T_CC_%s.png" % tex_key), "T_CC_%s" % tex_key)
+            MEL.set_material_instance_texture_parameter_value(inst, "Tex", tx)
+            MEL.set_material_instance_vector_parameter_value(inst, "Tint", unreal.LinearColor(*rgb, 1.0))
+            MEL.set_material_instance_scalar_parameter_value(inst, "Emissive", float(spec[6]))
+            MEL.set_material_instance_scalar_parameter_value(inst, "PanU", float(spec[7]) if len(spec) > 7 else 0.0)
+            MEL.set_material_instance_scalar_parameter_value(inst, "PanV", float(spec[8]) if len(spec) > 8 else 0.0)
+        elif tex_key:
             MEL.set_material_instance_parent(inst, dec)
             tx = import_texture(os.path.join(src, "T_CC_%s.png" % tex_key), "T_CC_%s" % tex_key)
             MEL.set_material_instance_texture_parameter_value(inst, "Tex", tx)

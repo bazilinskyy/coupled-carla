@@ -669,6 +669,18 @@ advertising columns become Morris columns with posters, and on baked twins each 
 its trade in Dutch. Options in `map.scenery`: `stone_roads`, `grime`, `parked_bikes`, `shop_signs`. All procedural
 (MIT), from OSM and the BGT; nothing from Street View.
 
+**Big screens and vertical shop signs (baked twins).** Places known for big screens on their facades
+(`coupledcarla/data/screen_places.json`: the Shibuya scramble crossing, Times Square) get them on the tall walls
+around them that face the place and look over open space: up to 6 in Shibuya, 12 at Times Square, 6-18 m wide, in
+the upper part of the building; OSM's `advertising=screen` adds mapped ones anywhere. In Japanese twins each named
+shop, cafe, bar or restaurant gets a vertical sign (tategaki) on its facade at the floor OSM gives, with a common word
+for its kind (居酒屋, ラーメン, カフェ, くすり, ...; at most 800 a map). The screens show slowly scrolling generic
+content (colour, shapes, common words) and both glow (an emissive material, readable by day, lit at night). No brand,
+logo, name or real advertisement is used. They are items of kind `facade`: `tools/snap_scenery.py` moves them with
+the ground of their area (never onto it). Option `map.scenery.screens` (`auto`: on baked twins; `false`: off). The
+props come with the street props (`tools/street_props.py`; the Japanese sign faces are rendered with Noto Sans CJK, SIL
+OFL, and kept in `unreal/StreetProps/textures`) and are imported by `tools/ue_street_props.py`.
+
 ## Night and rain
 
 `coupledcarla/nightlights.py` gives the street lamps the light their city lists, drives cars with the lights the Dutch
