@@ -153,15 +153,20 @@ def test_level_matches_the_band_levels_and_the_synthesised_engine(fake_sounds, r
 def test_recorded_engine_is_cheaper_than_the_synthesised_one(fake_sounds):
     import time
     es = soundsamples.load_set("petrol", path=fake_sounds)
-    costs = {}
-    for name, v in (("new", soundsamples.SampleEngineVoice(es, 4, kinds=("direct",))),
-                    ("old", synth.EngineVoice(4, False, kinds=("direct",)))):
+    voices = {"new": soundsamples.SampleEngineVoice(es, 4, kinds=("direct",)),
+              "old": synth.EngineVoice(4, False, kinds=("direct",))}
+    for v in voices.values():
         v.set_rpm(1700.0, 0.3)
         v.basis(2048)
-        t = time.perf_counter()
-        for _ in range(60):
-            v.basis(2048)
-        costs[name] = time.perf_counter() - t
+    # the two in turn, in short rounds, each judged by its fastest round: one voice timed after the other failed
+    # now and then on a loaded machine (a burst of load during one of the two runs)
+    costs = {name: float("inf") for name in voices}
+    for _ in range(7):
+        for name, v in voices.items():
+            t = time.perf_counter()
+            for _ in range(10):
+                v.basis(2048)
+            costs[name] = min(costs[name], time.perf_counter() - t)
     assert costs["new"] < 1.5 * costs["old"]
 
 
