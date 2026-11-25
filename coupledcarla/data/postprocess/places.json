@@ -1,0 +1,23 @@
+{
+ "_about": "Camera profile per place (coupledcarla/look.py place_profile, simulation.camera_profile \"auto\"). PROVISIONAL (2026-11-25): fitted without a GPU from 40 frames of the 24 Nov twin clips (Dashcam) against the realism pilot's frozen real photos of each place (coupledcarla/lookfit.py, unpaired: per-class statistics pooled over the photos). To be confirmed or replaced by tools/colour_sweep.sh (renders of the frozen views, realism_score.py compare). TUeCampus uses the Eindhoven fit: its own ended on the fit's bounds and raised saturation.",
+ "levels": {
+  "TUeCampus": {
+   "profile": "CoupledReal_EhvCentre",
+   "status": "provisional"
+  },
+  "EhvCentre": {
+   "profile": "CoupledReal_EhvCentre",
+   "status": "provisional"
+  },
+  "SalamancaPlaza": {
+   "profile": "CoupledReal_SalamancaPlaza",
+   "status": "provisional"
+  },
+  "ShibuyaCrossing": {
+   "profile": "CoupledReal_ShibuyaCrossing",
+   "status": "provisional"
+  }
+ },
+ "countries": {},
+ "fallback": "Dashcam"
+}

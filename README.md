@@ -1533,8 +1533,24 @@ What each change did:
 - Fitting again on all 349 views, from either set of renders, reaches the same colour score (0.38-0.39) only by
   giving up saturation for brightness, so `CoupledReal` stays as fitted.
 
-Use it on CARLA 1.0 by copying `coupledcarla/data/postprocess/*.json` into the server's
-`Content/Carla/Config/PostProcess`, then setting `simulation.camera_profile: CoupledReal`.
+Use it on CARLA 1.0 by installing the profiles on the server, `python tools/install_profiles.py --content
+<CarlaUnreal/Content>` (or `--package <package folder>`), then setting `simulation.camera_profile: CoupledReal`.
+CARLA reads a profile from `Content/Carla/Config/PostProcess/<name>.json` and, when the file is missing, keeps the
+camera's built-in settings without a warning: until 2026-11-25 win5090's server had neither `CoupledReal` nor
+`CoupledClean`, so cameras that asked for them rendered with no profile. A run that uses one of ours says so in its
+log. Film cameras (demo videos) take `film.camera_profile`, not `simulation.camera_profile` (default Dashcam).
+
+**Camera look per place (provisional).** `simulation.camera_profile: auto` picks the profile fitted to the
+place's real photos (`coupledcarla/data/postprocess/places.json`, by level, then country, else Dashcam); it is
+opt-in, the default stays Dashcam. Measured on 40 frames of the 24 Nov twin clips (Dashcam) against the realism
+pilot's real photos of each place, the renders are, at every place, flatter than the photos (95th percentile of
+luminance 170-187 against 220-233, spread 35-48 against 58-60), lifted in the shadows (5th percentile 32-48 against
+23-33), more saturated (0.24-0.32 against 0.16-0.25) and bluer (blue/green 1.02-1.21 against 0.93-1.00; Shibuya the
+most). Fitted without a GPU (`lookfit`, unpaired: each frame against the place's pooled per-class statistics), the
+profiles remove the blue cast and the extra saturation but not the missing highlights; on frames they were not
+fitted to, the colour loss falls 15-20 % (Eindhoven, Salamanca) and 64 % (Shibuya). TUeCampus uses the Eindhoven
+fit (its own ended on the fit's bounds). They are confirmed or replaced by `tools/colour_sweep.sh` (renders of the
+frozen views with each profile, scored and compared with a baseline round on the same views and alignment).
 
 **Street photos: Mapillary, a score per spot and street objects ([docs/street_photos.md](docs/street_photos.md)).**
 The check takes Mapillary as a fourth source when the `mapillary_token` key is set: its photos, and its map

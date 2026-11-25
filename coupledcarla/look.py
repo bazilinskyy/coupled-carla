@@ -308,3 +308,56 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+# --- per-place camera profiles (CARLA 1.0) ------------------------------------------------------------------------
+
+PROFILES = __import__("pathlib").Path(__file__).parent / "data" / "postprocess"
+PLACES = PROFILES / "places.json"
+STOCK = ("AutomotiveHDR", "AutomotiveHDRClean", "Cinematic", "Dashcam", "GoPro", "LegacyCCD", "LogHDR", "Smartphone",
+         "WideHDR8MP")    # CARLA 1.0's own (Content/Carla/Config/PostProcess)
+
+
+def ours(name):
+    """True for a profile coupled-carla ships (coupledcarla/data/postprocess): the server must have it installed
+    (tools/install_profiles.py). CARLA reads <Content>/Carla/Config/PostProcess/<name>.json and, when the file is
+    missing, silently keeps the camera's built-in settings (no profile, no warning)."""
+    return bool(name) and name not in STOCK and (PROFILES / f"{name}.json").exists()
+
+
+def place_profile(level=None, country=None, table=None):
+    """The camera profile fitted to a place's real photos (data/postprocess/places.json): by the level, then the
+    country, else the table's fallback (Dashcam). Returns (name, status) with status "fitted", "provisional" or
+    "fallback"."""
+    import json
+    if table is None:
+        try:
+            table = json.loads(PLACES.read_text())
+        except (OSError, ValueError):
+            table = {}
+    for key, val in (("levels", level), ("countries", (country or "").upper() or None)):
+        e = (table.get(key) or {}).get(val) if val else None
+        if e:
+            return e["profile"], e.get("status", "provisional")
+    return table.get("fallback", "Dashcam"), "fallback"
+
+
+def resolve_auto(tc, log=print, table=None):
+    """camera_profile "auto" (simulation.camera_profile, simulation.capture.profile, film.camera_profile): the
+    place's profile (place_profile) for the trial's level or country. Opt-in: the default stays "Dashcam", so
+    nothing changes until a place's profile is measured (README "Camera look per place"). Returns the profile
+    chosen, or None when nothing asked for "auto"."""
+    sim, film = tc.get("simulation") or {}, tc.get("film") or {}
+    cap = sim.get("capture") if isinstance(sim.get("capture"), dict) else {}
+    if "auto" not in (sim.get("camera_profile"), cap.get("profile"), film.get("camera_profile")):
+        return None
+    level = (tc.get("map") or {}).get("carla_level")
+    country = (tc.get("city") or {}).get("country_code")
+    name, status = place_profile(level, country, table)
+    for d, k in ((sim, "camera_profile"), (cap, "profile"), (film, "camera_profile")):
+        if d.get(k) == "auto":
+            d[k] = name
+    log(f"camera profile: {name} ({status} for {level or country or 'this map'})"
+        + ("; it must be installed on the server (tools/install_profiles.py): CARLA ignores a missing one silently"
+           if ours(name) else ""))
+    return name

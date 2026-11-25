@@ -151,7 +151,9 @@ DEFAULTS = {
         "traffic_manager": False,    # start CARLA's Traffic Manager (only for CARLA-driven autopilot cars)
         "camera_profile": "Dashcam", # CARLA 1.0: the post-process profile of every camera (exposure; CARLA's
                                      # Content/Carla/Config/PostProcess: Dashcam, AutomotiveHDR, Cinematic, ...;
-                                     # "" for the server's default). CARLA 0.9.x ignores it
+                                     # "" for the server's default; "auto": the place's profile fitted to its real
+                                     # photos, look.place_profile, installed by tools/install_profiles.py).
+                                     # CARLA 0.9.x ignores it
         "capture": {                 # cameras whose frames are kept (--frames-every, stations' --frames-every,
                                      # drone observers, tools/scenery_shots.py): coupledcarla/look.py
             "enabled": True,         # 0.9.x: no motion blur, bloom 0.3, no lens flare, a manual exposure from
