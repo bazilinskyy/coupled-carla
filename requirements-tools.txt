@@ -1,3 +1,5 @@
 # Extra packages for tools/ (figures and viewer screenshots)
 matplotlib
 playwright   # then: python -m playwright install chromium
+plotly       # tools/ship_figures.py (with kaleido for the PNGs)
+kaleido

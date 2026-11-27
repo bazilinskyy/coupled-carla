@@ -61,7 +61,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
 - [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
 - [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [night and rain](#night-and-rain), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
-- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [VR stations](docs/lab_guide.md#vr-stations), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
+- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [VR stations](docs/lab_guide.md#vr-stations), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones), [ships](#ships)
 - [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
 - [Traffic](#traffic) · [Traffic lights](#traffic-lights)
 - [Data](#logging-and-data): [logging](#logging-and-data), [analysis](#analysis), [trial viewer](#trial-viewer)
@@ -2081,6 +2081,41 @@ Eindhoven twin: on lin5080 (CARLA 1.0, `-nullrhi`, 120 s) 14 drones cost 3.1 ms 
 every AI drone stayed 19-43 m above the roofs, and the pilot bot flew 587 m and landed at 0.5 m/s. Not yet checked:
 the rendered looks and views, the rotor sound by ear, a station pilot with a real camera, and the 0.9.16 fallback on
 a 0.9.16 server.
+
+## Ships
+
+Ships are being added: AI ships seen from the shore first, then a ship passenger (like the AV passenger), then a
+ship participant on the bridge. The design is in [docs/ships.md](docs/ships.md). The first step, the ship motion
+model, is done ([`shipmodel.py`](coupledcarla/shipmodel.py), 38 tests, no CARLA); ships do not yet appear in a
+trial (next: `ships.py` with AI ships on a port map).
+
+- **Manoeuvring:** the MMG standard method (Yasukawa & Yoshimura 2015, J. Mar. Sci. Technol. 20(1) 37-52) in
+  surge, sway and yaw, with hull, propeller and rudder forces, a rate-limited rudder, lagged engine orders and an
+  autopilot (heading or waypoints, with an integral term against steady wind). Hulls are presets; the first is the
+  KVLCC2 tanker (320 m), with the paper's coefficients. Against the paper's own calculation for its 7 m model,
+  turning is 4-8 % tighter and the zig-zag overshoots are within 1.6°; full scale meets the IMO criteria.
+- **Current:** uniform and steady (`Environment(current_mps, current_to_deg)`); it moves the track over the
+  ground and leaves the ship's handling through the water unchanged.
+- **Wind:** Blendermann (1994) with his parameters for 17 ship types (from Fossen's MSS toolbox) on each hull's
+  windage (`Environment(wind_mps, wind_from_deg)`, the same convention as Open-Meteo's wind). In Beaufort 9 a head
+  wind costs KVLCC2 about 0.8 kn, and a beam wind gives about 0.4° of drift.
+- **Waves:** the mean wave drift in a JONSWAP sea (`Environment(wave_hs, wave_tp, wave_from_deg)`). Along the
+  ship, the added resistance of IMO MEPC.1/Circ.850/Rev.3 (the SNNM method); in long-crested head seas it agrees
+  with IMO's simple formula within 10 %. Across the ship, an estimate: full reflection on the ship's side in short
+  waves. Waves do not yet rock the ship (no heave, roll or pitch), and the water in CARLA stays flat.
+
+Figures are clickable: each opens an interactive version.
+
+[![KVLCC2 turning circles in still water, current, wind and waves](docs/img/ships_turning.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_turning.html)
+
+[![The 7 m KVLCC2 model against the paper's turning and zig-zag results](docs/img/ships_validation.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_validation.html)
+
+[![KVLCC2's added resistance in regular waves by wave direction](docs/img/ships_waves.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_waves.html)
+
+```bash
+python -m pytest tests/test_shipmodel.py      # the model's tests (needs only numpy)
+python -m tools.ship_figures                  # these figures (plotly, kaleido)
+```
 
 ## Traffic
 
