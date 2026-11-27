@@ -1,0 +1,35 @@
+# The ships' demo clip (coupledcarla/ships.py), apart from the main list (clips.yaml):
+#   python tools/make_videos.py render hoek_van_holland_ships --file experiments/videos/ships.yaml
+# It needs CARLA 1.0 with the ship assets (tools/ue_ship_assets.py) and the water-terrain patch
+# (unreal/patches/OpenDriveGenerator_WaterTerrain.patch); tools/render_when_free.sh waits for a free GPU.
+defaults:
+  fps: 25
+  size: [1920, 1080]          # full HD (frames rendered 2x supersampled, see film.py capture)
+  crf: 20                      # visually clean; a 20 s clip is about 10-25 MB
+  # capture cameras: no motion blur, less bloom (eHMI light lines), a darker auto exposure (0.9.16's pale OSM roads)
+  attributes: {motion_blur_intensity: 0, motion_blur_max_distortion: 0, bloom_intensity: 0.3,
+               exposure_compensation: -0.7, exposure_max_bright: 15}
+  # soft daylight (the sun stands where it did at the clip's time); a clip's own weather replaces it
+  weather: {cloudiness: 20, precipitation: 0, precipitation_deposits: 0, wetness: 0, wind_intensity: 10, fog_density: 0}
+
+clips:
+  - name: hoek_van_holland_ships
+    title: A tanker passes Hoek van Holland
+    place: Nieuwe Waterweg at Hoek van Holland, Netherlands
+    role: someone on the shore (tripod cameras); the driver on autopilot behind
+    when: midday
+    agents: a KVLCC2 tanker (320 m) inbound and a KCS container ship (230 m) outbound, sailed by the ship model
+      (ships.py), an ebb current
+    notice: the inbound tanker passes the north bank at 8 knots; needs CARLA 1.0 with the ship assets and the
+      water-terrain patch (unreal/patches/OpenDriveGenerator_WaterTerrain.patch), else the terrain covers the water
+    experiment: experiments/hoek_van_holland_ships.yaml
+    time: "2026-06-17 12:30"
+    start_s: 90
+    duration_s: 20
+    cameras:
+      - {name: shore, kind: tripod, at: {lat: 51.97735, lon: 4.12390, height_m: 1.7},
+         look: {lat: 51.97290, lon: 4.12050, height_m: 8}}
+      - {name: dike, kind: tripod, at: {lat: 51.97760, lon: 4.12600, height_m: 12},
+         look: {lat: 51.97290, lon: 4.12050, height_m: 0}}
+      - {name: aerial, kind: tripod, at: {lat: 51.97700, lon: 4.11700, height_m: 140},
+         look: {lat: 51.97290, lon: 4.12100, height_m: 0}}

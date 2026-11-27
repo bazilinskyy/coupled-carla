@@ -9,7 +9,7 @@ The packs (CARLA's carla-pack, Util/ContentPacks in the CARLA tree; see its Docs
 
 - CoupledCarlaStreet: everything under /Game/CoupledCarla (the regional street furniture and signal heads that
   streetlook.py places with static.prop.mesh, the lit regional lamps and CARLA's street lights as blueprint.cc_*,
-  the quadrotor drones, the Dutch sign faces), with their BlueprintParameters.json, plus every CARLA asset
+  the quadrotor drones, the ships, the Dutch sign faces), with their BlueprintParameters.json, plus every CARLA asset
   coupled-carla spawns by path that the official package did not cook (most of CARLA's trees, props, sign plates
   and buildings of the scenery catalogue, street lights): carla_assets(). Nothing references these assets from a
   map, so `build` first writes a holder level into the pack (tools/ue_pack_holder.py) that the cook follows.
@@ -45,7 +45,7 @@ CATALOG = ROOT / "coupledcarla" / "data" / "carla_packs" / "CoupledCarla" / "Con
     "BlueprintParameters.json"
 DESCRIPTIONS = {
     STREET: "coupled-carla street content for CARLA 1.0: regional street furniture, signal heads and paving, lit "
-            "regional street lamps (blueprint.cc_*) and quadrotor drones, placed by coupled-carla at runtime",
+            "regional street lamps (blueprint.cc_*), quadrotor drones and ships, placed by coupled-carla at runtime",
 }
 TWIN_DESCRIPTION = "coupled-carla digital twin {0} for CARLA 1.0 (open data; see Config/{0}-ATTRIBUTION.md)"
 
