@@ -186,6 +186,7 @@ def test_a_ship_sails_its_route_and_stops(carla_mod, tmp_path):
     assert len(tfs) == 12000 * len(s.visual.actors)
     # ships.csv: every 0.5 s, the columns of LOG_COLUMNS
     from coupledcarla import ships
+    sw.log_f.flush()                          # the writer is still open: its last block is not on disk yet (3.10)
     rows = list(csv.reader(open(tmp_path / "ships.csv"), delimiter=";"))
     assert rows[0] == ships.LOG_COLUMNS and len(rows) - 1 == pytest.approx(1200 / 0.5, abs=2)
     first = dict(zip(rows[0], rows[1]))
