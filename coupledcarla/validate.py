@@ -31,10 +31,10 @@ from pathlib import Path
 
 import yaml
 
-from . import config, drones, multigpu, photoreal, responses, study, takeover
+from . import config, drones, multigpu, photoreal, responses, ships, study, takeover
 
 OVERRIDES = ("simulation", "traffic", "participants", "agents", "logging", "coupling", "ehmi", "eye_contact",
-             "sound", "displays", "haptics", "drones")
+             "sound", "displays", "haptics", "drones", "ships")
 TRIAL_KEYS = set(OVERRIDES) | {"duration_s", "name", "block", "condition", "conditions", "patch"}
 TOP_EXTRA = {"city", "pois", "eye_contact"}
 PART_KEYS = {"role", "kind", "station", "vehicle", "spawn", "input", "view", "window", "bot", "agent", "blueprint",
@@ -304,6 +304,8 @@ def check_trial_config(rep, tc, where, duration, geo_checks):
     # drones: missions, observer cameras, drone participants (drones.check_config)
     drones.check_config(tc, where, duration, rep.error, rep.warn,
                         lambda w, pts, kind: geo_checks.append((w, _points(rep, w, pts), kind, None)))
+    ships.check_config(tc, where, rep.error, rep.warn,
+                       lambda w, pts, kind: geo_checks.append((w, _points(rep, w, pts), kind, None)))
 
 
 def check_automation(rep, pw, p, duration, geo_checks):

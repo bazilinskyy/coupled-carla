@@ -1,0 +1,183 @@
+CARLA ue58-dev: the terrain of a map generated from OpenDRIVE dips under water.
+
+CARLA 1.0 fits a terrain surface to the road heights over the whole generated map (AOpenDriveGenerator::
+GenerateGroundPlane). Over a river or a harbour it spreads at the banks' and dikes' height, so the water of
+coupled-carla's scenery (flat tiles at the water body's level) lies under it and ships sail through grass (Hoek van
+Holland, 2026-11-27: terrain at 1.3-5.9 m over the Nieuwe Waterweg, water at 1.1 m). The Python API cannot hide or
+lower it (no parameter, no environment object).
+
+coupled-carla now sends the scenery's water bodies with the OpenDRIVE as a <userData code="coupledcarla.water">
+element (placement.carla_xodr: one closed ring a line, "<body> <level m> x,y x,y ...", CARLA metres). This patch reads
+it and, at every terrain vertex inside a body (even-odd over its rings, so islands stay land) that is not under
+pavement, lowers the terrain to 3 m below the body's level. Without the userData nothing changes.
+
+Apply in a CARLA ue58-dev tree (checked against 70f9085): git apply <this file>; then rebuild the editor (lin5080:
+~/build_editor58.sh) and, for the packaged server, the package (win5090 task cc58-package). Not posted upstream.
+
+diff --git a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/OpenDrive/OpenDriveGenerator.cpp b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/OpenDrive/OpenDriveGenerator.cpp
+index 4a2092c..63450b6 100644
+--- a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/OpenDrive/OpenDriveGenerator.cpp
++++ b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/OpenDrive/OpenDriveGenerator.cpp
+@@ -27,6 +27,117 @@
+ // scatter of generate_opendrive_world. Hybrid rendering over a neural scene
+ // needs a bare proxy world: furniture that only exists in the proxy casts
+ // shadows on the synthetic actors and shows up in their reflections.
++// coupled-carla: water bodies sent with the OpenDRIVE as
++//   <userData code="coupledcarla.water">
++//   <body> <level m> x,y x,y ...      (one closed ring a line; CARLA metres)
++//   </userData>
++// The generated terrain is fitted to the road heights, so over a river or a
++// harbour it spreads at the banks' height and buries the water (Hoek van
++// Holland: 1.3-5.9 m over a 1.1 m water level). Inside a body (even-odd over
++// its rings, so islands stay land) and away from pavement, the terrain is
++// lowered CCWaterDip below the body's level; without the userData nothing
++// changes. Posted with coupled-carla (unreal/patches/), not upstream.
++namespace
++{
++  struct FCCWaterRing
++  {
++    int32 Body = 0;
++    float LevelZ = 0.0f;
++    TArray<FVector2D> Pts;
++    FBox2D Box = FBox2D(ForceInit);
++  };
++
++  TArray<FCCWaterRing> ParseCCWater(const FString &Xodr)
++  {
++    TArray<FCCWaterRing> Out;
++    const FString Open = TEXT("<userData code=\"coupledcarla.water\">");
++    const int32 A = Xodr.Find(Open, ESearchCase::CaseSensitive);
++    if (A == INDEX_NONE)
++    {
++      return Out;
++    }
++    const int32 Start = A + Open.Len();
++    const int32 B = Xodr.Find(TEXT("</userData>"), ESearchCase::CaseSensitive, ESearchDir::FromStart, Start);
++    if (B == INDEX_NONE)
++    {
++      return Out;
++    }
++    TArray<FString> Lines;
++    Xodr.Mid(Start, B - Start).ParseIntoArrayLines(Lines);
++    for (const FString &Line : Lines)
++    {
++      TArray<FString> Tok;
++      Line.ParseIntoArrayWS(Tok);
++      if (Tok.Num() < 5)
++      {
++        continue;
++      }
++      FCCWaterRing R;
++      R.Body = FCString::Atoi(*Tok[0]);
++      R.LevelZ = FCString::Atof(*Tok[1]) * 100.0f;
++      for (int32 I = 2; I < Tok.Num(); ++I)
++      {
++        FString XS, YS;
++        if (Tok[I].Split(TEXT(","), &XS, &YS))
++        {
++          const FVector2D P(FCString::Atof(*XS) * 100.0f, FCString::Atof(*YS) * 100.0f);
++          R.Pts.Add(P);
++          R.Box += P;
++        }
++      }
++      if (R.Pts.Num() >= 3 && R.Body >= 0)
++      {
++        Out.Add(MoveTemp(R));
++      }
++    }
++    return Out;
++  }
++
++  bool CCInRing(const FCCWaterRing &R, float X, float Y)
++  {
++    if (X < R.Box.Min.X || X > R.Box.Max.X || Y < R.Box.Min.Y || Y > R.Box.Max.Y)
++    {
++      return false;
++    }
++    bool bIn = false;
++    for (int32 I = 0, J = R.Pts.Num() - 1; I < R.Pts.Num(); J = I++)
++    {
++      const FVector2D &Pi = R.Pts[I];
++      const FVector2D &Pj = R.Pts[J];
++      if (((Pi.Y > Y) != (Pj.Y > Y)) && (X < (Pj.X - Pi.X) * (Y - Pi.Y) / (Pj.Y - Pi.Y) + Pi.X))
++      {
++        bIn = !bIn;
++      }
++    }
++    return bIn;
++  }
++
++  // The lowest level of the bodies (X, Y) lies in (cm), or FLT_MAX.
++  float CCWaterLevel(const TArray<FCCWaterRing> &Rings, TArray<uint8> &Parity, float X, float Y)
++  {
++    for (uint8 &P : Parity)
++    {
++      P = 0;
++    }
++    for (const FCCWaterRing &R : Rings)
++    {
++      if (CCInRing(R, X, Y))
++      {
++        Parity[R.Body] ^= 1;
++      }
++    }
++    float Z = FLT_MAX;
++    for (const FCCWaterRing &R : Rings)
++    {
++      if (Parity[R.Body])
++      {
++        Z = FMath::Min(Z, R.LevelZ);
++      }
++    }
++    return Z;
++  }
++}
++
+ static TAutoConsoleVariable<int32> CVarOpenDriveStreetFurniture(
+     TEXT("carla.OpenDrive.StreetFurniture"), 1,
+     TEXT("1 (default): scatter street furniture (lamps, vegetation, signage) on generated OpenDRIVE worlds. 0: bare road only."),
+@@ -952,6 +1063,18 @@ void AOpenDriveGenerator::GenerateGroundPlane()
+   //   - beyond the skirt: the free C2 spline surface.
+   const float SkirtWidth = FMath::Max(GroundSkirtWidth, GroundHeightSampleCellSize);
+   auto &CarlaMap = UCarlaStatics::GetGameMode(GetWorld())->GetMap();
++  // coupled-carla: the water bodies of the OpenDRIVE's userData (see above)
++  const TArray<FCCWaterRing> CCWater = ParseCCWater(OpenDriveData);
++  TArray<uint8> CCParity;
++  for (const FCCWaterRing &R : CCWater)
++  {
++    if (R.Body >= CCParity.Num())
++    {
++      CCParity.SetNumZeroed(R.Body + 1);
++    }
++  }
++  constexpr float CCWaterDip = 300.0f;
++  int32 CCDipped = 0;
+   TArray<float> Heights;
+   Heights.SetNumUninitialized(NumX * NumY);
+   for (int32 IY = 0; IY < NumY; ++IY)
+@@ -1161,10 +1284,25 @@ void AOpenDriveGenerator::GenerateGroundPlane()
+           }
+         }
+       }
++      if (CCWater.Num() > 0 && !(Cell && Cell->bPaved))
++      {
++        const float WaterZ = CCWaterLevel(CCWater, CCParity, X, Y);
++        if (WaterZ != FLT_MAX && GroundZ > WaterZ - CCWaterDip)
++        {
++          GroundZ = WaterZ - CCWaterDip;
++          ++CCDipped;
++        }
++      }
+       Heights[IY * NumX + IX] = GroundZ;
+     }
+   }
+ 
++  if (CCWater.Num() > 0)
++  {
++    UE_LOG(LogCarla, Log, TEXT("AOpenDriveGenerator: %d water rings (coupled-carla), terrain lowered under water at %d of %d vertices"),
++        CCWater.Num(), CCDipped, NumX * NumY);
++  }
++
+   // Retain the evaluated grid so GenerateFurnitureAnchors can re-ground
+   // scattered objects onto the terrain surface they will stand on.
+   GroundGridHeights = Heights;

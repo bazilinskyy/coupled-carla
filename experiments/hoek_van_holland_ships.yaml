@@ -1,0 +1,48 @@
+# Ships on the Nieuwe Waterweg at Hoek van Holland, seen from the shore (coupledcarla/ships.py, docs/ships.md).
+# A KVLCC2 tanker (320 m) inbound on the south half of the channel (keep right) and a KCS container ship (230 m,
+# its coefficients estimated: shipmodel.estimate_hull) outbound on the north half a minute later. The tanker stands
+# in for any big ship: a laden VLCC (20.8 m draught) would use the Maasmond to Europoort, not this waterway.
+# Build the map once:  python -m coupledcarla.mapmaker "51.9755, 4.1250" --size medium --name hoek_van_holland
+# Run it:              python -m coupledcarla.run experiments/hoek_van_holland_ships.yaml --input autopilot --headless
+name: hoek_van_holland_ships
+city:
+  name: hoek_van_holland
+  country: Netherlands
+  continent: Europe
+  size: small
+  population: 10212
+  lat: 51.9755
+  lon: 4.125
+  drive: right
+  country_code: NL
+map:
+  name: hoek_van_holland
+  bbox: [51.96921, 4.11479, 51.98179, 4.13521]
+  lefthand: false
+traffic:
+  cars_per_hour: 300
+  bikes_per_hour: 150
+  buses_per_hour: 4
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+ships:
+  visual: auto                     # the mesh where the server has it (CARLA 1.0 + tools/ue_ship_assets.py), else shapes
+  environment:
+    wind_mps: auto                 # the trial's real wind with weather real, else CARLA's
+    current_mps: 0.4               # the ebb setting out to sea (to the west-north-west)
+    current_to_deg: 290
+  fleet:
+  - id: inbound
+    hull: kvlcc2
+    speed_kn: 8
+    route: [[51.9744, 4.1160], [51.9721, 4.1230], [51.9705, 4.1290], [51.9697, 4.1330]]
+  - id: outbound
+    hull: kcs
+    speed_kn: 8
+    start_s: 60
+    route: [[51.9715, 4.1335], [51.9732, 4.1280], [51.9750, 4.1220], [51.9768, 4.1160]]
+trials:
+- duration_s: 300

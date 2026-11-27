@@ -32,6 +32,7 @@ from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSyn
 from .coupling import ControlServer
 from .display import View
 from .drones import DroneView, DroneWorld
+from .ships import ShipWorld
 from .geo import Geo, ground, heading_to_yaw, nearest_waypoint
 from .logger import TrialLogger
 from .routing import SafeGlobalRoutePlanner
@@ -97,7 +98,15 @@ def load_world(client, xodr, mc, slab=False, keep_lights=False):
         additional_width=p["additional_width"], smooth_junctions=p["smooth_junctions"],
         enable_mesh_visibility=True, enable_pedestrian_navigation=p["pedestrian_navigation"])
     client.set_timeout(600.0)
-    text, n = placement.carla_xodr(Path(xodr).read_text(encoding="utf-8"), keep_lights)
+    water = None
+    try:        # the scenery's water bodies: a patched CARLA 1.0 lowers its generated terrain under them
+        water = json.loads((Path(xodr).parent / "scenery.json").read_text()).get("water")
+    except (OSError, ValueError):
+        pass
+    text, n = placement.carla_xodr(Path(xodr).read_text(encoding="utf-8"), keep_lights, water)
+    if water:
+        print(f"[run] OpenDRIVE for CARLA: {len(water)} water bodies as userData (CARLA 1.0 terrain under water)",
+              flush=True)
     if n:
         print(f"[run] OpenDRIVE for CARLA: {n} traffic-light signals left out (SUMO's are drawn)", flush=True)
     world = client.generate_opendrive_world(text, params)
@@ -364,9 +373,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
 
     server = Server(tc["server"], log)
     client = server.start()
-    from . import look
     look.DEBUG_COMPRESS = compat.server_major(client) == 0     # debug colours (traffic lights, eHMIs): look.py
-    sync = view = recorder = world = logger = drone_world = film = host_audio = photo = navw = city = react = None
+    sync = view = recorder = world = logger = drone_world = ship_world = film = host_audio = photo = navw = city = react = None
     own_logs = []
     collisions, agents = [], []
     summary = {"trial": trial_idx, "ticks": 0}
@@ -484,6 +492,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # drones: participants of kind drone and the AI drones of `drones.missions` (drones.py)
         if any(p.kind == "drone" for p in parts) or (tc.get("drones") or {}).get("missions"):
             drone_world = DroneWorld(world, client, geo, tc, mdir, out, log, side.debug)
+        if (tc.get("ships") or {}).get("fleet"):      # AI ships (ships.py)
+            ship_world = ShipWorld(world, client, geo, tc, mdir, out, log)
 
         def watch_collisions(actor, role):
             col = world.spawn_actor(world.get_blueprint_library().find("sensor.other.collision"),
@@ -666,6 +676,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         if drone_world is not None:      # obstacles, wind and AI missions once the participants stand
             drone_world.queue = queue
             drone_world.start([a.get_location() for a in focus_actors])
+        if ship_world is not None:
+            ship_world.queue = queue
+            ship_world.start()
         if tc["logging"]["carla_recorder"]:
             recorder = client.start_recorder(f"coupledcarla_{tc['name']}_{stamp}_trial{trial_idx}.log", True)
         logger = TrialLogger(out, geo, tc["logging"], step)
@@ -777,6 +790,9 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 drone_world.step(t, step, events, snap)
                 drone_world.broadcast(control, summary["ticks"])
                 laps("drones")
+            if ship_world is not None:    # the ship model and the ships' transforms
+                ship_world.step(t, step)
+                laps("ships")
             t_a = time.time()
             sync.tick()
             if sig_driver is not None:
@@ -975,6 +991,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             logger.log(snap, records, ai, sumo_signals, [])
             if drone_world is not None:
                 drone_world.log_frame(logger, t, snap.frame)
+            if ship_world is not None:
+                ship_world.log_frame(logger, t, snap.frame)
             tools.log(t, snap.frame)
             if live is not None:
                 live.tick(t, snap, summary["ticks"], logger, world, sync, types, crowd, drone_world)
@@ -1077,6 +1095,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                         "station_stats": station_stats, "parked_cars": parked.n if parked is not None else 0})
         if drone_world is not None:
             summary["drones"] = drone_world.summary()
+        if ship_world is not None:
+            summary["ships"] = ship_world.summary()
         if scenery is not None:
             summary.update({"scenery_meshes": scenery.n, "scenery_refused": scenery.n_failed})
             if scenery.n_failed:        # which meshes this server lacks (a CARLA package without the content packs)
@@ -1105,6 +1125,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             time.sleep(0.5)
         if drone_world is not None:
             drone_world.close()
+        if ship_world is not None:
+            ship_world.close()
         if navw is not None:
             navw.destroy()
         if city is not None:

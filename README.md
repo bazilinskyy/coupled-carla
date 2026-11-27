@@ -61,7 +61,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [What you get](#what-you-get) · [Videos](#videos) · [Screenshots](#screenshots) · [How it works](#how-it-works)
 - [Quick start](#quick-start) · [Make a map of any place](#make-a-map-of-any-place) (for first-time users, no programming)
 - [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [night and rain](#night-and-rain), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
-- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [VR stations](docs/lab_guide.md#vr-stations), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones)
+- [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [VR stations](docs/lab_guide.md#vr-stations), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones), [ships](#ships)
 - [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
 - [Traffic](#traffic) · [Traffic lights](#traffic-lights)
 - [Data](#logging-and-data): [logging](#logging-and-data), [analysis](#analysis), [trial viewer](#trial-viewer)
@@ -1288,10 +1288,11 @@ street pack ([`tools/ue_pack_holder.py`](tools/ue_pack_holder.py)) that the cook
 release it was cooked against: CARLA 1.0.1 means building them again. They are meant as assets of a GitHub
 release of this repository (GitHub allows 2 GB per file); they are not published yet.
 
-What a pack cannot carry is code, so two things need a CARLA build of your own: the `CoupledPhotoreal` plugin
-(`map.photoreal`, Google's Photorealistic 3D Tiles; without it the twin is shown as baked, and the log says so)
-and the CarlaLight patch (`unreal/patches/`; without it lamps keep CARLA's default intensity instead of the
-register's lumens). Without the street pack, CARLA's own lamps stand in for the regional ones and the regional
+What a pack cannot carry is code, so three things need a CARLA build of your own: the `CoupledPhotoreal` plugin
+(`map.photoreal`, Google's Photorealistic 3D Tiles; without it the twin is shown as baked, and the log says so),
+the CarlaLight patch (`unreal/patches/`; without it lamps keep CARLA's default intensity instead of the
+register's lumens) and the water-terrain patch (`unreal/patches/OpenDriveGenerator_WaterTerrain.patch`; without it
+CARLA 1.0's generated terrain covers rivers and harbours, see [Ships](#ships)). Without the street pack, CARLA's own lamps stand in for the regional ones and the regional
 furniture is left out (`blueprint.cc_nl_*`, the drones and `/Game/CoupledCarla` meshes do not spawn on the bare
 package).
 
@@ -2081,6 +2082,103 @@ Eindhoven twin: on lin5080 (CARLA 1.0, `-nullrhi`, 120 s) 14 drones cost 3.1 ms 
 every AI drone stayed 19-43 m above the roofs, and the pilot bot flew 587 m and landed at 0.5 m/s. Not yet checked:
 the rendered looks and views, the rotor sound by ear, a station pilot with a real camera, and the 0.9.16 fallback on
 a 0.9.16 server.
+
+## Ships
+
+AI ships sail in a trial, to be seen from the shore ([`ships.py`](coupledcarla/ships.py)); a ship passenger (like
+the AV passenger) and a ship participant on the bridge come later. The design is in [docs/ships.md](docs/ships.md).
+Like the drones, the ships are not CARLA physics: the host steps a ship model every tick
+([`shipmodel.py`](coupledcarla/shipmodel.py)) and sends each ship's pose in the tick's batch.
+
+```yaml
+ships:
+  visual: auto                 # mesh (CARLA 1.0 with the ship assets) | shapes (any server) | none
+  environment:                 # uniform over the map
+    wind_mps: auto             # the trial's real wind (Open-Meteo, weather real), as for the drones
+    current_mps: 0.4           # and current_to_deg; wave_hs, wave_tp, wave_from_deg for waves
+    current_to_deg: 290
+  fleet:
+  - {id: inbound, hull: kvlcc2, speed_kn: 8, route: [[51.9744, 4.1160], [51.9721, 4.1230], [51.9697, 4.1330]]}
+  - {id: outbound, hull: kcs, speed_kn: 8, start_s: 60, at_end: stop, route: [...]}      # stop | loop | remove
+  - {id: ferry, hull: {estimate: {lpp: 180, beam: 28, draught: 6.3, cb: 0.58, service_speed_kn: 21, d_prop: 5,
+                                  a_rudder: 30}}, speed_kn: 15, route: [...]}          # a hull from its particulars
+```
+
+A ship follows its route with the model's autopilot at the ordered speed, from `start_s` (or already under way:
+`advance_s`), and at the end stops her engine, loops or leaves. The waterline is one height for the map (`water_z`, or
+the median of what a ray hits under the routes' points). Logs: `ships.csv` every 0.5 s (position, heading, speed through the water and over the
+ground, course, drift, rudder, revolutions, the wind on board, the wave forces), a `frames.csv` row per ship and
+tick (kind `ship_ai`), and `ship_spawn` / `ship_arrived` events. [`experiments/hoek_van_holland_ships.yaml`](experiments/hoek_van_holland_ships.yaml)
+sails a tanker and a container ship past Hoek van Holland on the Nieuwe Waterweg (map: `python -m coupledcarla.mapmaker "51.9755,
+4.1250" --size medium --name hoek_van_holland`).
+
+**How a ship moves** ([`shipmodel.py`](coupledcarla/shipmodel.py), no CARLA):
+
+- **Manoeuvring:** the MMG standard method (Yasukawa & Yoshimura 2015, J. Mar. Sci. Technol. 20(1) 37-52) in
+  surge, sway and yaw, with hull, propeller and rudder forces, a rate-limited rudder, lagged engine orders and an
+  autopilot (heading or waypoints, with an integral term against steady wind). Hulls are presets; the first is the
+  KVLCC2 tanker (320 m), with the paper's coefficients. Against the paper's own calculation for its 7 m model,
+  turning is 4-8 % tighter and the zig-zag overshoots are within 1.6°; full scale meets the IMO criteria.
+- **Hulls:** KVLCC2 (tanker, 320 m) with the paper's measured coefficients; KCS (container ship, 230 m) with its
+  SIMMAN particulars and its coefficients *estimated*; and any ship from its particulars (`hull: {estimate: ...}`,
+  `shipmodel.estimate_hull`): the hull forces and interaction after Kijima et al. (1990, J. SNAJ 168, as reproduced
+  open access in Kim, Lee & Lee 2021, JMSE 9(6) 569), the added masses after Clarke and Brix (as in the MIT-licensed
+  VesselManoeuvringModels), the rest assumed and listed in its docstring. On KVLCC2, whose own coefficients are
+  known, the estimate turns 15-31 % wider (tactical diameter) and gives the same 20/20 overshoot within 0.2°; the
+  estimated KCS turns wider than the IMO limit to port, which the real ship does not, so read estimated hulls as
+  roughly right. KCS's own coefficients (Okuda, Yasukawa & Matsuda 2023) are not open access. Twin-screw ships
+  (ferries, cruise ships) and catamarans need model extensions; an estimate treats them as single-screw.
+- **Current:** uniform and steady; it moves the track over the ground and leaves the ship's handling through the
+  water unchanged.
+- **Wind:** Blendermann (1994) with his parameters for 17 ship types (from Fossen's MSS toolbox) on each hull's
+  windage, from the same convention as Open-Meteo's wind. In Beaufort 9 a head wind costs KVLCC2 about 0.8 kn, and a
+  beam wind gives about 0.4° of drift.
+- **Waves:** the mean wave drift in a JONSWAP sea. Along the ship, the added resistance of IMO
+  MEPC.1/Circ.850/Rev.3 (the SNNM method); in long-crested head seas it agrees with IMO's simple formula within
+  10 %. Across the ship, an estimate: full reflection on the ship's side in short waves. Waves do not yet rock the
+  ship (no heave, roll or pitch), and the water in CARLA stays flat.
+
+**Water on CARLA 1.0.** CARLA 1.0 lays a terrain fitted to the road heights over every map it generates from
+OpenDRIVE, and over a river or a harbour that terrain spreads at the banks' height: at Hoek van Holland 1.3-5.9 m over
+water at 1.1 m, so ships sailed through grass, and no client setting hides it. The scenery now lays its water tiles
+flat at one level per water body (a low percentile of the terrain model inside it) over the whole water body in the
+map, and sends the water bodies with the OpenDRIVE (`<userData code="coupledcarla.water">`, placement.py);
+[`unreal/patches/OpenDriveGenerator_WaterTerrain.patch`](unreal/patches/OpenDriveGenerator_WaterTerrain.patch) makes
+CARLA lower its terrain 3 m under them. On lin5080 (2026-11-27) it lowered 100,520 of 411,635 terrain vertices, rays
+over the channel then met the terrain at -1.9 m under water at 1.1 m, and the land stayed as it was. Ships take the
+same water level (`scenery.json` "water"). A server without the patch ignores the userData.
+
+**How a ship looks:** on CARLA 1.0, a mesh made from the hull's particulars by [`tools/ship_mesh.py`](tools/ship_mesh.py)
+(numpy, no third-party model: a generic VLCC of KVLCC2's size and a container ship of KCS's with 40 ft containers
+four tiers high, 13,300 and 20,000 triangles, with navigation lights) and
+imported headless by [`tools/ue_ship_assets.py`](tools/ue_ship_assets.py) into `/Game/CoupledCarla/Ships` (an editor
+server reads it there; the release package needs the street content pack built again, not done yet). Tested headless on lin5080
+(CARLA 1.0 editor server, `-nullrhi`, 2026-11-27): both tankers of the Hoek van Holland experiment sailed with the mesh
+at 0.1 ms per tick for the two, with the current slowing the inbound one to 7.2 kn over the ground and speeding the
+outbound one to 8.8 kn. Not yet seen rendered: the clip `hoek_van_holland_ships` in
+[`experiments/videos/ships.yaml`](experiments/videos/ships.yaml) (a camera on the shore, on the dike and from the
+air) waits for a free GPU ([`tools/render_when_free.sh`](tools/render_when_free.sh)). Any other server gets `shapes`: boxes a beam wide along the hull, a deckhouse and a funnel
+(CARLA's basic shapes scale only uniformly).
+
+Figures are clickable: each opens an interactive version (the ship can be turned round).
+
+[![The KVLCC2 tanker and KCS container ship meshes: red antifouling below the waterline, the accommodation and funnel aft, containers on the KCS](docs/img/ships_look.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_look.html)
+
+[![The forces on KVLCC2 holding her course in wind and waves, drawn where they act](docs/img/ships_forces.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_forces.html)
+
+[![35° turns of KVLCC2 with measured and with estimated coefficients, and of the estimated KCS](docs/img/ships_estimate.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_estimate.html)
+
+[![KVLCC2 turning circles in still water, current, wind and waves](docs/img/ships_turning.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_turning.html)
+
+[![The 7 m KVLCC2 model against the paper's turning and zig-zag results](docs/img/ships_validation.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_validation.html)
+
+[![KVLCC2's added resistance in regular waves by wave direction](docs/img/ships_waves.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_waves.html)
+
+```bash
+python -m pytest tests/test_shipmodel.py tests/test_ships.py   # the model and the trial side (no CARLA)
+python -m tools.ship_figures                                    # these figures (plotly, kaleido)
+python -m tools.ship_mesh build/ships                           # the ship meshes (glTF), then tools/ue_ship_assets.py
+```
 
 ## Traffic
 

@@ -348,6 +348,21 @@ DEFAULTS = {
             "no_fly_buffer_m": "auto",   # around them: auto = the lateral clearance
         },
     },
+    "ships": {                       # AI ships seen from the shore (coupledcarla/ships.py, shipmodel.py)
+        "fleet": [],                 # {id, hull (kvlcc2), route: [[lat, lon], ...], speed_kn (default the hull's
+                                     # service speed), start_s, advance_s (already under way: sailed this long
+                                     # before the trial starts), at_end: stop | loop | remove}
+        "visual": "auto",            # auto | mesh (tools/ship_mesh.py in the content pack) | shapes | none
+        "water_z": "auto",           # the waterline's CARLA height: auto = the Water surface under the ship
+        "environment": {             # uniform for the whole map
+            "current_mps": 0.0, "current_to_deg": 0.0,      # the current, and where it sets towards
+            "wind_mps": "auto",      # wind at 10 m: auto = Open-Meteo's with weather real, else CARLA's / 10
+            "wind_from_deg": 270.0,  # ... where it comes from (Open-Meteo's with weather real)
+            "wave_hs": 0.0, "wave_tp": 0.0,   # significant wave height (m) and peak period (s): 0 = calm
+            "wave_from_deg": 270.0,  # where the waves come from
+        },
+        "log_every_s": 0.5,          # ships.csv (frames.csv has every frame)
+    },
     "coupling": {"port": 2100, "wait_for_stations_s": 600, "visual_sync_at_s": []},
     "ehmi": {},                      # {states: {name: {text, color}}, slots}; default in coupledcarla/ai.py; design:
                                      # a designed eHMI (data/ehmi/<name>, a path or a dict; ehmi_design.py) with
@@ -553,7 +568,7 @@ def trial_config(cfg, trial):
     """The experiment config with one trial's overrides merged in."""
     over = {k: v for k, v in trial.items() if k in ("simulation", "traffic", "participants", "agents", "logging",
                                                       "coupling", "ehmi", "eye_contact", "sound", "displays",
-                                                      "haptics", "drones")}
+                                                      "haptics", "drones", "ships")}
     out = _merge(cfg, over)
     # patch: {agents: {id: {...}}, participants: {role: {...}}} changes one agent or participant (a condition can
     # switch av1's eHMI without repeating the whole agents list)

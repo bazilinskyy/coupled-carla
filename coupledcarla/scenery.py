@@ -176,6 +176,7 @@ CONCRETE, DIRT = "SM_Square_61", "SM_Square_131"     # M_Concrete_04; M_Ground01
 # brick ground mesh in the 0.9.16 catalogue)
 GROUND_MESH = {"green": GRASS, "open": PAVING, "closed": CONCRETE, "unpaved": DIRT, "water": WATER}
 LAMP_MIN_M = 1.5        # lamps closer than this are one lamp mapped twice
+WATER_LEVEL_PCT = 20     # a water body's flat level: this percentile of the terrain model inside it
 LOWER_MAX, TILE_MIN = 0.3, 10.0    # a ground square sinks at most this under the terrain for a road, else it splits
 SPLIT_SHARE = 0.6     # a BGT tile whose main kind covers less than this of its ground is split in four
 GREEN_LANDUSE = {"grass", "forest", "meadow", "village_green", "recreation_ground", "cemetery", "allotments",
@@ -1455,6 +1456,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
 
     # ground tiles: tilted to the terrain, and always below the road surface (which follows the terrain
     # model only at the road nodes) and below the pavements
+    water_out = []          # the water bodies' outlines and levels (scenery.json "water": ships.py, the OpenDRIVE)
     if sc.get("ground", True):
         pts = [w.transform.location for w in cmap.generate_waypoints(40.0)]
         xs, ys = [p.x for p in pts], [p.y for p in pts]
@@ -1483,6 +1485,26 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         # region, not only the Netherlands (the realism pilot's round 32 candidate: render pavements read as road)
         paving_all = bool(sc.get("paving_everywhere", False))
         bgt_tiles, changed, split, kinds, moves = 0, 0, 0, defaultdict(int), defaultdict(int)
+        water_polys = list(getattr(water_u, "geoms", [water_u])) if water_u is not None else []
+        water_levels = {}
+
+        def water_level(x, y):
+            """The flat level of the water body under (x, y), or None: a low percentile (WATER_LEVEL_PCT) of the
+            terrain inside it. Water lies flat: the terrain model over a river is its surface on the day it was
+            flown, but tilting 40 m tiles to the slope next to a bank lifted them metres above it (Hoek van Holland:
+            +1.3 m mid-channel over AHN's -0.4 m)."""
+            p = Point(x, y)
+            for k, poly in enumerate(water_polys):
+                if not poly.contains(p):
+                    continue
+                if k not in water_levels:
+                    x0, y0, x1, y1 = poly.bounds
+                    step = max(5.0, math.sqrt(poly.area / 400.0))
+                    zs = [ground(a, b) for a in np.arange(x0, x1, step) for b in np.arange(y0, y1, step)
+                          if poly.contains(Point(a, b))]
+                    water_levels[k] = float(np.percentile(zs, WATER_LEVEL_PCT)) if zs else ground(x, y)
+                return water_levels[k]
+            return None
 
         def lay(kind, x, y, T):
             """One square of ground: tilted to the terrain, under the road surface, covered by its mesh. A square
@@ -1493,6 +1515,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             z = ground(x, y) - 0.05
             zx = (ground(x + T / 2, y) - ground(x - T / 2, y)) / T if dem is not None else 0.0
             zy = (ground(x, y + T / 2) - ground(x, y - T / 2)) / T if dem is not None else 0.0
+            if kind == "water" and dem is not None:      # flat, at its water body's level (the tile's top)
+                wl = water_level(x, y)
+                if wl is not None:
+                    z, zx, zy = wl + 0.5, 0.0, 0.0
             key = (int(x // TILE), int(y // TILE))
             near = [q for i in (-1, 0, 1) for j in (-1, 0, 1) for q in road.get((key[0] + i, key[1] + j), [])
                     if abs(q[0] - x) <= T / 2 + 1 and abs(q[1] - y) <= T / 2 + 1]
@@ -1549,6 +1575,36 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 for px, py, T, kind in parts:
                     lay(kind, px, py, T)
                 tiles += 1
+        # the water beyond that grid but inside the map: a river or harbour reaches out of the roads' reach (Hoek
+        # van Holland: the middle of the 600 m Nieuwe Waterweg is more than 160 m from any road)
+        if water_polys:
+            s_, w_, n_, e_ = mc["bbox"]
+            corners = [geo.to_carla(a, b) for a, b in ((s_, w_), (s_, e_), (n_, w_), (n_, e_))]
+            mx0, mx1 = min(c[0] for c in corners), max(c[0] for c in corners)
+            my0, my1 = min(c[1] for c in corners), max(c[1] for c in corners)
+            extra = 0
+            for x in np.arange(math.floor(mx0 / TILE) * TILE + TILE / 2, mx1, TILE):
+                for y in np.arange(math.floor(my0 / TILE) * TILE + TILE / 2, my1, TILE):
+                    if gx0 <= x < gx1 and gy0 <= y < gy1:
+                        continue
+                    if water_u.contains(Point(x, y)):
+                        lay("water", x, y, TILE)
+                        extra += 1
+            if extra:
+                log(f"scenery: {extra} more water tiles beyond the roads' reach")
+            box_xy = box(mx0 - 200.0, my0 - 200.0, mx1 + 200.0, my1 + 200.0)
+            for k, poly in enumerate(water_polys):
+                if k not in water_levels:
+                    continue
+                part = poly.intersection(box_xy).simplify(1.0)
+                rings = []
+                for g in getattr(part, "geoms", [part]):
+                    if g.geom_type != "Polygon" or g.is_empty:
+                        continue
+                    for r in [g.exterior] + list(g.interiors):
+                        rings.append([[round(px, 1), round(py, 1)] for px, py in r.coords])
+                if rings:
+                    water_out.append({"level": round(water_levels[k], 3), "rings": rings})
         if surf is not None:
             log(f"scenery: BGT chose {bgt_tiles} of {tiles} tiles ({changed} changed from OSM, {split} split in four)"
                 f": {', '.join(f'{k} {v}' for k, v in sorted(kinds.items()))}; squares changed "
@@ -1556,6 +1612,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             pl.counts["ground_bgt"], pl.counts["ground_changed"], pl.counts["ground_split"] = bgt_tiles, changed, split
         log(f"scenery: {tiles} ground tiles of {TILE:.0f} m ({lowered} lowered under the road surface, {deep} split "
             f"where they would have sunk more than {LOWER_MAX} m)")
+        if water_levels:
+            log("scenery: water lies flat at " + ", ".join(f"{z:.2f} m" for z in sorted(water_levels.values())))
         # everything standing beside the roads onto the tiles' top (they are lowered under the roads)
         road = placement.paved(carla)
         pl.surface = surface
@@ -1580,6 +1638,8 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
         out["lamp_specs"] = specs
     if pl.surface is not None and len(pl.surface):      # the ground's top, for signals.py's poles
         out["ground_planes"] = pl.surface.to_list()
+    if water_out:       # the water bodies (CARLA x, y; level = the water tiles' top): ships.py, placement.carla_xodr
+        out["water"] = water_out
     from .ndwsigns import fallbacks
     night = streetlook.night_rows(pl)
     if night:       # regional lamps -> CARLA's lit lamp for trials with lamp lights (Scenery)
