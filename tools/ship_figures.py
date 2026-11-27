@@ -6,6 +6,8 @@ interactive HTML with Plotly embedded (htmlpreview renders only embedded Plotly)
 ships_turning      KVLCC2 (full scale) turning with 35 deg rudder in still water, current, wind and waves
 ships_validation   the 7 m KVLCC2 model against Yasukawa & Yoshimura (2015), Tables 4 and 5 (calculated)
 ships_waves        KVLCC2's added resistance in regular waves (IMO MEPC.1/Circ.850/Rev.3) by wave direction
+ships_look         the KVLCC2 mesh of tools/ship_mesh.py (what the `mesh` look shows in CARLA)
+ships_forces       the forces on KVLCC2 in a turn, in wind and waves, drawn where they act
 
 Needs plotly and kaleido (requirements-tools.txt).
 """
@@ -18,8 +20,9 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from coupledcarla import shipmodel as sm
+from tools import ship_mesh
 
-SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]       # categorical slots 1-4, in this order
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]    # categorical slots 1-5, in this order
 INK, INK2, GRID, SURFACE = "#0b0b0b", "#52514e", "#e4e3df", "#fcfcfb"
 
 
@@ -112,6 +115,89 @@ def waves(out):
     _save(fig, out, "ships_waves")
 
 
+def look(out):
+    m, f, info = ship_mesh.build_ship(sm.KVLCC2)
+    traces = []
+    for mat, (v, n, uv, idx) in sorted(m.merged().items()):
+        r, g, b = (int(255 * c) for c in ship_mesh.COLOURS[mat])
+        t = idx.reshape(-1, 3)
+        traces.append(go.Mesh3d(x=v[:, 0], y=v[:, 1], z=v[:, 2], i=t[:, 0], j=t[:, 1], k=t[:, 2],
+                                color=f"rgb({r},{g},{b})", flatshading=True, name=mat, hoverinfo="name",
+                                lighting=dict(ambient=0.5, diffuse=0.8, specular=0.05, roughness=0.9)))
+    # the waterline as a thin plane, so the part under water reads as such
+    xs = [f.x_ap - 25, f.x_fp + 25]
+    ys = [-f.b - 25, f.b + 25]
+    traces.append(go.Mesh3d(x=[xs[0], xs[1], xs[1], xs[0]], y=[ys[0], ys[0], ys[1], ys[1]], z=[0, 0, 0, 0],
+                            i=[0, 0], j=[1, 2], k=[2, 3], color="rgb(70,120,160)", opacity=0.35, name="Waterline",
+                            hoverinfo="name"))
+    fig = go.Figure(traces)
+    _style(fig, "", 560)
+    fig.update_layout(title=dict(text=f"The ship's look in CARLA: a generic VLCC of KVLCC2's size "
+                                      f"({info['loa']:.0f} m overall, 58 m beam), made by tools/ship_mesh.py"),
+                      scene=dict(aspectmode="data", xaxis_visible=False, yaxis_visible=False, zaxis_visible=False,
+                                 camera=dict(eye=dict(x=-0.95, y=1.75, z=0.55)), bgcolor=SURFACE),
+                      showlegend=False, margin=dict(l=0, r=0, t=60, b=0))
+    _save(fig, out, "ships_look")
+
+
+def forces(out):
+    """KVLCC2 holding a straight course at full revolutions against wind (Beaufort 8, 19 m/s) and waves (Hs 4 m)
+    from 60 deg off the starboard bow, once steady (40 min): every force as an arrow from where it acts (top view,
+    bow up). A side force acts at its centre of effort, its yaw moment / side force."""
+    h = sm.KVLCC2
+    env = sm.Environment(wind_mps=19.0, wind_from_deg=60.0, wave_hs=4.0, wave_tp=8.5, wave_from_deg=60.0)
+    ship = sm.Ship.at_speed(h, env=env)
+    ship.autopilot = sm.Autopilot(heading=0.0)
+    for _ in range(2400):
+        ship.step(1.0)
+    p = ship.force_breakdown()
+    m, f, info = ship_mesh.build_ship(h)
+    xs, ys = f.waterline()
+    L = h.lpp
+    scale = 25.0 / 1e6                                   # 1 MN -> 25 m
+
+    def at(k):
+        fx, fy, fn = p[k]
+        if k == "propeller":
+            return f.x_ap + 0.03 * L                     # where the propeller is (x'_P = -0.69 is an inflow value)
+        if abs(fy) < 1e3:
+            return 0.0
+        return max(f.x_ap, min(f.x_fp, fn / fy))         # centre of effort of the side force
+    labels = {"hull": "Hull (the water's reaction)", "propeller": "Propeller thrust", "rudder": "Rudder (4° port)",
+              "wind": "Wind, Beaufort 8 (Blendermann)", "waves": "Waves, Hs 4 m (mean drift)"}
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=np.r_[ys, -ys[::-1], ys[:1]], y=np.r_[xs, xs[::-1], xs[:1]], mode="lines",
+                             fill="toself", fillcolor="rgba(82,81,78,0.10)", line=dict(color=INK2, width=1.5),
+                             name="KVLCC2 at the waterline", hoverinfo="skip"))
+    for k, colour in zip(["hull", "propeller", "rudder", "wind", "waves"], SERIES):
+        fx, fy, fn = p[k]
+        x0 = at(k)
+        mag = math.hypot(fx, fy)
+        fig.add_annotation(x=fy * scale, y=x0 + fx * scale, ax=0.0, ay=x0, xref="x", yref="y", axref="x",
+                           ayref="y", showarrow=True, arrowhead=3, arrowsize=1.0, arrowwidth=3, arrowcolor=colour,
+                           text="")
+        fig.add_trace(go.Scatter(x=[0.0], y=[x0], mode="markers", marker=dict(color=colour, size=11,
+                                 line=dict(color=SURFACE, width=2)), name=f"{labels[k]}: {mag / 1e3:,.0f} kN",
+                                 hovertemplate=f"{labels[k]}<br>along the ship X {fx / 1e3:,.0f} kN<br>sideways Y "
+                                               f"{fy / 1e3:,.0f} kN<br>yaw N {fn / 1e6:,.1f} MN·m<extra></extra>"))
+    rel = math.radians(env.wind_from_deg) - ship.psi
+    for name, y in (("wind and waves from here", 0.36 * L),):
+        d = 70.0
+        sx, sy = 100.0 + d * math.sin(rel), y + d * math.cos(rel) - 40
+        fig.add_annotation(x=100.0, y=y - 40, ax=sx, ay=sy, xref="x", yref="y", axref="x", ayref="y",
+                           showarrow=True, arrowhead=2, arrowwidth=1.5, arrowcolor=INK2, text="")
+        fig.add_annotation(x=sx, y=sy, text=name, showarrow=False, yshift=12, font=dict(color=INK2, size=12))
+    drift = math.degrees(math.atan2(-ship.vm, ship.u))
+    fig.add_annotation(x=-150, y=-185, xanchor="left", showarrow=False, align="left", font=dict(color=INK2, size=12),
+                       text=f"Steady at {ship.speed / sm.KNOT:.1f} kn (15.5 in calm water), drifting {drift:.1f}° "
+                            f"to port; the forces add up to zero.")
+    _style(fig, "Forces on KVLCC2 holding her course in wind and waves (arrows: 1 MN = 25 m)", 760)
+    fig.update_xaxes(title="Starboard (m)", scaleanchor="y", scaleratio=1, range=[-160, 160])
+    fig.update_yaxes(title="Forward (m)", range=[-200, 200])
+    fig.update_layout(legend=dict(orientation="v", x=1.02, y=1.0), margin=dict(r=300), width=1000)
+    _save(fig, out, "ships_forces")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", default=os.path.join("docs", "img"))
@@ -120,6 +206,8 @@ def main():
     turning(a.out)
     validation(a.out)
     waves(a.out)
+    look(a.out)
+    forces(a.out)
 
 
 if __name__ == "__main__":

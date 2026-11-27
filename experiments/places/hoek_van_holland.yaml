@@ -1,0 +1,37 @@
+# hoek_van_holland, Netherlands: a 1.4 km square (medium) around 51.97550, 4.12500.
+# Made by coupledcarla.mapmaker on 2026-11-27 from "51.9755, 4.1250" (place found with OpenStreetMap Nominatim).
+# Guessed for you; change them here if you know better, then rebuild with --force:
+#   driving side: right-hand traffic (Netherlands)
+#   traffic: a town (~10,212 people): 900 cars, 300 bikes and 4 buses an hour enter the box
+# Build the map:  python -m coupledcarla.mapmaker --build experiments/places/hoek_van_holland.yaml
+# Drive it:       python -m coupledcarla.run experiments/places/hoek_van_holland.yaml
+# A pedestrian at a station of their own: see experiments/eindhoven_crowd.yaml (participants, kind: pedestrian).
+name: hoek_van_holland
+city:
+  name: hoek_van_holland
+  country: Netherlands
+  continent: Europe
+  size: small
+  population: 10212
+  lat: 51.9755
+  lon: 4.125
+  drive: right
+  country_code: NL
+map:
+  bbox:
+  - 51.96921
+  - 4.11479
+  - 51.98179
+  - 4.13521
+  lefthand: false
+traffic:
+  cars_per_hour: 900
+  bikes_per_hour: 300
+  buses_per_hour: 4
+participants:
+- role: driver
+  vehicle: vehicle.lincoln.mkz_2020
+  input: keyboard
+  view: driver
+trials:
+- duration_s: 300

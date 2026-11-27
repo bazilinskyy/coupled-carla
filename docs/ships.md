@@ -258,14 +258,31 @@ closed consumer app with nothing reusable; its AIS comes from aisstream.io.)
 
 ## Steps
 
-1. `shipmodel.py` with KVLCC2 and its tests (turning circle, zig-zag). No CARLA. **Done.**
+1. `shipmodel.py` with KVLCC2 and its tests (turning circle, zig-zag). No CARLA. **Done.** Its forces by component
+   (`Ship.force_breakdown()`) feed the README's force figure.
 2. More hulls (KCS first, then cruise ship, catamaran, ferry), once their coefficients are sourced. Current, wind
    and wave drift in the model: **done** (2026-11-27); README figures from `tools/ship_figures.py`.
-3. `ships.py`: AI ships on routes with the `shapes` look and `ships.visible_m`, a port map with a quay road,
-   `ships.csv` and ship rows in `frames.csv`. CARLA 0.9.16.
+3. `ships.py`: AI ships on routes, `ships.csv` and ship rows in `frames.csv`, a port map (Hoek van Holland on the
+   Nieuwe Waterweg, `experiments/hoek_van_holland_ships.yaml`). **Done** (2026-11-27), with the mesh look of step 5:
+   `tools/ship_mesh.py` (the hull from its particulars, numpy) and `tools/ue_ship_assets.py` (headless import into
+   `/Game/CoupledCarla/Ships`). Tested headless on lin5080's CARLA 1.0 editor server; the `shapes` look on 0.9.16
+   is untested. Found on the way:
+   - CARLA 1.0 lays a terrain fitted to the road heights over a generated map, also over water (1.3-5.9 m over the
+     channel, water at 1.1 m), with no client setting to hide it. Decision (Shadab, 2026-11-27): patch CARLA.
+     `unreal/patches/OpenDriveGenerator_WaterTerrain.patch` lowers the terrain under the water bodies that
+     coupled-carla now sends with the OpenDRIVE (`<userData code="coupledcarla.water">`); the scenery lays its water
+     tiles flat at one level per water body over the whole water in the map and writes the bodies to
+     `scenery.json` "water", which the ships use for their waterline. Built and checked on lin5080; win5090's
+     package still needs the patch and the street content pack rebuilt with the ship assets.
+   - `main` crashed at every trial's start (a local `from . import look` in run_trial shadowed the module used
+     earlier); fixed on this branch.
+   - Still open: the rendered look (no GPU was free: the `hoek_van_holland_ships` clip waits for one with
+     `tools/render_when_free.sh`), `ships.visible_m` (CARLA's own view distance has not been measured for 300 m
+     ships), and KVLCC2 as a stand-in: a laden VLCC would not use the Nieuwe Waterweg.
 4. Seen from the shore: triggers, navigation lights, sound, `ship_in_view` / `ship_passed` events, the trial viewer.
    Then the ship passenger.
-5. Meshes and content-pack blueprints (CARLA 1.0), since ships seen from the shore must look like ships.
+5. Meshes: the KVLCC2 mesh is done (step 3); still to do: a blueprint with lit navigation lights at night, the
+   content pack rebuilt, meshes for the next hulls.
 6. Later: AIS replay, a current field along a river, gusts, an inland hull for canals, the ship participant at a station.
 
 ## Open questions

@@ -296,3 +296,20 @@ def test_head_seas_slow_the_ship_and_beam_seas_push_it_sideways():
     assert beam.psi == pytest.approx(0.0, abs=math.radians(0.2))       # the autopilot holds the heading
     assert beam.course < 0 and beam.vm < 0                               # drifting to port, away from the waves
     assert beam.speed < calm
+
+
+def test_force_breakdown_adds_up():
+    env = sm.Environment(wind_mps=15.0, wind_from_deg=40.0, wave_hs=3.0, wave_tp=8.0, wave_from_deg=30.0)
+    ship = sm.Ship.at_speed(sm.KVLCC2, env=env)
+    ship.rudder_cmd = math.radians(20)
+    for _ in range(120):
+        ship.step(1.0)
+    p = ship.force_breakdown()
+    assert set(p) == {"hull", "propeller", "rudder", "wind", "waves"}
+    total = sm.forces(sm.KVLCC2, ship.u, ship.vm, ship.r, ship.delta, ship.n)
+    for k in range(3):
+        assert p["hull"][k] + p["propeller"][k] + p["rudder"][k] == pytest.approx(total[k])
+    assert p["propeller"][0] > 0 and p["propeller"][1] == 0.0
+    assert p["rudder"][1] < 0                  # starboard rudder: the rudder force points to port (stern swings out)
+    straight = sm.Ship.at_speed(sm.KVLCC2).force_breakdown()
+    assert straight["hull"][0] == pytest.approx(-straight["propeller"][0], rel=0.02)   # thrust balances resistance

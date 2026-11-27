@@ -15,7 +15,9 @@ A positive rudder angle turns the ship to starboard. to_carla() / from_carla() c
 Hulls are parameter sets (Hull, PRESETS). KVLCC2 is the paper's sample ship: principal particulars from its Table 1,
 coefficients from its Table 3 (the hull derivatives also in Table 2), propeller open water and w_P0 from Sect. 5.1,
 rudder rate 1.76 deg/s and k_zz = 0.25 Lpp from Sect. 5.1; x_P' (propeller position) is printed only in a figure,
-so it is taken from shipmmg's KVLCC2 example (github.com/ShipMMG/shipmmg, MIT): -0.690. The full-scale preset keeps
+so it is taken from shipmmg's KVLCC2 example (github.com/ShipMMG/shipmmg, MIT): -0.690. Like l_R' (-0.710), it
+is an effective coordinate of the flow reaching the propeller in a turn, not where the propeller sits (about
+-0.48 L). The full-scale preset keeps
 the model's R_0' (the paper extrapolates the full-scale resistance with Schoenherr's formula and gives no value),
 with w_P0 = 0.35 as the paper uses in full scale; the propeller revolutions are solved for the approach speed.
 
@@ -167,6 +169,7 @@ class Hull:
     rpm_lag_s: float = 30.0           # time constant of the revolutions after a telegraph order
     rho: float = RHO_SEA
     windage: Windage = None           # None: no wind forces
+    depth: float = None               # moulded depth (m): the freeboard is depth - draught; None: 1.45 x draught
     kyy: float = 0.25                 # pitch radius of gyration / Lpp (wave added resistance)
     l_entrance: float = None          # waterline entrance and run lengths (m, IMO's L_E and L_R: from the
     l_run: float = None               # ends to 0.99 of the half beam); None: 0.2 and 0.25 Lpp (estimates)
@@ -175,6 +178,10 @@ class Hull:
     @property
     def mass(self):
         return self.rho * self.volume
+
+    @property
+    def freeboard(self):
+        return (self.depth or 1.45 * self.draught) - self.draught
 
     @property
     def cb(self):
@@ -195,7 +202,7 @@ class Hull:
                       service_speed_kn=self.service_speed_kn / math.sqrt(s), rpm_lag_s=self.rpm_lag_s / math.sqrt(s),
                       windage=self.windage.scaled(s) if self.windage else None,
                       l_entrance=self.l_entrance / s if self.l_entrance else None,
-                      l_run=self.l_run / s if self.l_run else None)
+                      l_run=self.l_run / s if self.l_run else None, depth=self.depth / s if self.depth else None)
         return replace(out, **over) if over else out
 
     def k_t(self, j):
@@ -223,7 +230,7 @@ KVLCC2 = Hull(
     t_p=0.220, w_p0=0.35, k0=0.2931, k1=-0.2753, k2=-0.1385, x_p=-0.690, c1=2.0, c2_pos=1.6, c2_neg=1.1,
     t_r=0.387, a_h=0.312, x_h=-0.464, x_r=-0.5, gamma_neg=0.395, gamma_pos=0.640, l_r=-0.710, epsilon=1.09,
     kappa=0.50, f_alpha=2.747,
-    rudder_rate_deg=1.76, service_speed_kn=15.5, kyy=0.25,
+    rudder_rate_deg=1.76, service_speed_kn=15.5, kyy=0.25, depth=30.0,
     windage=Windage(a_front=1161.0, a_lateral=4258.0, loa=330.0, s_l=-40.0, s_h=9.0, kind="tanker_loaded",
                     source="areas as reported for KVLCC2 with an estimated superstructure by Yasukawa et al. (2018), "
                            "J. Mar. Sci. Technol. 23, 'Effect of engine output on maneuverability of a VLCC in still "
@@ -250,9 +257,15 @@ def preset(name):
 
 def forces(h, u, vm, r, delta, n):
     """X, Y, N_m (N, N, N m) on the ship at midship: hull + propeller + rudder (eqs. 5-25). delta in rad, n in 1/s."""
+    p = force_parts(h, u, vm, r, delta, n)
+    return tuple(p["hull"][k] + p["propeller"][k] + p["rudder"][k] for k in range(3))
+
+
+def force_parts(h, u, vm, r, delta, n):
+    """The forces of forces() by where they act: {"hull", "propeller", "rudder"}: (X, Y, N_m) each."""
     big_u = math.hypot(u, vm)
     if big_u < 1e-6:
-        return 0.0, 0.0, 0.0
+        return {"hull": (0.0, 0.0, 0.0), "propeller": (0.0, 0.0, 0.0), "rudder": (0.0, 0.0, 0.0)}
     L, d, rho = h.lpp, h.draught, h.rho
     vp, rp = vm / big_u, r * L / big_u            # v_m', r'
     beta = math.atan2(-vm, u)                     # drift angle at midship
@@ -287,7 +300,7 @@ def forces(h, u, vm, r, delta, n):
     xr = -(1.0 - h.t_r) * f_n * math.sin(delta)
     yr = -(1.0 + h.a_h) * f_n * math.cos(delta)
     nr = -(h.x_r + h.a_h * h.x_h) * L * f_n * math.cos(delta)
-    return xh + xp + xr, yh + yr, nh + nr
+    return {"hull": (xh, yh, nh), "propeller": (xp, 0.0, 0.0), "rudder": (xr, yr, nr)}
 
 
 def wind_forces(h, u_rw, v_rw):
@@ -461,6 +474,8 @@ class Ship:
     env: Environment = None
     t: float = 0.0
     wave_force: tuple = (0.0, 0.0)        # the mean wave drift (X, Y) over the last step
+    wave_every_s: float = 0.0             # recompute the wave drift at most this often (0: every step)
+    _wave_t: float = field(default=-1e9, repr=False)
     log: list = field(default_factory=list, repr=False)
 
     @classmethod
@@ -494,17 +509,31 @@ class Ship:
         """Engine order: the revolutions that would hold speed_kn in a straight line (the telegraph's steps)."""
         self.n_cmd = self.hull.revolutions_for(max(0.0, speed_kn) * KNOT)
 
+    def _wind(self, psi, u, vm):
+        """Wind X, Y, N on the ship (body frame); the relative wind from the velocity over the ground."""
+        if self.env is None or self.hull.windage is None:
+            return 0.0, 0.0, 0.0
+        cn, ce = self.env.current_ne()
+        wn, we = self.env.wind_ne()
+        uw, vw = to_body(cn - wn, ce - we, psi)          # current minus air, in the body frame
+        return wind_forces(self.hull, u + uw, vm + vw)
+
+    def force_breakdown(self):
+        """Every force on the ship now (body frame, N and N m about midship): {"hull", "propeller", "rudder",
+        "wind", "waves"}: (X, Y, N) each."""
+        p = force_parts(self.hull, self.u, self.vm, self.r, self.delta, self.n)
+        p["wind"] = self._wind(self.psi, self.u, self.vm)
+        p["waves"] = (self.wave_force[0], self.wave_force[1], 0.0)
+        return p
+
     def _deriv(self, s, delta, n):
         x, y, psi, u, vm, r = s
         cn = ce = 0.0
         ext = (self.wave_force[0], self.wave_force[1], 0.0)
         if self.env is not None:
             cn, ce = self.env.current_ne()
-            if self.hull.windage is not None:
-                wn, we = self.env.wind_ne()
-                uw, vw = to_body(cn - wn, ce - we, psi)          # current minus air, in the body frame
-                xw, yw, nw = wind_forces(self.hull, u + uw, vm + vw)
-                ext = (ext[0] + xw, ext[1] + yw, nw)
+            xw, yw, nw = self._wind(psi, u, vm)
+            ext = (ext[0] + xw, ext[1] + yw, nw)
         du, dv, dr = accelerations(self.hull, u, vm, r, delta, n, ext)
         c, si = math.cos(psi), math.sin(psi)
         return (u * c - vm * si + cn, u * si + vm * c + ce, r, du, dv, dr)
@@ -524,7 +553,9 @@ class Ship:
             self.n += (target - self.n) * (1.0 - math.exp(-dt / h.rpm_lag_s))
         else:
             self.n = target
-        self.wave_force = wave_drift(h, self.env, self.psi, self.u)     # slowly varying: once per step
+        if self.t - self._wave_t >= self.wave_every_s:                  # slowly varying: once per step at most
+            self.wave_force = wave_drift(h, self.env, self.psi, self.u)
+            self._wave_t = self.t
         s = (self.x, self.y, self.psi, self.u, self.vm, self.r)
         k1 = self._deriv(s, self.delta, self.n)
         k2 = self._deriv(tuple(a + 0.5 * dt * b for a, b in zip(s, k1)), self.delta, self.n)

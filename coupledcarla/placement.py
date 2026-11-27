@@ -21,11 +21,39 @@ SINK_M = 0.30        # this far under it: sunk
 TILT_DEG = 8.0       # an upright object (pole, sign, lamp, car) leaning further than this: tilted
 
 
-def carla_xodr(text, keep_lights=False):
+WATER_USERDATA = "coupledcarla.water"
+
+
+def water_userdata(water):
+    """The scenery's water bodies (scenery.json "water": [{level, rings}], CARLA metres) as an OpenDRIVE <userData>
+    element: one line per ring, "<body> <level> x,y x,y ...". CARLA 1.0 with unreal/patches/
+    OpenDriveGenerator_WaterTerrain.patch lowers its generated terrain under them (even-odd over a body's rings, so
+    islands stay land); other readers ignore it."""
+    lines = []
+    for b, w in enumerate(water or []):
+        for ring in w.get("rings") or []:
+            if len(ring) >= 3:
+                lines.append(f"{b} {float(w['level']):.3f} " + " ".join(f"{x:.1f},{y:.1f}" for x, y in ring))
+    if not lines:
+        return ""
+    return f'<userData code="{WATER_USERDATA}">\n' + "\n".join(lines) + "\n</userData>\n"
+
+
+def with_water(text, water):
+    """The OpenDRIVE text with the water bodies' <userData> before </OpenDRIVE> (unchanged without water)."""
+    ud = water_userdata(water)
+    if not ud or "</OpenDRIVE>" not in text:
+        return text
+    i = text.rindex("</OpenDRIVE>")
+    return text[:i] + ud + text[i:]
+
+
+def carla_xodr(text, keep_lights=False, water=None):
     """(OpenDRIVE text for CARLA, number of signals removed). Removes the dynamic signals (traffic lights; static
     signs stay), the <controller>s that group them (a controller naming a missing signal crashes the 0.9.16 server
     while it loads the map) and the junctions' references to those controllers. keep_lights: unchanged (CARLA runs
-    the lights: simulation.tls_manager carla)."""
+    the lights: simulation.tls_manager carla). water: the scenery's water bodies, added as <userData>."""
+    text = with_water(text, water)
     if keep_lights:
         return text, 0
     gone = set()
