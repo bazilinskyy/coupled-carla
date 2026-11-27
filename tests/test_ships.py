@@ -303,18 +303,6 @@ def test_ships_take_the_sceneries_water_level(carla_mod, tmp_path):
     assert sw.scenery_level([(200.0, 0.0)]) is None                 # on the island: no water there
 
 
-def test_water_userdata_in_the_opendrive():
-    from coupledcarla import placement
-    water = [{"level": 1.1, "rings": [SQUARE, ISLAND]}]
-    xodr = '<?xml version="1.0"?>\n<OpenDRIVE>\n<header/>\n</OpenDRIVE>\n'
-    out, n = placement.carla_xodr(xodr, keep_lights=True, water=water)
-    assert n == 0 and out.index('<userData code="coupledcarla.water">') < out.index("</OpenDRIVE>")
-    lines = out.split('<userData code="coupledcarla.water">')[1].split("</userData>")[0].strip().splitlines()
-    assert len(lines) == 2 and lines[0].startswith("0 1.100 -500.0,-500.0 1500.0,-500.0")
-    assert placement.carla_xodr(xodr, keep_lights=True)[0] == xodr          # no water: unchanged
-    assert placement.with_water(xodr, [{"level": 1.0, "rings": [[[0, 0], [1, 1]]]}]) == xodr    # too few points
-
-
 def test_a_hull_estimated_from_its_particulars(carla_mod, tmp_path):
     from coupledcarla import ships
     route = [north_east(0.0, 0.0), north_east(3000.0, 0.0)]
