@@ -1304,7 +1304,7 @@ What a pack cannot carry is code, so three things need a CARLA build of your own
 (`map.photoreal`, Google's Photorealistic 3D Tiles; without it the twin is shown as baked, and the log says so),
 the CarlaLight patch (`unreal/patches/`; without it lamps keep CARLA's default intensity instead of the
 register's lumens) and the water-terrain patch (`unreal/patches/OpenDriveGenerator_WaterTerrain.patch`; without it
-CARLA 1.0's generated terrain covers rivers and harbours, see [Ships](#ships)). Without the street pack, CARLA's own lamps stand in for the regional ones and the regional
+CARLA 1.0's generated terrain covers rivers and harbours, see [Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). Without the street pack, CARLA's own lamps stand in for the regional ones and the regional
 furniture is left out (`blueprint.cc_nl_*`, the drones and `/Game/CoupledCarla` meshes do not spawn on the bare
 package).
 
