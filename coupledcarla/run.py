@@ -97,7 +97,15 @@ def load_world(client, xodr, mc, slab=False, keep_lights=False):
         additional_width=p["additional_width"], smooth_junctions=p["smooth_junctions"],
         enable_mesh_visibility=True, enable_pedestrian_navigation=p["pedestrian_navigation"])
     client.set_timeout(600.0)
-    text, n = placement.carla_xodr(Path(xodr).read_text(encoding="utf-8"), keep_lights)
+    water = None
+    try:        # the scenery's water bodies: a patched CARLA 1.0 lowers its generated terrain under them
+        water = json.loads((Path(xodr).parent / "scenery.json").read_text()).get("water")
+    except (OSError, ValueError):
+        pass
+    text, n = placement.carla_xodr(Path(xodr).read_text(encoding="utf-8"), keep_lights, water)
+    if water:
+        print(f"[run] OpenDRIVE for CARLA: {len(water)} water bodies as userData (CARLA 1.0 terrain under water)",
+              flush=True)
     if n:
         print(f"[run] OpenDRIVE for CARLA: {n} traffic-light signals left out (SUMO's are drawn)", flush=True)
     world = client.generate_opendrive_world(text, params)

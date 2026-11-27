@@ -795,6 +795,18 @@ scenery on `eindhoven_centre` (no real-time sleep), 0.49 / 0.69 on the twin. Sti
 furniture on Eindhoven station's platforms stands at platform height (about 4 m) with no platform under it, and
 objects beside lowered ground tiles at sunken roads float.
 
+**Water on CARLA 1.0.** CARLA 1.0 lays a terrain fitted to the road heights over every map it generates from
+OpenDRIVE, and over a river or a harbour that terrain spreads at the banks' height: at Hoek van Holland 1.3-5.9 m over
+water at 1.1 m, and no client setting hides it. The scenery lays its water tiles flat at one level per water body (a
+low percentile of the terrain model inside it; before, they were tilted to the slope beside the banks and rose metres
+above the waterline) over the whole water body in the map (160 m squares away from the roads, 40 m tiles along the
+banks: at Hoek van Holland 218 more water pieces, 1.1 % of the scenery), writes the bodies to `scenery.json`
+("water") and sends them with the OpenDRIVE (`<userData code="coupledcarla.water">`, placement.py);
+[`unreal/patches/OpenDriveGenerator_WaterTerrain.patch`](unreal/patches/OpenDriveGenerator_WaterTerrain.patch) makes
+CARLA lower its terrain 3 m under them. On lin5080 (2026-11-27) it lowered 100,520 of 411,635 terrain vertices; rays
+over the channel then met the terrain at -1.9 m under water at 1.1 m, and the land stayed as it was. A server without
+the patch ignores the userData.
+
 ### Where each object comes from (provenance)
 
 Every placement in `scenery.json` carries a provenance tag and its source (`coupledcarla/provenance.py`), so an
@@ -1288,10 +1300,11 @@ street pack ([`tools/ue_pack_holder.py`](tools/ue_pack_holder.py)) that the cook
 release it was cooked against: CARLA 1.0.1 means building them again. They are meant as assets of a GitHub
 release of this repository (GitHub allows 2 GB per file); they are not published yet.
 
-What a pack cannot carry is code, so two things need a CARLA build of your own: the `CoupledPhotoreal` plugin
-(`map.photoreal`, Google's Photorealistic 3D Tiles; without it the twin is shown as baked, and the log says so)
-and the CarlaLight patch (`unreal/patches/`; without it lamps keep CARLA's default intensity instead of the
-register's lumens). Without the street pack, CARLA's own lamps stand in for the regional ones and the regional
+What a pack cannot carry is code, so three things need a CARLA build of your own: the `CoupledPhotoreal` plugin
+(`map.photoreal`, Google's Photorealistic 3D Tiles; without it the twin is shown as baked, and the log says so),
+the CarlaLight patch (`unreal/patches/`; without it lamps keep CARLA's default intensity instead of the
+register's lumens) and the water-terrain patch (`unreal/patches/OpenDriveGenerator_WaterTerrain.patch`; without it
+CARLA 1.0's generated terrain covers rivers and harbours, see [Scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels)). Without the street pack, CARLA's own lamps stand in for the regional ones and the regional
 furniture is left out (`blueprint.cc_nl_*`, the drones and `/Game/CoupledCarla` meshes do not spawn on the bare
 package).
 
