@@ -312,3 +312,23 @@ def test_water_userdata_in_the_opendrive():
     assert len(lines) == 2 and lines[0].startswith("0 1.100 -500.0,-500.0 1500.0,-500.0")
     assert placement.carla_xodr(xodr, keep_lights=True)[0] == xodr          # no water: unchanged
     assert placement.with_water(xodr, [{"level": 1.0, "rings": [[[0, 0], [1, 1]]]}]) == xodr    # too few points
+
+
+def test_a_hull_estimated_from_its_particulars(carla_mod, tmp_path):
+    from coupledcarla import ships
+    route = [north_east(0.0, 0.0), north_east(3000.0, 0.0)]
+    ferry = {"estimate": {"name": "Ferry", "lpp": 180.0, "beam": 28.0, "draught": 6.3, "cb": 0.58,
+                          "service_speed_kn": 21.0, "d_prop": 5.0, "a_rudder": 30.0}}
+    sw, _, _ = make(carla_mod, tmp_path, [{"id": "ferry", "hull": ferry, "route": route, "speed_kn": 15},
+                                          {"id": "kcs", "hull": "kcs", "route": route}])
+    f, k = sw.ships[0], sw.ships[1]
+    assert f.hull.name == "Ferry" and f.hull.kijima is not None and f.hull.lpp == 180.0
+    assert k.hull.name == "KCS" and k.speed_kn == pytest.approx(24.0)
+    run(sw, 60.0)
+    assert f.ship.speed / sm.KNOT == pytest.approx(15.0, abs=0.3) and f.ship.x > 400
+    errs = []
+    ships.check_config({"ships": {"fleet": [{"route": route, "hull": {"estimate": {"lpp": 100, "colour": 1}}},
+                                            {"route": route, "hull": {"lpp": 100}}]}}, "t",
+                       lambda w, m: errs.append(f"{w}: {m}"), None, lambda *a: None)
+    text = " | ".join(errs)
+    assert "unknown key 'colour'" in text and "needs beam" in text and "a preset's name or" in text

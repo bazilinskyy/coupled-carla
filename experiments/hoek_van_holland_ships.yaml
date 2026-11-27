@@ -1,7 +1,7 @@
 # Ships on the Nieuwe Waterweg at Hoek van Holland, seen from the shore (coupledcarla/ships.py, docs/ships.md).
-# Two KVLCC2 tankers (320 m): one inbound on the south half of the channel (keep right), one outbound on the north
-# half a minute later. KVLCC2 stands in for any big ship until more hulls exist: a laden VLCC (20.8 m draught)
-# would use the Maasmond to Europoort, not this waterway.
+# A KVLCC2 tanker (320 m) inbound on the south half of the channel (keep right) and a KCS container ship (230 m,
+# its coefficients estimated: shipmodel.estimate_hull) outbound on the north half a minute later. The tanker stands
+# in for any big ship: a laden VLCC (20.8 m draught) would use the Maasmond to Europoort, not this waterway.
 # Build the map once:  python -m coupledcarla.mapmaker "51.9755, 4.1250" --size medium --name hoek_van_holland
 # Run it:              python -m coupledcarla.run experiments/hoek_van_holland_ships.yaml --input autopilot --headless
 name: hoek_van_holland_ships
@@ -40,7 +40,7 @@ ships:
     speed_kn: 8
     route: [[51.9744, 4.1160], [51.9721, 4.1230], [51.9705, 4.1290], [51.9697, 4.1330]]
   - id: outbound
-    hull: kvlcc2
+    hull: kcs
     speed_kn: 8
     start_s: 60
     route: [[51.9715, 4.1335], [51.9732, 4.1280], [51.9750, 4.1220], [51.9768, 4.1160]]

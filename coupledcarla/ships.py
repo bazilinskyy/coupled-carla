@@ -29,6 +29,21 @@ CYLINDER = "/Engine/BasicShapes/Cylinder.Cylinder"
 SHIP_KEYS = {"id", "hull", "route", "speed_kn", "start_s", "advance_s", "at_end"}
 ENV_KEYS = {"current_mps", "current_to_deg", "wind_mps", "wind_from_deg", "wave_hs", "wave_tp", "wave_from_deg"}
 AT_END = {"stop", "loop", "remove"}
+ESTIMATE_KEYS = {"name", "lpp", "beam", "draught", "cb", "service_speed_kn", "d_prop", "a_rudder", "h_rudder", "x_g",
+                 "depth"}
+ESTIMATE_NEEDS = {"lpp", "beam", "draught", "cb", "service_speed_kn", "d_prop", "a_rudder"}
+
+
+def hull_of(spec):
+    """A fleet entry's hull: a preset's name (shipmodel.PRESETS), or {estimate: {lpp, beam, draught, cb,
+    service_speed_kn, d_prop, a_rudder, [h_rudder, x_g, depth, name]}}: estimated from its particulars
+    (shipmodel.estimate_hull), e.g. a ship whose MMG coefficients are not published."""
+    h = spec.get("hull", "kvlcc2")
+    if isinstance(h, dict):
+        est = dict(h.get("estimate") or {})
+        name = str(est.pop("name", None) or spec.get("id") or "estimated")
+        return sm.estimate_hull(name, **{k: float(v) for k, v in est.items()})
+    return sm.preset(h)
 LOG_COLUMNS = ["timestamp", "frame", "ship", "hull", "pos_x", "pos_y", "pos_z", "lat", "lon", "heading_deg",
                "speed_kn", "sog_kn", "cog_deg", "drift_deg", "yaw_rate_dps", "rudder_deg", "revolutions_rpm",
                "air_u_kn", "air_v_kn", "wave_fx_kN", "wave_fy_kN", "waypoint", "state", "actor_id"]
@@ -318,7 +333,7 @@ class ShipWorld:
         self.log_w.writerow(LOG_COLUMNS)
 
     def _add(self, spec):
-        hull = sm.preset(spec.get("hull", "kvlcc2"))
+        hull = hull_of(spec)
         route = route_points(self.geo, spec["route"])
         if len(route) < 2:
             raise ValueError("a route needs at least two points")
@@ -466,10 +481,22 @@ def check_config(tc, where, error, warn, points):
             continue
         for k in set(spec) - SHIP_KEYS:
             error(ws, f"unknown key {k!r} ({', '.join(sorted(SHIP_KEYS))})")
-        try:
-            sm.preset(spec.get("hull", "kvlcc2"))
-        except ValueError as err:
-            error(f"{ws} hull", str(err))
+        h = spec.get("hull", "kvlcc2")
+        if isinstance(h, dict):
+            est = h.get("estimate")
+            if set(h) != {"estimate"} or not isinstance(est, dict):
+                error(f"{ws} hull", "a preset's name or {estimate: {lpp, beam, draught, cb, service_speed_kn, "
+                                    "d_prop, a_rudder, ...}}")
+            else:
+                for k in set(est) - ESTIMATE_KEYS:
+                    error(f"{ws} hull estimate", f"unknown key {k!r} ({', '.join(sorted(ESTIMATE_KEYS))})")
+                for k in sorted(ESTIMATE_NEEDS - set(est)):
+                    error(f"{ws} hull estimate", f"needs {k}")
+        else:
+            try:
+                sm.preset(h)
+            except ValueError as err:
+                error(f"{ws} hull", str(err))
         route = spec.get("route") or []
         if len(route) < 2:
             error(f"{ws} route", "needs at least two [lat, lon] points")

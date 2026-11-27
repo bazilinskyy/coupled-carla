@@ -260,7 +260,15 @@ closed consumer app with nothing reusable; its AIS comes from aisstream.io.)
 
 1. `shipmodel.py` with KVLCC2 and its tests (turning circle, zig-zag). No CARLA. **Done.** Its forces by component
    (`Ship.force_breakdown()`) feed the README's force figure.
-2. More hulls (KCS first, then cruise ship, catamaran, ferry), once their coefficients are sourced. Current, wind
+2. More hulls (KCS first, then cruise ship, catamaran, ferry), once their coefficients are sourced. 2026-11-27:
+   no open-access full MMG set for KCS was found (the complete one, Okuda, Yasukawa & Matsuda 2023, Ocean Eng.
+   284, 115174, is paywalled; ScienceDirect and Taylor & Francis refuse automated reading). Decision (Shadab): the
+   estimation route meanwhile. `shipmodel.estimate_hull` (Kijima et al. 1990 via Kim, Lee & Lee 2021, JMSE 9(6)
+   569, open; added masses after Clarke and Brix via VesselManoeuvringModels, MIT) gives a hull from its
+   particulars; on KVLCC2 it turns 15-31 % wider than the measured coefficients. KCS is a preset with its SIMMAN
+   particulars and estimated coefficients (it turns wider than IMO's limit to port: too wide), and a mesh
+   (container style). Wanted from the TU/e library: the Okuda et al. paper (KCS) and the twin-propeller
+   twin-rudder ferry set (Yasukawa & Hirata 2013, via Applied Ocean Research 2018/2019). Current, wind
    and wave drift in the model: **done** (2026-11-27); README figures from `tools/ship_figures.py`.
 3. `ships.py`: AI ships on routes, `ships.csv` and ship rows in `frames.csv`, a port map (Hoek van Holland on the
    Nieuwe Waterweg, `experiments/hoek_van_holland_ships.yaml`). **Done** (2026-11-27), with the mesh look of step 5:

@@ -5,7 +5,7 @@
         -script="<repo>/tools/ue_ship_assets.py --src /tmp/ships" -unattended -nosplash -nullrhi -nosound
 
 Writes /Game/CoupledCarla/Ships:
-  SM_CCShip_<Hull>          the ship (KVLCC2), no collision, for ships.py's `mesh` look (static.prop.mesh + mass)
+  SM_CCShip_<Hull>          the ships (KVLCC2, KCS), no collision, for ships.py's `mesh` look (static.prop.mesh + mass)
   M_CCShip_Lit, M_CCShip_Light and MI_CCShip_* instances: antifouling, boot-top, topsides, deck, accommodation,
       glass, funnel, masts, rudder, propeller (lit), and the navigation lights (emissive: red, green, white)
 Prints the imported mesh's bounds so the axes can be checked (x forward, y right, z up in Unreal, origin amidships
@@ -22,7 +22,7 @@ import unreal
 DEST = "/Game/CoupledCarla/Ships"
 EAL = unreal.EditorAssetLibrary
 MEL = unreal.MaterialEditingLibrary
-HULLS = ("KVLCC2",)
+HULLS = ("KVLCC2", "KCS")
 # linear base colours (the preview's sRGB colours of tools/ship_mesh.py, squared about)
 LIT = {
     "Antifouling": ((0.30, 0.025, 0.015), 0.7, 0.0), "Boottop": ((0.010, 0.010, 0.012), 0.6, 0.0),
@@ -30,7 +30,10 @@ LIT = {
     "House": ((0.80, 0.80, 0.78), 0.5, 0.0), "Glass": ((0.008, 0.012, 0.018), 0.08, 0.0),
     "Funnel": ((0.78, 0.78, 0.76), 0.5, 0.0), "FunnelBand": ((0.012, 0.05, 0.25), 0.5, 0.0),
     "Mast": ((0.50, 0.36, 0.06), 0.6, 0.0), "Rudder": ((0.30, 0.025, 0.015), 0.7, 0.0),
-    "Propeller": ((0.55, 0.32, 0.10), 0.3, 1.0)}
+    "Propeller": ((0.55, 0.32, 0.10), 0.3, 1.0),
+    "BoxRed": ((0.35, 0.03, 0.015), 0.6, 0.3), "BoxBlue": ((0.015, 0.06, 0.25), 0.6, 0.3),
+    "BoxGreen": ((0.03, 0.15, 0.05), 0.6, 0.3), "BoxGrey": ((0.27, 0.28, 0.29), 0.6, 0.3),
+    "BoxWhite": ((0.70, 0.70, 0.68), 0.6, 0.3), "BoxOrange": ((0.69, 0.18, 0.015), 0.6, 0.3)}
 LIGHTS = {"NavRed": ((1.0, 0.03, 0.01), 60.0), "NavGreen": ((0.02, 1.0, 0.06), 60.0),
           "NavWhite": ((1.0, 0.95, 0.85), 80.0)}
 

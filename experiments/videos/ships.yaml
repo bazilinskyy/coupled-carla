@@ -18,7 +18,8 @@ clips:
     place: Nieuwe Waterweg at Hoek van Holland, Netherlands
     role: someone on the shore (tripod cameras); the driver on autopilot behind
     when: midday
-    agents: two KVLCC2 tankers (320 m) sailed by the ship model (ships.py), inbound and outbound, an ebb current
+    agents: a KVLCC2 tanker (320 m) inbound and a KCS container ship (230 m) outbound, sailed by the ship model
+      (ships.py), an ebb current
     notice: the inbound tanker passes the north bank at 8 knots; needs CARLA 1.0 with the ship assets and the
       water-terrain patch (unreal/patches/OpenDriveGenerator_WaterTerrain.patch), else the terrain covers the water
     experiment: experiments/hoek_van_holland_ships.yaml

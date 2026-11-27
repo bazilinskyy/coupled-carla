@@ -1,5 +1,6 @@
 """The coupled-carla ships as glTF meshes, made with numpy from the hull's particulars (no third-party model):
-for now the KVLCC2 tanker (320 m) of coupledcarla/shipmodel.py.
+the hulls of coupledcarla/shipmodel.py, as a tanker (KVLCC2, 320 m) or a container ship (KCS, 230 m: stacks of
+40 ft containers on deck in mixed colours, four tiers, the accommodation aft).
 
     python -m tools.ship_mesh OUT_DIR          # writes SM_CCShip_<Hull>.glb and ship_meshes.json
 
@@ -28,7 +29,11 @@ COLOURS = {      # for previews (Unreal gets materials): sRGB 0-1
     "Deck": (0.33, 0.45, 0.32), "House": (0.92, 0.92, 0.90), "Glass": (0.10, 0.14, 0.18),
     "Funnel": (0.90, 0.90, 0.88), "FunnelBand": (0.10, 0.25, 0.55), "Mast": (0.75, 0.62, 0.22),
     "Rudder": (0.55, 0.13, 0.10), "Propeller": (0.72, 0.53, 0.25), "NavRed": (1.0, 0.1, 0.1),
-    "NavGreen": (0.1, 1.0, 0.2), "NavWhite": (1.0, 1.0, 0.95)}
+    "NavGreen": (0.1, 1.0, 0.2), "NavWhite": (1.0, 1.0, 0.95),
+    "BoxRed": (0.62, 0.16, 0.12), "BoxBlue": (0.12, 0.28, 0.55), "BoxGreen": (0.18, 0.42, 0.25),
+    "BoxGrey": (0.55, 0.56, 0.57), "BoxWhite": (0.86, 0.86, 0.84), "BoxOrange": (0.85, 0.45, 0.12)}
+BOXES = ["BoxRed", "BoxBlue", "BoxGreen", "BoxGrey", "BoxWhite", "BoxOrange"]
+STYLES = {"KVLCC2": "tanker", "KCS": "container"}       # others: tanker
 BOOTTOP_M = 2.0          # black band above the waterline (the light-ballast waterline lies below the design one)
 
 
@@ -128,11 +133,10 @@ def hull_shell(m, f, nx=140):
         m.add("Hull", p, np.tile((-1.0, 0.0, 0.0), (3, 1)), [[0.5, 0.5], [0, 0], [1, 0]], [0, 1, 2])
 
 
-def superstructure(m, f):
+def superstructure(m, f, decks=5, width=0.72):
     L, B, fb = f.L, 2 * f.b, f.fb
     x0 = f.x_ap + 0.025 * L                          # aft face of the accommodation
-    house_l, house_w, deck_h = 0.075 * L, 0.72 * B, 2.9
-    decks = 5
+    house_l, house_w, deck_h = 0.075 * L, width * B, 2.9
     for k in range(decks):                           # stacked decks, each a little shorter
         lk = house_l * (1 - 0.05 * k)
         box(m, "House", (x0 + lk / 2, 0, fb + deck_h * (k + 0.5)), (lk, house_w, deck_h))
@@ -196,19 +200,48 @@ def appendages(m, f):
     superellipsoid(m, "Antifouling", (f.x_fp - 1.0, 0, -0.62 * f.d), (7.0, 4.6, 4.6), e1=1.0, e2=1.0)    # bulb
 
 
-def build_ship(hull):
+def containers(m, f, house_end, tiers=4, seed=7):
+    """40 ft containers (12.19 x 2.44 x 2.59 m) on deck from just forward of the accommodation to the forecastle,
+    in bays of two with a gap for the lashing bridges, as many rows as fit in 92 % of the local beam."""
+    rng = np.random.default_rng(seed)
+    cl, cw, ch, gap = 12.19, 2.44, 2.59, 0.9
+    x = house_end + 3.0
+    x_end = f.L / 2 - 0.09 * f.L - 2.0
+    n = 0
+    while x + cl <= x_end:
+        half = min(f.section(x, f.fb), f.section(x + cl, f.fb))
+        rows = int((2 * half * 0.92) // (cw + 0.05))
+        tiers_here = tiers - (1 if x + cl > x_end - 2 * (cl + gap) else 0)    # lower towards the bow
+        for r in range(rows):
+            y = (r - (rows - 1) / 2) * (cw + 0.05)
+            for t in range(tiers_here):
+                box(m, BOXES[int(rng.integers(len(BOXES)))], (x + cl / 2, y, f.fb + 0.4 + ch * (t + 0.5)),
+                    (cl - 0.1, cw - 0.04, ch - 0.04))
+                n += 1
+        x += cl + gap
+    return n
+
+
+def build_ship(hull, style=None):
+    """The mesh of a hull: style tanker (a pipe deck) or container (stacks of containers); default by name."""
+    style = style or STYLES.get(hull.name, "tanker")
     f = HullForm(hull)
     m = Mesh()
     hull_shell(m, f)
-    info = superstructure(m, f)
-    deck_gear(m, f)
+    if style == "container":
+        info = superstructure(m, f, decks=7, width=0.8)
+        info["containers"] = containers(m, f, info["house_x0"] + info["house_len"])
+    else:
+        info = superstructure(m, f)
+        deck_gear(m, f)
+    info["style"] = style
     appendages(m, f)
     info.update({"loa": f.loa, "x_ap": f.x_ap, "x_fp": f.x_fp, "freeboard": f.fb, "draught": f.d,
                  "beam": 2 * f.b})
     return m, f, info
 
 
-def build(out_dir, hulls=("KVLCC2",)):
+def build(out_dir, hulls=("KVLCC2", "KCS")):
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     info = {}

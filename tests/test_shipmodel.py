@@ -313,3 +313,49 @@ def test_force_breakdown_adds_up():
     assert p["rudder"][1] < 0                  # starboard rudder: the rudder force points to port (stern swings out)
     straight = sm.Ship.at_speed(sm.KVLCC2).force_breakdown()
     assert straight["hull"][0] == pytest.approx(-straight["propeller"][0], rel=0.02)   # thrust balances resistance
+
+
+
+# --- hulls estimated from their particulars ---------------------------------------------------------------------
+
+def _kvlcc2_estimated():
+    k = sm.KVLCC2
+    return sm.estimate_hull("KVLCC2_est", k.lpp, k.beam, k.draught, k.cb, 15.5, k.d_prop, k.a_rudder,
+                            h_rudder=k.h_rudder, x_g=k.x_g)
+
+
+def test_the_estimate_against_kvlcc2():
+    """estimate_hull on KVLCC2's particulars against KVLCC2's own coefficients (Yasukawa & Yoshimura 2015): the
+    linear yaw terms within 10 %, the wake within 5 %; the 35 deg turn 10-35 % wider, the 20/20 overshoot within
+    2 deg. This is what an estimated hull is worth (2026-11-27: tactical diameter +15 % / +31 %)."""
+    k, e = sm.KVLCC2, _kvlcc2_estimated()
+    assert e.cb == pytest.approx(k.cb) and e.volume == pytest.approx(k.volume)
+    assert e.nv == pytest.approx(k.nv, rel=0.10) and e.nr == pytest.approx(k.nr, rel=0.10)
+    assert e.yr == pytest.approx(k.yr, rel=0.15) and e.w_p0 == pytest.approx(k.w_p0, rel=0.05)
+    assert e.my == pytest.approx(k.my, rel=0.15)
+    for rudder in (35, -35):
+        measured, est = sm.turning_circle(k, rudder), sm.turning_circle(e, rudder)
+        ratio = est["tactical_diameter"] / measured["tactical_diameter"]
+        assert 1.10 < ratio < 1.35
+    assert sm.zigzag(e, 20)["osa1"] == pytest.approx(sm.zigzag(k, 20)["osa1"], abs=2.0)
+
+
+def test_estimated_hulls_hold_their_speed_and_turn_the_right_way():
+    for hull in (sm.KCS, _kvlcc2_estimated()):
+        ship = sm.Ship.at_speed(hull)
+        u0 = ship.u
+        for _ in range(300):
+            ship.step(1.0)
+        assert ship.u == pytest.approx(u0, rel=2e-3) and abs(ship.psi) < 1e-9
+        ship.rudder_cmd = math.radians(20)
+        for _ in range(200):
+            ship.step(1.0)
+        assert ship.r > 0 and ship.psi > 0
+
+
+def test_kcs_particulars():
+    k = sm.KCS
+    assert (k.lpp, k.beam, k.draught, k.d_prop, k.a_rudder) == (230.0, 32.2, 10.8, 7.9, 115.0)
+    assert k.cb == pytest.approx(0.6505, abs=1e-4) and k.volume == pytest.approx(52030.0)
+    assert "estimated" in k.source and k.kijima is not None
+    assert sm.preset("KCS") is k

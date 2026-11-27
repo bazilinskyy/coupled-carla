@@ -2099,7 +2099,9 @@ ships:
     current_to_deg: 290
   fleet:
   - {id: inbound, hull: kvlcc2, speed_kn: 8, route: [[51.9744, 4.1160], [51.9721, 4.1230], [51.9697, 4.1330]]}
-  - {id: outbound, hull: kvlcc2, speed_kn: 8, start_s: 60, at_end: stop, route: [...]}   # stop | loop | remove
+  - {id: outbound, hull: kcs, speed_kn: 8, start_s: 60, at_end: stop, route: [...]}      # stop | loop | remove
+  - {id: ferry, hull: {estimate: {lpp: 180, beam: 28, draught: 6.3, cb: 0.58, service_speed_kn: 21, d_prop: 5,
+                                  a_rudder: 30}}, speed_kn: 15, route: [...]}          # a hull from its particulars
 ```
 
 A ship follows its route with the model's autopilot at the ordered speed, from `start_s` (or already under way:
@@ -2107,7 +2109,7 @@ A ship follows its route with the model's autopilot at the ordered speed, from `
 the median of what a ray hits under the routes' points). Logs: `ships.csv` every 0.5 s (position, heading, speed through the water and over the
 ground, course, drift, rudder, revolutions, the wind on board, the wave forces), a `frames.csv` row per ship and
 tick (kind `ship_ai`), and `ship_spawn` / `ship_arrived` events. [`experiments/hoek_van_holland_ships.yaml`](experiments/hoek_van_holland_ships.yaml)
-sails two of them past Hoek van Holland on the Nieuwe Waterweg (map: `python -m coupledcarla.mapmaker "51.9755,
+sails a tanker and a container ship past Hoek van Holland on the Nieuwe Waterweg (map: `python -m coupledcarla.mapmaker "51.9755,
 4.1250" --size medium --name hoek_van_holland`).
 
 **How a ship moves** ([`shipmodel.py`](coupledcarla/shipmodel.py), no CARLA):
@@ -2117,6 +2119,15 @@ sails two of them past Hoek van Holland on the Nieuwe Waterweg (map: `python -m 
   autopilot (heading or waypoints, with an integral term against steady wind). Hulls are presets; the first is the
   KVLCC2 tanker (320 m), with the paper's coefficients. Against the paper's own calculation for its 7 m model,
   turning is 4-8 % tighter and the zig-zag overshoots are within 1.6°; full scale meets the IMO criteria.
+- **Hulls:** KVLCC2 (tanker, 320 m) with the paper's measured coefficients; KCS (container ship, 230 m) with its
+  SIMMAN particulars and its coefficients *estimated*; and any ship from its particulars (`hull: {estimate: ...}`,
+  `shipmodel.estimate_hull`): the hull forces and interaction after Kijima et al. (1990, J. SNAJ 168, as reproduced
+  open access in Kim, Lee & Lee 2021, JMSE 9(6) 569), the added masses after Clarke and Brix (as in the MIT-licensed
+  VesselManoeuvringModels), the rest assumed and listed in its docstring. On KVLCC2, whose own coefficients are
+  known, the estimate turns 15-31 % wider (tactical diameter) and gives the same 20/20 overshoot within 0.2°; the
+  estimated KCS turns wider than the IMO limit to port, which the real ship does not, so read estimated hulls as
+  roughly right. KCS's own coefficients (Okuda, Yasukawa & Matsuda 2023) are not open access. Twin-screw ships
+  (ferries, cruise ships) and catamarans need model extensions; an estimate treats them as single-screw.
 - **Current:** uniform and steady; it moves the track over the ground and leaves the ship's handling through the
   water unchanged.
 - **Wind:** Blendermann (1994) with his parameters for 17 ship types (from Fossen's MSS toolbox) on each hull's
@@ -2138,7 +2149,8 @@ over the channel then met the terrain at -1.9 m under water at 1.1 m, and the la
 same water level (`scenery.json` "water"). A server without the patch ignores the userData.
 
 **How a ship looks:** on CARLA 1.0, a mesh made from the hull's particulars by [`tools/ship_mesh.py`](tools/ship_mesh.py)
-(numpy, no third-party model: a generic VLCC of KVLCC2's size, 13,300 triangles, with its navigation lights) and
+(numpy, no third-party model: a generic VLCC of KVLCC2's size and a container ship of KCS's with 40 ft containers
+four tiers high, 13,300 and 20,000 triangles, with navigation lights) and
 imported headless by [`tools/ue_ship_assets.py`](tools/ue_ship_assets.py) into `/Game/CoupledCarla/Ships` (an editor
 server reads it there; the release package needs the street content pack built again, not done yet). Tested headless on lin5080
 (CARLA 1.0 editor server, `-nullrhi`, 2026-11-27): both tankers of the Hoek van Holland experiment sailed with the mesh
@@ -2150,9 +2162,11 @@ air) waits for a free GPU ([`tools/render_when_free.sh`](tools/render_when_free.
 
 Figures are clickable: each opens an interactive version (the ship can be turned round).
 
-[![The KVLCC2 ship mesh: green deck, red antifouling below the waterline, the white accommodation and funnel aft](docs/img/ships_look.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_look.html)
+[![The KVLCC2 tanker and KCS container ship meshes: red antifouling below the waterline, the accommodation and funnel aft, containers on the KCS](docs/img/ships_look.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_look.html)
 
 [![The forces on KVLCC2 holding her course in wind and waves, drawn where they act](docs/img/ships_forces.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_forces.html)
+
+[![35° turns of KVLCC2 with measured and with estimated coefficients, and of the estimated KCS](docs/img/ships_estimate.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_estimate.html)
 
 [![KVLCC2 turning circles in still water, current, wind and waves](docs/img/ships_turning.png)](https://htmlpreview.github.io/?https://github.com/bazilinskyy/coupled-carla/blob/main/docs/img/ships_turning.html)
 

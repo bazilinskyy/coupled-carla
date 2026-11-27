@@ -169,6 +169,8 @@ class Hull:
     rpm_lag_s: float = 30.0           # time constant of the revolutions after a telegraph order
     rho: float = RHO_SEA
     windage: Windage = None           # None: no wind forces
+    kijima: tuple = None              # hull sway/yaw in Kijima's form instead of eq. 7 (estimate_hull): Y'_b, Y'_r,
+                                      # Y'_bb, Y'_rr, Y'_bbr, Y'_brr, N'_b, N'_r, N'_bb, N'_rr, N'_bbr, N'_brr
     depth: float = None               # moulded depth (m): the freeboard is depth - draught; None: 1.45 x draught
     kyy: float = 0.25                 # pitch radius of gyration / Lpp (wave added resistance)
     l_entrance: float = None          # waterline entrance and run lengths (m, IMO's L_E and L_R: from the
@@ -243,7 +245,97 @@ KVLCC2 = Hull(
 KVLCC2_L7 = replace(KVLCC2.scaled(45.7, w_p0=0.40), name="KVLCC2_L7", lpp=7.00, beam=1.27, draught=0.46, volume=3.27,
                     x_g=0.25, d_prop=0.216, h_rudder=0.345, a_rudder=0.0539)
 
-PRESETS = {"kvlcc2": KVLCC2, "kvlcc2_l7": KVLCC2_L7}
+# --- hulls estimated from their particulars --------------------------------------------------------------------
+
+NU_SEA = 1.19e-6          # kinematic viscosity of sea water, 15 deg C (ITTC)
+
+
+def estimate_hull(name, lpp, beam, draught, cb, service_speed_kn, d_prop, a_rudder, h_rudder=None, x_g=0.0,
+                  depth=None, windage=None, rudder_rate_deg=2.32, source=""):
+    """A hull for which no captive or free-running tests are published: its MMG coefficients estimated from its
+    particulars (metres, m^2, knots). An estimate: on KVLCC2, whose own coefficients are known, it gives the
+    turning and zig-zag of tests/test_shipmodel.py::test_the_estimate_against_kvlcc2.
+
+    Sourced:
+    - hull sway force and yaw moment, in Kijima's form (Hull.kijima), and the hull-propeller-rudder interaction
+      (1 - t_R, a_H, x'_H, 1 - w_P0, epsilon, gamma_R): Kijima, Katsuno, Nakiri & Furukawa (1990), "On the
+      manoeuvring performance of a ship with the parameter of loading condition", J. Soc. Naval Arch. Japan 168,
+      141-148, as reproduced in Kim, Lee & Lee (2021), J. Mar. Sci. Eng. 9(6) 569, eq. 7 (open access, CC BY);
+      k = 2 d / L there. Kijima's rudder inflow angle takes beta - 2 x'_R r' with x'_R = -0.5: l'_R = -1.
+    - added masses: m'_x after Brix, m'_y and J'_z after Clarke, Gedling & Hine ("The application of manoeuvring
+      criteria in hull design using linear theory"), as implemented in VesselManoeuvringModels
+      (github.com/martinlarsalbert/VesselManoeuvringModels, MIT, vessel_manoeuvring_models/parameters.py),
+      converted from their 1/2 rho L^3 (and 1/2 rho L^5) to MMG's 1/2 rho L^2 d (and 1/2 rho L^4 d).
+    - rudder lift slope: Fujii's 6.13 L / (L + 2.25) for the aspect ratio L = h_R^2 / A_R (as in the MMG standard).
+    Assumed (no source for these hulls): the propeller's open-water curve, C_1, C_2, kappa as KVLCC2's (Yasukawa &
+    Yoshimura 2015); t_P 0.22; x'_P -0.5; the surge terms beyond the resistance zero; the resistance R'_0 from the
+    ITTC-1957 friction line at the service speed with a form factor of 1.15 and C_A 0.0004 on Mumford's wetted
+    surface (1.7 L d + volume / d), no wave resistance; the rudder span 1.25 x the propeller diameter when not
+    given; the yaw gyration 0.25 L."""
+    L, B, d = float(lpp), float(beam), float(draught)
+    vol = cb * L * B * d
+    k = 2.0 * d / L
+    cbbl = cb * B / L
+    m = 2.0 * vol / (L * L * d)                                    # m' = m / (1/2 rho L^2 d)
+    # added masses (Brix; Clarke): their primes over 1/2 rho L^3 (L^5 for N_rdot), MMG's over 1/2 rho L^2 d
+    mx = m / (math.pi * math.sqrt(L ** 3 / vol) - 14.0)
+    my = math.pi * (d / L) ** 2 * (1.0 + 0.16 * cb * B / d - 5.1 * (B / L) ** 2) * L / d
+    jz = math.pi * (d / L) ** 2 * (0.0833 + 0.017 * cb * B / d - 0.0033 * B / L) * L / d
+    kij = (
+        0.5 * math.pi * k + 1.4 * cbbl,                         # Y'_b
+        (m + mx) - 1.5 * cbbl,                                  # Y'_r: Y'_r - (m' + m'_x) = -1.5 C_b B / L
+        2.5 * d * (1.0 - cb) / B + 0.5,                         # Y'_bb
+        0.343 * d * cb / B - 0.07,                              # Y'_rr
+        1.5 * d * cb / B - 0.65,                                # Y'_bbr
+        5.95 * d * (1.0 - cb) / B,                              # Y'_brr
+        k,                                                      # N'_b
+        -0.54 * k + k * k,                                      # N'_r
+        -0.96 * d * (1.0 - cb) / B + 0.066,                     # N'_bb
+        0.5 * cb * B / L - 0.09,                                # N'_rr
+        -(57.5 * cbbl ** 2 - 18.4 * cbbl + 1.6),                # N'_bbr
+        -(0.5 * d * cb / B - 0.05),                             # N'_brr
+    )
+    speed = service_speed_kn * KNOT
+    re = speed * L / NU_SEA
+    cf = 0.075 / (math.log10(re) - 2.0) ** 2
+    wetted = 1.7 * L * d + vol / d
+    r0 = (1.15 * cf + 0.0004) * wetted / (L * d)
+    h_r = h_rudder or 1.25 * d_prop
+    aspect = h_r * h_r / a_rudder
+    gamma = -22.2 * cbbl ** 2 + 0.02 * cbbl + 0.68
+    return Hull(
+        name, lpp=L, beam=B, draught=d, volume=vol, x_g=x_g, d_prop=d_prop, h_rudder=h_r, a_rudder=a_rudder,
+        r0=r0, xvv=0.0, xvr=0.0, xrr=0.0, xvvvv=0.0,
+        yv=-kij[0], yr=kij[1], yvvv=0.0, yvvr=0.0, yvrr=0.0, yrrr=0.0,      # linear parts, for reference
+        nv=-kij[6], nr=kij[7], nvvv=0.0, nvvr=0.0, nvrr=0.0, nrrr=0.0,
+        mx=mx, my=my, jz=jz,
+        t_p=0.22, w_p0=1.0 - (1.05 - 0.5 * cb), k0=KVLCC2.k0, k1=KVLCC2.k1, k2=KVLCC2.k2, x_p=-0.5,
+        c1=KVLCC2.c1, c2_pos=KVLCC2.c2_pos, c2_neg=KVLCC2.c2_neg,
+        t_r=1.0 - (0.28 * cb + 0.55), a_h=2.2835 * cb ** 2 - 0.833 * cb,
+        x_h=9.72289 * cb ** 2 - 8.243538 * cb - 0.00498539, x_r=-0.5,
+        gamma_neg=gamma, gamma_pos=gamma, l_r=-1.0,
+        epsilon=-156.2 * cbbl ** 2 + 41.6 * cbbl - 1.76, kappa=KVLCC2.kappa,
+        f_alpha=6.13 * aspect / (aspect + 2.25),
+        rudder_rate_deg=rudder_rate_deg, service_speed_kn=service_speed_kn, depth=depth, windage=windage,
+        kijima=kij, source="estimated (estimate_hull: Kijima et al. 1990, Clarke et al., Brix; see its docstring)"
+                           + (f"; particulars: {source}" if source else ""))
+
+
+# KCS, the KRISO container ship of the SIMMAN workshops, estimated: particulars as published for the SIMMAN
+# benchmark (Lpp 230 m, B 32.2 m, T 10.8 m, volume 52,030 m^3: C_b 0.6505; propeller 7.9 m; rudder area 115 m^2
+# at full scale, from the 1/31.6 model's 0.1152 m^2); its design speed Fn 0.26 is 24 kn. Its own MMG coefficients
+# (Okuda, Yasukawa & Matsuda 2023, Ocean Eng. 284, 115174) are not open; until they are copied in, the estimate.
+# Estimated besides: the rudder span (1.25 D_P), x_G (0), the windage (a loaded container ship's: the hull above
+# the water, about 10 m of containers over 85 % of the length, a 30 m wide bridge front).
+KCS = estimate_hull(
+    "KCS", lpp=230.0, beam=32.2, draught=10.8, cb=52030.0 / (230.0 * 32.2 * 10.8), service_speed_kn=24.0,
+    d_prop=7.9, a_rudder=115.0, depth=19.0,
+    windage=Windage(a_front=32.2 * (19.0 - 10.8) + 30.0 * 10.0, a_lateral=230.0 * (19.0 - 10.8) + 0.85 * 230.0 * 10.0,
+                    loa=243.0, s_l=-10.0, s_h=9.0, kind="container_loaded",
+                    source="estimated: freeboard x length plus 10 m of containers"),
+    source="SIMMAN KCS (Lpp, B, T, volume, D_P, A_R); depth 19.0 m, Loa 243 m estimated")
+
+PRESETS = {"kvlcc2": KVLCC2, "kvlcc2_l7": KVLCC2_L7, "kcs": KCS}
 
 
 def preset(name):
@@ -272,10 +364,16 @@ def force_parts(h, u, vm, r, delta, n):
     q = 0.5 * rho * L * d * big_u ** 2
     # hull (eqs. 6, 7)
     xh = q * (-h.r0 + h.xvv * vp ** 2 + h.xvr * vp * rp + h.xrr * rp ** 2 + h.xvvvv * vp ** 4)
-    yh = q * (h.yv * vp + h.yr * rp + h.yvvv * vp ** 3 + h.yvvr * vp ** 2 * rp + h.yvrr * vp * rp ** 2
-              + h.yrrr * rp ** 3)
-    nh = q * L * (h.nv * vp + h.nr * rp + h.nvvv * vp ** 3 + h.nvvr * vp ** 2 * rp + h.nvrr * vp * rp ** 2
-                  + h.nrrr * rp ** 3)
+    if h.kijima is not None:      # Kijima et al. (1990): in the drift angle, with |.| terms (estimate_hull)
+        yb, yr_, ybb, yrr, ybbr, ybrr, nb, nr_, nbb, nrr, nbbr, nbrr = h.kijima
+        b = beta
+        yh = q * (yb * b + yr_ * rp + ybb * b * abs(b) + yrr * rp * abs(rp) + (ybbr * b + ybrr * rp) * b * rp)
+        nh = q * L * (nb * b + nr_ * rp + nbb * b * abs(b) + nrr * rp * abs(rp) + (nbbr * b + nbrr * rp) * b * rp)
+    else:
+        yh = q * (h.yv * vp + h.yr * rp + h.yvvv * vp ** 3 + h.yvvr * vp ** 2 * rp + h.yvrr * vp * rp ** 2
+                  + h.yrrr * rp ** 3)
+        nh = q * L * (h.nv * vp + h.nr * rp + h.nvvv * vp ** 3 + h.nvvr * vp ** 2 * rp + h.nvrr * vp * rp ** 2
+                      + h.nrrr * rp ** 3)
     # propeller (eqs. 8-16)
     beta_p = beta - h.x_p * rp
     c2 = h.c2_pos if beta_p > 0 else h.c2_neg

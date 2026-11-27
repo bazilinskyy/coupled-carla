@@ -6,8 +6,9 @@ interactive HTML with Plotly embedded (htmlpreview renders only embedded Plotly)
 ships_turning      KVLCC2 (full scale) turning with 35 deg rudder in still water, current, wind and waves
 ships_validation   the 7 m KVLCC2 model against Yasukawa & Yoshimura (2015), Tables 4 and 5 (calculated)
 ships_waves        KVLCC2's added resistance in regular waves (IMO MEPC.1/Circ.850/Rev.3) by wave direction
-ships_look         the KVLCC2 mesh of tools/ship_mesh.py (what the `mesh` look shows in CARLA)
+ships_look         the KVLCC2 and KCS meshes of tools/ship_mesh.py (what the `mesh` look shows in CARLA)
 ships_forces       the forces on KVLCC2 in a turn, in wind and waves, drawn where they act
+ships_estimate     turning circles with measured and with estimated coefficients (shipmodel.estimate_hull)
 
 Needs plotly and kaleido (requirements-tools.txt).
 """
@@ -116,28 +117,64 @@ def waves(out):
 
 
 def look(out):
-    m, f, info = ship_mesh.build_ship(sm.KVLCC2)
     traces = []
-    for mat, (v, n, uv, idx) in sorted(m.merged().items()):
-        r, g, b = (int(255 * c) for c in ship_mesh.COLOURS[mat])
-        t = idx.reshape(-1, 3)
-        traces.append(go.Mesh3d(x=v[:, 0], y=v[:, 1], z=v[:, 2], i=t[:, 0], j=t[:, 1], k=t[:, 2],
-                                color=f"rgb({r},{g},{b})", flatshading=True, name=mat, hoverinfo="name",
-                                lighting=dict(ambient=0.5, diffuse=0.8, specular=0.05, roughness=0.9)))
-    # the waterline as a thin plane, so the part under water reads as such
-    xs = [f.x_ap - 25, f.x_fp + 25]
-    ys = [-f.b - 25, f.b + 25]
+    for hull, dy in ((sm.KVLCC2, 0.0), (sm.KCS, -95.0)):
+        m, f, info = ship_mesh.build_ship(hull)
+        for mat, (v, n, uv, idx) in sorted(m.merged().items()):
+            r, g, b = (int(255 * c) for c in ship_mesh.COLOURS[mat])
+            t = idx.reshape(-1, 3)
+            traces.append(go.Mesh3d(x=v[:, 0], y=v[:, 1] + dy, z=v[:, 2], i=t[:, 0], j=t[:, 1], k=t[:, 2],
+                                    color=f"rgb({r},{g},{b})", flatshading=True, name=f"{hull.name}: {mat}",
+                                    hoverinfo="name", lighting=dict(ambient=0.5, diffuse=0.8, specular=0.05,
+                                                                    roughness=0.9)))
+    xs, ys = [-200.0, 200.0], [-140.0, 60.0]       # the waterline, so the part under water reads as such
     traces.append(go.Mesh3d(x=[xs[0], xs[1], xs[1], xs[0]], y=[ys[0], ys[0], ys[1], ys[1]], z=[0, 0, 0, 0],
                             i=[0, 0], j=[1, 2], k=[2, 3], color="rgb(70,120,160)", opacity=0.35, name="Waterline",
                             hoverinfo="name"))
     fig = go.Figure(traces)
-    _style(fig, "", 560)
-    fig.update_layout(title=dict(text=f"The ship's look in CARLA: a generic VLCC of KVLCC2's size "
-                                      f"({info['loa']:.0f} m overall, 58 m beam), made by tools/ship_mesh.py"),
+    _style(fig, "", 600)
+    fig.update_layout(title=dict(text="The ships' looks in CARLA (tools/ship_mesh.py): KVLCC2, a 320 m tanker, and "
+                                      "KCS, a 230 m container ship"),
                       scene=dict(aspectmode="data", xaxis_visible=False, yaxis_visible=False, zaxis_visible=False,
-                                 camera=dict(eye=dict(x=-0.95, y=1.75, z=0.55)), bgcolor=SURFACE),
+                                 camera=dict(eye=dict(x=-0.85, y=1.55, z=0.6)), bgcolor=SURFACE),
                       showlegend=False, margin=dict(l=0, r=0, t=60, b=0))
     _save(fig, out, "ships_look")
+
+
+def estimate(out):
+    """35 deg turns of KVLCC2 with its measured coefficients and with them estimated from its particulars
+    (shipmodel.estimate_hull), and of KCS (estimated): what an estimated hull is worth."""
+    k = sm.KVLCC2
+    est = sm.estimate_hull("KVLCC2 estimated", k.lpp, k.beam, k.draught, k.cb, 15.5, k.d_prop, k.a_rudder,
+                           h_rudder=k.h_rudder, x_g=k.x_g)
+    cases = [("KVLCC2, measured coefficients (Yasukawa & Yoshimura 2015)", k),
+             ("KVLCC2, estimated from its particulars", est), ("KCS (230 m), estimated", sm.KCS)]
+    fig = go.Figure()
+    for (name, hull), colour in zip(cases, SERIES):
+        for rudder, dash in ((35, "solid"), (-35, "dot")):
+            ship = sm.Ship.at_speed(hull, lag_revolutions=False)
+            ship.rudder_cmd = math.radians(rudder)
+            xs, ys, turned, prev = [0.0], [0.0], 0.0, 0.0
+            dt = 0.02 * hull.lpp / ship.speed
+            while abs(turned) < 2 * math.pi and ship.t < 80 * hull.lpp / ship.speed:
+                ship.step(dt)
+                turned += sm.wrap(ship.psi - prev)
+                prev = ship.psi
+                xs.append(ship.x / hull.lpp), ys.append(ship.y / hull.lpp)
+            t = sm.turning_circle(hull, rudder)
+            label = f"{name}{'' if rudder > 0 else ', to port'}"
+            fig.add_trace(go.Scatter(x=ys[::5], y=xs[::5], mode="lines", name=label, legendgroup=name,
+                                     showlegend=rudder > 0, line=dict(color=colour, width=2, dash=dash),
+                                     hovertemplate=f"{label}<br>advance {t['advance']:.2f} L, tactical diameter "
+                                                   f"{t['tactical_diameter']:.2f} L<extra></extra>"))
+    for x in (-5, 5):
+        fig.add_vline(x=x, line=dict(color=INK2, width=1, dash="dash"))
+    fig.add_annotation(x=5, y=4.3, text="IMO: tactical diameter < 5 L", showarrow=False, xanchor="right",
+                       font=dict(color=INK2, size=12))
+    _style(fig, "35° turns to starboard (solid) and port (dotted): measured against estimated coefficients", 640)
+    fig.update_xaxes(title="Sideways (ship lengths)", range=[-6.5, 6.5])
+    fig.update_yaxes(title="Along the approach (ship lengths)", scaleanchor="x", scaleratio=1, range=[-1, 5])
+    _save(fig, out, "ships_estimate")
 
 
 def forces(out):
@@ -208,6 +245,7 @@ def main():
     waves(a.out)
     look(a.out)
     forces(a.out)
+    estimate(a.out)
 
 
 if __name__ == "__main__":
