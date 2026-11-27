@@ -177,6 +177,7 @@ CONCRETE, DIRT = "SM_Square_61", "SM_Square_131"     # M_Concrete_04; M_Ground01
 GROUND_MESH = {"green": GRASS, "open": PAVING, "closed": CONCRETE, "unpaved": DIRT, "water": WATER}
 LAMP_MIN_M = 1.5        # lamps closer than this are one lamp mapped twice
 WATER_LEVEL_PCT = 20     # a water body's flat level: this percentile of the terrain model inside it
+WATER_BIG_TILE_M = 160.0 # water away from the roads: squares this big where they lie wholly on water
 LOWER_MAX, TILE_MIN = 0.3, 10.0    # a ground square sinks at most this under the terrain for a road, else it splits
 SPLIT_SHARE = 0.6     # a BGT tile whose main kind covers less than this of its ground is split in four
 GREEN_LANDUSE = {"grass", "forest", "meadow", "village_green", "recreation_ground", "cemetery", "allotments",
@@ -1582,16 +1583,33 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             corners = [geo.to_carla(a, b) for a, b in ((s_, w_), (s_, e_), (n_, w_), (n_, e_))]
             mx0, mx1 = min(c[0] for c in corners), max(c[0] for c in corners)
             my0, my1 = min(c[1] for c in corners), max(c[1] for c in corners)
-            extra = 0
-            for x in np.arange(math.floor(mx0 / TILE) * TILE + TILE / 2, mx1, TILE):
-                for y in np.arange(math.floor(my0 / TILE) * TILE + TILE / 2, my1, TILE):
-                    if gx0 <= x < gx1 and gy0 <= y < gy1:
+            # 160 m squares where the square lies wholly on water and outside the roads' grid (a tile costs about
+            # three meshes whatever its size: 1,133 meshes at Hoek van Holland in 40 m tiles), 40 m tiles along the
+            # banks and next to that grid, so no water spills onto the land
+            big, extra, big_n = WATER_BIG_TILE_M, 0, 0
+            for bx in np.arange(math.floor(mx0 / big) * big + big / 2, mx1, big):
+                for by in np.arange(math.floor(my0 / big) * big + big / 2, my1, big):
+                    sq = box(bx - big / 2, by - big / 2, bx + big / 2, by + big / 2)
+                    if not water_u.intersects(sq):
                         continue
-                    if water_u.contains(Point(x, y)):
-                        lay("water", x, y, TILE)
-                        extra += 1
-            if extra:
-                log(f"scenery: {extra} more water tiles beyond the roads' reach")
+                    clear = bx + big / 2 <= gx0 or bx - big / 2 >= gx1 or by + big / 2 <= gy0 or by - big / 2 >= gy1
+                    if clear and water_u.contains(sq):
+                        lay("water", bx, by, big)
+                        big_n += 1
+                        continue
+                    n = int(round(big / TILE))
+                    for i in range(n):
+                        for j in range(n):
+                            x = bx - big / 2 + (i + 0.5) * TILE
+                            y = by - big / 2 + (j + 0.5) * TILE
+                            if gx0 <= x < gx1 and gy0 <= y < gy1:
+                                continue
+                            if water_u.contains(Point(x, y)):
+                                lay("water", x, y, TILE)
+                                extra += 1
+            if extra or big_n:
+                log(f"scenery: water beyond the roads' reach: {big_n} squares of {big:.0f} m and {extra} tiles of "
+                    f"{TILE:.0f} m")
             box_xy = box(mx0 - 200.0, my0 - 200.0, mx1 + 200.0, my1 + 200.0)
             for k, poly in enumerate(water_polys):
                 if k not in water_levels:
