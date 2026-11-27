@@ -364,7 +364,6 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
 
     server = Server(tc["server"], log)
     client = server.start()
-    from . import look
     look.DEBUG_COMPRESS = compat.server_major(client) == 0     # debug colours (traffic lights, eHMIs): look.py
     sync = view = recorder = world = logger = drone_world = film = host_audio = photo = navw = city = react = None
     own_logs = []
