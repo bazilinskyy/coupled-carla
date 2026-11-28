@@ -1613,6 +1613,20 @@ paving mark; not the sign signals the bake drops) and stops on a difference, sav
 (old file kept as `.before-xodr-refresh`) and rebuilds the map; then run `tools/snap_scenery.py`. A package needs the
 same file as `Content/Carla/Maps/Twins/<Name>/OpenDrive/<Name>.xodr` and `Content/Carla/Maps/OpenDrive/<Name>.xodr`.
 
+**SUMO's net must be built from that same `map.xodr`** (`mapbuild.net_status`, `map.stale_net`). On 2026-11-28 the
+twin maps of a render host paired 16-17 Nov SUMO nets with a 24 Nov `map.xodr` (copied in by hand): in the old
+TU/e net De Zaale ended 21 m short, so SUMO planned 2,219 m (37 edges) for the clip's 326 m route and the car turned
+round; the level check compares only the OpenDRIVE. Now every SUMO net build records the signature of the
+`map.xodr` it came from (`net_source.json`); before each trial the run compares it (maps built before: the file
+times) and, by default, rebuilds `geo.net.xml` (OpenDRIVE maps), `map.net.xml` and `transit.json` (`"warn"`,
+`"stop"`: as named). `mapbuild --sumo-net` now rebuilds `transit.json` too (it names the net's edges; a stale one
+stopped a retake on edge -85); lines and stops of a `transit.json` on edges the net lacks are left out with a
+warning instead of failing the trial. Nets and `map.xodr` lose any `+geoidgrids=`/`+vunits=` in their PROJ string
+(a hand-copied twin OpenDRIVE names `egm96_15.gtx`, which pyproj lacks offline; x, y do not need the vertical datum).
+The SUMO driver's detour warning (route over twice the distance between its points) names a stale net as a cause.
+Checked on wsl5090's stale copies: the TU/e route 2,219 m / 37 edges -> 335 m / 4 edges; all four twins' nets and
+transit rebuilt in under a minute each.
+
 **Rendered on Windows (2026-11-14).** CARLA 1.0 also builds natively on Windows 11 (win5090: VS 2022, the
 engine fork with `GenerateProjectFiles` and msbuild, CARLA with CMake and Ninja) and packages: a Shipping
 server cooked with `-DCARLA_MAPS_TO_COOK=.../Town10HD_Opt+.../OpenDriveMap+.../TestMaps/EmptyMap+.../Twins/EhvCentre/EhvCentre`
@@ -2399,7 +2413,7 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
   vehicles wait at the stop line; the OpenDRIVE, lanes and signal programs are unchanged. On the 19 maps (300 s, two
   seeds): collisions 179 → 57, vehicles standing > 5 s inside a junction 1,521 → 845, teleports 189 → 179,
   emergency braking 564 → 582, trip times unchanged. A map built before this change gets the new net with
-  `python -m coupledcarla.mapbuild <experiment> --sumo-net`.
+  `python -m coupledcarla.mapbuild <experiment> --sumo-net` (also rebuilds transit.json).
 - **Animation**: within `simulation.animate_radius_m` (60 m) of a participant, SUMO vehicles move with physics on,
   following their SUMO pose by velocity, so wheels roll and steer and cyclists pedal (+0.1 ms per tick).
 - **Pedestrians**: SUMO vehicles brake for every walker in or entering their path, using SUMO's own speeds (CARLA

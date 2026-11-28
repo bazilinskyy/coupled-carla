@@ -224,7 +224,10 @@ class SumoDriver:
         if self._planned and length > 2.0 * straight + 100.0:
             # a point on the wrong lane (the opposite direction) makes SUMO drive a loop to reach it
             log(f"{p['role']}: WARNING the planned route is {length:.0f} m for {straight:.0f} m between its points: "
-                f"a route point on a lane of the other direction? (SUMO drives a detour to reach it)")
+                f"a route point on a lane of the other direction, or a SUMO net built from another OpenDRIVE "
+                f"(mapbuild.net_status; python -m coupledcarla.mapbuild <experiment> --sumo-net)? SUMO drives a "
+                f"detour to reach it")
+            self.detour = (round(length), round(straight))
         log(f"{p['role']}: SUMO driver, route of {len(route)} edges ({length:.0f} m"
             f"{', planned' if self._planned else ', random destination'}), from lane {self.lane.getID()}")
         sync.adopt(self.sid, self.vehicle.id)      # no SUMO twin for this car, now or while it waits

@@ -366,6 +366,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                                                      "study": plan_info}, sort_keys=False, allow_unicode=True))
     log(f"trial {trial_idx} -> {out}")
 
+    if (mdir / "map.net.xml").exists():      # SUMO's net and transit.json built from this map.xodr? (mapbuild)
+        summary_net = mapbuild.ensure_net(tc, mdir, log)
+        if summary_net != "ok":
+            log(f"SUMO net: {summary_net}")
     cfg_file = traffic.prepare(tc, mdir, out / "sumo", duration, log)
     log("SUMO demand ready")
     parts = [Participant(p) for p in tc["participants"]]

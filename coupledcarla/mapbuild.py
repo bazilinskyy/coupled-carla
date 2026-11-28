@@ -21,7 +21,7 @@ the OpenDRIVE and the SUMO net climb and fall as the real streets do. Bridges an
 grade between their ends (the terrain model would drop a bridge into the river), bridges raised by layer.
 
     python -m coupledcarla.mapbuild experiments/lyon.yaml --scenery    # redo only step 6
-    python -m coupledcarla.mapbuild experiments/lyon.yaml --sumo-net   # redo only step 5 (SUMO's net)
+    python -m coupledcarla.mapbuild experiments/lyon.yaml --sumo-net   # redo only step 5 (SUMO's net, transit.json)
 """
 import argparse
 import json
@@ -365,6 +365,136 @@ def scenery_for_server(cfg, out, server_major, log=log):
 NO_INTERNAL_JUNCTIONS = ["--default.connection.cont-pos", "0"]
 
 
+NET_STAMP = "net_source.json"      # what map.net.xml was built from (net_status, ensure_net)
+GEOID = re.compile(r"\s*\+geoidgrids=[^\s\]<\"]+|\s*\+vunits=[^\s\]<\"]+")
+
+
+def strip_geoid_file(path):
+    """Removes geoid grids and vertical units from the PROJ strings of an OpenDRIVE or SUMO net file, in place. A
+    twin's OpenDRIVE names e.g. +geoidgrids=egm96_15.gtx; a net built from it carries it in its projParameter and
+    pyproj then fails without the grid (wsl5090's venv, 2026-11-28: mapbuild --transit stopped). x, y do not depend
+    on the vertical datum. Returns True when the file changed."""
+    path = Path(path)
+    if not path.exists():
+        return False
+    text = path.read_text(encoding="utf-8", errors="replace")
+    head, tail = text[:200000], text[200000:]      # the geoReference / location element is near the top
+    new = GEOID.sub("", head)
+    if new == head:
+        return False
+    st = path.stat()
+    path.write_text(new + tail, encoding="utf-8")
+    os.utime(path, (st.st_atime, st.st_mtime))       # its age still says which OpenDRIVE it came from (net_status)
+    return True
+
+
+def _xodr_hash(out):
+    from . import levelxodr
+    return levelxodr.map_signature(out)["hash"]
+
+
+def stamp_net(out):
+    """Records which map.xodr (its signature: roads, lanes, geometry) map.net.xml was just built from."""
+    out = Path(out)
+    try:
+        stamp = {"xodr_hash": _xodr_hash(out), "net_size": (out / "map.net.xml").stat().st_size,
+                 "built": time.strftime("%Y-%m-%d %H:%M:%S")}
+    except (OSError, ValueError) as err:
+        log(f"net stamp not written ({err})")
+        return None
+    (out / NET_STAMP).write_text(json.dumps(stamp))
+    return stamp
+
+
+def net_status(out):
+    """(ok, why): whether map.net.xml was built from the map's current map.xodr. By the stamp sumo_net() writes
+    (the OpenDRIVE's signature, not its date), else, for maps built before stamps, by file times: a net older than
+    map.xodr was built from another OpenDRIVE (2026-11-28: wsl5090's twin maps had 24 Nov OpenDRIVE with 16-17 Nov
+    nets; on TUeCampus De Zaale ended 21 m short in the old net and SUMO drove 2219 m for a 326 m route)."""
+    out = Path(out)
+    net, xodr = out / "map.net.xml", out / "map.xodr"
+    if not net.exists():
+        return False, "map.net.xml is missing"
+    if not xodr.exists():
+        return True, "no map.xodr to compare with"
+    try:
+        stamp = json.loads((out / NET_STAMP).read_text())
+    except (OSError, ValueError):
+        stamp = None
+    if stamp:
+        try:
+            cur = _xodr_hash(out)
+        except Exception as err:  # noqa: BLE001 - an unreadable OpenDRIVE: the run's own checks say so
+            return True, f"map.xodr not read ({err})"
+        if stamp.get("xodr_hash") != cur:
+            return False, (f"map.net.xml ({stamp.get('built')}) was built from another map.xodr (signature "
+                           f"{stamp.get('xodr_hash')}, now {cur})")
+        if stamp.get("net_size") not in (None, net.stat().st_size):
+            return False, "map.net.xml was replaced after it was built"
+        return True, "map.net.xml was built from this map.xodr"
+    t_net, t_x = net.stat().st_mtime, xodr.stat().st_mtime
+    if t_net + 1.0 < t_x:
+        return False, (f"map.net.xml ({time.strftime('%Y-%m-%d %H:%M', time.localtime(t_net))}) is older than "
+                       f"map.xodr ({time.strftime('%Y-%m-%d %H:%M', time.localtime(t_x))})")
+    return True, "map.net.xml is newer than map.xodr (no build stamp)"
+
+
+def ensure_net(cfg, out, log=log):
+    """Before a trial: SUMO's net (and transit.json, which names its edges) must be built from the map's
+    map.xodr. map.stale_net: "rebuild" (default: geo.net.xml of an OpenDRIVE map, map.net.xml and transit.json
+    again, then on), "warn" (log and run on), "stop". Also strips geoid grids from the nets' PROJ strings.
+    Returns "ok", "rebuilt" or "stale"."""
+    out = Path(out)
+    ok, why = net_status(out)
+    for f in ("map.net.xml", "geo.net.xml"):
+        if strip_geoid_file(out / f):
+            log(f"{f}: geoid grid removed from its projection (pyproj needs no vertical datum for x, y)")
+            stamp_file = out / NET_STAMP
+            if f == "map.net.xml" and ok and stamp_file.exists():    # the same net: its stamp follows the new size
+                st = json.loads(stamp_file.read_text())
+                st["net_size"] = (out / f).stat().st_size
+                stamp_file.write_text(json.dumps(st))
+    if ok:
+        return "ok"
+    mode = (cfg.get("map") or {}).get("stale_net", "rebuild")
+    msg = (f"SUMO's net does not match the map's OpenDRIVE: {why}. SUMO would route on roads the level does not "
+           f"have (detours, dead ends)")
+    if mode == "stop":
+        raise SystemExit(msg + f". Fix: python -m coupledcarla.mapbuild {cfg.get('_path', '<experiment>')} --sumo-net")
+    if mode == "warn":
+        log("WARNING " + msg)
+        return "stale"
+    log(msg + ": rebuilding SUMO's net and transit.json from map.xodr")
+    rebuild_net(cfg, out)
+    return "rebuilt"
+
+
+def rebuild_net(cfg, out):
+    """geo.net.xml (an OpenDRIVE-built map's), map.net.xml and transit.json again from map.xodr (mapbuild
+    --sumo-net)."""
+    mc = cfg["map"]
+    out = Path(out)
+    meta = json.loads((out / "meta.json").read_text()) if (out / "meta.json").exists() else {}
+    if meta.get("opendrive") and (out / "map.xodr").exists():     # a twin's geo.net.xml comes from the OpenDRIVE too
+        if strip_geoid_file(out / "map.xodr"):
+            from . import levelxodr
+            levelxodr.store_signature(out)
+        netconvert("--opendrive-files", str(out / "map.xodr"), "--offset.disable-normalization", "--no-internal-links",
+                   "-o", str(out / "geo.net.xml"))
+        strip_geoid_file(out / "geo.net.xml")
+    sumo_net(out, guess_tls=not mc.get("carla_town"), internal_junctions=mc.get("internal_junctions", False),
+             smooth=mc.get("smooth_net", True), drop_uturns=mc.get("drop_uturns", False))
+    if meta and mc.get("transit", True) and (meta.get("transit") is not None or (out / "transit.json").exists()):
+        old = out / "transit.json"
+        if old.exists():      # names the old net's edges: kept aside, so a failed rebuild leaves no stale copy
+            old.replace(out / "transit.json.stale")
+        build_transit(dict(cfg, map=dict(mc, bbox=meta.get("bbox") or mc.get("bbox"))), out, meta)
+        (out / "meta.json").write_text(json.dumps(meta, indent=2))
+        if not (out / "transit.json").exists():
+            log("transit.json not rebuilt: trials use random buses (the old one is transit.json.stale)")
+    return out
+
+
 def sumo_net(out, guess_tls=True, internal_junctions=False, smooth=True, drop_uturns=False):
     """OpenDRIVE -> map.net.xml with CARLA's road ids, by the vendored netconvert_carla.py (CARLA 1.0 does not ship
     it). The SUMO net never gets the sidewalks (see config.py); bus-only lanes (OpenDRIVE "restricted") are open to
@@ -378,6 +508,9 @@ def sumo_net(out, guess_tls=True, internal_junctions=False, smooth=True, drop_ut
     the road ids differ, which matters only for CARLA-run traffic lights (tls_manager: carla). Without internal
     junctions netconvert re-writes it (same edges, lanes and lights)."""
     from . import netsmooth
+    if strip_geoid_file(out / "map.xodr"):   # a hand-copied twin OpenDRIVE may still name a geoid grid
+        from . import levelxodr
+        levelxodr.store_signature(out)       # same roads (the signature ignores the geoid), new size
     extra = ([] if internal_junctions else NO_INTERNAL_JUNCTIONS) + (netsmooth.NET_ARGS if smooth else [])
     if _lefthand(out / "geo.net.xml"):
         if extra:
@@ -396,6 +529,8 @@ def sumo_net(out, guess_tls=True, internal_junctions=False, smooth=True, drop_ut
             netsmooth.smooth(out / "map.net.xml", extra, log, drop_uturns=drop_uturns)
         except Exception as err:  # noqa: BLE001 - the net as netconvert made it still drives
             log(f"net smoothing failed ({err}); map.net.xml as netconvert made it")
+    strip_geoid_file(out / "map.net.xml")
+    stamp_net(out)
 
 
 def build_transit(cfg, out, meta):
@@ -521,10 +656,8 @@ def build(cfg, force=False, scenery_only=False, transit_only=False, refetch=Fals
     out = config.map_dir(cfg)
     out.mkdir(parents=True, exist_ok=True)
     if sumo_only and (out / "meta.json").exists():     # SUMO's net again from the map's OpenDRIVE (or geo.net.xml)
-        sumo_net(out, guess_tls=not mc.get("carla_town"), internal_junctions=mc.get("internal_junctions", False),
-                 smooth=mc.get("smooth_net", True),
-                 drop_uturns=mc.get("drop_uturns", False))
-        log(f"SUMO net rebuilt: {out}")
+        rebuild_net(cfg, out)     # and transit.json, which names the net's edges (it went stale before 2026-11-28)
+        log(f"SUMO net (and public transport) rebuilt: {out}")
         return out
     if transit_only and (out / "meta.json").exists():
         meta = json.loads((out / "meta.json").read_text())

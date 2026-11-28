@@ -762,6 +762,29 @@ def routes(map_dir, work, end_s, vtype, vtype_xml, when, pc, seed, net, live=Fal
     data = json.loads(path.read_text())
     if not data["lines"]:
         return None
+    # lines and stops on edges the net lacks (a transit.json built for another SUMO net) are left out, not fatal
+    seen = {}
+
+    def known(e):
+        if e not in seen:
+            try:
+                net.getEdge(e)
+                seen[e] = True
+            except Exception:  # noqa: BLE001 - sumolib raises KeyError for an unknown edge
+                seen[e] = False
+        return seen[e]
+    bad_lines = [ln for ln in data["lines"] if not all(known(e) for e in ln["edges"])]
+    bad_stops = {st["id"] for st in data["stops"] if not known(st["lane"].rsplit("_", 1)[0])}
+    if bad_lines or bad_stops:
+        log(f"transit.json: {len(bad_lines)} of {len(data['lines'])} lines and {len(bad_stops)} stops name edges "
+            f"this SUMO net lacks (built for another net: python -m coupledcarla.mapbuild <experiment> --transit); "
+            f"left out")
+        data = dict(data, lines=[ln for ln in data["lines"] if ln not in bad_lines],
+                    stops=[st for st in data["stops"] if st["id"] not in bad_stops])
+        for ln in data["lines"]:
+            ln["stops"] = [s for s in ln["stops"] if s not in bad_stops]
+        if not data["lines"]:
+            return None
     day, hour = day_type(when), when.hour
     rng = random.Random(seed)
     edges_len = {}
