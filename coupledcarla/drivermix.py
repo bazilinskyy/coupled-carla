@@ -76,8 +76,9 @@ def draw(kind, rng):
 
 
 def kind_of(vclass):
-    return {"bicycle": "bike", "bus": "bus"}.get(vclass, "car" if vclass in ("passenger", "taxi", "delivery",
-                                                                               "private", "evehicle") else None)
+    # lorries draw a bus driver's gap and acceleration; motorcycles and service vehicles a car driver's
+    return {"bicycle": "bike", "bus": "bus", "truck": "bus", "trailer": "bus"}.get(vclass, "car" if vclass in (
+        "passenger", "taxi", "delivery", "private", "evehicle", "motorcycle", "moped", "emergency") else None)
 
 
 def apply(vid, vclass, seed=42, traci_mod=None, red_running=True):

@@ -3568,60 +3568,11 @@
     3.6
    ]
   },
-  "SM_CC_NL_SignalCar": {
-   "path": "/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalCar.SM_CC_NL_SignalCar",
+  "SM_CC_NL_SignalCar200": {
+   "path": "/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalCar200.SM_CC_NL_SignalCar200",
    "region": "NL",
    "folder": "TrafficLight",
    "role": "signal_car",
-   "ext": [
-    0.36,
-    0.198,
-    0.72
-   ],
-   "off": [
-    0.0,
-    0.255,
-    0.0
-   ],
-   "triangles": 180,
-   "slots": [
-    "LensAmber",
-    "LensGreen",
-    "LensRed",
-    "SignalBlack",
-    "SignalYellow"
-   ],
-   "fallback": null,
-   "decal": false,
-   "note": "",
-   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "lenses": [
-    [
-     0.0,
-     0.295,
-     0.36
-    ],
-    [
-     0.0,
-     0.295,
-     0.0
-    ],
-    [
-     0.0,
-     0.295,
-     -0.36
-    ]
-   ],
-   "plate": [
-    0.72,
-    1.44
-   ]
-  },
-  "SM_CC_NL_SignalBike": {
-   "path": "/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalBike.SM_CC_NL_SignalBike",
-   "region": "NL",
-   "folder": "TrafficLight",
-   "role": "signal_bike",
    "ext": [
     0.31,
     0.198,
@@ -3642,7 +3593,7 @@
    ],
    "fallback": null,
    "decal": false,
-   "note": "",
+   "note": "200 mm car head, yellow back plate",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
    "lenses": [
     [
@@ -3664,6 +3615,93 @@
    "plate": [
     0.62,
     1.14
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    null,
+    null,
+    null
+   ],
+   "replaces": {
+    "path": "/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalCar.SM_CC_NL_SignalCar",
+    "lenses": [
+     [
+      0.0,
+      0.295,
+      0.36
+     ],
+     [
+      0.0,
+      0.295,
+      0.0
+     ],
+     [
+      0.0,
+      0.295,
+      -0.36
+     ]
+    ],
+    "lens_d": 0.3,
+    "faces": [
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  "SM_CC_NL_SignalBike": {
+   "path": "/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalBike.SM_CC_NL_SignalBike",
+   "region": "NL",
+   "folder": "TrafficLight",
+   "role": "signal_bike",
+   "ext": [
+    0.31,
+    0.198,
+    0.57
+   ],
+   "off": [
+    0.0,
+    0.255,
+    0.0
+   ],
+   "triangles": 564,
+   "slots": [
+    "LensAmber",
+    "LensGreen",
+    "LensRed",
+    "SignalBlack",
+    "SignalYellow"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "200 mm cyclist head, a bicycle in each lens",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "lenses": [
+    [
+     0.0,
+     0.295,
+     0.26
+    ],
+    [
+     0.0,
+     0.295,
+     0.0
+    ],
+    [
+     0.0,
+     0.295,
+     -0.26
+    ]
+   ],
+   "plate": [
+    0.62,
+    1.14
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    "bike",
+    "bike",
+    "bike"
    ]
   },
   "SM_CC_NL_SignalPed": {
@@ -3681,7 +3719,7 @@
     0.255,
     0.0
    ],
-   "triangles": 128,
+   "triangles": 248,
    "slots": [
     "LensGreen",
     "LensRed",
@@ -3690,7 +3728,7 @@
    ],
    "fallback": null,
    "decal": false,
-   "note": "",
+   "note": "200 mm pedestrian head, standing red and walking green figures",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
    "lenses": [
     [
@@ -3707,6 +3745,11 @@
    "plate": [
     0.62,
     0.88
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    "ped_stand",
+    "ped_walk"
    ]
   },
   "SM_CC_NL_SharkTeeth_3": {
@@ -5511,15 +5554,15 @@
     3.6
    ]
   },
-  "SM_CC_UK_SignalCar": {
-   "path": "/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalCar.SM_CC_UK_SignalCar",
+  "SM_CC_UK_SignalCar200": {
+   "path": "/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalCar200.SM_CC_UK_SignalCar200",
    "region": "UK",
    "folder": "TrafficLight",
    "role": "signal_car",
    "ext": [
-    0.36,
+    0.31,
     0.198,
-    0.72
+    0.57
    ],
    "off": [
     0.0,
@@ -5536,13 +5579,13 @@
    ],
    "fallback": null,
    "decal": false,
-   "note": "",
+   "note": "200 mm car head, black back plate with a white border",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
    "lenses": [
     [
      0.0,
      0.295,
-     0.36
+     0.26
     ],
     [
      0.0,
@@ -5552,13 +5595,45 @@
     [
      0.0,
      0.295,
-     -0.36
+     -0.26
     ]
    ],
    "plate": [
-    0.72,
-    1.44
-   ]
+    0.62,
+    1.14
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    null,
+    null,
+    null
+   ],
+   "replaces": {
+    "path": "/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalCar.SM_CC_UK_SignalCar",
+    "lenses": [
+     [
+      0.0,
+      0.295,
+      0.36
+     ],
+     [
+      0.0,
+      0.295,
+      0.0
+     ],
+     [
+      0.0,
+      0.295,
+      -0.36
+     ]
+    ],
+    "lens_d": 0.3,
+    "faces": [
+     null,
+     null,
+     null
+    ]
+   }
   },
   "SM_CC_JP_LampGooseneck8": {
    "path": "/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8.SM_CC_JP_LampGooseneck8",
@@ -12890,7 +12965,7 @@
    ],
    "fallback": null,
    "decal": false,
-   "note": "",
+   "note": "300 mm horizontal car head",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
    "lenses": [
     [
@@ -12912,6 +12987,12 @@
    "plate": [
     1.44,
     0.72
+   ],
+   "lens_d": 0.3,
+   "faces": [
+    null,
+    null,
+    null
    ]
   }
  }
