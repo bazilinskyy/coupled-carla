@@ -386,6 +386,12 @@ def registry(bbox):
     return None
 
 
+def prior(pv):
+    """A register-like fleet ({"source", "body"}) from a place's regional body mix (crowdtraffic.place_vehicles),
+    where no open register is read."""
+    return {"source": f"regional body mix ({pv['region']}, data/place_vehicles.json)", "body": dict(pv["body"])}
+
+
 def carla_major():
     """1 when the installed CARLA client is 1.0 (UE 5.8), else 0 (the client must match the server)."""
     try:
@@ -434,7 +440,7 @@ class Painter:
         self.rng = random.Random(seed)
 
     def __call__(self, blueprint=""):
-        if "ford.crown" in blueprint and self.taxis:
+        if ("ford.crown" in blueprint or "taxi.ford" in blueprint) and self.taxis:
             return _rgb(COLORS["taxi_yellow"])
         name = self.rng.choices(self.names, self.weights)[0]
         r, g, b = COLORS[name]

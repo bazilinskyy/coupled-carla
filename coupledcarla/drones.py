@@ -320,6 +320,18 @@ def draw_wireframe(debug, carla, af, pos_c, r_c, t, life, lights=True):
 
 # -- the drones of a trial -----------------------------------------------------------------------------------------
 
+LOOK_NEAR_M, LOOK_FAR_M = 30.0, 220.0     # m ahead of a pilot's drone where its camera's view of the ground lies
+
+
+def look_ahead(c, heading_deg, pitch_deg, agl, near_m=LOOK_NEAR_M, far_m=LOOK_FAR_M):
+    """(x, y) on the ground where a camera at c (CARLA x, y, z), heading heading_deg (CARLA yaw) and pitched
+    pitch_deg (negative: down), agl metres above the ground, looks: agl / tan(-pitch), clipped to near_m..far_m."""
+    d = far_m if pitch_deg > -2.0 else agl / math.tan(math.radians(-pitch_deg))
+    d = min(far_m, max(near_m, d))
+    h = math.radians(heading_deg)
+    return c[0] + d * math.cos(h), c[1] + d * math.sin(h)
+
+
 class Pilot:
     """A participant's drone."""
 
@@ -1137,6 +1149,43 @@ class DroneWorld:
         g = (pos[0] + cy * 0.13 * s, pos[1] + sy * 0.13 * s, pos[2] + 0.02 * s)     # the gimbal camera's lens
         q = to_carla(g)
         return carla.Transform(carla.Location(*q), carla.Rotation(pitch=p.gimbal, yaw=heading))
+
+    def look_points(self, near_m=LOOK_NEAR_M, far_m=LOOK_FAR_M):
+        """carla.Locations on the ground where each pilot's camera looks (its gimbal ray meets the ground, clipped to
+        near_m..far_m ahead; a level or upward camera: far_m). SUMO's vehicles, the parked cars and the frame log
+        cover these too (run.py), so a drone filming from 50 m sees the traffic of the streets it films, not only of
+        those under it (the Eindhoven drone clip, 2026-11-24, showed empty streets)."""
+        out = []
+        for p in self.pilots:
+            try:
+                c = to_carla(self.fleet.pos[p.idx])
+                yaw = float(self.fleet.yaw()[p.idx])
+            except (IndexError, TypeError):
+                continue
+            pts = look_ahead(c, -math.degrees(yaw), p.gimbal, c[2] - self.road_z(c[0], c[1]), near_m, far_m)
+            out.append(self.carla.Location(x=pts[0], y=pts[1], z=self.road_z(pts[0], pts[1])))
+        return out
+
+    def path_points(self, step_m=60.0, look=True):
+        """(x, y) CARLA points along the host-local bot pilots' planned flights (every step_m) and where their
+        cameras will look from there: the crowd is planned around them (run.py)."""
+        out = []
+        for p in self.pilots:
+            path = getattr(p.input, "path", None) if p.input is not None else None
+            if not path:
+                continue
+            pts = [(float(q[0]), -float(q[1]), float(q[2])) for q in path]    # BotPilot: (x, -y, z) -> CARLA
+            for (x0, y0, z0), (x1, y1, z1) in zip(pts, pts[1:]):
+                d = math.hypot(x1 - x0, y1 - y0)
+                n = max(1, int(d // step_m))
+                for k in range(n + 1):
+                    x, y, z = x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, z0 + (z1 - z0) * k / n
+                    out.append((x, y))
+                    if look and d > 1.0:
+                        heading = math.degrees(math.atan2(y1 - y0, x1 - x0))
+                        lx, ly = look_ahead((x, y, z), heading, p.gimbal, z - self.road_z(x, y))
+                        out.append((lx, ly))
+        return out
 
     # -- what the pilot sees and the stations hear ----------------------------------------------------------------
     def hud(self, p):
