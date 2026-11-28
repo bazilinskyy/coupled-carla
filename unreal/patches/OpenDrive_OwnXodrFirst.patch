@@ -1,0 +1,42 @@
+diff --git a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/OpenDrive/OpenDrive.cpp b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/OpenDrive/OpenDrive.cpp
+index ffc474b..bde8c53 100644
+--- a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/OpenDrive/OpenDrive.cpp
++++ b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/OpenDrive/OpenDrive.cpp
+@@ -31,6 +31,21 @@ void UOpenDrive::SetSavedXODRDirectory(const FString &Directory)
+   UOpenDrive_SavedXODRDirectory = Directory;
+ }
+ 
++namespace
++{
++  /// A level's OpenDrive folder can hold more .xodr files than the level's own (a backup copy kept beside it, a
++  /// variant): <MapName>.xodr goes first, whatever order the file system lists them in.
++  void PutOwnXODRFirst(TArray<FString> &Files, const FString &MapName)
++  {
++    const FString Own = MapName + TEXT(".xodr");
++    Files.StableSort([&Own](const FString &A, const FString &B)
++    {
++      return FPaths::GetCleanFilename(A).Equals(Own, ESearchCase::IgnoreCase) &&
++             !FPaths::GetCleanFilename(B).Equals(Own, ESearchCase::IgnoreCase);
++    });
++  }
++} // namespace
++
+ FString UOpenDrive::FindPathToXODRFile(const FString &InMapName){
+ 
+   FString MapName = InMapName;
+@@ -167,6 +182,7 @@ FString UOpenDrive::GetXODR(const UWorld *World)
+   if (!Files.Num())
+   {
+     IFileManager::Get().FindFilesRecursive(Files, *FolderDir, *FString(FileName + ".xodr"), true, false, false);
++    PutOwnXODRFirst(Files, MapName);
+   }
+ 
+   if (!Files.Num())
+@@ -265,6 +281,7 @@ FString UOpenDrive::GetXODRByPath(FString XODRPath, FString MapName){
+   // Find all the xodr and bin files from the map
+   TArray<FString> Files;
+   IFileManager::Get().FindFilesRecursive(Files, *FolderDir, *FString(FileName + ".xodr"), true, false, false);
++  PutOwnXODRFirst(Files, MapName);
+ 
+   FString Content;
+ 

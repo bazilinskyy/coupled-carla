@@ -36,13 +36,14 @@ def test_choose_meshes_both_catalogues():
     # CARLA's give-way plate says YIELD (the US design): a blank triangle on 1.0, none on 0.9.16 (no blank plates)
     assert ndwsigns.choose(S("B6"), C10, False)[::2] == ("SM_InvertedTriangleShape", "generic")
     assert ndwsigns.choose(S("B6"), C09)[2] == "skipped"
-    assert ndwsigns.choose(S("A1", "50"), C09)[::2] == ("SM_SpeedSign50", "real")
-    assert ndwsigns.choose(S("A1", "30"), C10, False)[::2] == ("SM_SpeedLimit30", "real")
+    # CARLA's speed plate is the US "SPEED LIMIT" rectangle: never in the Netherlands (a blank roundel or nothing)
+    assert ndwsigns.choose(S("A1", "50"), C09)[2] == "skipped"
+    assert ndwsigns.choose(S("A1", "30"), C10, False)[::2] == ("SM_CircleShape", "generic")
     # the posted speed or nothing like it: no 20 km/h plate in CARLA
     assert ndwsigns.choose(S("A1", "20"), C09)[2] == "skipped"
     assert ndwsigns.choose(S("A1", "20"), C10, False)[::2] == ("SM_CircleShape", "generic")
     assert ndwsigns.choose(S("C2"), C09)[2] == "skipped"
-    assert ndwsigns.choose(S("C2"), C10)[::2] == ("SM_DoNoEnter01", "real")
+    assert ndwsigns.choose(S("C2"), C10, False)[::2] == ("SM_CircleShape", "generic")    # not DO NOT ENTER
     assert ndwsigns.choose(S("E4"), C10, False)[::2] == ("SM_SquareShape", "generic")
     assert ndwsigns.choose(S("J24"), C10, False)[::2] == ("SM_DangerSignShape", "generic")
     assert ndwsigns.choose(S("onbekend"), C10)[2] == "skipped"
@@ -54,15 +55,15 @@ def test_choose_meshes_both_catalogues():
 
 
 def test_dutch_faces_on_carla_1():
-    # CARLA's stop and no entry stay; its (US-style) give-way and speed plates and the blank plates give way to faces
+    # CARLA's stop stays; its (US) give-way, speed and no-entry plates and the blank plates give way to faces
     assert ndwsigns.choose(S("B6"), C10)[::2] == ("SM_NL_B6", "face")
-    assert ndwsigns.choose(S("C2"), C10)[::2] == ("SM_DoNoEnter01", "real")
+    assert ndwsigns.choose(S("C2"), C10)[::2] == ("SM_NL_C2", "face")
     assert ndwsigns.choose(S("A1", "30"), C10)[::2] == ("SM_NL_A1_30", "face")
     assert ndwsigns.choose(S("A1", "20"), C10)[::2] == ("SM_NL_A1_20", "face")
     assert ndwsigns.choose(S("E4"), C10) == ("SM_NL_E4", 0.6, "face")
     assert ndwsigns.choose(S("J24"), C10)[::2] == ("SM_NL_J24", "face")
     assert ndwsigns.choose(S("A4", "15"), C10)[2] == "generic"     # no face with that number: a blank plate
-    assert ndwsigns.choose(S("E4"), C09)[2] == "skipped" and ndwsigns.choose(S("A1", "50"), C09)[2] == "real"
+    assert ndwsigns.choose(S("E4"), C09)[2] == "skipped" and ndwsigns.choose(S("A1", "50"), C09)[2] == "skipped"
     zone = dict(S("A1", "30"), z="ZB")
     assert ndwsigns.face_keys(zone) == ["A1-30-ZB", "A1-30"]
     assert ndwsigns.choose(zone, C10)[::2] == ("SM_NL_A1_30_ZB", "face")

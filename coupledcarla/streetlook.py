@@ -262,9 +262,7 @@ def ground_mesh(kind, size, cat, region):
 
 # Countries whose give-way sign is not the plain red-bordered inverted triangle (text in it, or none at all) and
 # whose speed limits are not the red roundel with the number (rectangular SPEED LIMIT plates)
-GIVE_WAY_OTHER = {"USA", "PRI", "GUM", "VIR", "ASM", "MNP", "PHL", "LBR", "CAN", "GBR", "IRL", "AUS", "NZL", "JPN",
-                  "TWN", "CHN", "HKG", "MAC", "KOR", "IND", "MYS", "SGP"}
-SPEED_RECT = {"USA", "PRI", "GUM", "VIR", "ASM", "MNP", "LBR", "CAN"}
+from .localsigns import GIVE_WAY_OTHER, SPEED_RECT  # noqa: E402 - one table for scenery and the stock signs
 
 
 def osm_face(kind, value, iso3, cat):
