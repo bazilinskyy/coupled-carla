@@ -624,6 +624,23 @@ texture API. SUMO's traffic lights show as signal heads on kerb poles (CARLA's o
 per approach, with the lit lamp in SUMO's colour (`simulation.traffic_lights.style: head`; `marker` for the old
 glowing points). On CARLA 1.0 use the `CoupledClean` post-process profile (`coupledcarla/data/postprocess`).
 
+**Demo-video cameras on CARLA 1.0 (2026-11-28).** CARLA 1.0's RGB camera has no lens attributes; its look is the
+post-process profile. Until now the film cameras (`film.py`) always asked for CARLA's `Dashcam`, whatever the clip
+set: colour fringes 0.8 that smear every edge away from the centre, film grain, a 0.7 vignette, bloom 1.2 and a
+6000 K white balance that turns the picture blue (twin_salamanca.mp4: the soft bench, trunk and facades at the edge
+of the frame). The film camera now takes the clip's profile (`film.camera_profile`, else `film.capture.profile`,
+else the trial's `simulation.capture.profile` / `simulation.camera_profile`, so the twin clips' `CoupledReal`
+applies) and swaps a stock profile with lens effects (`Dashcam`, `LegacyCCD`, `WideHDR8MP`, `GoPro`) for
+`CoupledClean` unless `film.camera_profile` names it on purpose (`look.film_profile`). Our profiles override fringe,
+grain, vignette, motion blur and the scene tint to neutral, so a level's own post-process volume cannot add them
+back; the server needs them installed (`tools/install_profiles.py`). What was measured on the 24 Nov Salamanca clip:
+the encode is not the blur (1080p, CRF 20, 11.9 Mb/s: a kept frame against its encoded frame 37 dB PSNR, the same
+sharpness); the lawn was the aerial photo itself (12 cm per texel, now a grass material: carla-digitaltwins
+`twinmodel/export/lawn.py`), and the lawn's texels looked 3-4 times coarser still at 5-10 m, so the texture streaming
+of the twin's ground is suspected too: render servers for clips may raise `r.Streaming.PoolSize` (4000 MB in CARLA
+1.0's DefaultEngine.ini; `-ExecCmds="r.Streaming.PoolSize 12000,r.MaxAnisotropy 16"` on a 32 GB card, capped by
+`r.Streaming.LimitPoolSizeToVRAM`).
+
 **Placement audit.** `python tools/placement_audit.py <experiment> --port <p> [--radius 300] [--frames 12]` checks
 placement on a running server: it spawns the map's scenery, parked stalls and SUMO's signal heads around a point and
 flags objects that float or are sunk (box bottom against the ground under it), tilted, duplicated, standing on a lane
@@ -681,6 +698,36 @@ logo, name or real advertisement is used. They are items of kind `facade`: `tool
 the ground of their area (never onto it). Option `map.scenery.screens` (`auto`: on baked twins; `false`: off). The
 props come with the street props (`tools/street_props.py`; the Japanese sign faces are rendered with Noto Sans CJK, SIL
 OFL, and kept in `unreal/StreetProps/textures`) and are imported by `tools/ue_street_props.py`.
+
+**Generated signage: what is real and what is made up (baked twins, 2026-11-28).** Shop signs and advertising make
+a street read as a place, so every twin gets them in its own language and style; but only their positions are real.
+
+| Real (open data, facts) | Generated (`tools/signage_art.py`, MIT) |
+|---|---|
+| where each shop, cafe, bar and restaurant is, its trade and its floor (OSM) | every shop name on every sign: invented ("De Korenschoof", "麺屋 とりあかり", "Rise & Crumb") |
+| the facade it hangs on (the twin's measured buildings) | every advertisement, brand, product, film, show and slogan (HOSHIBA SODA, NOVARELL, ALPENKLAR, ...) |
+| mapped advertising columns, poster cases, billboards and screens (OSM `advertising=*`) | what those show: local-language posters and ads, laid out procedurally |
+| the places known for big screens and billboards (`data/screen_places.json`: Shibuya, Times Square) | the screens' content (invented ads, slowly scrolling) |
+| the kind of signage a place has, its density, sizes and colours (looked at in open street photos) | the typography: open fonts only (Noto Sans / Serif CJK JP, SIL OFL; DejaVu and STIX) |
+
+- **Shibuya and other Japanese twins:** a lit signboard (kanban) over every shopfront, at the shop's floor for upstairs
+  shops (a band of signs up the lower floors); multi-tenant vertical signs listing the floors (2F 居酒屋, 3F カラオケ,
+  ...) on the corners of blocks with several or upstairs shops; cloth banners (nobori: 営業中, ランチ, 生ビール, ...) and
+  lit stand signs on the pavement; wall billboards on the tall walls of dense streets (10 more around the scramble)
+  and rooftop billboards on mid-rise blocks; the screens show Japanese ads. The single-word vertical signs stay.
+- **The Netherlands, Spain, Switzerland (German), Finland (Finnish over Swedish) and the US:** a fascia board on every
+  shop with its trade and an invented name in the local language (a green cross on pharmacies), an A-board at some
+  cafes and restaurants, the mapped columns, poster cases and billboards with local posters; Times Square also gets
+  24 wall billboards and its screens English ads. European old towns get no wall or roof billboards.
+- **Why not real ads.** Real advertisements, brand names, logos and trademarks are not used, also not from openly
+  licensed photos (CC BY-SA, Mapillary): the photos' licence covers the photo, not the brands in it, and brand imagery
+  in a public repository and in published videos is a legal risk. Open street photos served only as a style
+  reference. If licensed ad imagery is supplied later, it can replace the generated set (one texture per item in
+  `catalog()`). `tests/test_signage.py` guards against well-known brand names and missing glyphs (the Japanese font
+  subsets in `unreal/StreetProps/fonts`, made by `tools/signage_fonts.py`, must cover every character drawn).
+- Placement: `coupledcarla/signage.py` (option `map.scenery.signage`: `auto` on baked twins, `true`, `false`); the
+  props (254 meshes, their faces drawn at build time, nothing large in git) come with `tools/street_props.py` and
+  are imported by `tools/ue_street_props.py`; a server without them keeps the older generic Dutch boards.
 
 ### Road signs and number plates of the place
 
@@ -844,6 +891,25 @@ banks: at Hoek van Holland 218 more water pieces, 1.1 % of the scenery), writes 
 CARLA lower its terrain 3 m under them. On lin5080 (2026-11-27) it lowered 100,520 of 411,635 terrain vertices; rays
 over the channel then met the terrain at -1.9 m under water at 1.1 m, and the land stayed as it was. A server without
 the patch ignores the userData.
+
+**The landscape to the horizon (far ring).** A twin ends at its last tile and a generated map at its scenery's ground
+tiles; aerial and long views used to see a black ground plane (twins) or a grey paving slab to the horizon (generated
+maps). carla-digitaltwins' `tools/far_ring.py` builds the real land around them, open data only: the national terrain
+model (else the AWS Terrain Tiles) with the Earth's curvature, the national aerial photo (else Sentinel-2 cloudless
+2016, CC BY 4.0) at about 1 m/px to 2.5 km, 5 m/px to 20 km and 30 m/px to 60 km, LoD1 buildings to 3 km (3DBAG in
+the Netherlands, else Overture or OSM) with photo roofs, and an ESA WorldCover forest canopy to 8 km; it meets the
+twin 0.5 m under its edge, and an aerial-perspective setting fades it into the sky (details and numbers in the
+carla-digitaltwins README). Every twin gets one in its bake (`twinmodel twin`, step `farring`;
+`ue/bake_far_ring.py` adds it to a baked level). For a generated map the map maker builds it into
+`maps/<name>/far_ring/` when the twin toolchain is configured (`coupledcarla/farring.py` reads the map's
+geoReference, ground tiles and terrain base); after `bake_far_ring.py --assets-only` has cooked it into the CARLA 1.0
+server, the run spawns it instead of the slab (a server without it keeps the slab):
+
+```bash
+python -c "from coupledcarla import farring; farring.build('maps/lyon', '<carla-digitaltwins>/TwinModel')"
+UnrealEditor-Cmd <CarlaUnreal.uproject> -run=pythonscript -nullrhi \
+    -script="<carla-digitaltwins>/TwinModel/ue/bake_far_ring.py --far-ring $PWD/maps/lyon/far_ring/far_ring.json --name Lyon --assets-only"
+```
 
 ### Where each object comes from (provenance)
 
@@ -1842,8 +1908,9 @@ one diagonal), Shibuya's stacked roads and plazas (the autopilot left the lanes 
 and the scenery, which stands at the AWS Terrain Tiles' heights until `tools/snap_scenery.py` puts it on the level's
 ground. The map maker ran the whole chain with `--twin` for a third place (Grote Markt, Leuven, 0.5 km, without the
 bake): the Flemish orthophoto, 849 Overture buildings, the experiment and its SUMO net in 29 minutes. Shibuya's large video screens and billboards (Q-Front, the 109 tower's signs) are not in any
-open data: PLATEAU models them as part of the facade photo at best; screens playing video would need emissive
-media-texture materials placed by hand or from a sign inventory.
+open data: PLATEAU models them as part of the facade photo at best. The twin has generated ones instead (screens with
+invented Japanese ads around the scramble, billboards, kanban: "Generated signage" above); the real ones' content is
+never copied.
 
 **Roads clear of buildings.** Open building models are solids down to the ground, so where a street runs under a
 building (Shibuya's bus terminal, station halls, the Park Avenue viaduct) or a footprint overlaps the carriageway,

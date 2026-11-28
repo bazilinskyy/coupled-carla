@@ -141,6 +141,7 @@ class Chooser:
     def __init__(self, cat, iso3=None, bbox=None, enabled=True):
         self.cat = cat
         self.region = region(iso3, bbox) if enabled else None
+        self.iso3 = (iso3 or "").upper() if enabled else None     # signage.py's locale (generated local ads)
         self.amsterdam = in_amsterdam(bbox)
         self.counts = {}
 
@@ -206,10 +207,16 @@ class Chooser:
             if self._have(name):
                 self._count("flagpole")
                 return name
-        if (key, value) == ("advertising", "column"):      # a Morris column in any country (three poster sets)
-            name = f"SM_CC_Any_AdColumn_{'ABC'[zlib.crc32(str(uid).encode()) % 3]}"
+        if key == "advertising" and value in ("column", "poster_box", "board", "billboard"):
+            # the mapped ones keep their place; what they show is generated in the local language (signage.py)
+            from . import signage
+            loc = signage.locale(self.iso3)
+            fam = {"column": "AdColumn", "poster_box": "Mupi", "board": "Mupi", "billboard": "BillboardStand"}[value]
+            name = signage.pick(signage.variants(self.cat, loc, fam), uid) if loc else None
+            if name is None and value == "column":      # a Morris column in any country (three poster sets)
+                name = f"SM_CC_Any_AdColumn_{'ABC'[zlib.crc32(str(uid).encode()) % 3]}"
             if self._have(name):
-                self._count("ad_column")
+                self._count("ad_" + value)
                 return name
         if self.region is None:
             return None
@@ -744,7 +751,8 @@ def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, els, blds, look, log
         log("scenery: " + "; ".join(said))
     if free is not None:      # clinker roads, grime and litter, parked bikes, shop signs (streetlife.py)
         from . import streetlife
-        streetlife.add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, blds, look.region, bgt_data, free, log)
+        streetlife.add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, blds, look.region, bgt_data, free, log,
+                                  iso3=getattr(look, "iso3", None))
 
 
 # --- night: CARLA's lit lamp in place of ours ----------------------------------------------------------------------
