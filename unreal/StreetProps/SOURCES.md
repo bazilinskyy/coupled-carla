@@ -53,6 +53,8 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_Any_Sett_W4 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W4` | 8.00 x 4.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Sett_W6 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W6` | 12.00 x 6.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Sett_W8 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W8` | 16.00 x 8.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
+| SM_CC_Any_SignalPed | `/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPed` | 0.32 x 0.40 x 0.58 | 248 | - | generic pedestrian head: red standing, green walking figure | MIT (procedural) |
+| SM_CC_Any_SignalPole | `/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPole` | 0.11 x 0.11 x 3.05 | 128 | - | signal_pole | MIT (procedural) |
 | SM_CC_Any_Stains_A | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Stains_A` | 1.50 x 1.50 x 0.00 | 2 | - | stains | MIT (procedural) |
 | SM_CC_JP_LampGooseneck8 | `/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8` | 2.25 x 0.28 x 8.05 | 784 | SM_StreetLight06_A | lamp_arm | MIT (procedural) |
 | SM_CC_JP_SignV_biyo | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_biyo` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 美容室 (a generic word) | MIT (procedural) |
@@ -67,6 +69,7 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_JP_SignV_shoten | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_shoten` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 書店 (a generic word) | MIT (procedural) |
 | SM_CC_JP_SignV_sushi | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_sushi` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 寿司 (a generic word) | MIT (procedural) |
 | SM_CC_JP_SignalCar | `/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalCar` | 1.44 x 0.40 x 0.72 | 180 | - | 300 mm horizontal car head | MIT (procedural) |
+| SM_CC_JP_SignalPed | `/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPed` | 0.37 x 0.40 x 0.68 | 248 | - | pedestrian head: red standing, blue-green walking figure | MIT (procedural) |
 | SM_CC_JP_SignalPole | `/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole` | 0.11 x 0.11 x 3.65 | 128 | - | signal_pole | MIT (procedural) |
 | SM_CC_NL_Amsterdammertje | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Amsterdammertje` | 0.14 x 0.14 x 1.01 | 680 | SM_Bollard_Grey | bollard_amsterdam | MIT (procedural) |
 | SM_CC_NL_BenchEindhoven_DarkBrown | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BenchEindhoven_DarkBrown` | 1.80 x 0.59 x 0.85 | 140 | SM_Bench01 | bench | MIT (procedural) |
@@ -128,10 +131,12 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_NL_ShopSign_supermarkt | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_supermarkt` | 3.00 x 0.08 x 0.60 | 14 | - | shop_sign | MIT (procedural) |
 | SM_CC_NL_ShopSign_winkel | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_winkel` | 3.00 x 0.08 x 0.60 | 14 | - | shop_sign | MIT (procedural) |
 | SM_CC_NL_SignalBike | `/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalBike` | 0.62 x 0.40 x 1.14 | 564 | - | 200 mm cyclist head, a bicycle in each lens | MIT (procedural) |
+| SM_CC_NL_SignalBus | `/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalBus` | 0.62 x 0.40 x 1.14 | 284 | - | public-transport bar signal (OV-licht): white horizontal bar, dot, vertical bar | MIT (procedural) |
 | SM_CC_NL_SignalCar200 | `/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalCar200` | 0.62 x 0.40 x 1.14 | 180 | - | 200 mm car head, yellow back plate | MIT (procedural) |
 | SM_CC_NL_SignalPed | `/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalPed` | 0.62 x 0.40 x 0.88 | 248 | - | 200 mm pedestrian head, standing red and walking green figures | MIT (procedural) |
 | SM_CC_NL_SignalPole | `/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalPole` | 0.11 x 0.11 x 3.65 | 544 | - | signal_pole | MIT (procedural) |
 | SM_CC_UK_BinCast | `/Game/CoupledCarla/Street/UK/Static/SM_CC_UK_BinCast` | 0.54 x 0.54 x 0.97 | 636 | SM_TrashCan01 | bin | MIT (procedural) |
 | SM_CC_UK_LampColumn8 | `/Game/CoupledCarla/Street/UK/Pole/SM_CC_UK_LampColumn8` | 1.31 x 0.25 x 8.14 | 284 | SM_StreetLight06_A | BS EN 40 column | MIT (procedural) |
 | SM_CC_UK_SignalCar200 | `/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalCar200` | 0.62 x 0.40 x 1.14 | 192 | - | 200 mm car head, black back plate with a white border | MIT (procedural) |
+| SM_CC_UK_SignalPed | `/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPed` | 0.32 x 0.40 x 0.58 | 248 | - | far-side pedestrian head: red standing, green walking figure | MIT (procedural) |
 | SM_CC_UK_SignalPole | `/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPole` | 0.11 x 0.11 x 3.65 | 128 | - | signal_pole | MIT (procedural) |

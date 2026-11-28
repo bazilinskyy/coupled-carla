@@ -13781,6 +13781,19 @@
 0.0
 ]
 },
+"/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalBus.SM_CC_NL_SignalBus": {
+"cat": "furniture",
+"ext": [
+0.31,
+0.198,
+0.57
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
 "/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_SharkTeeth_3.SM_CC_NL_SharkTeeth_3": {
 "cat": "marking",
 "ext": [
@@ -14678,6 +14691,19 @@
 0.0
 ]
 },
+"/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPed.SM_CC_UK_SignalPed": {
+"cat": "furniture",
+"ext": [
+0.16,
+0.198,
+0.29
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
 "/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8.SM_CC_JP_LampGooseneck8": {
 "cat": "lamp",
 "ext": [
@@ -14957,6 +14983,45 @@
 0.72,
 0.198,
 0.36
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPed.SM_CC_JP_SignalPed": {
+"cat": "furniture",
+"ext": [
+0.185,
+0.198,
+0.34
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPole.SM_CC_Any_SignalPole": {
+"cat": "furniture",
+"ext": [
+0.057,
+0.057,
+1.525
+],
+"off": [
+0.0,
+0.0,
+1.525
+]
+},
+"/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPed.SM_CC_Any_SignalPed": {
+"cat": "furniture",
+"ext": [
+0.16,
+0.198,
+0.29
 ],
 "off": [
 0.0,
