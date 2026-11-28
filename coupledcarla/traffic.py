@@ -92,6 +92,13 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
         import traceback
         traceback.print_exc()
         log(f"scramble crossings: not used ({type(err).__name__}: {err})")
+    try:     # stop lines before the crosswalks at junctions, not at the lanes' ends on them (stoplines.py)
+        from . import stoplines
+        stops = stoplines.prepare(map_dir, sumo_net, work, log) if tc.get("stop_lines", True) else None
+        if stops:
+            sumo_net = stops
+    except Exception as err:  # noqa: BLE001 - a refinement: never fail the trial for it
+        log(f"stop lines: not set ({type(err).__name__}: {err})")
     pc = tc.get("public_transport") or {}
     pt = None
     if pc.get("enabled", True):
