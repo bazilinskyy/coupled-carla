@@ -22,11 +22,10 @@ clips:
     notice: dense mixed traffic around the station, buses of the real lines, cyclists sharing the road
     experiment: experiments/eindhoven_centre.yaml
     time: "2026-06-17 17:15"
-    set: {traffic: {cars_per_hour: 3600, bikes_per_hour: 2400}}
     hold: {driver: 96}
     # a planned route (SUMO driver, sumodriver.py): Fellenoord, across Kennedyplein to the John F. Kennedylaan, on
     # towards Fuutlaan; the car enters SUMO at its spawn when the hold ends, with the rush hour already going
-    patch: {participants: {driver: {route: [[51.44479, 5.48053], [51.4423, 5.4852]]}}}
+    patch: {participants: {driver: {route: [[51.44479, 5.48053], [51.4423, 5.4852]], vehicle: vehicle.toyota.prius}}}
     start_s: 100
     duration_s: 20
     camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}
@@ -149,9 +148,11 @@ clips:
     experiment: experiments/cities/new_york_midtown.yaml
     time: "2026-10-14 16:30"
     set:
+      traffic: {crowd: {service_share: 0.03}}    # showcase: police cars, ambulances, a fire engine in the avenue
       participants:
         - role: driver
-          vehicle: vehicle.lincoln.mkz_2020
+          vehicle: vehicle.ford.crown      # a yellow cab up Sixth Avenue
+          color: "250,195,0"
           input: autopilot
           automation: {route: [[40.74883, -73.98843], [40.75360, -73.98501], [40.75915, -73.98102]], speed_kmh: 32}
     start_s: 55
@@ -168,9 +169,8 @@ clips:
     notice: a map made by typing "Chernihiv" into the map maker; prospekt Myru towards the centre, a bus stopping, people boarding
     experiment: experiments/chernihiv.yaml
     time: "2026-09-16 17:00"
-    set: {traffic: {walkers: {count: 40, radius_m: 150}}}
     hold: {driver: 60}
-    patch: {participants: {driver: {route: [[51.4968, 31.2885], [51.4912, 31.2985]]}}}
+    patch: {participants: {driver: {route: [[51.4968, 31.2885], [51.4912, 31.2985]], vehicle: vehicle.seat.leon}}}
     start_s: 64
     duration_s: 20
     camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}
@@ -186,7 +186,7 @@ clips:
     time: "2026-08-05 09:30"
     set:
       participants:
-        - {role: driver, vehicle: vehicle.lincoln.mkz_2020, input: autopilot, spawn: {lat: -1.94525, lon: 30.06448}}
+        - {role: driver, vehicle: vehicle.nissan.patrol_2021, input: autopilot, spawn: {lat: -1.94525, lon: 30.06448}}
     hold: {driver: 38}
     start_s: 40
     duration_s: 20
@@ -207,7 +207,7 @@ clips:
     set:
       simulation: {sun_altitude: -12}
       participants:
-        - {role: driver, vehicle: vehicle.lincoln.mkz_2020, input: autopilot, spawn: {lat: 45.75780, lon: 4.83350}}
+        - {role: driver, vehicle: vehicle.citroen.c3, input: autopilot, spawn: {lat: 45.75780, lon: 4.83350}}
     hold: {driver: 37}
     start_s: 40
     duration_s: 20
@@ -275,7 +275,7 @@ clips:
     set:
       traffic: {cars_per_hour: 1800, walkers: {count: 25, ai: {count: 50, radius_m: 200}}}
       participants:
-        - {role: driver, vehicle: vehicle.lincoln.mkz_2020, input: autopilot, spawn: {x: -5.5, y: 130.2, heading: 270}}
+        - {role: driver, vehicle: vehicle.dodge.charger_2020, input: autopilot, spawn: {x: -5.5, y: 130.2, heading: 270}}
     hold: {driver: 38}
     start_s: 38
     duration_s: 20
@@ -364,7 +364,7 @@ clips:
     set:
       traffic: {cars_per_hour: 1200, walkers: {count: 10, ai: {count: 30}}}
       participants:
-        - {role: driver, vehicle: vehicle.lincoln.mkz_2020, input: autopilot, spawn: {x: 200.0, y: 59.5, heading: 90}}
+        - {role: driver, vehicle: vehicle.chevrolet.impala, input: autopilot, spawn: {x: 200.0, y: 59.5, heading: 90}}
     hold: {driver: 30}
     start_s: 30
     duration_s: 20
@@ -400,6 +400,7 @@ clips:
     notice: 3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and
       street furniture from open data
     experiment: experiments/eindhoven_twin.yaml
+    time: "2026-06-17 17:15"      # the clip's weekday rush hour (traffic, buses, sun); unset meant 08:00
     # traffic seed 43: with 42 a bus swerved through the camera window (2026-11-23 re-render, realism QA)
     set: {traffic: {seed: 43}}
     hold:
@@ -407,6 +408,7 @@ clips:
     patch:
       participants:
         driver:
+          vehicle: vehicle.tesla.model3      # every clip its own ego, from the place's fleet (README: vehicles)
           route:
           - - 51.44479
             - 5.48053
@@ -460,7 +462,9 @@ clips:
     notice: a twin made by the "twin of any place" pipeline from Spain's open data (Catastro buildings with their
       floors, PNOA aerial photo, MDT05 terrain)
     experiment: experiments/salamanca_twin.yaml
+    time: "2026-09-22 12:30"
     set: {simulation: {camera_profile: CoupledReal}}
+    patch: {participants: {driver: {vehicle: vehicle.mini.cooper_s_2021}}}
     hold:
       driver: 20
     start_s: 25
@@ -476,8 +480,11 @@ clips:
     notice: driving across the scramble crossing in a twin from Japan's open data (PLATEAU buildings with their photo
       textures, GSI aerial photo and terrain)
     experiment: experiments/shibuya_twin.yaml
+    time: "2026-09-22 12:30"
     # traffic seed 43: with 42 the driver's car jolted sideways at the crossing (2026-11-23 re-render, realism QA)
     set: {simulation: {camera_profile: CoupledReal}, traffic: {seed: 43}}
+    # a Tokyo taxi (Crown sedan in the JPN Taxi's dark blue) among the city's taxis, kei vans and Toei buses
+    patch: {participants: {driver: {vehicle: vehicle.ford.crown, color: "32,42,72"}}}
     hold:
       driver: 20
     start_s: 38
@@ -493,6 +500,7 @@ clips:
       draws them as plain boxes)
     notice: the pilot climbs over the twin's real roof shapes; delivery and swarm drones fly in the cruise band
     experiment: experiments/eindhoven_drones.yaml
+    time: "2026-09-22 13:00"      # a weekday's midday (traffic, buses, sun); unset meant 08:00
     start_s: 25
     duration_s: 20
     camera:
