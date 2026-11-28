@@ -476,7 +476,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                           lefthand=bool(tc["map"].get("lefthand")), log=log,
                           surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None,
                           region=signal_region(tc, mdir, compat.server_major(client)),
-                          stop_offsets=stoplines.read_offsets(getattr(sumo, "net_file", None)))
+                          stop_offsets=stoplines.read_offsets(getattr(sumo, "net_file", None)),
+                          crossings=[[(x, -y) for x, y in poly] for poly in stoplines.crossings(mdir, log=log)])
         if signals.style != "none":
             log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
                 f"{', meshes' if signals.meshes else ''}) drawn near participants")

@@ -2734,7 +2734,18 @@ in a world built from OpenDRIVE: they have no OpenDRIVE id, so they cannot be li
   real LED heads do (`coupledcarla/signalfaces.py`; the meshes carry the same pictograms, faint when unlit). A server
   whose content predates the 200 mm car heads spawns the older 300 mm ones with their own lens positions. On
   eindhoven_centre all 148 heads were Dutch (70 for cyclists; lin5080, CARLA 1.0 -nullrhi). CARLA 0.9.16 and servers
-  without the content keep CARLA's pole and backboard, with the same round lit lens;
+  without the content keep CARLA's pole and backboard, with the same round lit lens. Bus-only lanes get the region's
+  bus head (in the Netherlands the white bar signal, "OV-licht": horizontal bar, dot, vertical bar), else its car
+  head (trams: none, CARLA has no tram);
+- **pedestrian heads** at every signalised crossing (a crosswalk that a signalised stream crosses,
+  `pedsignals.crossing_heads`): one at each end, on the kerb (or a median wide enough for the pole), facing across to
+  the people waiting at the other end, as far-side heads are; the walking figure is lit while every stream crossing
+  it shows red (the rule by which the crowd's walkers cross), else the standing one. The region's head (NL, UK, JP),
+  else a region-free one; drawn where the server has no mesh for it;
+- **the level's own traffic lights hidden** where our heads stand for the same junction (within 35 m): a twin's
+  level carries CARLA's big generic heads on mast arms, baked from its OpenDRIVE signals, which showed next to the
+  local heads. Only their meshes are hidden (`world.enable_environment_objects`); the traffic-light actors, their
+  states, trigger volumes and stop waypoints stay for CARLA's Traffic Manager and agents;
 - **stop lines before the crosswalks** (`traffic.stop_lines`, default true; `coupledcarla/stoplines.py`): SUMO
   stopped a vehicle that must wait with its front at the end of its lane, and the nets have no crossings, so a car
   waiting at a red light stood on the zebra painted across the approach (the Eindhoven twin clip, 2026-11-28). Each

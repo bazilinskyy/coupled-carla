@@ -71,6 +71,7 @@ PALETTE = {
     "LensRed": ((0.12, 0.004, 0.004), 0.0, 0.1),
     "LensAmber": ((0.14, 0.05, 0.0), 0.0, 0.1),
     "LensGreen": ((0.0, 0.07, 0.045), 0.0, 0.1),
+    "LensWhite": ((0.07, 0.07, 0.065), 0.0, 0.1),           # the bar signals' unlit lens (lit white)
     "PoleWhite": ((0.78, 0.78, 0.77), 0.0, 0.4),
     "PoleBlack": ((0.015, 0.015, 0.016), 0.0, 0.4),
     "RoadWhite": ((0.70, 0.70, 0.68), 0.0, 0.62),           # thermoplastic road marking
@@ -488,10 +489,13 @@ def pictogram(m, mat, cx, y, cz, d, key):
                       (a[0] + nx, y, a[1] + nz)], (0, -1, 0), both=True)
 
 
-def signal_head(lenses=3, d=0.20, plate="SignalYellow", border=None, horizontal=False, pole_r=0.057, faces=None):
+def signal_head(lenses=3, d=0.20, plate="SignalYellow", border=None, horizontal=False, pole_r=0.057, faces=None,
+                lens_mat=None):
     """A signal head: a black body with `lenses` round lenses (diameter d: 200 mm Dutch and British car heads,
     cyclist and pedestrian heads; 300 mm Japanese car heads) under visors, on a back plate (Dutch yellow, or black
-    with a white border as the UK's). faces: a signalfaces pictogram per lens (None: a plain lens): a black mask
+    with a white border as the UK's; plate None: none, the body on the pole). lens_mat: one material for every lens
+    (the bar signals' "LensWhite"), else red, amber, green. faces: a signalfaces pictogram per lens (None: a plain
+    lens): a black mask
     over the lens with the pictogram in the lens's colour (the Dutch cyclist head's bicycle, the pedestrian
     head's standing and walking figures), so the unlit lens shows it faintly; signals.py lights the pictogram (or
     a plain lens as a round disc) in front of it. The lenses face model -y (Unreal +y); origin at the middle of
@@ -505,14 +509,18 @@ def signal_head(lenses=3, d=0.20, plate="SignalYellow", border=None, horizontal=
     bw, bh = (long_, short) if horizontal else (short, long_)
     y0 = -pole_r                         # the plate's back
     pw, ph = bw + 0.30, bh + 0.30        # back plate
-    if border:
+    if plate is None:
+        pw, ph = bw, bh
+        obox(m, "SignalBlack", (0, y0 - 0.008, 0), (0.08, 0.016, min(bh, 0.3)), np.eye(3))     # the pole clamp
+    elif border:
         obox(m, border, (0, y0 - 0.006, 0), (pw, 0.012, ph), np.eye(3))
         obox(m, plate, (0, y0 - 0.013, 0), (pw - 0.14, 0.004, ph - 0.14), np.eye(3))
     else:
         obox(m, plate, (0, y0 - 0.008, 0), (pw, 0.016, ph), np.eye(3))
     depth = 0.22
     obox(m, "SignalBlack", (0, y0 - 0.016 - depth / 2, 0), (bw, depth, bh), np.eye(3))
-    lens_mats = {3: ["LensRed", "LensAmber", "LensGreen"], 2: ["LensRed", "LensGreen"], 1: ["LensAmber"]}[n]
+    lens_mats = [lens_mat] * n if lens_mat else \
+        {3: ["LensRed", "LensAmber", "LensGreen"], 2: ["LensRed", "LensGreen"], 1: ["LensAmber"]}[n]
     centres = []
     for k in range(n):
         off = ((n - 1) / 2 - k) * pitch
@@ -981,6 +989,9 @@ def specs():
     add("SignalPed", "NL", "TrafficLight", "signal_ped",
         lambda: signal_head(2, 0.20, faces=signalfaces.faces_for("ped", 2)), None,
         "200 mm pedestrian head, standing red and walking green figures")
+    add("SignalBus", "NL", "TrafficLight", "signal_bus",
+        lambda: signal_head(3, 0.20, faces=signalfaces.faces_for("bus", 3), lens_mat="LensWhite"), None,
+        "public-transport bar signal (OV-licht): white horizontal bar, dot, vertical bar")
     # markings and surfaces (RoadLine, Road)
     for n in (3, 4, 5):
         add(f"SharkTeeth_{n}", "NL", "RoadLine", "shark_teeth", lambda n=n: shark_teeth(n))
@@ -1026,6 +1037,9 @@ def specs():
         lambda: replacing(signal_head(3, 0.20, plate="SignalBlack", border="SignalWhite"), "UK", "SignalCar",
                           signal_head(3, 0.30, plate="SignalBlack", border="SignalWhite")), None,
         "200 mm car head, black back plate with a white border")
+    add("SignalPed", "UK", "TrafficLight", "signal_ped",
+        lambda: signal_head(2, 0.20, plate=None, faces=signalfaces.faces_for("ped", 2)), None,
+        "far-side pedestrian head: red standing, green walking figure")
     add("LampGooseneck8", "JP", "Pole", "lamp_arm", lambda: lamp_jp(8.0), "SM_StreetLight06_A")
     # round 3: big screens (any region, screens.py) and Japanese vertical shop signs
     for k in SCREEN_KEYS:
@@ -1046,6 +1060,14 @@ def specs():
     add("SignalPole", "JP", "TrafficLight", "signal_pole", lambda: signal_pole_plain("Galvanised"))
     add("SignalCar", "JP", "TrafficLight", "signal_car",            # Japan's are 250-300 mm
         lambda: signal_head(3, 0.30, plate="SignalBlack", horizontal=True), None, "300 mm horizontal car head")
+    add("SignalPed", "JP", "TrafficLight", "signal_ped",
+        lambda: signal_head(2, 0.25, plate=None, faces=signalfaces.faces_for("ped", 2)), None,
+        "pedestrian head: red standing, blue-green walking figure")
+    # anywhere else: a plain dark pole and a pedestrian head without a back plate (CARLA has neither)
+    add("SignalPole", "Any", "TrafficLight", "signal_pole", lambda: signal_pole_plain("Anthracite", 3.0))
+    add("SignalPed", "Any", "TrafficLight", "signal_ped",
+        lambda: signal_head(2, 0.20, plate=None, faces=signalfaces.faces_for("ped", 2)), None,
+        "generic pedestrian head: red standing, green walking figure")
     return S
 
 
