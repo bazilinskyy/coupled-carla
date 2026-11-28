@@ -682,6 +682,43 @@ the ground of their area (never onto it). Option `map.scenery.screens` (`auto`: 
 props come with the street props (`tools/street_props.py`; the Japanese sign faces are rendered with Noto Sans CJK, SIL
 OFL, and kept in `unreal/StreetProps/textures`) and are imported by `tools/ue_street_props.py`.
 
+### Road signs and number plates of the place
+
+Every map shows its own country's road signs and every vehicle its country's number plates (Pavlo, 2026-11-28: "traffic
+signs are US. make them local, also same for all videos ... make them spanish").
+
+- **Signs.** At load a CARLA server spawns a stock sign actor at every stop, give-way and speed-limit signal of the
+  level's OpenDRIVE (`traffic.stop`, `traffic.yield`, `traffic.speed_limit.<v>`). Their plates are North American
+  (MUTCD): the white "SPEED LIMIT 30" rectangle, the triangle with YIELD on it, the octagon (and CARLA's DO NOT ENTER
+  plate). Twin levels leave those signals out of the server's copy of their OpenDRIVE (carla-digitaltwins
+  `server_signs.py`, `stage_sidecars.py`); every trial also replaces whatever stock sign the server still spawned
+  (`coupledcarla/localsigns.py`, generated maps and the map of any place included): where the design is not the
+  country's, the actor is removed and, on CARLA 1.0 with the CoupledCarla sign faces, the same sign stands there in
+  the Vienna Convention's design (red speed roundel A1 with the number, the plain give-way triangle B6; the stop
+  octagon fits everywhere but Japan). Where no face fits (Japan's 止まれ and 徐行) the sign is left out rather than
+  shown in another country's design. The US, its territories and Canada keep CARLA's plates, and so do CARLA's own
+  towns (North American). The scenery's OSM and NDW signs follow the same rule (`placement.sign_fits`): CARLA's speed
+  and no-entry plates no longer stand in Eindhoven. `simulation.stock_signs`: `auto` (default), `keep`, `remove`.
+- **Plates.** `coupledcarla/plates.py` sets the vehicle attribute `license_plate` (our CARLA 1.0 server code,
+  `unreal/patches/LicensePlates_BodySpots.patch` on top of the plate commit) to the map's country; the server mounts a
+  plate of the country's format and real size (`tools/plate_faces.py`, imported by `tools/ue_plates.py` into
+  `/Game/CoupledCarla/Plates`). Formats: NL yellow EU plate (XX-999-X ...); ES white EU plate with the blue E band,
+  9999 BBB; FI white, black rim, FIN; DE white, D, district code; FR white with the blue bands; CH short front and
+  long rear plate with the arms; JP small white plate with green characters (品川 300 あ 12-34); US New York's plate
+  (also on CARLA's towns); UA white with the flag band and UA, Chernihiv's CB/IB codes most; RW black on white in front,
+  on yellow at the back (RAB 272H). Vehicles whose meshes carry CARLA's plate material get the plate there; CARLA
+  1.0's newer vehicles (Lincoln MKZ, Mini, Kia Niro, Fuso bus, Sprinter, ...) have none, so the server finds where
+  their body is flat and upright at the usual plate height (rear 52 cm, front 45 cm above the ground) on the centre
+  line, front and back, and logs the spot; `tools/plate_spots.py` collects those into
+  `coupledcarla/data/plate_spots.json`, which travels with the country (`ES;rear=...;front=...`) to packaged servers
+  that cannot read their meshes.
+- **Check.** `python tools/sign_check.py content <Content dir> --towns` lists per level the stock sign signals an
+  editor and a packaged server would turn into actors, the `.xodr` file each reads, and stock sign meshes in the level
+  files; `server --levels A,B --replace` does it on a running server. On 2026-11-28 it found why the twin clips showed
+  US plates: CARLA's editor server reads the first `*.xodr` of a level's `OpenDrive` folder, and a full backup copy
+  kept beside the level's own (`<N>.prebake_signs.xodr`) sorted first (fixed: nothing but the level's copy in that
+  folder, and `unreal/patches/OpenDrive_OwnXodrFirst.patch` makes the server prefer `<N>.xodr`).
+
 ## Night and rain
 
 `coupledcarla/nightlights.py` gives the street lamps the light their city lists, drives cars with the lights the Dutch
@@ -807,6 +844,25 @@ banks: at Hoek van Holland 218 more water pieces, 1.1 % of the scenery), writes 
 CARLA lower its terrain 3 m under them. On lin5080 (2026-11-27) it lowered 100,520 of 411,635 terrain vertices; rays
 over the channel then met the terrain at -1.9 m under water at 1.1 m, and the land stayed as it was. A server without
 the patch ignores the userData.
+
+**The landscape to the horizon (far ring).** A twin ends at its last tile and a generated map at its scenery's ground
+tiles; aerial and long views used to see a black ground plane (twins) or a grey paving slab to the horizon (generated
+maps). carla-digitaltwins' `tools/far_ring.py` builds the real land around them, open data only: the national terrain
+model (else the AWS Terrain Tiles) with the Earth's curvature, the national aerial photo (else Sentinel-2 cloudless
+2016, CC BY 4.0) at about 1 m/px to 2.5 km, 5 m/px to 20 km and 30 m/px to 60 km, LoD1 buildings to 3 km (3DBAG in
+the Netherlands, else Overture or OSM) with photo roofs, and an ESA WorldCover forest canopy to 8 km; it meets the
+twin 0.5 m under its edge, and an aerial-perspective setting fades it into the sky (details and numbers in the
+carla-digitaltwins README). Every twin gets one in its bake (`twinmodel twin`, step `farring`;
+`ue/bake_far_ring.py` adds it to a baked level). For a generated map the map maker builds it into
+`maps/<name>/far_ring/` when the twin toolchain is configured (`coupledcarla/farring.py` reads the map's
+geoReference, ground tiles and terrain base); after `bake_far_ring.py --assets-only` has cooked it into the CARLA 1.0
+server, the run spawns it instead of the slab (a server without it keeps the slab):
+
+```bash
+python -c "from coupledcarla import farring; farring.build('maps/lyon', '<carla-digitaltwins>/TwinModel')"
+UnrealEditor-Cmd <CarlaUnreal.uproject> -run=pythonscript -nullrhi \
+    -script="<carla-digitaltwins>/TwinModel/ue/bake_far_ring.py --far-ring $PWD/maps/lyon/far_ring/far_ring.json --name Lyon --assets-only"
+```
 
 ### Where each object comes from (provenance)
 
@@ -2852,6 +2908,9 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 
 What cost time while building phases 1 and 2, so it does not again:
 
+- A CARLA editor `-game` server reads the first `*.xodr` of a level's `OpenDrive` folder: keep nothing else there.
+  A full backup copy beside a twin's own (`<N>.prebake_signs.xodr`) sorted first on Windows and put CARLA's stock US
+  signs back into every twin clip for four days (2026-11-28; `tools/sign_check.py content` finds it).
 - `carla.Osm2Odr.convert` segfaults in CARLA 0.9.16 on real city extracts (Linux and Windows); call SUMO's
   `netconvert` directly (it is what Osm2Odr wraps).
 - `carla.Client("localhost")` hangs on Windows (it tries `::1`; CARLA listens on IPv4): use `127.0.0.1`. A
@@ -2984,6 +3043,8 @@ coupledcarla/
   warmup.py          SUMO's demand as if it had run 600 s: streets busy at t = 0
   parking.py         parked cars at the kerbs and on car parks
   ndwsigns.py        the Dutch national traffic sign register (NDW) and Rijkswaterstaat's speed limits
+  localsigns.py      the place's own road signs instead of CARLA's stock (US) sign actors
+  plates.py          the place's number plates on every vehicle (vehicle attribute license_plate)
   season.py          leaf state by date and place; lit street lamps on CARLA 1.0
   speeds.py          urban speed limits and speed factors fitted to open speed data
   gbfs.py            shared bikes and scooters (GBFS)

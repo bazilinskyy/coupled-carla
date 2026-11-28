@@ -97,7 +97,10 @@ def test_signs_only_in_their_own_country():
     assert not placement.sign_fits("give_way", None)            # unknown: none rather than a US YIELD plate
     assert placement.sign_fits("stop", "NLD") and placement.sign_fits("stop", None)
     assert not placement.sign_fits("stop", "JPN")
-    assert placement.sign_fits("speed", "FRA")
+    # the speed plate is the US "SPEED LIMIT" rectangle: only where the limit is posted that way
+    assert placement.sign_fits("speed", "USA") and placement.sign_fits("speed", "CAN")
+    assert not placement.sign_fits("speed", "FRA") and not placement.sign_fits("speed", None)
+    assert not placement.sign_fits("no_entry", "NLD") and placement.sign_fits("no_entry", "USA")
 
 
 def test_classify_tilt_and_facing():

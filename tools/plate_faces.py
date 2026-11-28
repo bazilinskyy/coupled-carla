@@ -11,7 +11,9 @@ that band, so the plate mesh keeps its UVs:
 * CH: the long rear plate as photographed (Commons, St. Gallen 2007): Swiss arms, canton code, a dot at mid height,
   the number in groups of three, the canton's arms; white, black characters, no border, no EU band;
 * JP: white, green characters and rim, two rows: the issuing office and class (品川 300), a kana and the number
-  (あ 12-34); US: New York's current plate (white to gold, blue NEW YORK, ABC-1234, EXCELSIOR).
+  (あ 12-34); US: New York's current plate (white to gold, blue NEW YORK, ABC-1234, EXCELSIOR);
+* UA: white, black rim, a blue band with the flag and "UA", AA 1234 BC (Chernihiv's CB and IB most);
+* RW: black on white in front, on yellow at the back, RAB 272H.
 
 Each registration is drawn three times: T_PlateF / T_PlateR, the front and rear plate alone at their real
 proportions (SIZES_CM: 520 x 110 mm in most of Europe, the Swiss front 300 x 80 mm without arms and rear 500 x
@@ -41,7 +43,8 @@ SIZES_CM = {"NL": {"front": (52.0, 11.0), "rear": (52.0, 11.0)}, "DE": {"front":
             "ES": {"front": (52.0, 11.0), "rear": (52.0, 11.0)}, "FR": {"front": (52.0, 11.0), "rear": (52.0, 11.0)},
             "FI": {"front": (44.2, 11.8), "rear": (44.2, 11.8)},
             "CH": {"front": (30.0, 8.0), "rear": (50.0, 11.0)},       # front: short, no arms; rear: long, arms
-            "JP": {"front": (33.0, 16.5), "rear": (33.0, 16.5)}, "US": {"front": (30.5, 15.2), "rear": (30.5, 15.2)}}
+            "JP": {"front": (33.0, 16.5), "rear": (33.0, 16.5)}, "US": {"front": (30.5, 15.2), "rear": (30.5, 15.2)},
+            "UA": {"front": (52.0, 11.0), "rear": (52.0, 11.0)}, "RW": {"front": (52.0, 11.0), "rear": (52.0, 11.0)}}
 HOLDER = (34, 35, 37)               # plate holder around a long plate
 EU_BLUE = (0, 51, 153)
 EU_YELLOW = (255, 204, 0)
@@ -55,6 +58,12 @@ JP_OFFICES = ["品川", "練馬", "足立", "横浜", "名古屋", "大阪", "�
 JP_KANA = "さすせそたちつてとなにぬねのはひふほまみむめもやゆよらりるれろわ"
 CH_CANTONS = ["ZH"] * 9 + ["LU", "ZG", "SZ", "SO", "FR", "TI", "VD"]   # cantons whose arms are drawn below
 DE_DISTRICTS = ["M", "B", "HH", "K", "S", "F", "D", "DO", "AC", "KA"]
+# Ukraine: the region pairs in the Latin letters that look like the Cyrillic ones (А В Е І К М Н О Р С Т Х): Chernihiv
+# oblast (CB, IB) most, Kyiv (AA, KA) and its oblast (AI, KI), Kharkiv (AX), Lviv (BC)
+UA_REGIONS = ["CB"] * 6 + ["IB"] * 3 + ["AA", "KA", "AI", "KI", "AX", "BC"]
+UA_LETTERS = "ABCEHIKMOPTX"
+UA_BLUE, UA_YELLOW = (0, 87, 183), (255, 215, 0)
+RW_YELLOW = (250, 204, 21)
 
 
 def font_path(latin=None):
@@ -303,6 +312,34 @@ def us(rng, fp, jp=None):
     return c, reg
 
 
+def ua(rng, fp, jp=None):
+    """Ukraine (2015 standard): white, black rim, a blue band on the left with the flag and UA, AA 1234 BC."""
+    reg = "%s %04d %s" % (rng.choice(UA_REGIONS), rng.randint(1, 9999), "".join(rng.choice(UA_LETTERS) for _ in range(2)))
+    c, d, (x0, y0, x1, y1) = long_plate(WHITE, rim=BLACK)
+    h = y1 - y0
+    bw = h * 0.42
+    bx0, by0, bh = x0 + 3, y0 + 3, h - 6
+    d.rectangle([bx0, by0, bx0 + bw, by0 + bh], fill=EU_BLUE)
+    fw, fh = bw * 0.62, bh * 0.30                       # the flag: blue over yellow
+    fx, fy = bx0 + (bw - fw) / 2, by0 + bh * 0.14
+    d.rectangle([fx, fy, fx + fw, fy + fh / 2], fill=UA_BLUE)
+    d.rectangle([fx, fy + fh / 2, fx + fw, fy + fh], fill=UA_YELLOW)
+    paste_center(c, text_block("UA", bh * 0.27, bw * 0.62, WHITE, fp), bx0 + bw / 2, by0 + bh * 0.78)
+    paste_center(c, text_block(reg, h * 0.62, (x1 - x0 - bw) * 0.86, BLACK, fp), x0 + bw + (x1 - x0 - bw) / 2,
+                 (y0 + y1) / 2)
+    return c, reg
+
+
+def rw(rng, fp, jp=None):
+    """Rwanda: the national series of the revenue authority, R and two letters, three digits and a letter (RAB 272H),
+    black characters; the front plate white, the rear yellow."""
+    reg = "R%s%s %03d%s" % (rng.choice("ABCDEFGH"), rng.choice(LETTERS), rng.randint(1, 999), rng.choice(LETTERS))
+    c, d, (x0, y0, x1, y1) = long_plate(RW_YELLOW if _SIDE == "rear" else WHITE, rim=BLACK)
+    h = y1 - y0
+    paste_center(c, text_block(reg, h * 0.62, (x1 - x0) * 0.80, BLACK, fp), (x0 + x1) / 2, (y0 + y1) / 2)
+    return c, reg
+
+
 def render(cc, side, rng, fp, jpf):
     """One plate: side "band" = CARLA's 512 x 512 plate texture (the plate in its band, a holder around); "front" /
     "rear" = the plate alone at its real proportions (SIZES_CM), 1024 px wide, drawn on a 2x canvas."""
@@ -327,7 +364,7 @@ def render(cc, side, rng, fp, jpf):
         _SIDE, _ASPECT = "band", None
 
 
-COUNTRIES = {"NL": nl, "ES": es, "FI": fi, "DE": de, "FR": fr, "CH": ch, "JP": jp, "US": us}
+COUNTRIES = {"NL": nl, "ES": es, "FI": fi, "DE": de, "FR": fr, "CH": ch, "JP": jp, "US": us, "UA": ua, "RW": rw}
 
 
 def main(argv=None):
