@@ -527,7 +527,11 @@ def test_web_build_runs_one_at_a_time(server, monkeypatch):
     assert code == 200 and json.loads(body)["job"]
     code, body, _ = request(server + "/api/build", {"found": place()})
     assert code == 409 and "already" in json.loads(body)["error"]
-    j = json.loads(request(server + "/api/job")[1])
+    for _ in range(50):         # the build thread emits its step a moment later (under load: not yet at once)
+        j = json.loads(request(server + "/api/job")[1])
+        if len(j.get("steps") or []) > 1 and j["steps"][1].get("text") == "busy":
+            break
+        threading.Event().wait(0.1)
     assert j["state"] == "running" and j["steps"][1]["text"] == "busy" and j["plan"]["slug"] == "kinsale"
     gate.set()
     for _ in range(50):

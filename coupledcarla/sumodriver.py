@@ -166,11 +166,13 @@ class SumoDriver:
             self._hide()
 
     def route_xy(self, max_m):
-        """The planned route ahead of the car in CARLA x, y, up to max_m (crowdpeds covers it with walkers)."""
-        if not getattr(self, "route", None) or getattr(self, "net", None) is None:
-            return []
-        from .crowdpeds import edges_xy
-        return edges_xy(self.net, self.route, self.offset, max_m, float(getattr(self, "pos", 0.0) or 0.0))
+        """The planned route ahead of the car in CARLA x, y, up to max_m (crowdpeds covers it with walkers). Once
+        SUMO drives the car: its live route from the start of the edge it is on (new destinations included; the
+        crowd's window, crowdwindow.py, finds the car on it)."""
+        from .crowdpeds import driver_route_xy
+        return driver_route_xy(getattr(self, "net", None), getattr(self, "offset", (0.0, 0.0)),
+                               getattr(self, "route", None), getattr(self, "pos", 0.0),
+                               getattr(self, "_live", None) if self.inserted else None, max_m)
 
     def _hide(self):
         tf = self.vehicle.get_transform()
@@ -329,6 +331,7 @@ class SumoDriver:
             idx = traci.vehicle.getRouteIndex(self.sid)
         except traci.TraCIException:
             return None                                     # not inserted yet (its lane was taken)
+        self._live = (tuple(route), idx)                   # route_xy: the crowd's window follows it
         self._unblock(route, idx, now)
         if idx >= 0 and len(route) - idx <= 3:                # near the end: drive on to a new destination
             nxt = random_destination(self.net, self.net.getEdge(route[-1]), self.rng)
