@@ -1,0 +1,102 @@
+{
+  "_comment": "Which CARLA vehicles stand in for a place's traffic (coupledcarla/crowdtraffic.py, fleet.py). CROWD (crowd_traffic.json) gives how many cars, trucks, buses, motorcycles and bicycles; this file says which models: the car body mix where no open register is read (fleet.py reads RDW, NY DMV, Waka Kotahi, Senatran), the taxis and their colour, which motorcycles and scooters, vans, lorries and service vehicles. Blueprints are CARLA 0.9.16 names; on CARLA 1.0 compat.ALIASES maps them to the closest model that drives there. Body shares are rounded priors from the sources named in each region, not measurements of the street; a country's own entry overrides its region's keys.",
+  "sources": {
+    "europe": "ACEA, Vehicles on European roads (2024): passenger-car segments in use (small/compact cars ~45 %, SUVs ~25 % of the fleet in use rising, estates strong in the north and DE/NL); motorcycle fleet mostly scooters and mid-size bikes in the south",
+    "japan": "AIRIA / JAMA (2023): kei cars about 40 % of passenger cars in use, minivans common; taxis about 20 % of vehicles on central Tokyo streets by day (Tokyo Metropolitan Government traffic census); Tokyo taxis mostly the dark blue JPN Taxi or black sedans",
+    "usa": "FHWA Highway Statistics (2022): light trucks (SUVs, pickups) over 60 % of new light vehicles; NYC TLC yellow cabs",
+    "south_east_asia": "national registers summarised by ASEAN Automotive Federation (2023): motorcycles 70-90 % of registered vehicles in Vietnam, Thailand, Indonesia; scooters dominate",
+    "south_asia": "MoRTH India (2022): two-wheelers ~74 % of registered vehicles",
+    "africa": "UN-Habitat / Rwanda Utilities Regulatory Authority (2022): moto-taxis and minibuses carry most trips in Kigali; used SUVs and pickups common",
+    "eastern_europe": "Ukrstat / national registers (2021): sedans and hatchbacks, older fleet; marshrutka minibuses",
+    "latin_america": "national registers (2022): compact hatchbacks and sedans, pickups outside the centres"
+  },
+  "regions": {
+    "world": {
+      "body": {"hatchback": 30, "sedan": 30, "suv": 25, "estate": 5, "mpv": 5, "pickup": 5},
+      "taxi": {"share": 0.02, "blueprints": {"vehicle.ford.crown": 1}, "color": [250, 195, 0]},
+      "motorcycles": {"vehicle.vespa.zx125": 40, "vehicle.yamaha.yzf": 25, "vehicle.kawasaki.ninja": 20, "vehicle.harley-davidson.low_rider": 15},
+      "vans": {"vehicle.mercedes.sprinter": 3, "vehicle.volkswagen.t2_2021": 1},
+      "lorries": {"vehicle.carlamotors.european_hgv": 2, "vehicle.carlamotors.carlacola": 1},
+      "service": {"vehicle.ford.ambulance": 4, "vehicle.dodge.charger_police_2020": 5, "vehicle.carlamotors.firetruck": 1},
+      "service_colors": {"vehicle.ford.ambulance": [236, 236, 234], "vehicle.dodge.charger_police_2020": [236, 236, 234], "vehicle.carlamotors.firetruck": [170, 20, 20]},
+      "countries": []
+    },
+    "europe": {
+      "body": {"hatchback": 40, "estate": 18, "suv": 22, "sedan": 12, "mpv": 6, "coupe": 2},
+      "taxi": {"share": 0.02, "blueprints": {"vehicle.mercedes.coupe_2020": 1, "vehicle.toyota.prius": 1}, "color": [18, 18, 20]},
+      "motorcycles": {"vehicle.vespa.zx125": 45, "vehicle.yamaha.yzf": 25, "vehicle.kawasaki.ninja": 20, "vehicle.harley-davidson.low_rider": 10},
+      "countries": ["ALB", "AND", "AUT", "BEL", "BGR", "BIH", "CHE", "CYP", "CZE", "DEU", "DNK", "ESP", "EST", "FIN", "FRA", "GBR", "GRC", "HRV", "HUN", "IRL", "ISL", "ITA", "LIE", "LTU", "LUX", "LVA", "MCO", "MKD", "MLT", "MNE", "NLD", "NOR", "POL", "PRT", "ROU", "SMR", "SRB", "SVK", "SVN", "SWE", "XKX"]
+    },
+    "eastern_europe": {
+      "body": {"sedan": 35, "hatchback": 30, "suv": 20, "estate": 10, "mpv": 5},
+      "taxi": {"share": 0.02, "blueprints": {"vehicle.toyota.prius": 1, "vehicle.seat.leon": 1}, "color": [236, 236, 234]},
+      "vans": {"vehicle.mercedes.sprinter": 5, "vehicle.volkswagen.t2_2021": 1},
+      "countries": ["ARM", "AZE", "BLR", "GEO", "KAZ", "MDA", "RUS", "UKR"]
+    },
+    "japan": {
+      "body": {"hatchback": 52, "mpv": 22, "sedan": 10, "suv": 12, "coupe": 1, "van": 3},
+      "taxi": {"share": 0.15, "blueprints": {"vehicle.ford.crown": 1}, "color": [32, 42, 72]},
+      "motorcycles": {"vehicle.vespa.zx125": 60, "vehicle.yamaha.yzf": 20, "vehicle.kawasaki.ninja": 15, "vehicle.harley-davidson.low_rider": 5},
+      "service_colors": {"vehicle.dodge.charger_police_2020": [236, 236, 234]},
+      "countries": ["JPN"]
+    },
+    "east_asia": {
+      "body": {"sedan": 35, "suv": 30, "hatchback": 20, "mpv": 15},
+      "taxi": {"share": 0.06, "blueprints": {"vehicle.toyota.prius": 1, "vehicle.ford.crown": 1}, "color": [236, 140, 20]},
+      "motorcycles": {"vehicle.vespa.zx125": 60, "vehicle.yamaha.yzf": 20, "vehicle.kawasaki.ninja": 15, "vehicle.harley-davidson.low_rider": 5},
+      "countries": ["CHN", "HKG", "KOR", "MAC", "MNG", "TWN"]
+    },
+    "south_east_asia": {
+      "body": {"hatchback": 35, "sedan": 30, "suv": 20, "mpv": 15},
+      "taxi": {"share": 0.04, "blueprints": {"vehicle.toyota.prius": 1}, "color": [40, 120, 60]},
+      "motorcycles": {"vehicle.vespa.zx125": 70, "vehicle.yamaha.yzf": 20, "vehicle.kawasaki.ninja": 7, "vehicle.harley-davidson.low_rider": 3},
+      "countries": ["BRN", "IDN", "KHM", "LAO", "MMR", "MYS", "PHL", "SGP", "THA", "TLS", "VNM"]
+    },
+    "south_asia": {
+      "body": {"hatchback": 50, "sedan": 25, "suv": 20, "mpv": 5},
+      "taxi": {"share": 0.04, "blueprints": {"vehicle.nissan.micra": 1}, "color": [235, 200, 20]},
+      "motorcycles": {"vehicle.vespa.zx125": 45, "vehicle.yamaha.yzf": 35, "vehicle.kawasaki.ninja": 15, "vehicle.harley-davidson.low_rider": 5},
+      "countries": ["AFG", "BGD", "BTN", "IND", "LKA", "MDV", "NPL", "PAK"]
+    },
+    "usa": {
+      "body": {"suv": 40, "pickup": 20, "us_sedan": 30, "hatchback": 5, "coupe": 5},
+      "taxi": {"share": 0.03, "blueprints": {"vehicle.ford.crown": 1}, "color": [250, 195, 0]},
+      "motorcycles": {"vehicle.harley-davidson.low_rider": 40, "vehicle.yamaha.yzf": 25, "vehicle.kawasaki.ninja": 25, "vehicle.vespa.zx125": 10},
+      "service_colors": {"vehicle.dodge.charger_police_2020": [18, 18, 20]},
+      "countries": ["CAN", "PRI", "USA"]
+    },
+    "africa": {
+      "body": {"suv": 35, "hatchback": 25, "sedan": 20, "pickup": 15, "mpv": 5},
+      "taxi": {"share": 0.03, "blueprints": {"vehicle.toyota.prius": 1}, "color": [236, 236, 234]},
+      "motorcycles": {"vehicle.yamaha.yzf": 45, "vehicle.kawasaki.ninja": 25, "vehicle.vespa.zx125": 25, "vehicle.harley-davidson.low_rider": 5},
+      "vans": {"vehicle.mercedes.sprinter": 4, "vehicle.volkswagen.t2_2021": 2},
+      "countries": ["AGO", "BDI", "BEN", "BFA", "BWA", "CAF", "CIV", "CMR", "COD", "COG", "DJI", "ERI", "ETH", "GAB", "GHA", "GIN", "GMB", "GNB", "KEN", "LBR", "LSO", "MDG", "MLI", "MOZ", "MRT", "MWI", "NAM", "NER", "NGA", "RWA", "SDN", "SEN", "SLE", "SOM", "SSD", "SWZ", "TCD", "TGO", "TZA", "UGA", "ZAF", "ZMB", "ZWE"]
+    },
+    "latin_america": {
+      "body": {"hatchback": 40, "sedan": 30, "suv": 20, "pickup": 10},
+      "taxi": {"share": 0.04, "blueprints": {"vehicle.nissan.micra": 1, "vehicle.toyota.prius": 1}, "color": [235, 200, 20]},
+      "motorcycles": {"vehicle.yamaha.yzf": 40, "vehicle.vespa.zx125": 35, "vehicle.kawasaki.ninja": 20, "vehicle.harley-davidson.low_rider": 5},
+      "countries": ["ARG", "BOL", "BRA", "CHL", "COL", "CRI", "CUB", "DOM", "ECU", "GTM", "HND", "MEX", "NIC", "PAN", "PER", "PRY", "SLV", "URY", "VEN"]
+    }
+  },
+  "places": [
+    {"name": "Manhattan below 110th Street", "bbox": [40.700, -74.020, 40.800, -73.930],
+     "source": "NYC DOT, New York City Mobility Report (2019): taxis and for-hire vehicles about a third of the vehicles in Manhattan's core; yellow cabs the visible part",
+     "taxi": {"share": 0.25, "blueprints": {"vehicle.ford.crown": 1}, "color": [250, 195, 0], "replace_register": true}},
+    {"name": "Central Tokyo (Yamanote line)", "bbox": [35.620, 139.690, 35.740, 139.790],
+     "source": "Tokyo Metropolitan Government road traffic census: taxis about a fifth of the cars in the wards' centre by day",
+     "taxi": {"share": 0.2, "blueprints": {"vehicle.ford.crown": 1}, "color": [32, 42, 72]}}
+  ],
+  "countries": {
+    "DEU": {"taxi": {"share": 0.02, "blueprints": {"vehicle.mercedes.coupe_2020": 1}, "color": [240, 234, 214]}},
+    "ESP": {"taxi": {"share": 0.03, "blueprints": {"vehicle.toyota.prius": 1, "vehicle.seat.leon": 1}, "color": [236, 236, 234]}},
+    "NLD": {"taxi": {"share": 0.01, "blueprints": {"vehicle.tesla.model3": 1, "vehicle.toyota.prius": 1}, "color": [18, 18, 20]},
+            "motorcycles": {"vehicle.vespa.zx125": 70, "vehicle.yamaha.yzf": 12, "vehicle.kawasaki.ninja": 12, "vehicle.harley-davidson.low_rider": 6}},
+    "GBR": {"taxi": {"share": 0.04, "blueprints": {"vehicle.ford.crown": 1}, "color": [18, 18, 20]}},
+    "FRA": {"taxi": {"share": 0.02, "blueprints": {"vehicle.toyota.prius": 1, "vehicle.tesla.model3": 1}, "color": [18, 18, 20]}},
+    "CHE": {"taxi": {"share": 0.01, "blueprints": {"vehicle.mercedes.coupe_2020": 1, "vehicle.tesla.model3": 1}, "color": [18, 18, 20]}},
+    "FIN": {"taxi": {"share": 0.01, "blueprints": {"vehicle.toyota.prius": 1, "vehicle.mercedes.coupe_2020": 1}, "color": [236, 236, 234]}},
+    "RWA": {"taxi": {"share": 0.02, "blueprints": {"vehicle.toyota.prius": 1}, "color": [236, 236, 234]}},
+    "VNM": {"taxi": {"share": 0.04, "blueprints": {"vehicle.toyota.prius": 1}, "color": [40, 120, 60]}}
+  }
+}

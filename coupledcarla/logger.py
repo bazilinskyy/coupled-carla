@@ -59,6 +59,7 @@ class TrialLogger:
         self.radius = lc["radius_m"]
         self.f = open(out_dir / "frames.csv", "w", newline="")
         self.velocities = None     # {actor id: (vx, vy)} of SUMO vehicles (the bridge's), used for their rows
+        self.extra_centres = None  # callable -> [carla.Location]: more places AI actors are logged near (drones)
         self.w = csv.writer(self.f, delimiter=";")
         self.w.writerow(COLUMNS)
         self.ef = open(out_dir / "events.csv", "w", newline="", buffering=1)   # line-buffered: survives a crash
@@ -109,6 +110,11 @@ class TrialLogger:
             if udp_frame is not None:
                 key = "Driver" if is_vehicle else "Pedestrian"
                 udp_frame[f"{key} [{p['role']}]"] = self._udp_entry(row)
+        if self.extra_centres is not None:     # drones (not participants here) and where their cameras look
+            try:
+                centres += list(self.extra_centres())
+            except Exception:  # noqa: BLE001 - the log without them rather than none
+                pass
         for aid, (kind, type_id) in ai.items():
             s = snap.find(aid)
             if s is None:

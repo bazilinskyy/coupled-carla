@@ -20,9 +20,10 @@ simulation:
   step: 0.02
   weather: ClearNoon
 
-traffic:
-  cars_per_hour: 1200
-  bikes_per_hour: 600
+traffic:            # the place's traffic (crowdtraffic.py); the crowd along the flight and where the camera looks
+  cars_per_hour: auto
+  bikes_per_hour: auto
+  walkers: {count: auto, max_count: 220}     # a drone's view takes in far more kerb than a driver's
 
 participants:
   - role: pilot

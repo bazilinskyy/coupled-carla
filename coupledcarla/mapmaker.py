@@ -208,9 +208,11 @@ def traffic_for(town, km):
                 "buses_per_hour": {"large": 20, "small": 4}.get(town, 10)}
         ref = 1.4
     f = km / ref
-    return {"cars_per_hour": int(round(base["cars_per_hour"] * f / 50.0) * 50),
-            "bikes_per_hour": int(round(base["bikes_per_hour"] * f / 50.0) * 50),
-            "buses_per_hour": max(1, int(round(base["buses_per_hour"] * f)))}
+
+    def scaled(v, step, least=0):     # "auto" stays: the place's own rate at trial time (crowdtraffic.py, counts.py)
+        return v if v == "auto" else max(least, int(round(float(v) * f / step) * step))
+    return {"cars_per_hour": scaled(base["cars_per_hour"], 50), "bikes_per_hour": scaled(base["bikes_per_hour"], 50),
+            "buses_per_hour": scaled(base["buses_per_hour"], 1, least=1)}
 
 
 # ------------------------------------------------------------------------------------------------ geocoding

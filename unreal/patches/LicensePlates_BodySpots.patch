@@ -1,0 +1,306 @@
+diff --git a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Actor/ActorDispatcher.cpp b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Actor/ActorDispatcher.cpp
+index 6a3bc11..cbb6a61 100644
+--- a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Actor/ActorDispatcher.cpp
++++ b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Actor/ActorDispatcher.cpp
+@@ -234,7 +234,7 @@ FCarlaActor* UActorDispatcher::RegisterActor(
+     {
+       if (!Plate->Value.IsEmpty())
+       {
+-        FLicensePlates::Apply(Actor, Plate->Value, static_cast<uint32>(View->GetActorId()));
++        FLicensePlates::Apply(Actor, Plate->Value, static_cast<uint32>(View->GetActorId()), Description.Id);
+       }
+     }
+ 
+diff --git a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Vehicle/LicensePlates.cpp b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Vehicle/LicensePlates.cpp
+index bb888c7..be8ef35 100644
+--- a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Vehicle/LicensePlates.cpp
++++ b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Vehicle/LicensePlates.cpp
+@@ -121,7 +121,8 @@ namespace
+   /// A plate of the vehicle's own mesh: centre, outward normal and size (cm) in the component's space.
+   struct FPlateSpot { FVector Centre; FVector Normal; FVector2D Size; bool bFront; };
+ 
+-  /// The plate triangles' corners of one material slot (component space), from the mesh's LOD 0 (CPU copy).
++  /// The triangles' corners of one material slot (Slot < 0: of every slot), component space, from the mesh's LOD 0
++  /// (CPU copy).
+   void PlateTriangles(UMeshComponent *Mesh, int32 Slot, TArray<FVector> &Corners)
+   {
+     if (USkeletalMeshComponent *Skel = Cast<USkeletalMeshComponent>(Mesh))
+@@ -142,7 +143,7 @@ namespace
+       Lod.MultiSizeIndexContainer.GetIndexBuffer(Indices);
+       for (const FSkelMeshRenderSection &Section : Lod.RenderSections)
+       {
+-        if (Section.MaterialIndex != Slot)
++        if (Slot >= 0 && Section.MaterialIndex != Slot)
+         {
+           continue;
+         }
+@@ -174,7 +175,7 @@ namespace
+       Lod.IndexBuffer.GetCopy(Indices);
+       for (const FStaticMeshSection &Section : Lod.Sections)
+       {
+-        if (Section.MaterialIndex != Slot)
++        if (Slot >= 0 && Section.MaterialIndex != Slot)
+         {
+           continue;
+         }
+@@ -251,6 +252,194 @@ namespace
+     return Spots;
+   }
+ 
++  /// Usual heights of a plate's centre above the ground (cm): the rear plate on the bumper or the tailgate's lower
++  /// edge, the front plate in the bumper.
++  constexpr float RearHeight = 52.0f;
++  constexpr float FrontHeight = 45.0f;
++
++  /// The outermost point (along Out, +1 front / -1 rear) where a ray parallel to X through (Y, Z) meets one of the
++  /// triangles (corner triples, indices into Corners); false if it meets none.
++  bool OuterHit(const TArray<FVector> &Corners, const TArray<int32> &Triangles, float Y, float Z, float Out, float &X)
++  {
++    bool bAny = false;
++    float Best = TNumericLimits<float>::Lowest();
++    for (const int32 t : Triangles)
++    {
++      const FVector &A = Corners[t], &B = Corners[t + 1], &C = Corners[t + 2];
++      const float E1y = B.Y - A.Y, E1z = B.Z - A.Z, E2y = C.Y - A.Y, E2z = C.Z - A.Z;
++      const float Det = E1y * E2z - E2y * E1z;
++      if (FMath::Abs(Det) < 1e-6f)
++      {
++        continue;                                             // edge-on to the ray
++      }
++      const float Py = Y - A.Y, Pz = Z - A.Z;
++      const float U = (Py * E2z - E2y * Pz) / Det;
++      const float V = (E1y * Pz - Py * E1z) / Det;
++      if (U < 0.0f || V < 0.0f || U + V > 1.0f)
++      {
++        continue;
++      }
++      const float Along = (A.X + U * (B.X - A.X) + V * (C.X - A.X)) * Out;
++      if (Along > Best)
++      {
++        Best = Along;
++        bAny = true;
++      }
++    }
++    X = Best * Out;
++    return bAny;
++  }
++
++  /// The plates of a vehicle whose meshes carry no plate material (CARLA 1.0's newer vehicles paint the plate into
++  /// the body texture): where its body surface is flat and upright near the usual plate height on the centre line,
++  /// front and back. Rays parallel to the vehicle's axis meet its LOD 0 triangles on a grid the plate's size; the
++  /// height nearest the usual one where the grid finds a flat patch (5 cm deep at most, then 9 cm for curved
++  /// bumpers) wins. Component space of the body mesh (X forward, Z up, cm).
++  TArray<FPlateSpot> BodySpots(const TArray<FVector> &Corners)
++  {
++    TArray<FPlateSpot> Spots;
++    if (Corners.Num() < 3)
++    {
++      return Spots;
++    }
++    FBox Bounds(ForceInit);
++    for (const FVector &P : Corners)
++    {
++      Bounds += P;
++    }
++    const float Ground = Bounds.Min.Z;                         // the wheels' bottom
++    const float Mid = 0.5f * (Bounds.Min.X + Bounds.Max.X);
++    for (const float Out : {1.0f, -1.0f})
++    {
++      const float Extreme = Out > 0.0f ? Bounds.Max.X : Bounds.Min.X;
++      TArray<int32> Triangles;
++      for (int32 t = 0; t + 2 < Corners.Num(); t += 3)
++      {
++        const FVector &A = Corners[t], &B = Corners[t + 1], &C = Corners[t + 2];
++        const float MinY = FMath::Min3(A.Y, B.Y, C.Y), MaxY = FMath::Max3(A.Y, B.Y, C.Y);
++        const float MinZ = FMath::Min3(A.Z, B.Z, C.Z), MaxZ = FMath::Max3(A.Z, B.Z, C.Z);
++        const float Cx = (A.X + B.X + C.X) / 3.0f;
++        if (MaxY < -30.0f || MinY > 30.0f || MaxZ < Ground + 15.0f || MinZ > Ground + 125.0f || (Cx - Mid) * Out < 0.0f)
++        {
++          continue;
++        }
++        Triangles.Add(t);
++      }
++      const float Usual = Ground + (Out > 0.0f ? FrontHeight : RearHeight);
++      bool bFound = false;
++      for (const float Depth : {5.0f, 9.0f})
++      {
++        for (int32 k = 0; k <= 40 && !bFound; ++k)
++        {
++          const float Z = Usual + ((k % 2) ? 1.0f : -1.0f) * 2.0f * ((k + 1) / 2);   // 0, +2, -2, +4, ...
++          if (Z < Ground + 25.0f || Z > Ground + 115.0f)
++          {
++            continue;
++          }
++          float Outer = TNumericLimits<float>::Lowest(), Inner = TNumericLimits<float>::Max();
++          float Low = 0.0f, High = 0.0f;
++          bool bAll = true;
++          for (const float Dy : {-20.0f, -10.0f, 0.0f, 10.0f, 20.0f})
++          {
++            for (const float Dz : {-5.0f, 0.0f, 5.0f})
++            {
++              float X;
++              if (!OuterHit(Corners, Triangles, Dy, Z + Dz, Out, X))
++              {
++                bAll = false;
++                break;
++              }
++              Outer = FMath::Max(Outer, X * Out);
++              Inner = FMath::Min(Inner, X * Out);
++              if (Dy == 0.0f && Dz != 0.0f)
++              {
++                (Dz < 0.0f ? Low : High) = X;
++              }
++            }
++            if (!bAll)
++            {
++              break;
++            }
++          }
++          // flat, and the body's outside there (not the underbody or a deep recess)
++          if (!bAll || Outer - Inner > Depth || Extreme * Out - Outer > 35.0f)
++          {
++            continue;
++          }
++          const float Slope = (High - Low) / 10.0f;                // x per z on the centre line
++          FVector N(Out, 0.0f, -Slope * Out);
++          N.Normalize();
++          N.Z = FMath::Clamp(N.Z, -0.35, 0.35);                    // plates stand roughly upright
++          N.Normalize();
++          FPlateSpot Spot;
++          Spot.Centre = FVector(Outer * Out, 0.0f, Z);
++          Spot.Normal = N;
++          Spot.Size = FVector2D(40.0, 12.0);
++          Spot.bFront = Out > 0.0f;
++          Spots.Add(Spot);
++          bFound = true;
++        }
++      }
++    }
++    return Spots;
++  }
++
++  /// BodySpots of a body mesh, worked out once per mesh asset.
++  TArray<FPlateSpot> BodySpotsOf(USkeletalMeshComponent *Body)
++  {
++    static TMap<TWeakObjectPtr<USkeletalMesh>, TArray<FPlateSpot>> Cache;
++    USkeletalMesh *Asset = Body != nullptr ? Body->GetSkeletalMeshAsset() : nullptr;
++    if (Asset == nullptr)
++    {
++      return {};
++    }
++    if (const TArray<FPlateSpot> *Found = Cache.Find(Asset))
++    {
++      return *Found;
++    }
++    TArray<FVector> Corners;
++    PlateTriangles(Body, -1, Corners);
++    return Cache.Add(Asset, BodySpots(Corners));
++  }
++
++  /// Plate spots the client sent with the country ("ES;rear=x,y,z,nx,ny,nz;front=..."; cm, the body mesh's
++  /// component space, as the server logs them for a vehicle it measured): for servers whose meshes have no CPU copy.
++  TArray<FPlateSpot> SentSpots(const TArray<FString> &Parts)
++  {
++    TArray<FPlateSpot> Spots;
++    for (int32 i = 1; i < Parts.Num(); ++i)
++    {
++      FString Key, Value;
++      if (!Parts[i].Split(TEXT("="), &Key, &Value))
++      {
++        continue;
++      }
++      TArray<FString> Numbers;
++      Value.ParseIntoArray(Numbers, TEXT(","));
++      Key = Key.TrimStartAndEnd().ToLower();
++      if (Numbers.Num() != 6 || (Key != TEXT("rear") && Key != TEXT("front")))
++      {
++        continue;
++      }
++      FPlateSpot Spot;
++      Spot.Centre = FVector(FCString::Atof(*Numbers[0]), FCString::Atof(*Numbers[1]), FCString::Atof(*Numbers[2]));
++      Spot.Normal = FVector(FCString::Atof(*Numbers[3]), FCString::Atof(*Numbers[4]), FCString::Atof(*Numbers[5])).GetSafeNormal();
++      Spot.Size = FVector2D(40.0, 12.0);
++      Spot.bFront = Key == TEXT("front");
++      if (!Spot.Normal.IsNearlyZero())
++      {
++        Spots.Add(Spot);
++      }
++    }
++    return Spots;
++  }
++
++  FString SpotText(const FPlateSpot &S)
++  {
++    return FString::Printf(TEXT("%s=%.1f,%.1f,%.1f,%.3f,%.3f,%.3f"), S.bFront ? TEXT("front") : TEXT("rear"),
++                           S.Centre.X, S.Centre.Y, S.Centre.Z, S.Normal.X, S.Normal.Y, S.Normal.Z);
++  }
++
+   /// Mounts a plate of its real size (cm) in front of a vehicle's plate spot.
+   void Mount(AActor &Actor, UMeshComponent *Parent, const FPlateSpot &Spot, const FVector2D &RealSize,
+              UMaterialInterface *Material, UStaticMesh *Plane)
+@@ -285,9 +474,12 @@ bool FLicensePlates::IsPlateMaterial(const FString &MaterialName)
+   return MaterialName.Contains(TEXT("LicensePlate")) || MaterialName.Contains(TEXT("License_Plate"));
+ }
+ 
+-int32 FLicensePlates::Apply(AActor &Actor, const FString &Country, uint32 Seed)
++int32 FLicensePlates::Apply(AActor &Actor, const FString &Value, uint32 Seed, const FString &Id)
+ {
+-  const FString Code = Country.TrimStartAndEnd().ToUpper();
++  // "ES", or "ES;rear=...;front=..." with the plate spots of a vehicle without plate material (SentSpots)
++  TArray<FString> Parts;
++  Value.ParseIntoArray(Parts, TEXT(";"));
++  const FString Code = Parts.Num() > 0 ? Parts[0].TrimStartAndEnd().ToUpper() : FString();
+   if (Code.Len() < 2 || Code.Len() > 3)
+   {
+     return 0;
+@@ -357,6 +549,26 @@ int32 FLicensePlates::Apply(AActor &Actor, const FString &Country, uint32 Seed)
+         Mesh->SetMaterial(i, Holder);
+       }
+     }
++    if (Mounted == 0 && Body != nullptr)
++    {
++      // no plate material on the vehicle: plates where its own body has them (sent by the client, else measured)
++      TArray<FPlateSpot> Spots = SentSpots(Parts);
++      const bool bSent = Spots.Num() > 0;
++      if (!bSent)
++      {
++        Spots = BodySpotsOf(Body);
++      }
++      FString Text;
++      for (const FPlateSpot &Spot : Spots)
++      {
++        const TArray<UMaterialInterface *> &List = Spot.bFront ? Front : Rear;
++        Mount(Actor, Body, Spot, Spot.bFront ? Sizes.Front : Sizes.Rear, List[Hash % uint32(List.Num())], Plane);
++        ++Mounted;
++        Text += TEXT(";") + SpotText(Spot);
++      }
++      // the line tools/plate_spots.py collects (coupled-carla data/plate_spots.json) for servers without CPU copies
++      UE_LOG(LogCarla, Log, TEXT("Licence plates: body spots %s %s%s"), *Id, bSent ? TEXT("sent") : TEXT("measured"), *Text);
++    }
+   }
+   // no mesh data (or no real-size plates): the plate texture on the vehicle's own plate
+   UE_LOG(LogCarla, Log, TEXT("Licence plates: %s (%s): %d mounted"), *Actor.GetName(), *Code, Mounted);
+diff --git a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Vehicle/LicensePlates.h b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Vehicle/LicensePlates.h
+index afeba45..48d4003 100644
+--- a/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Vehicle/LicensePlates.h
++++ b/Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Vehicle/LicensePlates.h
+@@ -21,11 +21,16 @@ class AActor;
+ /// Swiss front plate 300 x 80 mm, the rear 500 x 110 mm with the arms, ...), textured with
+ /// /Game/CoupledCarla/Plates/<CC>/MI_PlateF_<CC>_<NN> / MI_PlateR_<CC>_<NN>, NN picked by the seed (the same
+ /// registration front and back). Where the mesh has no CPU copy, the plate texture MI_Plate_<CC>_<NN> goes on the
+-/// vehicle's own plate instead. Without plate content for that country the vehicle keeps CARLA's plate.
++/// vehicle's own plate instead. Vehicles without any plate material (CARLA 1.0's newer ones paint the plate into
++/// the body texture) get plates where their body is flat and upright near the usual plate height on the centre
++/// line, front and back (measured on the mesh's LOD 0, or sent by the client). Without plate content for that
++/// country the vehicle keeps CARLA's plate.
+ struct FLicensePlates
+ {
+-  /// Returns the number of plate slots changed (0: no content for the country or no plate slot).
+-  static int32 Apply(AActor &Actor, const FString &Country, uint32 Seed);
++  /// Returns the number of plates mounted or slots changed (0: no content for the country, no plate anywhere).
++  /// Value: the country code, optionally followed by plate spots (";rear=x,y,z,nx,ny,nz;front=...", cm, the body
++  /// mesh's component space) for a vehicle without plate material; Id: the blueprint id, for the log.
++  static int32 Apply(AActor &Actor, const FString &Value, uint32 Seed, const FString &Id = FString());
+ 
+   /// True for a material that is a vehicle licence plate (by name).
+   static bool IsPlateMaterial(const FString &MaterialName);

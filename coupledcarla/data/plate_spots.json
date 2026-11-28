@@ -1,0 +1,15 @@
+{"about": "plate spots (cm, the body mesh's component space: x forward, z up; centre then outward normal) of CARLA 1.0 vehicles without plate material, measured by the server (LicensePlates.cpp BodySpots); tools/plate_spots.py",
+"spots": {
+ "vehicle.ambulance.ford": {"front": [281.6, 0.0, 81.0, 0.936, 0.0, 0.351], "rear": [-317.9, 0.0, 52.0, -1.0, 0.0, 0.0]},
+ "vehicle.carlacola.actors": {"front": [392.0, 0.0, 55.0, 1.0, 0.0, -0.0], "rear": [-394.5, 0.0, 68.0, -1.0, 0.0, 0.0]},
+ "vehicle.dodge.charger": {"front": [249.6, 0.0, 46.3, 0.968, 0.0, -0.251], "rear": [-250.4, 0.0, 51.3, -0.993, 0.0, 0.121]},
+ "vehicle.dodgecop.charger": {"front": [249.6, 0.0, 46.3, 0.968, 0.0, -0.251], "rear": [-250.4, 0.0, 51.3, -0.993, 0.0, 0.121]},
+ "vehicle.firetruck.actors": {"front": [392.0, 0.0, 55.0, 1.0, 0.0, -0.0], "rear": [-430.4, 0.0, 56.0, -0.996, 0.0, 0.095]},
+ "vehicle.fuso.mitsubishi": {"front": [335.9, 0.0, 59.0, 0.936, 0.0, -0.352], "rear": [-446.9, 0.0, 52.0, -0.961, 0.0, 0.275]},
+ "vehicle.kia.niro": {"front": [223.0, 0.0, 51.4, 0.992, 0.0, 0.124], "rear": [-219.9, 0.0, 52.4, -0.976, 0.0, 0.22]},
+ "vehicle.lincoln.mkz": {"front": [242.8, 0.0, 45.1, 0.974, 0.0, -0.227], "rear": [-244.2, 0.0, 52.1, -1.0, 0.0, 0.0]},
+ "vehicle.mini.cooper": {"front": [219.6, 0.0, 37.2, 0.986, 0.0, -0.169], "rear": [-229.6, 0.0, 52.2, -0.955, 0.0, 0.297]},
+ "vehicle.nissan.patrol": {"front": [278.7, 0.0, 63.0, 1.0, 0.0, -0.03], "rear": [-274.8, 0.0, 52.0, -0.985, 0.0, -0.174]},
+ "vehicle.sprinter.mercedes": {"front": [292.0, 0.0, 45.6, 0.997, 0.0, 0.076], "rear": [-296.0, 0.0, 46.6, -0.997, 0.0, 0.082]},
+ "vehicle.taxi.ford": {"front": [285.0, 0.0, 47.1, 0.999, 0.0, -0.04], "rear": [-249.7, 0.0, 50.1, -1.0, 0.0, -0.005]}
+}}
