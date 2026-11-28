@@ -201,6 +201,8 @@ DEFAULTS = {
         "cyclist_red_running": "auto",   # a quarter of the cyclists ride on through red when clear: auto = in the
                                      # Netherlands only (SWOV's observations; drivermix.py)
         "seed": 42,
+        "stop_lines": True,          # vehicles wait before a crosswalk at a junction, not on it: SUMO stop lines
+                                     # (lane stopOffset) before the map's crosswalks (stoplines.py)
         "crop_radius_m": "auto",     # SUMO runs only the roads within this distance of the participants' starts,
                                      # the map's demand cut to them (sumocrop.py); "auto": 1500 m on maps of 25 km2
                                      # or more (city twins), else the whole map; 0: always the whole map
