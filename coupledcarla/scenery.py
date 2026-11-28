@@ -1864,18 +1864,21 @@ class Scenery:
         return carla.command.SpawnActor(self.bp, tf)
 
     def _fall_back(self, items, res):
-        """A failed mesh that has a fallback (a Dutch sign face on a server without the CoupledCarla content):
-        every such mesh is swapped for its fallback (the same blank plate) from then on, and the failed ones are
-        spawned again. items and res are aligned (one spawn per item)."""
+        """A failed mesh that has a fallback (a Dutch sign face on a server without the CoupledCarla content): that
+        mesh is swapped for its fallback (the same blank plate) from then on, and the failed placements are spawned
+        again; faces the server has keep showing. items and res are aligned (one spawn per item)."""
         import carla
         redo = [k for k, r in enumerate(res) if r.error and self.meshes[items[k][0]] in self.fallbacks]
         if not redo:
             return res
-        n = sum(m in self.fallbacks for m in self.meshes)
-        self.meshes = [self.fallbacks.get(m, m) for m in self.meshes]
-        self.fallbacks = {}
-        self.log(f"scenery: the server lacks the CoupledCarla content (Dutch sign faces, regional props): "
-                 f"{n} meshes spawn as CARLA's own (blank plates, stock props)")
+        # only the meshes the server refused: one face missing from a package must not blank every other face
+        failed = {self.meshes[items[k][0]] for k in redo}
+        self.meshes = [self.fallbacks[m] if m in failed else m for m in self.meshes]
+        for m in failed:
+            self.fallbacks.pop(m, None)
+        names = ", ".join(sorted(m.rsplit(".", 1)[-1] for m in failed)[:6]) + (", ..." if len(failed) > 6 else "")
+        self.log(f"scenery: the server lacks {len(failed)} CoupledCarla meshes (sign faces, regional props): they "
+                 f"spawn as CARLA's own (blank plates, stock props): {names}")
         res = list(res)
         again = []
         for k in redo:
