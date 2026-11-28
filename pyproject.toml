@@ -84,4 +84,4 @@ exclude = ["*__pycache__*"]
 
 [tool.setuptools.package-data]
 # data folders (mesh catalogues, pages, eHMI and display designs, the CARLA content pack, the bridge's type maps)
-"*" = ["*.json", "*.html", "*.md", "*.xml", "*.yaml", "*.uplugin"]
+"*" = ["*.json", "*.html", "*.md", "*.xml", "*.yaml", "*.csv", "*.uplugin"]
