@@ -415,3 +415,41 @@ def test_model_keeps_its_crowd_when_nobody_may_vanish():
     per = [rec["crossers"] for rec in model.phases]
     assert len(per) >= 3 and per[-1] > 0.6 * per[0]
     assert not any(c[0] == "teleport" for c in [])
+
+
+def test_car_discs_and_walkers_keep_off_cars():
+    discs = S.car_discs({1: (10.0, 0.0, 0.0, 0.0, 2.3, 0.9), 2: (500.0, 0.0, 0.0, 0.0, 2.3, 0.9)}, [(0.0, 0.0)])
+    assert len(discs) >= 3 and all(abs(d[1]) < 1e-9 and d[2] == 0.9 for d in discs)
+    assert min(d[0] for d in discs) == pytest.approx(10.0 - 1.4) and max(d[0] for d in discs) == pytest.approx(11.4)
+    # a walker heading straight at a car's side stops beside it instead of pushing into it
+    (dx, dy), v = S.steer_many([((10.0, -1.1), (10.0, 10.0), 1.3, 0.95)], [], obstacles=discs)[0]
+    assert v == 0.0
+    (dx, dy), v = S.steer_many([((10.0, -1.9), (10.0, 10.0), 1.3, 0.95)], [], obstacles=discs)[0]
+    assert 0.0 < v < 1.25                         # a metre off its side: slowed by it
+
+
+def test_unsignalised_leg_uses_gap_acceptance():
+    site = S.make_site("busy", four_way(), (0.0, 0.0), carla=False)
+    sc = S.settings({})
+    units = [[{"kind": "commuter", "speed": 1.3, "run": 2.6, "react": 0.5, "leader": True}] for _ in range(12)]
+    model = S.CrossingModel([site], [units], {**sc, **TIMING}, {}, seed=1)
+    pos = {p.i: p.pos for p in model.peds}
+    car = [(0.0, -30.0, 0.0, 12.0)]                  # a car coming fast across every leg's line: nobody goes
+    t = 0.0
+    while t < 30.0:
+        cmds = model.step(t, dict(pos), lambda s, lg: (None, 0.0), vehicles=lambda: car, dt=0.1)
+        for i, c in cmds.items():
+            if c[0] == "walk":
+                pos[i] = (pos[i][0] + c[1][0] * c[2] * 0.1, pos[i][1] + c[1][1] * c[2] * 0.1)
+        t += 0.1
+    n_blocked = len(model.crossings) + len(model.on_road())
+    model2 = S.CrossingModel([site], [units], {**sc, **TIMING}, {}, seed=1)
+    pos = {p.i: p.pos for p in model2.peds}
+    t = 0.0
+    while t < 30.0:
+        cmds = model2.step(t, dict(pos), lambda s, lg: (None, 0.0), vehicles=lambda: [], dt=0.1)
+        for i, c in cmds.items():
+            if c[0] == "walk":
+                pos[i] = (pos[i][0] + c[1][0] * c[2] * 0.1, pos[i][1] + c[1][1] * c[2] * 0.1)
+        t += 0.1
+    assert len(model2.crossings) > n_blocked

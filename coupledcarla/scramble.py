@@ -486,9 +486,10 @@ def steer(px, py, gx, gy, v0, neighbours, keep_left=False, spacing=SPACING_M, a=
     return (fx / n, fy / n), min(n, slow, v0 * 1.3)
 
 
-def steer_many(reqs, others, keep_left=False, a=0.9, b=0.3):
+def steer_many(reqs, others, keep_left=False, a=0.9, b=0.3, obstacles=()):
     """steer() for many walkers at once (numpy): reqs [((x, y), (gx, gy), v0, spacing)], others [(x, y, vx, vy)] (the
-    walker itself among them: skipped at distance 0). Returns [((dx, dy), speed)]."""
+    walker itself among them: skipped at distance 0); obstacles [(x, y, radius)]: vehicles as discs (a walker keeps
+    0.3 m off their edge). Returns [((dx, dy), speed)]."""
     try:
         import numpy as np
     except ImportError:          # the same, one by one
@@ -526,13 +527,41 @@ def steer_many(reqs, others, keep_left=False, a=0.9, b=0.3):
             coming = np.bincount(k[front & (along < -0.15)], minlength=len(P)).astype(float)
             L = np.stack([E[:, 1], -E[:, 0]], axis=1) if keep_left else np.stack([-E[:, 1], E[:, 0]], axis=1)
             F += L * (0.7 * coming)[:, None]
+    if len(obstacles):
+        B = np.array(obstacles, float).reshape(-1, 3)
+        dx = P[:, 0:1] - B[None, :, 0]
+        dy = P[:, 1:2] - B[None, :, 1]
+        d = np.hypot(dx, dy)
+        gap = d - B[None, :, 2]
+        k, m = np.nonzero(gap < 2.0)
+        if len(k):
+            dd = np.maximum(d[k, m], 1e-3)
+            mag = 2.0 * a * np.exp((0.3 - gap[k, m]) / b)
+            F[:, 0] += np.bincount(k, mag * dx[k, m] / dd, minlength=len(P))
+            F[:, 1] += np.bincount(k, mag * dy[k, m] / dd, minlength=len(P))
+            np.minimum.at(slow, k[gap[k, m] < 0.4], 0.0)       # at a car's side: wait, do not push into it
     fwd = F[:, 0] * E[:, 0] + F[:, 1] * E[:, 1]
-    F += E * np.maximum(0.0, PROGRESS * v0 - fwd)[:, None]
+    F += E * np.maximum(0.0, PROGRESS * v0 - fwd)[:, None] * (slow > 0)[:, None]
     n = np.hypot(F[:, 0], F[:, 1])
     ok = (n > 1e-6) & ~still
     dirs = np.where(ok[:, None], F / np.where(ok, n, 1.0)[:, None], E)
     speed = np.where(ok, np.minimum(np.minimum(n, slow), v0 * 1.3), 0.0)
     return [((float(dx), float(dy)), float(s)) for (dx, dy), s in zip(dirs, speed)]
+
+
+def car_discs(poses, centres, reach=90.0):
+    """Vehicles near the sites as discs [(x, y, radius)] for the steering: a row of discs of the vehicle's half width
+    along its length. poses: the bridge's {id: (x, y, yaw deg, speed, half length, half width)}."""
+    out = []
+    for x, y, yaw, _sp, hl, hw in (poses or {}).values():
+        if not any(abs(x - cx) < reach and abs(y - cy) < reach for cx, cy in centres):
+            continue
+        c, s_ = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+        n = max(1, int(math.ceil((hl - hw) / max(0.3, hw))) + 1) if hl > hw else 1
+        for k in range(n):
+            f = (-(hl - hw) + 2 * (hl - hw) * k / (n - 1)) if n > 1 else 0.0
+            out.append((x + c * f, y + s_ * f, hw))
+    return out
 
 
 class Grid:
@@ -591,6 +620,8 @@ class CrossingModel:
         self.phases, self.crossings = [], []            # finished records (crossing_phases.csv, crossings.csv)
         self.jay = float(params.get("jaywalk_share", 0.0) or 0.0)
         self.t = 0.0
+        self.obstacles = []          # [(x, y, radius)]: vehicles near the sites this step (car_discs)
+        self._vlist = None
         for k, (site, units) in enumerate(zip(sites, units_by_site)):
             for u, unit in enumerate(units):
                 lead = None
@@ -739,6 +770,8 @@ class CrossingModel:
         """(stage, remaining red s) of a leg (see stage())."""
         key = self.key(k, lg)
         red, remaining = signal(self.sites[k], lg)
+        if red is None:              # no light controls this leg: gap acceptance (crowdpeds.gap_ok), any time
+            return "gap", 0.0
         if not red:
             self.red_since.pop(key, None)
             return "dont", 0.0
@@ -748,6 +781,7 @@ class CrossingModel:
     # -- one step
     def step(self, t, positions, signal, vehicles=None, hidden=None, viewers=None, dt=0.08):
         self.t = t
+        self._vehicles, self._vlist = vehicles, None
         for i, xy in positions.items():
             if xy is None:
                 continue
@@ -785,7 +819,8 @@ class CrossingModel:
         if not go:
             return
         others = [(p.pos[0], p.pos[1], p.vel[0], p.vel[1]) for p in self.peds if p.state != "gone"]
-        out = steer_many([(self.peds[i].pos, c[1], c[2], c[3]) for i, c in go], others, self.keep_left)
+        out = steer_many([(self.peds[i].pos, c[1], c[2], c[3]) for i, c in go], others, self.keep_left,
+                         obstacles=self.obstacles)
         for (i, _c), res in zip(go, out):
             cmds[i] = ("walk", res[0], res[1])
 
@@ -817,6 +852,17 @@ class CrossingModel:
                                        (len(key) == 1 or c["leg_k"] == key[1]))
             self.phases.append(rec)
             del self.phase[key]
+
+    def _gap(self, p):
+        """No vehicle reaches p's crossing line within the HCM critical gap (crowdpeds.gap_ok); vehicles read once
+        a step."""
+        if self._vehicles is None:
+            return True
+        if self._vlist is None:
+            self._vlist = self._vehicles()
+        from .crowdpeds import critical_gap, gap_ok
+        a, b = self._leg_ends(p)
+        return gap_ok(a, b, self._vlist, critical_gap(p.leg.length, p.v0), marked=True)
 
     def _can_make(self, p, remaining):
         """Whether p, starting now, gets across before the cars' green at a brisk pace (1.2 x its own, at most its
@@ -859,10 +905,14 @@ class CrossingModel:
                 if t >= p.start_at and self._can_make(p, remaining):
                     self._cross_start(p, t)
                     return self._cross(p, t, st, grid)
+            elif stg == "gap":
+                if p.start_at is None:
+                    p.start_at = t + _lognormal(self.rng, p.react)
+                if t >= p.start_at and self._gap(p):
+                    self._cross_start(p, t, "gap")
+                    return self._cross(p, t, st, grid)
             elif stg == "dont" and p.red and p.leg.kind != "diagonal" and t >= (p.red_at or 0.0):
-                a, b = self._leg_ends(p)
-                from .crowdpeds import critical_gap, gap_ok
-                if vehicles is None or gap_ok(a, b, vehicles(), critical_gap(p.leg.length, p.v0)):
+                if self._gap(p):
                     p.red = False
                     self._cross_start(p, t, "red")
                     return self._cross(p, t, st, grid)
@@ -931,6 +981,11 @@ class CrossingModel:
             p.kerb_t = t
         if s >= L - 0.6 or math.hypot(b[0] - p.pos[0], b[1] - p.pos[1]) < 0.8:
             return self._arrive(p, t)
+        if p.kerb_t is not None and t - p.kerb_t > 3.0 * L / max(0.5, p.v0) + 15.0:
+            self.events.append(("crossing_stuck", f"walker {p.i} on a {p.leg.kind} leg for {t - p.kerb_t:.0f} s at "
+                                                  f"{p.pos[0]:.1f}, {p.pos[1]:.1f}"))
+            p.ran = True
+            return self._arrive(p, t, stuck=True)
         v = p.v0
         if p.state == "photo":
             if t < p.photo_until and stg == "walk":
@@ -945,7 +1000,9 @@ class CrossingModel:
                                                   f"a photo"))
             return ("stand", p.face)
         left_m = max(0.0, L - s)
-        if stg in ("walk", "flash", "clear"):        # the distance left must fit in the red left
+        if stg == "gap":
+            pass
+        elif stg in ("walk", "flash", "clear"):        # the distance left must fit in the red left
             need = left_m / max(0.5, remaining - 0.3)
             if need > v * 0.95:
                 v = min(p.vmax, max(v, need * 1.1))
@@ -959,13 +1016,13 @@ class CrossingModel:
         ty = a[1] + uy * min(L, max(0.0, s) + 3.0)
         return self._go(p, (tx, ty), v, grid)
 
-    def _arrive(self, p, t):
+    def _arrive(self, p, t, stuck=False):
         k0 = p.kerb_t if p.kerb_t is not None else t
         self.crossings.append({"site": p.site, "kind": self.sites[p.site].kind, "leg": p.leg.kind, "leg_k": p.leg.k,
                                "walker": p.i, "who": p.kind, "t_start": round(k0, 2), "t_end": round(t, 2),
                                "s": round(t - k0, 2), "length_m": round(p.leg.length, 1), "ran": p.ran,
                                "red": p.started_in == "red", "late": p.started_in == "late", "photo": p.photo_done,
-                               "group": len(self.group(p))})
+                               "group": len(self.group(p)), "stuck": stuck})
         dest = p.leg.b if p.from_a else p.leg.a
         site = self.sites[p.site]
         if self.rng.random() >= LEAVE_SHARE and self._chain(p, dest, t):
@@ -1129,6 +1186,7 @@ class CrossingCrowd:
         self.viewers = None              # () -> [actors]: participants and cameras
         self.hidden = None               # (x, y, occluder) -> bool (living city)
         self.vehicles = None             # () -> [(x, y, vx, vy)]
+        self.poses = None                # the bridge's SUMO vehicle poses {id: (x, y, yaw, speed, hl, hw)}
         self.events = []
         self._last_t, self._csv, self._ph = None, None, None
         self._face = {}
@@ -1254,7 +1312,7 @@ class CrossingCrowd:
             return red, rem
         ctl = self.signals.controlling((lg.a.p[0], lg.a.p[1]), (lg.b.p[0], lg.b.p[1]))
         if not ctl:
-            return False, 0.0
+            return None, 0.0           # no light on this leg: gap acceptance
         red, rem, _ = self.signals.red_remaining(ctl)
         return red, rem
 
@@ -1283,6 +1341,7 @@ class CrossingCrowd:
         hidden = None
         if self.hidden is not None:
             hidden = (lambda x, y: self.hidden(x, y, None))
+        self.model.obstacles = car_discs(self.poses, [s.centre for s in self.model.sites])
         cmds = self.model.step(t, pos, self._signal, self.vehicles, hidden, views[:1], dt)
         for i, c in cmds.items():
             a = self.actors[i]
@@ -1331,7 +1390,8 @@ class CrossingCrowd:
         import csv
         self._csv = open(Path(out) / "crossings.csv", "w", newline="")
         self._cw = csv.DictWriter(self._csv, fieldnames=["site", "kind", "leg", "leg_k", "walker", "who", "t_start", "t_end",
-                                                         "s", "length_m", "ran", "red", "late", "photo", "group"])
+                                                         "s", "length_m", "ran", "red", "late", "photo", "group",
+                                                         "stuck"])
         self._cw.writeheader()
         self._ph = open(Path(out) / "crossing_phases.csv", "w", newline="")
         self._pw = csv.DictWriter(self._ph, fieldnames=list(phase_row({

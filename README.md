@@ -1264,7 +1264,30 @@ direction at once, both diagonals included.
   crossers on the road in view of the first camera or participant, crossing times, late runners, red-light
   crossers); `python tools/crossing_report.py <trial>` sums them.
 
-MEASURED
+**Measured** (Shibuya twin, lin5080, `-nullrhi`, 260 s with the driver on autopilot, 2026-11-28; before: 16
+walkers in the whole drive). The scramble site has 4 corners and 6 legs (sides 6-16 m, diagonals 28-30 m), 572
+waiting spots and 360 walkers (the published 1,500 a green, capped), 3 busy junctions near the route 60 more.
+
+| Walk phase | Waiting at its start | Crossers (diagonal) | On the road in the driver's view, max / mean |
+|---|---|---|---|
+| 75-110 s | 315 | 331 (94) | 153 / 125 |
+| 195-230 s | 228 | 212 (78) | 276 / 210 |
+
+Crossing times (from the kerb line): side legs (16 m) p10 10.5 s, median 20.3 s, p90 35.3 s; diagonals (30 m) 27.3,
+38.7, 52.1 s; 72 of 249 crossers ran at the end; 6 photo stops; 0 red-light crossers (Japan's 0.45 % is about one
+in 220 arrivals). Some walkers stayed on the road into the next phase (in view 276 against 212 crossers): blocked by
+cars, which the walkers did not steer around. Since then cars are discs in the steering (a walker waits at a car's
+side instead of pushing into it) and a walker on the road for over 3 x its leg's walking time + 15 s is counted as
+`stuck` and moves on; legs no light controls (the minor junctions' approaches, where the run counted only 4
+crossings) are crossed on gap acceptance. Not measured on the server again yet.
+
+**Server cost.** 440 walkers made the CARLA tick 69 ms (RTF 0.23 against about 0.5 without them, no rendering).
+Alone a walker costs about 0.09 ms per tick (400 spread, walking: 44 ms), more when they press into each other (400
+at 0.75 m walking through each other: 114 ms), hence the 0.95 m spacing. Turning a standing walker by teleport
+(ApplyTransform) cost about 1 ms per walker per tick inside a trial (240 walkers: 264 ms against 33 ms), so a
+standing walker turns to face its leg with a short creep in that direction. Clips render on the simulation-time
+grid, so a busy crossing only makes them slower to film; for a study in real time lower `site_max` and
+`max_walkers` (120 crossing walkers: about +20 ms per tick).
 
 ### Running the Eindhoven crossing
 

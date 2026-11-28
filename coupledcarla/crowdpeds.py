@@ -1422,7 +1422,7 @@ class CrowdSim:
                 pass
         if self.crossings is not None:          # the crossing crowds, with the same batch and the same eyes
             cc = self.crossings
-            cc.send, cc.hidden = send, self.hidden
+            cc.send, cc.hidden, cc.poses = send, self.hidden, self.poses
             cc.step(t)
             self.events.extend(cc.events)
             cc.events.clear()
