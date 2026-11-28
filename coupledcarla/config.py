@@ -77,6 +77,8 @@ DEFAULTS = {
         "carla_level": None,         # load this CARLA level (by name) instead of generating an OpenDRIVE-only world
         "level_xodr": "stop",        # map.xodr is not the loaded level's own OpenDRIVE (levelxodr.py): "stop" the run,
                                      # or "warn" and run on (scenery, paving, parked cars may stand on other roads)
+        "stale_net": "rebuild",      # map.net.xml not built from the map's map.xodr (mapbuild.net_status: build stamp,
+                                     # else file times): "rebuild" it and transit.json before the trial, "warn", "stop"
         "carla_town": None,          # a CARLA standard map (Town01..Town07, Town10HD, their _Opt variants; on 1.0 the
                                      # _Opt towns, Mine_01): its level, its OpenDRIVE for SUMO (maps/<town>/) and
                                      # per-feature defaults for a town (coupledcarla/towns.py)
