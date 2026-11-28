@@ -45,14 +45,14 @@ def test_bad_clips_are_refused(tmp_path):
 
 def test_derived_experiment():
     clips = {c["name"]: c for c in mv.load_clips()}
-    c = clips["eindhoven_rush_hour"]
+    c = clips["eindhoven_cyclist"]            # a clip that sets its own traffic (the cyclists' showcase)
     exp = mv.derive_experiment(c, SERVER)
-    assert exp["name"] == "video_eindhoven_rush_hour"
+    assert exp["name"] == "video_eindhoven_cyclist"
     assert exp["map"]["name"] == "eindhoven_centre"            # the base's map, not the clip's name
     assert exp["server"]["port"] == 2500 and exp["server"]["launch"] is True
     assert exp["simulation"]["time"] == c["time"] and exp["simulation"]["weather"] == c["weather"]
     assert exp["simulation"]["real_time"] is False
-    assert exp["traffic"]["cars_per_hour"] == 3600 and exp["traffic"]["bikes_per_hour"] == 2400
+    assert exp["traffic"]["cars_per_hour"] == 2400 and exp["traffic"]["bikes_per_hour"] == 3000
     assert exp["logging"]["carla_recorder"] is False and exp["logging"]["frames_every_s"] == 0
     f = exp["film"]
     assert f["start_s"] == c["start_s"] and f["duration_s"] == c["duration_s"] and f["fps"] == 25

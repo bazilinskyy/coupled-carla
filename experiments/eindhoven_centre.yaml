@@ -14,7 +14,7 @@ simulation:
 
 traffic:
   cars_per_hour: 2400
-  bikes_per_hour: 1200
+  bikes_per_hour: auto
   buses_per_hour: 12
 
 participants:
