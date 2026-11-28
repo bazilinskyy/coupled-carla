@@ -1074,6 +1074,8 @@ class CrowdSim:
         # beyond every participant's and camera's sight, or behind a bus or car); None: at once
         self.hidden = None
         self._ids = []           # actor ids of the vehicles of the last _vehicles()
+        self.crossings = None    # scramble.CrossingCrowd: crowds at busy and scramble crossings (start_crossings)
+        self.extend = None       # prepare()'s extend: the map's kerbs, places and count sites
         import carla
         self.carla, self.world = carla, world
         self.params, self.events = params, []
@@ -1098,8 +1100,30 @@ class CrowdSim:
 
     @property
     def walkers(self):
-        """The walkers on the street now (not those gone through a door or onto a bus)."""
-        return [a for a, st in zip(self.actors, self.state) if st["alive"]]
+        """The walkers on the street now (not those gone through a door or onto a bus), the crossing crowds'
+        included."""
+        own = [a for a, st in zip(self.actors, self.state) if st["alive"]]
+        return own + (self.crossings.walkers if self.crossings is not None else [])
+
+    def start_crossings(self, tc, mdir, geo, centres_xy, queue=None, on_spawn=None, viewers=None, log=None):
+        """Crowds at the busy and scramble crossings near centres_xy (CARLA x, y: the participants and their routes;
+        scramble.py), once self.signals is set. Returns the CrossingCrowd or None."""
+        from . import scramble
+        log = log or self.log
+        try:
+            cc = scramble.make(self, tc, mdir, geo, self.signals, centres_xy, log)
+            if cc is None:
+                return None
+            cc.queue, cc.viewers = queue, viewers
+            cc.vehicles = self._vehicles
+            cc.start(on_spawn)
+        except Exception as err:  # noqa: BLE001 - the trial without them rather than none
+            import traceback
+            traceback.print_exc()
+            log(f"crossings: not started ({type(err).__name__}: {err})")
+            return None
+        self.crossings = cc
+        return cc
 
     def xy(self, seg, side, i):
         x, y = self.segments[seg].sides[side][i]
@@ -1196,12 +1220,21 @@ class CrowdSim:
             self.on_vanish(k, actor, reason)
         return True
 
+    def tick(self):
+        """Every tick (the walkers' own controls go every 4th): what moves with a walker (pushed bicycles)."""
+        if self.crossings is not None:
+            self.crossings.tick()
+
     def on_road(self):
-        return [a for a, st in zip(self.actors, self.state) if st["alive"] and st["crossing"]]
+        own = [a for a, st in zip(self.actors, self.state) if st["alive"] and st["crossing"]]
+        return own + (self.crossings.on_road() if self.crossings is not None else [])
 
     def _vehicles(self):
         out, self._ids = [], []
+        skip = self.crossings.not_vehicles if self.crossings is not None else ()
         for v in self.world.get_actors().filter("vehicle.*"):
+            if v.id in skip:                      # a bicycle pushed by a crossing walker
+                continue
             try:
                 loc = v.get_location()
                 sumo_v = self.velocities.get(v.id) if self.velocities else None
@@ -1215,10 +1248,14 @@ class CrowdSim:
     def open_log(self, out):
         if self.decider is not None:
             self.decider.open_log(out)
+        if self.crossings is not None:
+            self.crossings.open_log(out)
 
     def close(self):
         if self.decider is not None:
             self.decider.close()
+        if self.crossings is not None:
+            self.crossings.close()
 
     def _stand(self, k, actor, st, kind, send, face=None):
         carla = self.carla
@@ -1383,6 +1420,12 @@ class CrowdSim:
                 send(actor, carla.WalkerControl(direction=carla.Vector3D(dx / d, dy / d, 0.0), speed=speed))
             except RuntimeError:
                 pass
+        if self.crossings is not None:          # the crossing crowds, with the same batch and the same eyes
+            cc = self.crossings
+            cc.send, cc.hidden, cc.poses = send, self.hidden, self.poses
+            cc.step(t)
+            self.events.extend(cc.events)
+            cc.events.clear()
 
 
 def _fmt(x):
@@ -1460,6 +1503,7 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log, parts
     sim = CrowdSim(world, geo, segs, walkers, params, int(wc.get("seed", 1)), log)
     walkerlooks.report(sim.actors, log)
     sim.stats = stats
+    sim.extend = extend
     sim.living = living
     sim.window = None
     if region is not None and stats.get("walkers_per_kerb_km"):

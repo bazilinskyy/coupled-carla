@@ -211,6 +211,9 @@ DEFAULTS = {
         "counts": "auto",            # "auto": fit the cars to open traffic counts where they cover the map
                                      # (NYC DOT, DfT, Lyon, Montevideo, Auckland, Portland, VTrans) with SUMO's
                                      # routeSampler, topped up to cars_per_hour; false: random trips only
+        "class_flows": True,         # where no counts reach and cars_per_hour is "auto": the primary, secondary and
+                                     # tertiary roads (OSM; Overpass for a twin's net) carry their class's median
+                                     # flow per lane at the hour (counts.class_flows), routed with routeSampler
         "bikes_per_hour": "auto",    # bikes entering per hour, or "auto": the car stream x CROWD's bicycles per
                                      # motor vehicle of the place (crowdtraffic.py; 1200 without CROWD); open bike
                                      # counters still set it where they reach (traffic.cycling.counts)
@@ -250,6 +253,13 @@ DEFAULTS = {
             "max_bikes_per_hour": 3000,   # cap on the counted demand (a cyclist in CARLA costs ~3 ms per tick)
             "dock_weight": 2.0,      # bike edges within 30 m of a shared-bike dock (GBFS, gbfs.py) draw 1 + this
                                      # times the trip starts and ends; 0: off
+            "window": {              # cyclists where a driver sees them (coupledcarla/bikewindow.py): SUMO bikes
+                "enabled": "auto",   # added on the cycle tracks ahead whenever the drivers' windows hold fewer than
+                "ahead_m": 250.0, "behind_m": 30.0, "band_m": 40.0,    # the place's bikes per motor vehicle
+                "radius_m": 150.0, "spawn_min_m": 70.0, "check_s": 2.0,   # (CROWD) x the motor vehicles there; "auto":
+                "max_bikes": 40, "drop_m": 320.0, "track_weight": 3.0,   # on when a participant drives
+                "ratio": "auto",
+            },
             "weather": "auto",       # "auto": fewer cyclists in rain (the hour's and the 3 hours before, from the
                                      # weather or Open-Meteo; Wessel 2020, nightlights.bike_rain_factor); false: off
         },
@@ -325,6 +335,21 @@ DEFAULTS = {
                    "radius_m": 150,  # towns and baked levels only (towns.NavWalkers); spawned within radius_m of the
                    "speed_mps": 1.35, "run_share": 0.05,   # participants, walking to random destinations,
                    "cross_share": 0.05, "seed": 3},        # crossing at crosswalks (and cross_share elsewhere)
+            "crossings": {           # crowds at busy and scramble crossings (coupledcarla/scramble.py, README "Busy
+                                     # and scramble crossings"): waiting at the kerbs, crossing in waves on the walk
+                "enabled": True,     # signal, stragglers running, kinds of people; needs the crowd (count != 0)
+                "scramble": True,    # OSM crossing:scramble=yes junctions get the all-pedestrian phase (Shibuya)
+                "busy": True,        # crowds at the other signalised junctions near the participants
+                "busy_lights": "auto",   # one light per junction where SUMO's per-signal lights give walkers no time
+                "fetch": True,       # a twin (no map.osm) asks Overpass for its crossings once
+                "lead_s": 2.0, "walk_s": 35.0, "flash_s": 7.0, "clear_s": 3.0,   # the all-pedestrian phase: all
+                "cycle_s": 120.0,    # red, walk, flashing green, clearance (LIVE JAPAN: 40-50 s; every 2 min)
+                "max_walkers": 420, "site_max": 360, "busy_site_max": 24,   # walkers (server cost: README)
+                "busy_sites": 10, "reach_m": 150.0,  # busy junctions this close to the participants / routes
+                "rows": 4,           # rows of waiting walkers behind the kerb
+                "tourist_share": "auto", "older_share": 0.10, "bike_share": 0.02, "delivery_share": 0.012,
+                "seed": 5,
+            },
         },
     },
     "participants": [],

@@ -342,6 +342,35 @@ def place_profile(level=None, country=None, table=None):
     return table.get("fallback", "Dashcam"), "fallback"
 
 
+# CARLA 1.0's stock profiles with lens effects (measured 2026-11-28 from Content/Carla/Config/PostProcess): colour
+# fringes (SceneFringeIntensity: Dashcam 0.8, LegacyCCD 0.8, WideHDR8MP 0.3, GoPro 0.2), Dashcam also film grain 0.1,
+# vignette 0.7 and bloom 1.2. Fine for a dashcam's look in a trial, wrong for a demo video: the fringe smears every
+# edge away from the centre (twin_salamanca.mp4's bench, trunk and facades, 2026-11-28) and Dashcam's 6000 K white
+# balance turns the picture blue.
+LENS_FX = {"Dashcam": "CoupledClean", "LegacyCCD": "CoupledClean", "WideHDR8MP": "CoupledClean",
+           "GoPro": "CoupledClean"}
+
+
+def film_profile(tc):
+    """The post-process profile of the demo-video cameras (film.py) on CARLA 1.0: film.camera_profile, else
+    film.capture.profile, else the trial's own (simulation.capture.profile, simulation.camera_profile), so a clip's
+    `set: {simulation: {camera_profile: ...}}` reaches its film camera (until 2026-11-28 film cameras always took
+    "Dashcam"). A stock profile with lens effects (LENS_FX) becomes its clean twin unless film.camera_profile names
+    it on purpose. Returns (profile, why)."""
+    sim, film = tc.get("simulation") or {}, tc.get("film") or {}
+    fcap = film.get("capture") if isinstance(film.get("capture"), dict) else {}
+    scap = sim.get("capture") if isinstance(sim.get("capture"), dict) else {}
+    if film.get("camera_profile"):
+        return film["camera_profile"], "film.camera_profile"
+    for name, why in ((fcap.get("profile"), "film.capture.profile"), (scap.get("profile"), "simulation.capture.profile"),
+                      (sim.get("camera_profile"), "simulation.camera_profile")):
+        if name:
+            if name in LENS_FX:
+                return LENS_FX[name], f"{why} {name} without its lens effects"
+            return name, why
+    return LENS_FX["Dashcam"], "default (Dashcam without its lens effects)"
+
+
 def resolve_auto(tc, log=print, table=None):
     """camera_profile "auto" (simulation.camera_profile, simulation.capture.profile, film.camera_profile): the
     place's profile (place_profile) for the trial's level or country. Opt-in: the default stays "Dashcam", so

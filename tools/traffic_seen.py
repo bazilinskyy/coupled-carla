@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CLASSES = ("car", "taxi", "van", "truck", "bus", "motorcycle", "bicycle", "emergency", "walker")
+CLASSES = ("car", "taxi", "van", "truck", "bus", "motorcycle", "bicycle", "emergency", "walker", "parked")
 CROWD_OF = {"car": "cars", "taxi": "cars", "van": "trucks", "truck": "trucks", "bus": "buses",
             "motorcycle": "motorcycles", "bicycle": "bicycles", "emergency": "cars", "walker": "persons"}
 
@@ -101,8 +101,9 @@ def cameras_follow(rows, role, back, up, look_up):
     return out
 
 
-def count(rows, cams, start, duration, every=1.0, fov=90.0, max_m=300.0):
-    """{class: mean in view}, {class: unique per minute}, samples."""
+def count(rows, cams, start, duration, every=1.0, fov=90.0, max_m=300.0, parked=()):
+    """{class: mean in view}, {class: unique per minute}, samples. parked: [(x, y, z)] of the trial's parked cars
+    (parked.csv; a dashcam's tracks count them too)."""
     by_t = collections.defaultdict(list)
     for r in rows:
         if r.get("kind") in ("participant", "agent", "drone", "drone_ai"):
@@ -128,6 +129,11 @@ def count(rows, cams, start, duration, every=1.0, fov=90.0, max_m=300.0):
             if in_view(cam, pt, fov, max_m=max_m):
                 mean[c] += 1
                 uniq[c].add(r["actor_id"])
+        for k, (px, py, pz) in enumerate(parked):
+            if abs(px - cam[0]) <= max_m and abs(py - cam[1]) <= max_m and in_view(cam, (px, py, pz + 0.7), fov,
+                                                                                  max_m=max_m):
+                mean["parked"] += 1
+                uniq["parked"].add(k)
     minutes = max(duration, every) / 60.0
     return ({c: mean[c] / n for c in CLASSES}, {c: len(uniq[c]) / minutes for c in CLASSES}, n)
 
@@ -155,12 +161,12 @@ def crowd_target(trial):
 
 def report(mean, per_min, n, target=None, parked=None):
     lines = [f"samples {n}"]
-    veh = [c for c in CLASSES if c != "walker"]
+    veh = [c for c in CLASSES if c not in ("walker", "parked")]
     tot_m = sum(per_min[c] for c in veh) or 1e-9
     lines.append("class        in view (mean)  unique/min  share of vehicles" + ("  CROWD share" if target else ""))
     seen = (target or {}).get("seen", {})
     for c in CLASSES:
-        share = f"{100 * per_min[c] / tot_m:6.1f}%" if c != "walker" else "      "
+        share = f"{100 * per_min[c] / tot_m:6.1f}%" if c not in ("walker", "parked") else "      "
         tgt = ""
         if target and c in ("car", "van", "bus", "motorcycle", "bicycle"):
             key = {"car": "cars", "van": "trucks", "bus": "buses", "motorcycle": "motorcycles",
@@ -168,6 +174,9 @@ def report(mean, per_min, n, target=None, parked=None):
             tgt = f"  {100 * seen[key]:6.1f}%" + (" (cars+taxis+service)" if c == "car" else
                                                   " (vans+lorries)" if c == "van" else "")
         lines.append(f"{c:12s} {mean[c]:8.1f}  {per_min[c]:10.1f}  {share}{tgt}")
+    motor = sum(per_min[c] for c in veh if c != "bicycle")
+    lines.append(f"motor vehicles per minute in view: moving {motor:.1f}, with the parked cars {motor + per_min['parked']:.1f} "
+                 f"(a dashcam's tracks include parked cars)")
     if target:
         lines.append(f"CROWD per minute (dashcam): persons {target['rates']['persons']:.1f}, motor vehicles "
                      f"{sum(target['rates'][k] for k in ('cars', 'trucks', 'buses', 'motorcycles')):.1f}, "
@@ -197,7 +206,11 @@ def main():
         cams = cameras_drone(a.trial, a.role or "pilot")
     else:
         cams = cameras_follow(rows, a.role or "driver", a.back, a.up, a.look_up)
-    mean, per_min, n = count(rows, cams, a.start, a.duration, a.every, a.fov, a.max_m)
+    parked_xy = []
+    pc = Path(a.trial) / "parked.csv"
+    if pc.exists():
+        parked_xy = [(float(r["x"]), float(r["y"]), float(r["z"])) for r in read(pc)]
+    mean, per_min, n = count(rows, cams, a.start, a.duration, a.every, a.fov, a.max_m, parked_xy)
     if not n:
         sys.exit("no frames in the window (or no camera)")
     try:

@@ -398,7 +398,7 @@ clips:
     when: weekday 17:15
     agents: SUMO cars from the Dutch register, cyclists, real bus lines at their timetable
     notice: 3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and
-      street furniture from open data
+      street furniture from open data; the Parklaan's cycle tracks
     experiment: experiments/eindhoven_twin.yaml
     time: "2026-06-17 17:15"      # the clip's weekday rush hour (traffic, buses, sun); unset meant 08:00
     # traffic seed 43: with 42 a bus swerved through the camera window (2026-11-23 re-render, realism QA)
@@ -409,11 +409,16 @@ clips:
       participants:
         driver:
           vehicle: vehicle.tesla.model3      # every clip its own ego, from the place's fleet (README: vehicles)
+          # down the John F. Kennedylaan and east along the Parklaan, whose cycle tracks the twin has as lanes for
+          # bikes only (edges -4, -482..-487 eastbound, -82 westbound): Eindhoven's cyclists in view (bike window)
+          spawn: {lat: 51.44225, lon: 5.48535, heading: 157}
           route:
-          - - 51.44479
-            - 5.48053
-          - - 51.4423
-            - 5.4852
+          - - 51.44225
+            - 5.48535
+          - - 51.4416
+            - 5.4870
+          - - 51.44178
+            - 5.4929
     start_s: 25
     duration_s: 20
     camera:
@@ -490,6 +495,22 @@ clips:
     start_s: 38
     duration_s: 20
     camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}
+    carla: '1.0'
+  - name: twin_shibuya_scramble
+    title: The Shibuya scramble
+    place: Tokyo, Japan (CARLA 1.0 twin, left-hand)
+    role: orbiting camera above the crossing
+    when: midday
+    agents: the scramble crossing's crowd (waiting at the kerbs, crossing in every direction on the all-pedestrian
+      phase), SUMO cars waiting at their red
+    notice: the all-pedestrian phase (walk 75-110 s of each 120 s cycle), both diagonals, groups, tourists stopping
+      for a photo, stragglers running at the end (coupledcarla/scramble.py)
+    experiment: experiments/shibuya_twin.yaml
+    set: {simulation: {camera_profile: CoupledReal}, traffic: {seed: 43}}
+    start_s: 72
+    duration_s: 25
+    camera: {kind: orbit, centre: {lat: 35.65950, lon: 139.70052}, radius_m: 46, height_m: 22, start_deg: 210,
+             deg_per_s: 2}
     carla: '1.0'
   - name: twin_drones
     title: Drones over the Eindhoven twin

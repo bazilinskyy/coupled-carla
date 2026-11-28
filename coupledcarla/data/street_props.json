@@ -162,6 +162,13 @@
    0.0,
    0.1
   ],
+  "LensWhite": [
+   0.07,
+   0.07,
+   0.065,
+   0.0,
+   0.1
+  ],
   "PoleBlack": [
    0.015,
    0.015,
@@ -709,6 +716,2332 @@
    2.0,
    0.0,
    0.0
+  ],
+  "Sig_NL_Fascia_bakery_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_bakery_1"
+  ],
+  "Sig_NL_Fascia_bakery_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_bakery_2"
+  ],
+  "Sig_NL_Fascia_cafe_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_cafe_1"
+  ],
+  "Sig_NL_Fascia_cafe_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_cafe_2"
+  ],
+  "Sig_NL_Fascia_restaurant_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_restaurant_1"
+  ],
+  "Sig_NL_Fascia_restaurant_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_restaurant_2"
+  ],
+  "Sig_NL_Fascia_bar_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_bar_1"
+  ],
+  "Sig_NL_Fascia_bar_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_bar_2"
+  ],
+  "Sig_NL_Fascia_fastfood_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_fastfood_1"
+  ],
+  "Sig_NL_Fascia_fastfood_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_fastfood_2"
+  ],
+  "Sig_NL_Fascia_hair_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_hair_1"
+  ],
+  "Sig_NL_Fascia_hair_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_hair_2"
+  ],
+  "Sig_NL_Fascia_pharmacy_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_pharmacy_1"
+  ],
+  "Sig_NL_Fascia_pharmacy_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_pharmacy_2"
+  ],
+  "Sig_NL_Fascia_fashion_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_fashion_1"
+  ],
+  "Sig_NL_Fascia_fashion_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_fashion_2"
+  ],
+  "Sig_NL_Fascia_books_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_books_1"
+  ],
+  "Sig_NL_Fascia_books_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_books_2"
+  ],
+  "Sig_NL_Fascia_florist_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_florist_1"
+  ],
+  "Sig_NL_Fascia_florist_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_florist_2"
+  ],
+  "Sig_NL_Fascia_supermarket_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_supermarket_1"
+  ],
+  "Sig_NL_Fascia_supermarket_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_supermarket_2"
+  ],
+  "Sig_NL_Fascia_shop_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_shop_1"
+  ],
+  "Sig_NL_Fascia_shop_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_fascia_shop_2"
+  ],
+  "Sig_ES_Fascia_bakery_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_bakery_1"
+  ],
+  "Sig_ES_Fascia_bakery_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_bakery_2"
+  ],
+  "Sig_ES_Fascia_cafe_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_cafe_1"
+  ],
+  "Sig_ES_Fascia_cafe_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_cafe_2"
+  ],
+  "Sig_ES_Fascia_restaurant_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_restaurant_1"
+  ],
+  "Sig_ES_Fascia_restaurant_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_restaurant_2"
+  ],
+  "Sig_ES_Fascia_bar_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_bar_1"
+  ],
+  "Sig_ES_Fascia_bar_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_bar_2"
+  ],
+  "Sig_ES_Fascia_fastfood_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_fastfood_1"
+  ],
+  "Sig_ES_Fascia_fastfood_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_fastfood_2"
+  ],
+  "Sig_ES_Fascia_hair_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_hair_1"
+  ],
+  "Sig_ES_Fascia_hair_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_hair_2"
+  ],
+  "Sig_ES_Fascia_pharmacy_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_pharmacy_1"
+  ],
+  "Sig_ES_Fascia_pharmacy_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_pharmacy_2"
+  ],
+  "Sig_ES_Fascia_fashion_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_fashion_1"
+  ],
+  "Sig_ES_Fascia_fashion_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_fashion_2"
+  ],
+  "Sig_ES_Fascia_books_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_books_1"
+  ],
+  "Sig_ES_Fascia_books_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_books_2"
+  ],
+  "Sig_ES_Fascia_florist_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_florist_1"
+  ],
+  "Sig_ES_Fascia_florist_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_florist_2"
+  ],
+  "Sig_ES_Fascia_supermarket_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_supermarket_1"
+  ],
+  "Sig_ES_Fascia_supermarket_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_supermarket_2"
+  ],
+  "Sig_ES_Fascia_shop_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_shop_1"
+  ],
+  "Sig_ES_Fascia_shop_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_fascia_shop_2"
+  ],
+  "Sig_DE_Fascia_bakery_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_bakery_1"
+  ],
+  "Sig_DE_Fascia_bakery_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_bakery_2"
+  ],
+  "Sig_DE_Fascia_cafe_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_cafe_1"
+  ],
+  "Sig_DE_Fascia_cafe_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_cafe_2"
+  ],
+  "Sig_DE_Fascia_restaurant_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_restaurant_1"
+  ],
+  "Sig_DE_Fascia_restaurant_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_restaurant_2"
+  ],
+  "Sig_DE_Fascia_bar_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_bar_1"
+  ],
+  "Sig_DE_Fascia_bar_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_bar_2"
+  ],
+  "Sig_DE_Fascia_fastfood_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_fastfood_1"
+  ],
+  "Sig_DE_Fascia_fastfood_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_fastfood_2"
+  ],
+  "Sig_DE_Fascia_hair_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_hair_1"
+  ],
+  "Sig_DE_Fascia_hair_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_hair_2"
+  ],
+  "Sig_DE_Fascia_pharmacy_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_pharmacy_1"
+  ],
+  "Sig_DE_Fascia_pharmacy_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_pharmacy_2"
+  ],
+  "Sig_DE_Fascia_fashion_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_fashion_1"
+  ],
+  "Sig_DE_Fascia_fashion_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_fashion_2"
+  ],
+  "Sig_DE_Fascia_books_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_books_1"
+  ],
+  "Sig_DE_Fascia_books_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_books_2"
+  ],
+  "Sig_DE_Fascia_florist_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_florist_1"
+  ],
+  "Sig_DE_Fascia_florist_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_florist_2"
+  ],
+  "Sig_DE_Fascia_supermarket_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_supermarket_1"
+  ],
+  "Sig_DE_Fascia_supermarket_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_supermarket_2"
+  ],
+  "Sig_DE_Fascia_shop_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_shop_1"
+  ],
+  "Sig_DE_Fascia_shop_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_fascia_shop_2"
+  ],
+  "Sig_FI_Fascia_bakery_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_bakery_1"
+  ],
+  "Sig_FI_Fascia_bakery_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_bakery_2"
+  ],
+  "Sig_FI_Fascia_cafe_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_cafe_1"
+  ],
+  "Sig_FI_Fascia_cafe_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_cafe_2"
+  ],
+  "Sig_FI_Fascia_restaurant_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_restaurant_1"
+  ],
+  "Sig_FI_Fascia_restaurant_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_restaurant_2"
+  ],
+  "Sig_FI_Fascia_bar_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_bar_1"
+  ],
+  "Sig_FI_Fascia_bar_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_bar_2"
+  ],
+  "Sig_FI_Fascia_fastfood_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_fastfood_1"
+  ],
+  "Sig_FI_Fascia_fastfood_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_fastfood_2"
+  ],
+  "Sig_FI_Fascia_hair_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_hair_1"
+  ],
+  "Sig_FI_Fascia_hair_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_hair_2"
+  ],
+  "Sig_FI_Fascia_pharmacy_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_pharmacy_1"
+  ],
+  "Sig_FI_Fascia_pharmacy_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_pharmacy_2"
+  ],
+  "Sig_FI_Fascia_fashion_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_fashion_1"
+  ],
+  "Sig_FI_Fascia_fashion_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_fashion_2"
+  ],
+  "Sig_FI_Fascia_books_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_books_1"
+  ],
+  "Sig_FI_Fascia_books_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_books_2"
+  ],
+  "Sig_FI_Fascia_florist_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_florist_1"
+  ],
+  "Sig_FI_Fascia_florist_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_florist_2"
+  ],
+  "Sig_FI_Fascia_supermarket_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_supermarket_1"
+  ],
+  "Sig_FI_Fascia_supermarket_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_supermarket_2"
+  ],
+  "Sig_FI_Fascia_shop_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_shop_1"
+  ],
+  "Sig_FI_Fascia_shop_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_fascia_shop_2"
+  ],
+  "Sig_EN_Fascia_bakery_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_bakery_1"
+  ],
+  "Sig_EN_Fascia_bakery_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_bakery_2"
+  ],
+  "Sig_EN_Fascia_cafe_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_cafe_1"
+  ],
+  "Sig_EN_Fascia_cafe_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_cafe_2"
+  ],
+  "Sig_EN_Fascia_restaurant_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_restaurant_1"
+  ],
+  "Sig_EN_Fascia_restaurant_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_restaurant_2"
+  ],
+  "Sig_EN_Fascia_bar_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_bar_1"
+  ],
+  "Sig_EN_Fascia_bar_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_bar_2"
+  ],
+  "Sig_EN_Fascia_fastfood_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_fastfood_1"
+  ],
+  "Sig_EN_Fascia_fastfood_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_fastfood_2"
+  ],
+  "Sig_EN_Fascia_hair_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_hair_1"
+  ],
+  "Sig_EN_Fascia_hair_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_hair_2"
+  ],
+  "Sig_EN_Fascia_pharmacy_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_pharmacy_1"
+  ],
+  "Sig_EN_Fascia_pharmacy_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_pharmacy_2"
+  ],
+  "Sig_EN_Fascia_fashion_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_fashion_1"
+  ],
+  "Sig_EN_Fascia_fashion_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_fashion_2"
+  ],
+  "Sig_EN_Fascia_books_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_books_1"
+  ],
+  "Sig_EN_Fascia_books_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_books_2"
+  ],
+  "Sig_EN_Fascia_florist_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_florist_1"
+  ],
+  "Sig_EN_Fascia_florist_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_florist_2"
+  ],
+  "Sig_EN_Fascia_supermarket_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_supermarket_1"
+  ],
+  "Sig_EN_Fascia_supermarket_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_supermarket_2"
+  ],
+  "Sig_EN_Fascia_shop_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_shop_1"
+  ],
+  "Sig_EN_Fascia_shop_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_fascia_shop_2"
+  ],
+  "Sig_JP_Kanban_ramen_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_ramen_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_ramen_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_ramen_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_sushi_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_sushi_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_sushi_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_sushi_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_izakaya_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_izakaya_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_izakaya_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_izakaya_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_cafe_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_cafe_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_cafe_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_cafe_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_restaurant_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_restaurant_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_restaurant_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_restaurant_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_karaoke_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_karaoke_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_karaoke_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_karaoke_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_pharmacy_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_pharmacy_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_pharmacy_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_pharmacy_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_hair_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_hair_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_hair_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_hair_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_fashion_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_fashion_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_fashion_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_fashion_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_books_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_books_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_books_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_books_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_supermarket_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_supermarket_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_supermarket_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_supermarket_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_shop_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_shop_1",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Kanban_shop_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_kanban_shop_2",
+   2.5,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Tenant_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_tenant_1",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Tenant_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_tenant_2",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Tenant_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_tenant_3",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Tenant_4": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_tenant_4",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Tenant_5": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_tenant_5",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Tenant_6": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_tenant_6",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Nobori_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_nobori_1"
+  ],
+  "Sig_JP_Nobori_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_nobori_2"
+  ],
+  "Sig_JP_Nobori_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_nobori_3"
+  ],
+  "Sig_JP_Nobori_4": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_nobori_4"
+  ],
+  "Sig_JP_Nobori_5": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_nobori_5"
+  ],
+  "Sig_JP_Nobori_6": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_nobori_6"
+  ],
+  "Sig_JP_Nobori_7": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_nobori_7"
+  ],
+  "Sig_JP_Nobori_8": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_nobori_8"
+  ],
+  "Sig_JP_Stand_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_stand_1",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Stand_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_stand_2",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Stand_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_stand_3",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Stand_4": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_stand_4",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Stand_5": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_stand_5",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Stand_6": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_stand_6",
+   2.0,
+   0.0,
+   0.0
+  ],
+  "Sig_NL_ABoard_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_aboard_1"
+  ],
+  "Sig_NL_ABoard_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_aboard_2"
+  ],
+  "Sig_ES_ABoard_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_aboard_1"
+  ],
+  "Sig_ES_ABoard_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_aboard_2"
+  ],
+  "Sig_DE_ABoard_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_aboard_1"
+  ],
+  "Sig_DE_ABoard_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_aboard_2"
+  ],
+  "Sig_FI_ABoard_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_aboard_1"
+  ],
+  "Sig_FI_ABoard_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_aboard_2"
+  ],
+  "Sig_EN_ABoard_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_aboard_1"
+  ],
+  "Sig_EN_ABoard_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_aboard_2"
+  ],
+  "Sig_JP_Billboard_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboard_1",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Billboard_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboard_2",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Billboard_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboard_3",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Billboard_4": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboard_4",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Billboard_5": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboard_5",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Billboard_6": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboard_6",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Billboard_7": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboard_7",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Billboard_8": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboard_8",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_BillboardTall_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboardtall_1",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_BillboardTall_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboardtall_2",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_BillboardTall_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboardtall_3",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_BillboardTall_4": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_billboardtall_4",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Billboard_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboard_1",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Billboard_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboard_2",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Billboard_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboard_3",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Billboard_4": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboard_4",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Billboard_5": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboard_5",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Billboard_6": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboard_6",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Billboard_7": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboard_7",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Billboard_8": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboard_8",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_BillboardTall_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboardtall_1",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_BillboardTall_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboardtall_2",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_BillboardTall_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboardtall_3",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_BillboardTall_4": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_billboardtall_4",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_RoofBillboard_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_roofbillboard_1",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_RoofBillboard_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_roofbillboard_2",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_RoofBillboard_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_roofbillboard_3",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_RoofBillboard_4": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_roofbillboard_4",
+   1.6,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Screen_A": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_screen_a",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_JP_ScreenTall_A": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_screentall_a",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_JP_Screen_B": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_screen_b",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_JP_ScreenTall_B": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_screentall_b",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_JP_Screen_C": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_screen_c",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_JP_ScreenTall_C": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_screentall_c",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_JP_Screen_D": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_screen_d",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_JP_ScreenTall_D": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_screentall_d",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_EN_Screen_A": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_screen_a",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_EN_ScreenTall_A": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_screentall_a",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_EN_Screen_B": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_screen_b",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_EN_ScreenTall_B": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_screentall_b",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_EN_Screen_C": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_screen_c",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_EN_ScreenTall_C": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_screentall_c",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_EN_Screen_D": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_screen_d",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_EN_ScreenTall_D": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_screentall_d",
+   6.0,
+   0.0,
+   0.02
+  ],
+  "Sig_JP_Mupi_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_mupi_1",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Mupi_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_mupi_2",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_Mupi_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_jp_mupi_3",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_JP_BillboardStand_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_billboardstand_1"
+  ],
+  "Sig_JP_BillboardStand_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_jp_billboardstand_2"
+  ],
+  "Sig_EN_Mupi_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_mupi_1",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Mupi_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_mupi_2",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_Mupi_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_en_mupi_3",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_EN_BillboardStand_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_billboardstand_1"
+  ],
+  "Sig_EN_BillboardStand_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_en_billboardstand_2"
+  ],
+  "Sig_NL_Mupi_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_nl_mupi_1",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_NL_Mupi_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_nl_mupi_2",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_NL_Mupi_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_nl_mupi_3",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_NL_BillboardStand_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_billboardstand_1"
+  ],
+  "Sig_NL_BillboardStand_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_nl_billboardstand_2"
+  ],
+  "Sig_ES_Mupi_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_es_mupi_1",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_ES_Mupi_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_es_mupi_2",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_ES_Mupi_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_es_mupi_3",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_ES_BillboardStand_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_billboardstand_1"
+  ],
+  "Sig_ES_BillboardStand_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_billboardstand_2"
+  ],
+  "Sig_DE_Mupi_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_de_mupi_1",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_DE_Mupi_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_de_mupi_2",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_DE_Mupi_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_de_mupi_3",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_DE_BillboardStand_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_billboardstand_1"
+  ],
+  "Sig_DE_BillboardStand_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_billboardstand_2"
+  ],
+  "Sig_FI_Mupi_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_fi_mupi_1",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_FI_Mupi_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_fi_mupi_2",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_FI_Mupi_3": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.35,
+   "sig_fi_mupi_3",
+   1.4,
+   0.0,
+   0.0
+  ],
+  "Sig_FI_BillboardStand_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_billboardstand_1"
+  ],
+  "Sig_FI_BillboardStand_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_billboardstand_2"
+  ],
+  "Sig_ES_AdColumn_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_adcolumn_1"
+  ],
+  "Sig_ES_AdColumn_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_es_adcolumn_2"
+  ],
+  "Sig_DE_AdColumn_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_adcolumn_1"
+  ],
+  "Sig_DE_AdColumn_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_de_adcolumn_2"
+  ],
+  "Sig_FI_AdColumn_1": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_adcolumn_1"
+  ],
+  "Sig_FI_AdColumn_2": [
+   1.0,
+   1.0,
+   1.0,
+   0.0,
+   0.6,
+   "sig_fi_adcolumn_2"
   ]
  },
  "decal_slots": [
@@ -1424,6 +3757,59 @@
    "faces": [
     "ped_stand",
     "ped_walk"
+   ]
+  },
+  "SM_CC_NL_SignalBus": {
+   "path": "/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalBus.SM_CC_NL_SignalBus",
+   "region": "NL",
+   "folder": "TrafficLight",
+   "role": "signal_bus",
+   "ext": [
+    0.31,
+    0.198,
+    0.57
+   ],
+   "off": [
+    0.0,
+    0.255,
+    0.0
+   ],
+   "triangles": 284,
+   "slots": [
+    "LensWhite",
+    "SignalBlack",
+    "SignalYellow"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "public-transport bar signal (OV-licht): white horizontal bar, dot, vertical bar",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "lenses": [
+    [
+     0.0,
+     0.295,
+     0.26
+    ],
+    [
+     0.0,
+     0.295,
+     0.0
+    ],
+    [
+     0.0,
+     0.295,
+     -0.26
+    ]
+   ],
+   "plate": [
+    0.62,
+    1.14
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    "bar_stop",
+    "bar_dot",
+    "bar_go"
    ]
   },
   "SM_CC_NL_SharkTeeth_3": {
@@ -2350,7 +4736,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_cafe": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_cafe.SM_CC_NL_ShopSign_cafe",
@@ -2376,7 +4763,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_restaurant": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_restaurant.SM_CC_NL_ShopSign_restaurant",
@@ -2402,7 +4790,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_kapper": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_kapper.SM_CC_NL_ShopSign_kapper",
@@ -2428,7 +4817,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_apotheek": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_apotheek.SM_CC_NL_ShopSign_apotheek",
@@ -2454,7 +4844,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_mode": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_mode.SM_CC_NL_ShopSign_mode",
@@ -2480,7 +4871,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_fietsen": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_fietsen.SM_CC_NL_ShopSign_fietsen",
@@ -2506,7 +4898,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_bloemen": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_bloemen.SM_CC_NL_ShopSign_bloemen",
@@ -2532,7 +4925,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_supermarkt": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_supermarkt.SM_CC_NL_ShopSign_supermarkt",
@@ -2558,7 +4952,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_slagerij": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_slagerij.SM_CC_NL_ShopSign_slagerij",
@@ -2584,7 +4979,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_optiek": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_optiek.SM_CC_NL_ShopSign_optiek",
@@ -2610,7 +5006,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_snackbar": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_snackbar.SM_CC_NL_ShopSign_snackbar",
@@ -2636,7 +5033,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_lunchroom": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_lunchroom.SM_CC_NL_ShopSign_lunchroom",
@@ -2662,7 +5060,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_boeken": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_boeken.SM_CC_NL_ShopSign_boeken",
@@ -2688,7 +5087,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_schoenen": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_schoenen.SM_CC_NL_ShopSign_schoenen",
@@ -2714,7 +5114,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_ShopSign_winkel": {
    "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ShopSign_winkel.SM_CC_NL_ShopSign_winkel",
@@ -2740,7 +5141,8 @@
    "decal": false,
    "note": "",
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
-   "width": 3.0
+   "width": 3.0,
+   "height": 0.6
   },
   "SM_CC_NL_Clinker_W2": {
    "path": "/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W2.SM_CC_NL_Clinker_W2",
@@ -3293,6 +5695,53 @@
     ]
    }
   },
+  "SM_CC_UK_SignalPed": {
+   "path": "/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPed.SM_CC_UK_SignalPed",
+   "region": "UK",
+   "folder": "TrafficLight",
+   "role": "signal_ped",
+   "ext": [
+    0.16,
+    0.198,
+    0.29
+   ],
+   "off": [
+    0.0,
+    0.255,
+    0.0
+   ],
+   "triangles": 248,
+   "slots": [
+    "LensGreen",
+    "LensRed",
+    "SignalBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "far-side pedestrian head: red standing, green walking figure",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "lenses": [
+    [
+     0.0,
+     0.295,
+     0.13
+    ],
+    [
+     0.0,
+     0.295,
+     -0.13
+    ]
+   ],
+   "plate": [
+    0.32,
+    0.58
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    "ped_stand",
+    "ped_walk"
+   ]
+  },
   "SM_CC_JP_LampGooseneck8": {
    "path": "/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8.SM_CC_JP_LampGooseneck8",
    "region": "JP",
@@ -3826,6 +6275,6750 @@
    "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
    "out": 0.85
   },
+  "SM_CC_NL_Fascia_bakery_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bakery_1.SM_CC_NL_Fascia_bakery_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_bakery_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BAKKERIJ De Korenschoof (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_bakery_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bakery_2.SM_CC_NL_Fascia_bakery_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_bakery_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Bakker Het Zuurdesemhuis (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_cafe_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_cafe_1.SM_CC_NL_Fascia_cafe_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_cafe_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: CAF\u00c9 De Vergulde Lantaarn (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_cafe_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_cafe_2.SM_CC_NL_Fascia_cafe_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_cafe_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Koffiehuis Bonenbrander (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_restaurant_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_restaurant_1.SM_CC_NL_Fascia_restaurant_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_restaurant_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: RESTAURANT De Gouden Pollepel (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_restaurant_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_restaurant_2.SM_CC_NL_Fascia_restaurant_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_restaurant_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Eetcaf\u00e9 Het Hoekje (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_bar_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bar_1.SM_CC_NL_Fascia_bar_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_bar_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BRUIN CAF\u00c9 De Twee Zwanen (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_bar_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bar_2.SM_CC_NL_Fascia_bar_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_bar_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Bar Nachtuil (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_fastfood_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fastfood_1.SM_CC_NL_Fascia_fastfood_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_fastfood_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: SNACKBAR De Frietkoning (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_fastfood_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fastfood_2.SM_CC_NL_Fascia_fastfood_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_fastfood_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Shoarma & Grill Zuiderpoort (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_hair_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_hair_1.SM_CC_NL_Fascia_hair_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_hair_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: KAPSALON Knipwerk (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_hair_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_hair_2.SM_CC_NL_Fascia_hair_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_hair_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Barbier Scheermes & Zeep (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_pharmacy_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_pharmacy_1.SM_CC_NL_Fascia_pharmacy_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_pharmacy_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: APOTHEEK De Lindeboom (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_pharmacy_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_pharmacy_2.SM_CC_NL_Fascia_pharmacy_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_pharmacy_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Drogisterij De Vijzel (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_fashion_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fashion_1.SM_CC_NL_Fascia_fashion_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_fashion_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: MODE Atelier Noorderlicht (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_fashion_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fashion_2.SM_CC_NL_Fascia_fashion_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_fashion_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Kleding Lapjeswinkel (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_books_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_books_1.SM_CC_NL_Fascia_books_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_books_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BOEKHANDEL Het Leeshuis (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_books_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_books_2.SM_CC_NL_Fascia_books_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_books_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Antiquariaat Ezelsoor (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_florist_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_florist_1.SM_CC_NL_Fascia_florist_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_florist_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BLOEMEN Tulpenhof (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_florist_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_florist_2.SM_CC_NL_Fascia_florist_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_florist_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Bloemsierkunst Het Madeliefje (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_supermarket_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_supermarket_1.SM_CC_NL_Fascia_supermarket_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_supermarket_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BUURTSUPER Dagvers (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_supermarket_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_supermarket_2.SM_CC_NL_Fascia_supermarket_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_supermarket_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Supermarkt De Korf (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_shop_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_shop_1.SM_CC_NL_Fascia_shop_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_shop_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: WINKEL 't Snuffelhoekje (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_NL_Fascia_shop_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_shop_2.SM_CC_NL_Fascia_shop_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_NL_Fascia_shop_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Cadeaus Prul & Pracht (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_bakery_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bakery_1.SM_CC_ES_Fascia_bakery_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_bakery_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: PANADER\u00cdA La Espiga (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_bakery_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bakery_2.SM_CC_ES_Fascia_bakery_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_bakery_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Horno San Crist\u00f3bal (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_cafe_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_cafe_1.SM_CC_ES_Fascia_cafe_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_cafe_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: CAFETER\u00cdA El Mirador (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_cafe_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_cafe_2.SM_CC_ES_Fascia_cafe_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_cafe_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Caf\u00e9 La Tertulia (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_restaurant_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_restaurant_1.SM_CC_ES_Fascia_restaurant_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_restaurant_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: RESTAURANTE Casa Aurelio (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_restaurant_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_restaurant_2.SM_CC_ES_Fascia_restaurant_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_restaurant_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Mes\u00f3n El Arco (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_bar_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bar_1.SM_CC_ES_Fascia_bar_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_bar_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BAR La Parra (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_bar_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bar_2.SM_CC_ES_Fascia_bar_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_bar_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Taberna Los Faroles (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_fastfood_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fastfood_1.SM_CC_ES_Fascia_fastfood_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_fastfood_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BOCADILLER\u00cdA El Buen Bocado (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_fastfood_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fastfood_2.SM_CC_ES_Fascia_fastfood_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_fastfood_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Kebab Plaza (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_hair_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_hair_1.SM_CC_ES_Fascia_hair_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_hair_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: PELUQUER\u00cdA Tijeras de Oro (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_hair_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_hair_2.SM_CC_ES_Fascia_hair_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_hair_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Barber\u00eda Navaja (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_pharmacy_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_pharmacy_1.SM_CC_ES_Fascia_pharmacy_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_pharmacy_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: FARMACIA Lda. M. Rivas (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_pharmacy_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_pharmacy_2.SM_CC_ES_Fascia_pharmacy_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_pharmacy_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Farmacia del Puente (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_fashion_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fashion_1.SM_CC_ES_Fascia_fashion_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_fashion_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: MODAS Carmela (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_fashion_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fashion_2.SM_CC_ES_Fascia_fashion_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_fashion_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Moda Lino y Algod\u00f3n (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_books_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_books_1.SM_CC_ES_Fascia_books_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_books_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: LIBRER\u00cdA Hojas Sueltas (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_books_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_books_2.SM_CC_ES_Fascia_books_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_books_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Librer\u00eda El Quijote (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_florist_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_florist_1.SM_CC_ES_Fascia_florist_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_florist_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: FLORISTER\u00cdA Azahar (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_florist_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_florist_2.SM_CC_ES_Fascia_florist_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_florist_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Flores La Violeta (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_supermarket_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_supermarket_1.SM_CC_ES_Fascia_supermarket_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_supermarket_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: ALIMENTACI\u00d3N Ultramarinos Pilar (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_supermarket_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_supermarket_2.SM_CC_ES_Fascia_supermarket_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_supermarket_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Supermercado La Cesta (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_shop_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_shop_1.SM_CC_ES_Fascia_shop_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_shop_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: REGALOS La Alacena (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_ES_Fascia_shop_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_shop_2.SM_CC_ES_Fascia_shop_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_ES_Fascia_shop_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Tienda El Rinc\u00f3n (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_bakery_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bakery_1.SM_CC_DE_Fascia_bakery_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_bakery_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: B\u00c4CKEREI Sonnenkorn (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_bakery_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bakery_2.SM_CC_DE_Fascia_bakery_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_bakery_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Confiserie Zum M\u00fchlerad (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_cafe_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_cafe_1.SM_CC_DE_Fascia_cafe_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_cafe_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: CAF\u00c9 Zur Linde (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_cafe_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_cafe_2.SM_CC_DE_Fascia_cafe_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_cafe_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Kaffeebar Bohnengl\u00fcck (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_restaurant_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_restaurant_1.SM_CC_DE_Fascia_restaurant_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_restaurant_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: RESTAURANT Zum Goldenen Hirschen (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_restaurant_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_restaurant_2.SM_CC_DE_Fascia_restaurant_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_restaurant_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Gasthaus Alpenrose (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_bar_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bar_1.SM_CC_DE_Fascia_bar_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_bar_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BAR Nachtfalter (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_bar_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bar_2.SM_CC_DE_Fascia_bar_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_bar_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Weinstube Zum Fass (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_fastfood_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fastfood_1.SM_CC_DE_Fascia_fastfood_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_fastfood_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: IMBISS Wurstbude am Platz (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_fastfood_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fastfood_2.SM_CC_DE_Fascia_fastfood_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_fastfood_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Take-away Falafel & Co. (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_hair_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_hair_1.SM_CC_DE_Fascia_hair_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_hair_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: COIFFEUR Haarwerk (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_hair_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_hair_2.SM_CC_DE_Fascia_hair_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_hair_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Coiffeur Schnittpunkt (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_pharmacy_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_pharmacy_1.SM_CC_DE_Fascia_pharmacy_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_pharmacy_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: APOTHEKE am Platz (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_pharmacy_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_pharmacy_2.SM_CC_DE_Fascia_pharmacy_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_pharmacy_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Drogerie Kamille (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_fashion_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fashion_1.SM_CC_DE_Fascia_fashion_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_fashion_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: MODE Stoffwechsel (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_fashion_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fashion_2.SM_CC_DE_Fascia_fashion_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_fashion_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Boutique Silberdistel (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_books_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_books_1.SM_CC_DE_Fascia_books_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_books_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BUCHHANDLUNG Seitenwind (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_books_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_books_2.SM_CC_DE_Fascia_books_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_books_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Antiquariat Eselsohr (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_florist_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_florist_1.SM_CC_DE_Fascia_florist_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_florist_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BLUMEN Enzian (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_florist_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_florist_2.SM_CC_DE_Fascia_florist_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_florist_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Floristik L\u00f6wenzahn (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_supermarket_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_supermarket_1.SM_CC_DE_Fascia_supermarket_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_supermarket_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: LEBENSMITTEL Quartierladen (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_supermarket_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_supermarket_2.SM_CC_DE_Fascia_supermarket_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_supermarket_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Markt Frischeck (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_shop_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_shop_1.SM_CC_DE_Fascia_shop_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_shop_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: GESCHENKE Schatzkiste (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_DE_Fascia_shop_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_shop_2.SM_CC_DE_Fascia_shop_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_DE_Fascia_shop_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Laden Allerlei (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_bakery_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bakery_1.SM_CC_FI_Fascia_bakery_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_bakery_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: LEIPOMO \u00b7 BAGERI Ruiskukka (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_bakery_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bakery_2.SM_CC_FI_Fascia_bakery_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_bakery_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Leipomo Kaurahiutale (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_cafe_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_cafe_1.SM_CC_FI_Fascia_cafe_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_cafe_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: KAHVILA \u00b7 KAF\u00c9 Pulla & Kuppi (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_cafe_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_cafe_2.SM_CC_FI_Fascia_cafe_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_cafe_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Kahvila Satamakivi (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_restaurant_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_restaurant_1.SM_CC_FI_Fascia_restaurant_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_restaurant_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: RAVINTOLA \u00b7 RESTAURANG Merituuli (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_restaurant_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_restaurant_2.SM_CC_FI_Fascia_restaurant_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_restaurant_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Ravintola Kuusikallio (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_bar_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bar_1.SM_CC_FI_Fascia_bar_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_bar_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BAARI \u00b7 BAR Revontuli (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_bar_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bar_2.SM_CC_FI_Fascia_bar_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_bar_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Pub Vanha Ankkuri (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_fastfood_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fastfood_1.SM_CC_FI_Fascia_fastfood_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_fastfood_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: GRILLI \u00b7 GRILL Nakkikioski (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_fastfood_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fastfood_2.SM_CC_FI_Fascia_fastfood_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_fastfood_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Kebab Kauppatori (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_hair_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_hair_1.SM_CC_FI_Fascia_hair_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_hair_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: KAMPAAMO \u00b7 FRIS\u00d6R Saksiniekka (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_hair_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_hair_2.SM_CC_FI_Fascia_hair_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_hair_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Parturi Partaveitsi (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_pharmacy_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_pharmacy_1.SM_CC_FI_Fascia_pharmacy_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_pharmacy_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: APTEEKKI \u00b7 APOTEK Kruununhaka (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_pharmacy_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_pharmacy_2.SM_CC_FI_Fascia_pharmacy_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_pharmacy_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Apteekki Senaatti (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_fashion_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fashion_1.SM_CC_FI_Fascia_fashion_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_fashion_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: VAATTEET \u00b7 KL\u00c4DER Pellava (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_fashion_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fashion_2.SM_CC_FI_Fascia_fashion_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_fashion_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Muoti Lumikide (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_books_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_books_1.SM_CC_FI_Fascia_books_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_books_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: KIRJAKAUPPA \u00b7 BOKHANDEL Sivulause (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_books_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_books_2.SM_CC_FI_Fascia_books_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_books_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Antikvariaatti Koirankorva (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_florist_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_florist_1.SM_CC_FI_Fascia_florist_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_florist_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: KUKKAKAUPPA \u00b7 BLOMSTER Kielo (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_florist_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_florist_2.SM_CC_FI_Fascia_florist_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_florist_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Kukka Ruusunmarja (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_supermarket_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_supermarket_1.SM_CC_FI_Fascia_supermarket_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_supermarket_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: RUOKAKAUPPA \u00b7 LIVSMEDEL Kulmapuoti (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_supermarket_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_supermarket_2.SM_CC_FI_Fascia_supermarket_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_supermarket_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: L\u00e4hikauppa Torikori (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_shop_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_shop_1.SM_CC_FI_Fascia_shop_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_shop_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: LAHJAT \u00b7 PRESENTER Aarrearkku (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_FI_Fascia_shop_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_shop_2.SM_CC_FI_Fascia_shop_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.6,
+    0.04,
+    0.3
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_FI_Fascia_shop_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Puoti Kaikkea Kivaa (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.2,
+   "height": 0.6
+  },
+  "SM_CC_EN_Fascia_bakery_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bakery_1.SM_CC_EN_Fascia_bakery_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_bakery_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BAKERY Rise & Crumb (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_bakery_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bakery_2.SM_CC_EN_Fascia_bakery_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_bakery_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Bagels Hudson Street Ovens (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_cafe_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_cafe_1.SM_CC_EN_Fascia_cafe_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_cafe_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: COFFEE Grind & Gable (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_cafe_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_cafe_2.SM_CC_EN_Fascia_cafe_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_cafe_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Caf\u00e9 The Corner Cup (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_restaurant_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_restaurant_1.SM_CC_EN_Fascia_restaurant_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_restaurant_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: RESTAURANT Marlowe's Table (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_restaurant_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_restaurant_2.SM_CC_EN_Fascia_restaurant_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_restaurant_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Diner Eighth Avenue Grill (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_bar_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bar_1.SM_CC_EN_Fascia_bar_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_bar_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BAR The Copper Lantern (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_bar_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bar_2.SM_CC_EN_Fascia_bar_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_bar_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Tavern Old Pier Taproom (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_fastfood_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fastfood_1.SM_CC_EN_Fascia_fastfood_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_fastfood_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: PIZZA Gino & Sons Slice (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_fastfood_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fastfood_2.SM_CC_EN_Fascia_fastfood_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_fastfood_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Deli Ninth Avenue Heroes (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_hair_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_hair_1.SM_CC_EN_Fascia_hair_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_hair_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: SALON Snip & Sparrow (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_hair_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_hair_2.SM_CC_EN_Fascia_hair_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_hair_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Barbershop Ninth Street Shears (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_pharmacy_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_pharmacy_1.SM_CC_EN_Fascia_pharmacy_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_pharmacy_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: PHARMACY Midtown Chemists (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_pharmacy_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_pharmacy_2.SM_CC_EN_Fascia_pharmacy_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_pharmacy_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Drugs Lexington Rx (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_fashion_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fashion_1.SM_CC_EN_Fascia_fashion_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_fashion_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: APPAREL Thread & Thimble (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_fashion_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fashion_2.SM_CC_EN_Fascia_fashion_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_fashion_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Boutique Wren Lane (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_books_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_books_1.SM_CC_EN_Fascia_books_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_books_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: BOOKS Dog-Eared Pages (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_books_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_books_2.SM_CC_EN_Fascia_books_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_books_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Bookshop Ink & Paper (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_florist_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_florist_1.SM_CC_EN_Fascia_florist_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_florist_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: FLOWERS Petalwise (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_florist_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_florist_2.SM_CC_EN_Fascia_florist_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_florist_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Florist Bloom Room (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_supermarket_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_supermarket_1.SM_CC_EN_Fascia_supermarket_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_supermarket_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: DELI & GROCERY Fresh Corner (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_supermarket_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_supermarket_2.SM_CC_EN_Fascia_supermarket_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_supermarket_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Market 24/7 Food Mart (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_shop_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_shop_1.SM_CC_EN_Fascia_shop_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_shop_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: GIFTS Gotham Souvenirs (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_EN_Fascia_shop_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_shop_2.SM_CC_EN_Fascia_shop_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "fascia",
+   "ext": [
+    1.8,
+    0.04,
+    0.4
+   ],
+   "off": [
+    0.0,
+    -0.04,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Fascia_shop_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "fascia: Electronics Wired Up (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.8
+  },
+  "SM_CC_JP_Kanban_ramen_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_ramen_1.SM_CC_JP_Kanban_ramen_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_ramen_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u9eba\u5c4b \u3068\u308a\u3042\u304b\u308a (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_ramen_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_ramen_2.SM_CC_JP_Kanban_ramen_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_ramen_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u3089\u3042\u3081\u3093 \u6708\u898b\u5742 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_sushi_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_sushi_1.SM_CC_JP_Kanban_sushi_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_sushi_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u5bff\u53f8\u51e6 \u6d77\u51ea (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_sushi_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_sushi_2.SM_CC_JP_Kanban_sushi_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_sushi_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u56de\u8ee2\u5bff\u53f8 \u307e\u308b\u306a\u307f (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_izakaya_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_izakaya_1.SM_CC_JP_Kanban_izakaya_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_izakaya_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u5c45\u9152\u5c4b \u706f\u308a\u5bb6 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_izakaya_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_izakaya_2.SM_CC_JP_Kanban_izakaya_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_izakaya_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u7089\u7aef \u3053\u306f\u308b (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_cafe_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_cafe_1.SM_CC_JP_Kanban_cafe_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_cafe_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u55ab\u8336 \u3053\u3082\u308c\u3073 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_cafe_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_cafe_2.SM_CC_JP_Kanban_cafe_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_cafe_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u30ab\u30d5\u30a7 \u307b\u3057\u306e\u306d (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_restaurant_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_restaurant_1.SM_CC_JP_Kanban_restaurant_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_restaurant_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u3072\u3060\u307e\u308a\u98df\u5802 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_restaurant_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_restaurant_2.SM_CC_JP_Kanban_restaurant_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_restaurant_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u6d0b\u98df \u30b0\u30ea\u30eb\u671d\u51ea (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_karaoke_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_karaoke_1.SM_CC_JP_Kanban_karaoke_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_karaoke_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u30ab\u30e9\u30aa\u30b1 \u3046\u305f\u307e\u308b (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_karaoke_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_karaoke_2.SM_CC_JP_Kanban_karaoke_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_karaoke_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u30ab\u30e9\u30aa\u30b1 \u30eb\u30df\u30ca (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_pharmacy_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_pharmacy_1.SM_CC_JP_Kanban_pharmacy_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_pharmacy_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u30c9\u30e9\u30c3\u30b0 \u307f\u3069\u308a\u5802 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_pharmacy_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_pharmacy_2.SM_CC_JP_Kanban_pharmacy_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_pharmacy_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u85ac\u5c40 \u3059\u305a\u304b\u305c (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_hair_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_hair_1.SM_CC_JP_Kanban_hair_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_hair_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u7f8e\u5bb9\u5ba4 \u30ea\u30e5\u30f3\u30cc (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_hair_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_hair_2.SM_CC_JP_Kanban_hair_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_hair_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u30d8\u30a2\u30b5\u30ed\u30f3 \u98a8\u82b1 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_fashion_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_fashion_1.SM_CC_JP_Kanban_fashion_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_fashion_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u53e4\u7740\u5c4b \u30df\u30e2\u30b6 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_fashion_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_fashion_2.SM_CC_JP_Kanban_fashion_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_fashion_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u30bb\u30ec\u30af\u30c8\u30b7\u30e7\u30c3\u30d7 \u7e1e (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_books_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_books_1.SM_CC_JP_Kanban_books_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_books_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u66f8\u5e97 \u3075\u307f\u306e\u68ee (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_books_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_books_2.SM_CC_JP_Kanban_books_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_books_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u53e4\u66f8 \u3057\u304a\u308a\u5802 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_supermarket_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_supermarket_1.SM_CC_JP_Kanban_supermarket_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_supermarket_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u30b3\u30f3\u30d3\u30cb \u3072\u306a\u305f (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_supermarket_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_supermarket_2.SM_CC_JP_Kanban_supermarket_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_supermarket_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u30df\u30cb\u30de\u30fc\u30c8 \u3042\u304a\u305e\u3089 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_shop_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_shop_1.SM_CC_JP_Kanban_shop_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_shop_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u96d1\u8ca8 \u3066\u3068\u3066 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Kanban_shop_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_shop_2.SM_CC_JP_Kanban_shop_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "kanban",
+   "ext": [
+    1.8,
+    0.11,
+    0.45
+   ],
+   "off": [
+    0.0,
+    -0.11,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Kanban_shop_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit signboard: \u96fb\u5668 \u304b\u307f\u306a\u308a\u5802 (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 3.6,
+   "height": 0.9
+  },
+  "SM_CC_JP_Tenant_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_1.SM_CC_JP_Tenant_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "tenant_sign",
+   "ext": [
+    0.151,
+    0.525,
+    3.6
+   ],
+   "off": [
+    0.0,
+    -0.525,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "Sig_JP_Tenant_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "multi-tenant vertical sign (floors, generic trades)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 1.05
+  },
+  "SM_CC_JP_Tenant_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_2.SM_CC_JP_Tenant_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "tenant_sign",
+   "ext": [
+    0.151,
+    0.525,
+    3.6
+   ],
+   "off": [
+    0.0,
+    -0.525,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "Sig_JP_Tenant_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "multi-tenant vertical sign (floors, generic trades)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 1.05
+  },
+  "SM_CC_JP_Tenant_3": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_3.SM_CC_JP_Tenant_3",
+   "region": "JP",
+   "folder": "Static",
+   "role": "tenant_sign",
+   "ext": [
+    0.151,
+    0.525,
+    3.6
+   ],
+   "off": [
+    0.0,
+    -0.525,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "Sig_JP_Tenant_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "multi-tenant vertical sign (floors, generic trades)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 1.05
+  },
+  "SM_CC_JP_Tenant_4": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_4.SM_CC_JP_Tenant_4",
+   "region": "JP",
+   "folder": "Static",
+   "role": "tenant_sign",
+   "ext": [
+    0.151,
+    0.525,
+    3.6
+   ],
+   "off": [
+    0.0,
+    -0.525,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "Sig_JP_Tenant_4",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "multi-tenant vertical sign (floors, generic trades)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 1.05
+  },
+  "SM_CC_JP_Tenant_5": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_5.SM_CC_JP_Tenant_5",
+   "region": "JP",
+   "folder": "Static",
+   "role": "tenant_sign",
+   "ext": [
+    0.151,
+    0.525,
+    3.6
+   ],
+   "off": [
+    0.0,
+    -0.525,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "Sig_JP_Tenant_5",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "multi-tenant vertical sign (floors, generic trades)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 1.05
+  },
+  "SM_CC_JP_Tenant_6": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_6.SM_CC_JP_Tenant_6",
+   "region": "JP",
+   "folder": "Static",
+   "role": "tenant_sign",
+   "ext": [
+    0.151,
+    0.525,
+    3.6
+   ],
+   "off": [
+    0.0,
+    -0.525,
+    0.0
+   ],
+   "triangles": 40,
+   "slots": [
+    "Sig_JP_Tenant_6",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "multi-tenant vertical sign (floors, generic trades)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 1.05
+  },
+  "SM_CC_JP_Nobori_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_1.SM_CC_JP_Nobori_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "nobori",
+   "ext": [
+    0.315,
+    0.14,
+    1.35
+   ],
+   "off": [
+    0.175,
+    0.0,
+    1.35
+   ],
+   "triangles": 124,
+   "slots": [
+    "JPGrey",
+    "Sig_JP_Nobori_1"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "banner: \u55b6\u696d\u4e2d",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Nobori_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_2.SM_CC_JP_Nobori_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "nobori",
+   "ext": [
+    0.315,
+    0.14,
+    1.35
+   ],
+   "off": [
+    0.175,
+    0.0,
+    1.35
+   ],
+   "triangles": 124,
+   "slots": [
+    "JPGrey",
+    "Sig_JP_Nobori_2"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "banner: \u30e9\u30f3\u30c1",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Nobori_3": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_3.SM_CC_JP_Nobori_3",
+   "region": "JP",
+   "folder": "Static",
+   "role": "nobori",
+   "ext": [
+    0.315,
+    0.14,
+    1.35
+   ],
+   "off": [
+    0.175,
+    0.0,
+    1.35
+   ],
+   "triangles": 124,
+   "slots": [
+    "JPGrey",
+    "Sig_JP_Nobori_3"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "banner: \u751f\u30d3\u30fc\u30eb",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Nobori_4": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_4.SM_CC_JP_Nobori_4",
+   "region": "JP",
+   "folder": "Static",
+   "role": "nobori",
+   "ext": [
+    0.315,
+    0.14,
+    1.35
+   ],
+   "off": [
+    0.175,
+    0.0,
+    1.35
+   ],
+   "triangles": 124,
+   "slots": [
+    "JPGrey",
+    "Sig_JP_Nobori_4"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "banner: \u30e9\u30fc\u30e1\u30f3",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Nobori_5": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_5.SM_CC_JP_Nobori_5",
+   "region": "JP",
+   "folder": "Static",
+   "role": "nobori",
+   "ext": [
+    0.315,
+    0.14,
+    1.35
+   ],
+   "off": [
+    0.175,
+    0.0,
+    1.35
+   ],
+   "triangles": 124,
+   "slots": [
+    "JPGrey",
+    "Sig_JP_Nobori_5"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "banner: \u713c\u304d\u9ce5",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Nobori_6": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_6.SM_CC_JP_Nobori_6",
+   "region": "JP",
+   "folder": "Static",
+   "role": "nobori",
+   "ext": [
+    0.315,
+    0.14,
+    1.35
+   ],
+   "off": [
+    0.175,
+    0.0,
+    1.35
+   ],
+   "triangles": 124,
+   "slots": [
+    "JPGrey",
+    "Sig_JP_Nobori_6"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "banner: \u5927\u76db\u7121\u6599",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Nobori_7": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_7.SM_CC_JP_Nobori_7",
+   "region": "JP",
+   "folder": "Static",
+   "role": "nobori",
+   "ext": [
+    0.315,
+    0.14,
+    1.35
+   ],
+   "off": [
+    0.175,
+    0.0,
+    1.35
+   ],
+   "triangles": 124,
+   "slots": [
+    "JPGrey",
+    "Sig_JP_Nobori_7"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "banner: \u671f\u9593\u9650\u5b9a",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Nobori_8": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_8.SM_CC_JP_Nobori_8",
+   "region": "JP",
+   "folder": "Static",
+   "role": "nobori",
+   "ext": [
+    0.315,
+    0.14,
+    1.35
+   ],
+   "off": [
+    0.175,
+    0.0,
+    1.35
+   ],
+   "triangles": 124,
+   "slots": [
+    "JPGrey",
+    "Sig_JP_Nobori_8"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "banner: \u65b0\u30e1\u30cb\u30e5\u30fc",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Stand_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_1.SM_CC_JP_Stand_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "stand_sign",
+   "ext": [
+    0.275,
+    0.185,
+    0.59
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.59
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_JP_Stand_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit stand sign: \u30ab\u30d5\u30a7 2F",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Stand_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_2.SM_CC_JP_Stand_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "stand_sign",
+   "ext": [
+    0.275,
+    0.185,
+    0.59
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.59
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_JP_Stand_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit stand sign: \u30e9\u30f3\u30c1\u55b6\u696d\u4e2d",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Stand_3": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_3.SM_CC_JP_Stand_3",
+   "region": "JP",
+   "folder": "Static",
+   "role": "stand_sign",
+   "ext": [
+    0.275,
+    0.185,
+    0.59
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.59
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_JP_Stand_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit stand sign: \u30ab\u30e9\u30aa\u30b1 3F",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Stand_4": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_4.SM_CC_JP_Stand_4",
+   "region": "JP",
+   "folder": "Static",
+   "role": "stand_sign",
+   "ext": [
+    0.275,
+    0.185,
+    0.59
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.59
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_JP_Stand_4",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit stand sign: \u672c\u65e5\u306e\u304a\u3059\u3059\u3081",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Stand_5": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_5.SM_CC_JP_Stand_5",
+   "region": "JP",
+   "folder": "Static",
+   "role": "stand_sign",
+   "ext": [
+    0.275,
+    0.185,
+    0.59
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.59
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_JP_Stand_5",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit stand sign: \u5c45\u9152\u5c4b \u5730\u4e0b1\u968e",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Stand_6": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_6.SM_CC_JP_Stand_6",
+   "region": "JP",
+   "folder": "Static",
+   "role": "stand_sign",
+   "ext": [
+    0.275,
+    0.185,
+    0.59
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.59
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_JP_Stand_6",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit stand sign: \u7f8e\u5bb9\u5ba4 4F",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_ABoard_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ABoard_1.SM_CC_NL_ABoard_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_NL_ABoard_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_ABoard_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ABoard_2.SM_CC_NL_ABoard_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_NL_ABoard_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_ES_ABoard_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_ABoard_1.SM_CC_ES_ABoard_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_ES_ABoard_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_ES_ABoard_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_ABoard_2.SM_CC_ES_ABoard_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_ES_ABoard_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_DE_ABoard_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_ABoard_1.SM_CC_DE_ABoard_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_DE_ABoard_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_DE_ABoard_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_ABoard_2.SM_CC_DE_ABoard_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_DE_ABoard_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_FI_ABoard_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_ABoard_1.SM_CC_FI_ABoard_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_FI_ABoard_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_FI_ABoard_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_ABoard_2.SM_CC_FI_ABoard_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_FI_ABoard_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_EN_ABoard_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ABoard_1.SM_CC_EN_ABoard_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_EN_ABoard_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_EN_ABoard_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ABoard_2.SM_CC_EN_ABoard_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "a_board",
+   "ext": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "off": [
+    0.0,
+    0.0,
+    0.5
+   ],
+   "triangles": 8,
+   "slots": [
+    "Sig_EN_ABoard_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "chalk A-board",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Billboard_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_1.SM_CC_JP_Billboard_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Billboard_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_JP_Billboard_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_2.SM_CC_JP_Billboard_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Billboard_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_JP_Billboard_3": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_3.SM_CC_JP_Billboard_3",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Billboard_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_JP_Billboard_4": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_4.SM_CC_JP_Billboard_4",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Billboard_4",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_JP_Billboard_5": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_5.SM_CC_JP_Billboard_5",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Billboard_5",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_JP_Billboard_6": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_6.SM_CC_JP_Billboard_6",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Billboard_6",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_JP_Billboard_7": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_7.SM_CC_JP_Billboard_7",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Billboard_7",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_JP_Billboard_8": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_8.SM_CC_JP_Billboard_8",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Billboard_8",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_JP_BillboardTall_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_1.SM_CC_JP_BillboardTall_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard_tall",
+   "ext": [
+    2.29,
+    0.176,
+    4.04
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_BillboardTall_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.5,
+   "height": 8.0
+  },
+  "SM_CC_JP_BillboardTall_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_2.SM_CC_JP_BillboardTall_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard_tall",
+   "ext": [
+    2.29,
+    0.176,
+    4.04
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_BillboardTall_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.5,
+   "height": 8.0
+  },
+  "SM_CC_JP_BillboardTall_3": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_3.SM_CC_JP_BillboardTall_3",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard_tall",
+   "ext": [
+    2.29,
+    0.176,
+    4.04
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_BillboardTall_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.5,
+   "height": 8.0
+  },
+  "SM_CC_JP_BillboardTall_4": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_4.SM_CC_JP_BillboardTall_4",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard_tall",
+   "ext": [
+    2.29,
+    0.176,
+    4.04
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_BillboardTall_4",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.5,
+   "height": 8.0
+  },
+  "SM_CC_EN_Billboard_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_1.SM_CC_EN_Billboard_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Billboard_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_EN_Billboard_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_2.SM_CC_EN_Billboard_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Billboard_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_EN_Billboard_3": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_3.SM_CC_EN_Billboard_3",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Billboard_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_EN_Billboard_4": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_4.SM_CC_EN_Billboard_4",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Billboard_4",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_EN_Billboard_5": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_5.SM_CC_EN_Billboard_5",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Billboard_5",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_EN_Billboard_6": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_6.SM_CC_EN_Billboard_6",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Billboard_6",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_EN_Billboard_7": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_7.SM_CC_EN_Billboard_7",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Billboard_7",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_EN_Billboard_8": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_8.SM_CC_EN_Billboard_8",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    4.04,
+    0.176,
+    2.29
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Billboard_8",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 16:9",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 8.0,
+   "height": 4.5
+  },
+  "SM_CC_EN_BillboardTall_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_1.SM_CC_EN_BillboardTall_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard_tall",
+   "ext": [
+    2.29,
+    0.176,
+    4.04
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_BillboardTall_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.5,
+   "height": 8.0
+  },
+  "SM_CC_EN_BillboardTall_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_2.SM_CC_EN_BillboardTall_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard_tall",
+   "ext": [
+    2.29,
+    0.176,
+    4.04
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_BillboardTall_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.5,
+   "height": 8.0
+  },
+  "SM_CC_EN_BillboardTall_3": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_3.SM_CC_EN_BillboardTall_3",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard_tall",
+   "ext": [
+    2.29,
+    0.176,
+    4.04
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_BillboardTall_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.5,
+   "height": 8.0
+  },
+  "SM_CC_EN_BillboardTall_4": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_4.SM_CC_EN_BillboardTall_4",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard_tall",
+   "ext": [
+    2.29,
+    0.176,
+    4.04
+   ],
+   "off": [
+    0.0,
+    -0.176,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_BillboardTall_4",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "wall billboard, invented ad, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.5,
+   "height": 8.0
+  },
+  "SM_CC_JP_RoofBillboard_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_1.SM_CC_JP_RoofBillboard_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "roof_billboard",
+   "ext": [
+    4.6,
+    0.774,
+    2.558
+   ],
+   "off": [
+    0.0,
+    0.673,
+    2.542
+   ],
+   "triangles": 302,
+   "slots": [
+    "Galvanised",
+    "Sig_JP_RoofBillboard_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "rooftop billboard on a steel frame, invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.1
+  },
+  "SM_CC_JP_RoofBillboard_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_2.SM_CC_JP_RoofBillboard_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "roof_billboard",
+   "ext": [
+    4.6,
+    0.774,
+    2.558
+   ],
+   "off": [
+    0.0,
+    0.673,
+    2.542
+   ],
+   "triangles": 302,
+   "slots": [
+    "Galvanised",
+    "Sig_JP_RoofBillboard_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "rooftop billboard on a steel frame, invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.1
+  },
+  "SM_CC_JP_RoofBillboard_3": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_3.SM_CC_JP_RoofBillboard_3",
+   "region": "JP",
+   "folder": "Static",
+   "role": "roof_billboard",
+   "ext": [
+    4.6,
+    0.774,
+    2.558
+   ],
+   "off": [
+    0.0,
+    0.673,
+    2.542
+   ],
+   "triangles": 302,
+   "slots": [
+    "Galvanised",
+    "Sig_JP_RoofBillboard_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "rooftop billboard on a steel frame, invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.1
+  },
+  "SM_CC_JP_RoofBillboard_4": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_4.SM_CC_JP_RoofBillboard_4",
+   "region": "JP",
+   "folder": "Static",
+   "role": "roof_billboard",
+   "ext": [
+    4.6,
+    0.774,
+    2.558
+   ],
+   "off": [
+    0.0,
+    0.673,
+    2.542
+   ],
+   "triangles": 302,
+   "slots": [
+    "Galvanised",
+    "Sig_JP_RoofBillboard_4",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "rooftop billboard on a steel frame, invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "out": 0.1
+  },
+  "SM_CC_JP_Screen_A": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_A.SM_CC_JP_Screen_A",
+   "region": "JP",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Screen_A",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, invented ads in the local language",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_JP_ScreenTall_A": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_A.SM_CC_JP_ScreenTall_A",
+   "region": "JP",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_ScreenTall_A",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_JP_Screen_B": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_B.SM_CC_JP_Screen_B",
+   "region": "JP",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Screen_B",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, invented ads in the local language",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_JP_ScreenTall_B": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_B.SM_CC_JP_ScreenTall_B",
+   "region": "JP",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_ScreenTall_B",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_JP_Screen_C": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_C.SM_CC_JP_Screen_C",
+   "region": "JP",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Screen_C",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, invented ads in the local language",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_JP_ScreenTall_C": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_C.SM_CC_JP_ScreenTall_C",
+   "region": "JP",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_ScreenTall_C",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_JP_Screen_D": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_D.SM_CC_JP_Screen_D",
+   "region": "JP",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_Screen_D",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, invented ads in the local language",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_JP_ScreenTall_D": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_D.SM_CC_JP_ScreenTall_D",
+   "region": "JP",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_JP_ScreenTall_D",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_EN_Screen_A": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_A.SM_CC_EN_Screen_A",
+   "region": "EN",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Screen_A",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, invented ads in the local language",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_EN_ScreenTall_A": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_A.SM_CC_EN_ScreenTall_A",
+   "region": "EN",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_ScreenTall_A",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_EN_Screen_B": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_B.SM_CC_EN_Screen_B",
+   "region": "EN",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Screen_B",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, invented ads in the local language",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_EN_ScreenTall_B": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_B.SM_CC_EN_ScreenTall_B",
+   "region": "EN",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_ScreenTall_B",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_EN_Screen_C": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_C.SM_CC_EN_Screen_C",
+   "region": "EN",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Screen_C",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, invented ads in the local language",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_EN_ScreenTall_C": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_C.SM_CC_EN_ScreenTall_C",
+   "region": "EN",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_ScreenTall_C",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_EN_Screen_D": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_D.SM_CC_EN_Screen_D",
+   "region": "EN",
+   "folder": "Static",
+   "role": "screen",
+   "ext": [
+    2.04,
+    0.06,
+    1.165
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_Screen_D",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 16:9, invented ads in the local language",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 4.0,
+   "height": 2.25
+  },
+  "SM_CC_EN_ScreenTall_D": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_D.SM_CC_EN_ScreenTall_D",
+   "region": "EN",
+   "folder": "Static",
+   "role": "screen_tall",
+   "ext": [
+    1.165,
+    0.06,
+    2.04
+   ],
+   "off": [
+    0.0,
+    -0.06,
+    0.0
+   ],
+   "triangles": 14,
+   "slots": [
+    "Sig_EN_ScreenTall_D",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "facade screen, 9:16",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "width": 2.25,
+   "height": 4.0
+  },
+  "SM_CC_JP_Mupi_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Mupi_1.SM_CC_JP_Mupi_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_JP_Mupi_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Mupi_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Mupi_2.SM_CC_JP_Mupi_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_JP_Mupi_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_Mupi_3": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Mupi_3.SM_CC_JP_Mupi_3",
+   "region": "JP",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_JP_Mupi_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_BillboardStand_1": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardStand_1.SM_CC_JP_BillboardStand_1",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_JP_BillboardStand_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_JP_BillboardStand_2": {
+   "path": "/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardStand_2.SM_CC_JP_BillboardStand_2",
+   "region": "JP",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_JP_BillboardStand_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_EN_Mupi_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Mupi_1.SM_CC_EN_Mupi_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_EN_Mupi_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_EN_Mupi_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Mupi_2.SM_CC_EN_Mupi_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_EN_Mupi_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_EN_Mupi_3": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Mupi_3.SM_CC_EN_Mupi_3",
+   "region": "EN",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_EN_Mupi_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_EN_BillboardStand_1": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardStand_1.SM_CC_EN_BillboardStand_1",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_EN_BillboardStand_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_EN_BillboardStand_2": {
+   "path": "/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardStand_2.SM_CC_EN_BillboardStand_2",
+   "region": "EN",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_EN_BillboardStand_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Mupi_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Mupi_1.SM_CC_NL_Mupi_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_NL_Mupi_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Mupi_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Mupi_2.SM_CC_NL_Mupi_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_NL_Mupi_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_Mupi_3": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Mupi_3.SM_CC_NL_Mupi_3",
+   "region": "NL",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_NL_Mupi_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_BillboardStand_1": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BillboardStand_1.SM_CC_NL_BillboardStand_1",
+   "region": "NL",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_NL_BillboardStand_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_NL_BillboardStand_2": {
+   "path": "/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BillboardStand_2.SM_CC_NL_BillboardStand_2",
+   "region": "NL",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_NL_BillboardStand_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_ES_Mupi_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Mupi_1.SM_CC_ES_Mupi_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_ES_Mupi_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_ES_Mupi_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Mupi_2.SM_CC_ES_Mupi_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_ES_Mupi_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_ES_Mupi_3": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Mupi_3.SM_CC_ES_Mupi_3",
+   "region": "ES",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_ES_Mupi_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_ES_BillboardStand_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_BillboardStand_1.SM_CC_ES_BillboardStand_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_ES_BillboardStand_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_ES_BillboardStand_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_BillboardStand_2.SM_CC_ES_BillboardStand_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_ES_BillboardStand_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_DE_Mupi_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Mupi_1.SM_CC_DE_Mupi_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_DE_Mupi_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_DE_Mupi_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Mupi_2.SM_CC_DE_Mupi_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_DE_Mupi_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_DE_Mupi_3": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Mupi_3.SM_CC_DE_Mupi_3",
+   "region": "DE",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_DE_Mupi_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_DE_BillboardStand_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_BillboardStand_1.SM_CC_DE_BillboardStand_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_DE_BillboardStand_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_DE_BillboardStand_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_BillboardStand_2.SM_CC_DE_BillboardStand_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_DE_BillboardStand_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_FI_Mupi_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Mupi_1.SM_CC_FI_Mupi_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_FI_Mupi_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_FI_Mupi_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Mupi_2.SM_CC_FI_Mupi_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_FI_Mupi_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_FI_Mupi_3": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Mupi_3.SM_CC_FI_Mupi_3",
+   "region": "FI",
+   "folder": "Static",
+   "role": "poster_box",
+   "ext": [
+    0.64,
+    0.1,
+    1.16
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.16
+   ],
+   "triangles": 28,
+   "slots": [
+    "Sig_FI_Mupi_3",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "lit poster case (OSM advertising=poster_box/board), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_FI_BillboardStand_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_BillboardStand_1.SM_CC_FI_BillboardStand_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_FI_BillboardStand_1",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_FI_BillboardStand_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_BillboardStand_2.SM_CC_FI_BillboardStand_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "billboard",
+   "ext": [
+    3.1,
+    0.211,
+    2.85
+   ],
+   "off": [
+    0.0,
+    0.1,
+    2.85
+   ],
+   "triangles": 110,
+   "slots": [
+    "Galvanised",
+    "Sig_FI_BillboardStand_2",
+    "SignBack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "roadside billboard (OSM advertising=billboard), invented ad",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_ES_AdColumn_1": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_AdColumn_1.SM_CC_ES_AdColumn_1",
+   "region": "ES",
+   "folder": "Static",
+   "role": "ad_column",
+   "ext": [
+    0.7,
+    0.7,
+    1.84
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.84
+   ],
+   "triangles": 1100,
+   "slots": [
+    "ColumnGreen",
+    "Sig_ES_AdColumn_1"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "Morris column with local event posters (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_ES_AdColumn_2": {
+   "path": "/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_AdColumn_2.SM_CC_ES_AdColumn_2",
+   "region": "ES",
+   "folder": "Static",
+   "role": "ad_column",
+   "ext": [
+    0.7,
+    0.7,
+    1.84
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.84
+   ],
+   "triangles": 1100,
+   "slots": [
+    "ColumnGreen",
+    "Sig_ES_AdColumn_2"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "Morris column with local event posters (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_DE_AdColumn_1": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_AdColumn_1.SM_CC_DE_AdColumn_1",
+   "region": "DE",
+   "folder": "Static",
+   "role": "ad_column",
+   "ext": [
+    0.7,
+    0.7,
+    1.84
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.84
+   ],
+   "triangles": 1100,
+   "slots": [
+    "ColumnGreen",
+    "Sig_DE_AdColumn_1"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "Morris column with local event posters (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_DE_AdColumn_2": {
+   "path": "/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_AdColumn_2.SM_CC_DE_AdColumn_2",
+   "region": "DE",
+   "folder": "Static",
+   "role": "ad_column",
+   "ext": [
+    0.7,
+    0.7,
+    1.84
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.84
+   ],
+   "triangles": 1100,
+   "slots": [
+    "ColumnGreen",
+    "Sig_DE_AdColumn_2"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "Morris column with local event posters (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_FI_AdColumn_1": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_AdColumn_1.SM_CC_FI_AdColumn_1",
+   "region": "FI",
+   "folder": "Static",
+   "role": "ad_column",
+   "ext": [
+    0.7,
+    0.7,
+    1.84
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.84
+   ],
+   "triangles": 1100,
+   "slots": [
+    "ColumnGreen",
+    "Sig_FI_AdColumn_1"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "Morris column with local event posters (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
+  "SM_CC_FI_AdColumn_2": {
+   "path": "/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_AdColumn_2.SM_CC_FI_AdColumn_2",
+   "region": "FI",
+   "folder": "Static",
+   "role": "ad_column",
+   "ext": [
+    0.7,
+    0.7,
+    1.84
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.84
+   ],
+   "triangles": 1100,
+   "slots": [
+    "ColumnGreen",
+    "Sig_FI_AdColumn_2"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "Morris column with local event posters (invented)",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py"
+  },
   "SM_CC_JP_SignalPole": {
    "path": "/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole.SM_CC_JP_SignalPole",
    "region": "JP",
@@ -3907,6 +13100,129 @@
     null,
     null,
     null
+   ]
+  },
+  "SM_CC_JP_SignalPed": {
+   "path": "/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPed.SM_CC_JP_SignalPed",
+   "region": "JP",
+   "folder": "TrafficLight",
+   "role": "signal_ped",
+   "ext": [
+    0.185,
+    0.198,
+    0.34
+   ],
+   "off": [
+    0.0,
+    0.255,
+    0.0
+   ],
+   "triangles": 248,
+   "slots": [
+    "LensGreen",
+    "LensRed",
+    "SignalBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "pedestrian head: red standing, blue-green walking figure",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "lenses": [
+    [
+     0.0,
+     0.295,
+     0.155
+    ],
+    [
+     0.0,
+     0.295,
+     -0.155
+    ]
+   ],
+   "plate": [
+    0.37,
+    0.68
+   ],
+   "lens_d": 0.25,
+   "faces": [
+    "ped_stand",
+    "ped_walk"
+   ]
+  },
+  "SM_CC_Any_SignalPole": {
+   "path": "/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPole.SM_CC_Any_SignalPole",
+   "region": "Any",
+   "folder": "TrafficLight",
+   "role": "signal_pole",
+   "ext": [
+    0.057,
+    0.057,
+    1.525
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.525
+   ],
+   "triangles": 128,
+   "slots": [
+    "Anthracite"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "top": [
+    0.0,
+    0.0,
+    3.0
+   ]
+  },
+  "SM_CC_Any_SignalPed": {
+   "path": "/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPed.SM_CC_Any_SignalPed",
+   "region": "Any",
+   "folder": "TrafficLight",
+   "role": "signal_ped",
+   "ext": [
+    0.16,
+    0.198,
+    0.29
+   ],
+   "off": [
+    0.0,
+    0.255,
+    0.0
+   ],
+   "triangles": 248,
+   "slots": [
+    "LensGreen",
+    "LensRed",
+    "SignalBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "generic pedestrian head: red standing, green walking figure",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "lenses": [
+    [
+     0.0,
+     0.295,
+     0.13
+    ],
+    [
+     0.0,
+     0.295,
+     -0.13
+    ]
+   ],
+   "plate": [
+    0.32,
+    0.58
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    "ped_stand",
+    "ped_walk"
    ]
   }
  }

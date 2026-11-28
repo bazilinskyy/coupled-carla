@@ -1,0 +1,143 @@
+{
+ "source": {
+  "dataset": "crowd-jaywalking (crowd-dataset/crowd-jaywalking, built on CROWD), docs/crossing_movement.csv",
+  "version": "3b20c52f (2026-11-25)",
+  "licence": "MIT (code and tables); CROWD data CC BY 4.0",
+  "notes": "people crossing at a marking (zebra or pedestrian light) in the dashcam footage of 16 countries: stopped_pct = stood still (below 0.15 body heights per second) for at least 0.5 s after starting to walk and before walking on; with_others_pct = another person's crossing in the same segment overlapped theirs within 1 s; world = the people-weighted mean of the 16 countries"
+ },
+ "world": {
+  "stopped_pct": 5.57,
+  "with_others_pct": 71.34,
+  "people": 18488
+ },
+ "countries": {
+  "BGD": {
+   "name": "Bangladesh",
+   "people": 90,
+   "stopped_pct": 7.78,
+   "stopped_low_pct": 3.82,
+   "stopped_high_pct": 15.19,
+   "with_others_pct": 46.67
+  },
+  "VNM": {
+   "name": "Vietnam",
+   "people": 228,
+   "stopped_pct": 4.39,
+   "stopped_low_pct": 2.4,
+   "stopped_high_pct": 7.88,
+   "with_others_pct": 53.51
+  },
+  "FRA": {
+   "name": "France",
+   "people": 2882,
+   "stopped_pct": 5.55,
+   "stopped_low_pct": 4.77,
+   "stopped_high_pct": 6.45,
+   "with_others_pct": 70.09
+  },
+  "DNK": {
+   "name": "Denmark",
+   "people": 2276,
+   "stopped_pct": 6.15,
+   "stopped_low_pct": 5.24,
+   "stopped_high_pct": 7.21,
+   "with_others_pct": 71.57
+  },
+  "SWE": {
+   "name": "Sweden",
+   "people": 1900,
+   "stopped_pct": 6.42,
+   "stopped_low_pct": 5.4,
+   "stopped_high_pct": 7.61,
+   "with_others_pct": 77.37
+  },
+  "KOR": {
+   "name": "South Korea",
+   "people": 1158,
+   "stopped_pct": 5.18,
+   "stopped_low_pct": 4.05,
+   "stopped_high_pct": 6.61,
+   "with_others_pct": 74.18
+  },
+  "CHN": {
+   "name": "China",
+   "people": 1796,
+   "stopped_pct": 3.23,
+   "stopped_low_pct": 2.51,
+   "stopped_high_pct": 4.15,
+   "with_others_pct": 73.0
+  },
+  "JPN": {
+   "name": "Japan",
+   "people": 3310,
+   "stopped_pct": 3.78,
+   "stopped_low_pct": 3.18,
+   "stopped_high_pct": 4.48,
+   "with_others_pct": 80.79
+  },
+  "IND": {
+   "name": "India",
+   "people": 213,
+   "stopped_pct": 8.45,
+   "stopped_low_pct": 5.41,
+   "stopped_high_pct": 12.96,
+   "with_others_pct": 48.83
+  },
+  "BRA": {
+   "name": "Brazil",
+   "people": 682,
+   "stopped_pct": 8.8,
+   "stopped_low_pct": 6.9,
+   "stopped_high_pct": 11.16,
+   "with_others_pct": 58.5
+  },
+  "IDN": {
+   "name": "Indonesia",
+   "people": 129,
+   "stopped_pct": 3.88,
+   "stopped_low_pct": 1.67,
+   "stopped_high_pct": 8.75,
+   "with_others_pct": 59.69
+  },
+  "POL": {
+   "name": "Poland",
+   "people": 1298,
+   "stopped_pct": 7.09,
+   "stopped_low_pct": 5.81,
+   "stopped_high_pct": 8.61,
+   "with_others_pct": 71.49
+  },
+  "ZAF": {
+   "name": "South Africa",
+   "people": 476,
+   "stopped_pct": 6.09,
+   "stopped_low_pct": 4.28,
+   "stopped_high_pct": 8.61,
+   "with_others_pct": 42.44
+  },
+  "THA": {
+   "name": "Thailand",
+   "people": 194,
+   "stopped_pct": 6.19,
+   "stopped_low_pct": 3.57,
+   "stopped_high_pct": 10.5,
+   "with_others_pct": 64.43
+  },
+  "TUR": {
+   "name": "Türkiye",
+   "people": 615,
+   "stopped_pct": 6.5,
+   "stopped_low_pct": 4.81,
+   "stopped_high_pct": 8.74,
+   "with_others_pct": 66.18
+  },
+  "USA": {
+   "name": "United States",
+   "people": 1241,
+   "stopped_pct": 7.33,
+   "stopped_low_pct": 6.01,
+   "stopped_high_pct": 8.92,
+   "with_others_pct": 66.08
+  }
+ }
+}

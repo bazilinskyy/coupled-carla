@@ -624,6 +624,23 @@ texture API. SUMO's traffic lights show as signal heads on kerb poles (CARLA's o
 per approach, with the lit lamp in SUMO's colour (`simulation.traffic_lights.style: head`; `marker` for the old
 glowing points). On CARLA 1.0 use the `CoupledClean` post-process profile (`coupledcarla/data/postprocess`).
 
+**Demo-video cameras on CARLA 1.0 (2026-11-28).** CARLA 1.0's RGB camera has no lens attributes; its look is the
+post-process profile. Until now the film cameras (`film.py`) always asked for CARLA's `Dashcam`, whatever the clip
+set: colour fringes 0.8 that smear every edge away from the centre, film grain, a 0.7 vignette, bloom 1.2 and a
+6000 K white balance that turns the picture blue (twin_salamanca.mp4: the soft bench, trunk and facades at the edge
+of the frame). The film camera now takes the clip's profile (`film.camera_profile`, else `film.capture.profile`,
+else the trial's `simulation.capture.profile` / `simulation.camera_profile`, so the twin clips' `CoupledReal`
+applies) and swaps a stock profile with lens effects (`Dashcam`, `LegacyCCD`, `WideHDR8MP`, `GoPro`) for
+`CoupledClean` unless `film.camera_profile` names it on purpose (`look.film_profile`). Our profiles override fringe,
+grain, vignette, motion blur and the scene tint to neutral, so a level's own post-process volume cannot add them
+back; the server needs them installed (`tools/install_profiles.py`). What was measured on the 24 Nov Salamanca clip:
+the encode is not the blur (1080p, CRF 20, 11.9 Mb/s: a kept frame against its encoded frame 37 dB PSNR, the same
+sharpness); the lawn was the aerial photo itself (12 cm per texel, now a grass material: carla-digitaltwins
+`twinmodel/export/lawn.py`), and the lawn's texels looked 3-4 times coarser still at 5-10 m, so the texture streaming
+of the twin's ground is suspected too: render servers for clips may raise `r.Streaming.PoolSize` (4000 MB in CARLA
+1.0's DefaultEngine.ini; `-ExecCmds="r.Streaming.PoolSize 12000,r.MaxAnisotropy 16"` on a 32 GB card, capped by
+`r.Streaming.LimitPoolSizeToVRAM`).
+
 **Placement audit.** `python tools/placement_audit.py <experiment> --port <p> [--radius 300] [--frames 12]` checks
 placement on a running server: it spawns the map's scenery, parked stalls and SUMO's signal heads around a point and
 flags objects that float or are sunk (box bottom against the ground under it), tilted, duplicated, standing on a lane
@@ -681,6 +698,73 @@ logo, name or real advertisement is used. They are items of kind `facade`: `tool
 the ground of their area (never onto it). Option `map.scenery.screens` (`auto`: on baked twins; `false`: off). The
 props come with the street props (`tools/street_props.py`; the Japanese sign faces are rendered with Noto Sans CJK, SIL
 OFL, and kept in `unreal/StreetProps/textures`) and are imported by `tools/ue_street_props.py`.
+
+**Generated signage: what is real and what is made up (baked twins, 2026-11-28).** Shop signs and advertising make
+a street read as a place, so every twin gets them in its own language and style; but only their positions are real.
+
+| Real (open data, facts) | Generated (`tools/signage_art.py`, MIT) |
+|---|---|
+| where each shop, cafe, bar and restaurant is, its trade and its floor (OSM) | every shop name on every sign: invented ("De Korenschoof", "麺屋 とりあかり", "Rise & Crumb") |
+| the facade it hangs on (the twin's measured buildings) | every advertisement, brand, product, film, show and slogan (HOSHIBA SODA, NOVARELL, ALPENKLAR, ...) |
+| mapped advertising columns, poster cases, billboards and screens (OSM `advertising=*`) | what those show: local-language posters and ads, laid out procedurally |
+| the places known for big screens and billboards (`data/screen_places.json`: Shibuya, Times Square) | the screens' content (invented ads, slowly scrolling) |
+| the kind of signage a place has, its density, sizes and colours (looked at in open street photos) | the typography: open fonts only (Noto Sans / Serif CJK JP, SIL OFL; DejaVu and STIX) |
+
+- **Shibuya and other Japanese twins:** a lit signboard (kanban) over every shopfront, at the shop's floor for upstairs
+  shops (a band of signs up the lower floors); multi-tenant vertical signs listing the floors (2F 居酒屋, 3F カラオケ,
+  ...) on the corners of blocks with several or upstairs shops; cloth banners (nobori: 営業中, ランチ, 生ビール, ...) and
+  lit stand signs on the pavement; wall billboards on the tall walls of dense streets (10 more around the scramble)
+  and rooftop billboards on mid-rise blocks; the screens show Japanese ads. The single-word vertical signs stay.
+- **The Netherlands, Spain, Switzerland (German), Finland (Finnish over Swedish) and the US:** a fascia board on every
+  shop with its trade and an invented name in the local language (a green cross on pharmacies), an A-board at some
+  cafes and restaurants, the mapped columns, poster cases and billboards with local posters; Times Square also gets
+  24 wall billboards and its screens English ads. European old towns get no wall or roof billboards.
+- **Why not real ads.** Real advertisements, brand names, logos and trademarks are not used, also not from openly
+  licensed photos (CC BY-SA, Mapillary): the photos' licence covers the photo, not the brands in it, and brand imagery
+  in a public repository and in published videos is a legal risk. Open street photos served only as a style
+  reference. If licensed ad imagery is supplied later, it can replace the generated set (one texture per item in
+  `catalog()`). `tests/test_signage.py` guards against well-known brand names and missing glyphs (the Japanese font
+  subsets in `unreal/StreetProps/fonts`, made by `tools/signage_fonts.py`, must cover every character drawn).
+- Placement: `coupledcarla/signage.py` (option `map.scenery.signage`: `auto` on baked twins, `true`, `false`); the
+  props (254 meshes, their faces drawn at build time, nothing large in git) come with `tools/street_props.py` and
+  are imported by `tools/ue_street_props.py`; a server without them keeps the older generic Dutch boards.
+
+### Road signs and number plates of the place
+
+Every map shows its own country's road signs and every vehicle its country's number plates (Pavlo, 2026-11-28: "traffic
+signs are US. make them local, also same for all videos ... make them spanish").
+
+- **Signs.** At load a CARLA server spawns a stock sign actor at every stop, give-way and speed-limit signal of the
+  level's OpenDRIVE (`traffic.stop`, `traffic.yield`, `traffic.speed_limit.<v>`). Their plates are North American
+  (MUTCD): the white "SPEED LIMIT 30" rectangle, the triangle with YIELD on it, the octagon (and CARLA's DO NOT ENTER
+  plate). Twin levels leave those signals out of the server's copy of their OpenDRIVE (carla-digitaltwins
+  `server_signs.py`, `stage_sidecars.py`); every trial also replaces whatever stock sign the server still spawned
+  (`coupledcarla/localsigns.py`, generated maps and the map of any place included): where the design is not the
+  country's, the actor is removed and, on CARLA 1.0 with the CoupledCarla sign faces, the same sign stands there in
+  the Vienna Convention's design (red speed roundel A1 with the number, the plain give-way triangle B6; the stop
+  octagon fits everywhere but Japan). Where no face fits (Japan's 止まれ and 徐行) the sign is left out rather than
+  shown in another country's design. The US, its territories and Canada keep CARLA's plates, and so do CARLA's own
+  towns (North American). The scenery's OSM and NDW signs follow the same rule (`placement.sign_fits`): CARLA's speed
+  and no-entry plates no longer stand in Eindhoven. `simulation.stock_signs`: `auto` (default), `keep`, `remove`.
+- **Plates.** `coupledcarla/plates.py` sets the vehicle attribute `license_plate` (our CARLA 1.0 server code,
+  `unreal/patches/LicensePlates_BodySpots.patch` on top of the plate commit) to the map's country; the server mounts a
+  plate of the country's format and real size (`tools/plate_faces.py`, imported by `tools/ue_plates.py` into
+  `/Game/CoupledCarla/Plates`). Formats: NL yellow EU plate (XX-999-X ...); ES white EU plate with the blue E band,
+  9999 BBB; FI white, black rim, FIN; DE white, D, district code; FR white with the blue bands; CH short front and
+  long rear plate with the arms; JP small white plate with green characters (品川 300 あ 12-34); US New York's plate
+  (also on CARLA's towns); UA white with the flag band and UA, Chernihiv's CB/IB codes most; RW black on white in front,
+  on yellow at the back (RAB 272H). Vehicles whose meshes carry CARLA's plate material get the plate there; CARLA
+  1.0's newer vehicles (Lincoln MKZ, Mini, Kia Niro, Fuso bus, Sprinter, ...) have none, so the server finds where
+  their body is flat and upright at the usual plate height (rear 52 cm, front 45 cm above the ground) on the centre
+  line, front and back, and logs the spot; `tools/plate_spots.py` collects those into
+  `coupledcarla/data/plate_spots.json`, which travels with the country (`ES;rear=...;front=...`) to packaged servers
+  that cannot read their meshes.
+- **Check.** `python tools/sign_check.py content <Content dir> --towns` lists per level the stock sign signals an
+  editor and a packaged server would turn into actors, the `.xodr` file each reads, and stock sign meshes in the level
+  files; `server --levels A,B --replace` does it on a running server. On 2026-11-28 it found why the twin clips showed
+  US plates: CARLA's editor server reads the first `*.xodr` of a level's `OpenDrive` folder, and a full backup copy
+  kept beside the level's own (`<N>.prebake_signs.xodr`) sorted first (fixed: nothing but the level's copy in that
+  folder, and `unreal/patches/OpenDrive_OwnXodrFirst.patch` makes the server prefer `<N>.xodr`).
 
 ## Night and rain
 
@@ -807,6 +891,25 @@ banks: at Hoek van Holland 218 more water pieces, 1.1 % of the scenery), writes 
 CARLA lower its terrain 3 m under them. On lin5080 (2026-11-27) it lowered 100,520 of 411,635 terrain vertices; rays
 over the channel then met the terrain at -1.9 m under water at 1.1 m, and the land stayed as it was. A server without
 the patch ignores the userData.
+
+**The landscape to the horizon (far ring).** A twin ends at its last tile and a generated map at its scenery's ground
+tiles; aerial and long views used to see a black ground plane (twins) or a grey paving slab to the horizon (generated
+maps). carla-digitaltwins' `tools/far_ring.py` builds the real land around them, open data only: the national terrain
+model (else the AWS Terrain Tiles) with the Earth's curvature, the national aerial photo (else Sentinel-2 cloudless
+2016, CC BY 4.0) at about 1 m/px to 2.5 km, 5 m/px to 20 km and 30 m/px to 60 km, LoD1 buildings to 3 km (3DBAG in
+the Netherlands, else Overture or OSM) with photo roofs, and an ESA WorldCover forest canopy to 8 km; it meets the
+twin 0.5 m under its edge, and an aerial-perspective setting fades it into the sky (details and numbers in the
+carla-digitaltwins README). Every twin gets one in its bake (`twinmodel twin`, step `farring`;
+`ue/bake_far_ring.py` adds it to a baked level). For a generated map the map maker builds it into
+`maps/<name>/far_ring/` when the twin toolchain is configured (`coupledcarla/farring.py` reads the map's
+geoReference, ground tiles and terrain base); after `bake_far_ring.py --assets-only` has cooked it into the CARLA 1.0
+server, the run spawns it instead of the slab (a server without it keeps the slab):
+
+```bash
+python -c "from coupledcarla import farring; farring.build('maps/lyon', '<carla-digitaltwins>/TwinModel')"
+UnrealEditor-Cmd <CarlaUnreal.uproject> -run=pythonscript -nullrhi \
+    -script="<carla-digitaltwins>/TwinModel/ue/bake_far_ring.py --far-ring $PWD/maps/lyon/far_ring/far_ring.json --name Lyon --assets-only"
+```
 
 ### Where each object comes from (provenance)
 
@@ -1174,6 +1277,83 @@ flowchart LR
   `visual_sync`, and `collision` for every participant and agent. Each station also writes
   `logs/stations/<role>_<time>.csv`: one row per rendered frame with wall-clock time, CARLA frame, simulation
   time, round trip, visual-sync flag, speed and eHMI.
+
+### Busy and scramble crossings
+
+`traffic.walkers.crossings` (`coupledcarla/scramble.py`, `pedsignals.py`; on whenever the crowd is): every
+signalised junction near the participants and their routes is a crossing site with a crowd of its own, which waits
+at the kerbs while the cars have green and crosses in waves on the walk signal. A scramble junction (OSM
+`crossing:scramble=yes`, as at Shibuya; a twin without `map.osm` asks Overpass once and caches
+`real/osm_crossings.json`; or a light whose programme has an all-red phase of 15 s or more) is crossed in every
+direction at once, both diagonals included.
+
+- **The all-pedestrian phase.** The scramble junction's SUMO nodes become one controller (signalplan.py's stages
+  for the cars), then all red for 2 s lead + 35 s walk + 7 s flashing + 3 s clearance, in a 120 s cycle, every light
+  of the junction in step (LIVE JAPAN: the green "averages about 40-50 s"; Wikipedia: a green every 2 minutes). The
+  OpenDRIVE nets have one light per OpenDRIVE signal, all green together (42 s green, 3 s amber, 3 s red); a crossing
+  at a signalised junction outside the Netherlands never had its cars stopped for more than 3 s, and at Shibuya only
+  5 of the junction's links had a light at all. With `busy_lights: auto` such nets get signalplan.py's junction
+  controllers everywhere (static: walkers read the phases ahead).
+- **Where they wait.** A site's kerb ends are the junction ends of the crowd's kerbs within 40 m; consecutive ends of
+  different roads are one block corner. A scramble site joins every pair of corners (side crossings and diagonals),
+  a busy site crosses each approach road. Walkers arrive along the pavements and take the free spot nearest their
+  leg's kerb end: rows 0.95 m apart along 18 m of kerb, 4 deep, so the crowd builds from the crossing outward.
+- **The wave.** On walk each starts after a reaction time (lognormal, median 0.7 s for commuters to 1.8 s for
+  people on their phone) plus 0.45 s per row behind the kerb and 0.04 s per metre along it. They cross with a lane
+  offset inside the leg's width (5 m, diagonals 7 m), step to the traffic's side (left in left-hand countries) for
+  someone coming the other way, keep their distance (social-force steering), slow behind a slower walker and keep
+  a third of their pace through a crowd; groups walk side by side.
+- **The end of the green.** Nobody starts on the flashing green (Japan's rule; one in five late arrivals runs for
+  it if it can make it); who cannot get across before the cars' green at a brisk pace does not start; a walker
+  whose distance left will not fit in the red left speeds up, to a run (2.6 m/s; older people 1.4 m/s). Cars
+  wait at their red and, on green, yield to whoever is still on the road (`yielding.py`, walkers checked by grid).
+- **On red.** CROWD measures no red-light crossing; a walker arriving on red crosses a side leg anyway with the
+  country's CROWD share of crossings without a crosswalk or pedestrian light (Japan 0.45 %), after 4-12 s and only
+  when no car is within the HCM critical gap.
+- **Who.** Groups of friends (Moussaid 2010's sizes at moderate density), commuters, tourists (15 % at a scramble
+  crossing, 3 % elsewhere), families with a child, older people (10 % of those alone, 0.75 x the pace, HCM),
+  people on their phone (Thompson 2013), cyclists walking a bicycle and delivery riders (a CARLA bicycle moved
+  beside them every tick; attached to the walker it stayed where it was spawned), umbrellas in rain (no umbrella
+  mesh: they keep 1.25 m and walk a little slower). Tourists stop mid-crossing for a photo, 2.5-6 s, so that the
+  crowd's share of people who stop matches CROWD's share who stopped mid-crossing at a marking in the country
+  (crowd-jaywalking's `crossing_movement.csv`: Japan 3.8 %, 16 countries 5.6 %). Their looks come from
+  `walkerlooks.py`.
+- **How many.** Crossers per cycle: a published count where `data/busy_crossings.json` has the crossing (Shibuya:
+  1,000-2,000 a green, up to 3,000), else 6 per leg x legs x CROWD's density factor of the place x the places
+  around the junction against the map's other junctions. A site keeps about that many walkers alive (one crosses
+  about once a cycle), up to `site_max` (scramble) or `busy_site_max`, and `max_walkers` in all. Walkers who reach a
+  corner go on across another of its legs at the next walk, or leave along a pavement and come back unseen (where
+  nobody sees them, else they turn back on the pavement), so a crowd watched by a camera at the crossing does not
+  drain away.
+- **Logs.** `crossings.csv` (one row per crossing: leg, kind of walker, time, ran, red, photo) and
+  `crossing_phases.csv` (per walk phase and site: waiting at its start per corner, crossers, diagonal crossers,
+  crossers on the road in view of the first camera or participant, crossing times, late runners, red-light
+  crossers); `python tools/crossing_report.py <trial>` sums them.
+
+**Measured** (Shibuya twin, lin5080, `-nullrhi`, 260 s with the driver on autopilot, 2026-11-28; before: 16
+walkers in the whole drive). The scramble site has 4 corners and 6 legs (sides 6-16 m, diagonals 28-30 m), 572
+waiting spots and 360 walkers (the published 1,500 a green, capped), 3 busy junctions near the route 60 more.
+
+| Walk phase | Waiting at its start | Crossers (diagonal) | On the road in the driver's view, max / mean |
+|---|---|---|---|
+| 75-110 s | 315 | 331 (94) | 153 / 125 |
+| 195-230 s | 228 | 212 (78) | 276 / 210 |
+
+Crossing times (from the kerb line): side legs (16 m) p10 10.5 s, median 20.3 s, p90 35.3 s; diagonals (30 m) 27.3,
+38.7, 52.1 s; 72 of 249 crossers ran at the end; 6 photo stops; 0 red-light crossers (Japan's 0.45 % is about one
+in 220 arrivals). Some walkers stayed on the road into the next phase (in view 276 against 212 crossers): blocked by
+cars, which the walkers did not steer around. Since then cars are discs in the steering (a walker waits at a car's
+side instead of pushing into it) and a walker on the road for over 3 x its leg's walking time + 15 s is counted as
+`stuck` and moves on; legs no light controls (the minor junctions' approaches, where the run counted only 4
+crossings) are crossed on gap acceptance. Not measured on the server again yet.
+
+**Server cost.** 440 walkers made the CARLA tick 69 ms (RTF 0.23 against about 0.5 without them, no rendering).
+Alone a walker costs about 0.09 ms per tick (400 spread, walking: 44 ms), more when they press into each other (400
+at 0.75 m walking through each other: 114 ms), hence the 0.95 m spacing. Turning a standing walker by teleport
+(ApplyTransform) cost about 1 ms per walker per tick inside a trial (240 walkers: 264 ms against 33 ms), so a
+standing walker turns to face its leg with a short creep in that direction. Clips render on the simulation-time
+grid, so a busy crossing only makes them slower to film; for a study in real time lower `site_max` and
+`max_walkers` (120 crossing walkers: about +20 ms per tick).
 
 ### Running the Eindhoven crossing
 
@@ -1728,8 +1908,9 @@ one diagonal), Shibuya's stacked roads and plazas (the autopilot left the lanes 
 and the scenery, which stands at the AWS Terrain Tiles' heights until `tools/snap_scenery.py` puts it on the level's
 ground. The map maker ran the whole chain with `--twin` for a third place (Grote Markt, Leuven, 0.5 km, without the
 bake): the Flemish orthophoto, 849 Overture buildings, the experiment and its SUMO net in 29 minutes. Shibuya's large video screens and billboards (Q-Front, the 109 tower's signs) are not in any
-open data: PLATEAU models them as part of the facade photo at best; screens playing video would need emissive
-media-texture materials placed by hand or from a sign inventory.
+open data: PLATEAU models them as part of the facade photo at best. The twin has generated ones instead (screens with
+invented Japanese ads around the scramble, billboards, kanban: "Generated signage" above); the real ones' content is
+never copied.
 
 **Roads clear of buildings.** Open building models are solids down to the ground, so where a street runs under a
 building (Shibuya's bus terminal, station halls, the Park Avenue viaduct) or a footprint overlaps the carriageway,
@@ -2224,8 +2405,8 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
 - **Pedestrians**: SUMO vehicles brake for every walker in or entering their path, using SUMO's own speeds (CARLA
   reads 0 m/s for a vehicle placed with physics off), comfortably when possible and as an emergency stop otherwise
   (`yielding.py`). Crowd walkers cross at signals only when the cars crossing them have red; OSM scramble crossings get
-  an all-pedestrian phase (`pedsignals.py`; Shibuya: 30 s a cycle at the crossing's light. The programmes are read
-  from the net as XML: sumolib's reader failed on our nets, and the phase was off until 2026-11-16). Tokyo, 2 runs: vehicle-walker contacts 25 → 0.
+  an all-pedestrian phase with crowds that wait and cross in waves ([Busy and scramble
+  crossings](#busy-and-scramble-crossings)). Tokyo, 2 runs: vehicle-walker contacts 25 → 0.
 
 - **Models.** SUMO's Extended IDM (EIDM) for car following (human-like reaction and drive-off) with
   `tau = 1.2 s`, `minGap = 2 m`, speed factor N(1.0, 0.1); the sublane model (`--lateral-resolution 0.25`)
@@ -2267,7 +2448,13 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
   class x the median daily flow per lane measured on the counted maps (primary 3,400, secondary and tertiary
   2,600, other 1,000 cars) x the hour's share / the mean trip length, capped at 5,000 cars/h (above that random
   trips jam SUMO's junctions). The city files keep their explicit numbers of cars (by size class); the twins and
-  the twin maker use `auto`, scaled by the place's density from CROWD (next).
+  the twin maker use `auto`, scaled by the place's density from CROWD (next). With `auto` and no counts in reach,
+  the main roads carry their class's typical flow (`traffic.class_flows`, `counts.class_flows`): every primary,
+  secondary and tertiary edge gets the median daily flow per lane above at the hour's share (x the place's density)
+  and SUMO's `routeSampler` routes the cars to match, as on the counted maps; random trips alone spread them evenly
+  over every street, so a city centre's arterials looked half empty. A twin's net, built from its OpenDRIVE, has no
+  road classes: they come from OSM (Overpass, cached in `real/osm_roads.json`) by position and direction. Eindhoven
+  twin at 17:00: 242 main-road edges at ~420 cars/h each, cars on the map at once 285 -> 456.
 - **Traffic of the place, from CROWD** (`coupledcarla/crowdtraffic.py`, `traffic.crowd`, data
   `coupledcarla/data/crowd_traffic.json` built by `tools/crowd_traffic.py`). The CROWD dashcam dataset counts the
   unique cars, trucks, buses, motorcycles, bicycles and persons that YOLO tracks in each minute of over 33,000 hours
@@ -2353,6 +2540,14 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
   | Sydney | 8 | 13% -> 45% | 13 (City of Sydney) | 1503 |
   | Leuven | 9 (5 knooppunten) | 22% -> 27% | 2 nearby (AWV), outside the net | 1200 (as set) |
 
+- **Cyclists where the driver sees them** (`coupledcarla/bikewindow.py`, `traffic.cycling.window`, on when a
+  participant drives). Over the map the bikes are the place's share, but they ride the cycle network everywhere, so
+  a driver's few hundred metres can lack them: the Eindhoven twin clip (bikes 20% of the vehicles on the map) had
+  no cyclist in its 20 s chase view. Every 2 s the window counts the SUMO vehicles within 40 m of the driver's
+  route from 30 m behind to 250 m ahead (or within 150 m of a driver without a planned route) and, when the bikes
+  fall short of CROWD's bicycles per motor vehicle times the motor vehicles there, adds SUMO bikes on the bike lanes
+  70-250 m ahead, out of every participant's and camera's sight, cycle tracks three times as often as shared lanes,
+  each riding to a bike edge 300-1,500 m away; its bikes are taken off again 320 m from everyone (at most 40).
 - **Speed limits and driving style** (`coupledcarla/urbanspeeds.py`, `coupledcarla/speeds.py`). Where OSM gives a
   road no `maxspeed`, netconvert would use its rural defaults (100 km/h on trunk, primary and secondary roads, 80 on
   tertiary: 61 edges of Midtown Manhattan, 218 around Taipei Main Station, 189 in Cairo). The map build gives these
@@ -2576,7 +2771,18 @@ in a world built from OpenDRIVE: they have no OpenDRIVE id, so they cannot be li
   real LED heads do (`coupledcarla/signalfaces.py`; the meshes carry the same pictograms, faint when unlit). A server
   whose content predates the 200 mm car heads spawns the older 300 mm ones with their own lens positions. On
   eindhoven_centre all 148 heads were Dutch (70 for cyclists; lin5080, CARLA 1.0 -nullrhi). CARLA 0.9.16 and servers
-  without the content keep CARLA's pole and backboard, with the same round lit lens;
+  without the content keep CARLA's pole and backboard, with the same round lit lens. Bus-only lanes get the region's
+  bus head (in the Netherlands the white bar signal, "OV-licht": horizontal bar, dot, vertical bar), else its car
+  head (trams: none, CARLA has no tram);
+- **pedestrian heads** at every signalised crossing (a crosswalk that a signalised stream crosses,
+  `pedsignals.crossing_heads`): one at each end, on the kerb (or a median wide enough for the pole), facing across to
+  the people waiting at the other end, as far-side heads are; the walking figure is lit while every stream crossing
+  it shows red (the rule by which the crowd's walkers cross), else the standing one. The region's head (NL, UK, JP),
+  else a region-free one; drawn where the server has no mesh for it;
+- **the level's own traffic lights hidden** where our heads stand for the same junction (within 35 m): a twin's
+  level carries CARLA's big generic heads on mast arms, baked from its OpenDRIVE signals, which showed next to the
+  local heads. Only their meshes are hidden (`world.enable_environment_objects`); the traffic-light actors, their
+  states, trigger volumes and stop waypoints stay for CARLA's Traffic Manager and agents;
 - **stop lines before the crosswalks** (`traffic.stop_lines`, default true; `coupledcarla/stoplines.py`): SUMO
   stopped a vehicle that must wait with its front at the end of its lane, and the nets have no crossings, so a car
   waiting at a red light stood on the zebra painted across the approach (the Eindhoven twin clip, 2026-11-28). Each
@@ -2876,6 +3082,9 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
 
 What cost time while building phases 1 and 2, so it does not again:
 
+- A CARLA editor `-game` server reads the first `*.xodr` of a level's `OpenDrive` folder: keep nothing else there.
+  A full backup copy beside a twin's own (`<N>.prebake_signs.xodr`) sorted first on Windows and put CARLA's stock US
+  signs back into every twin clip for four days (2026-11-28; `tools/sign_check.py content` finds it).
 - `carla.Osm2Odr.convert` segfaults in CARLA 0.9.16 on real city extracts (Linux and Windows); call SUMO's
   `netconvert` directly (it is what Osm2Odr wraps).
 - `carla.Client("localhost")` hangs on Windows (it tries `::1`; CARLA listens on IPv4): use `127.0.0.1`. A
@@ -3004,9 +3213,12 @@ coupledcarla/
   crowdpeds.py       the pedestrian crowd calibrated with CROWD per country (speeds, crossings, gaps, places)
   walkerlooks.py     who the walkers are: blueprints sampled from the place's resident and visitor mix
   crowdtraffic.py    the place's vehicle mix, cyclists and density from CROWD; its models (data/place_vehicles.json)
+  bikewindow.py      cyclists around the drivers at the place's bikes per motor vehicle (SUMO bikes added ahead)
   warmup.py          SUMO's demand as if it had run 600 s: streets busy at t = 0
   parking.py         parked cars at the kerbs and on car parks
   ndwsigns.py        the Dutch national traffic sign register (NDW) and Rijkswaterstaat's speed limits
+  localsigns.py      the place's own road signs instead of CARLA's stock (US) sign actors
+  plates.py          the place's number plates on every vehicle (vehicle attribute license_plate)
   season.py          leaf state by date and place; lit street lamps on CARLA 1.0
   speeds.py          urban speed limits and speed factors fitted to open speed data
   gbfs.py            shared bikes and scooters (GBFS)

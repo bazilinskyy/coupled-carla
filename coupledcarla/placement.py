@@ -295,21 +295,20 @@ def approach(wp, step=2.0, reach=60.0):
     return w if not w.is_junction else wp
 
 
-# CARLA's sign plates (0.9.16 and their 1.0 copies) are North American designs: the give-way plate has YIELD
-# written on it, which only these countries use (elsewhere a plain red-bordered triangle, Vienna Convention); the
-# stop plate is the octagon nearly everywhere, but Japan's is a red inverted triangle (止まれ)
-YIELD_TEXT = {"USA", "PRI", "GUM", "VIR", "ASM", "MNP", "PHL", "LBR"}
-NO_OCTAGON = {"JPN"}
+# CARLA's sign plates (0.9.16 and their 1.0 copies) are North American designs (localsigns.py): the speed plate is
+# the white rectangle "SPEED LIMIT 30" (0.61 x 0.76 m, MUTCD R2-1), the give-way plate has YIELD written on it, the
+# no-entry plate DO NOT ENTER, which only these countries use (elsewhere the red roundel, a plain red-bordered
+# triangle, a red disc with a white bar: Vienna Convention); the stop plate is the octagon nearly everywhere, but
+# Japan's is a red inverted triangle (止まれ)
+from .localsigns import NO_OCTAGON, YIELD_TEXT  # noqa: E402,F401 - kept importable from here
 
 
 def sign_fits(kind, iso3):
-    """True when CARLA's plate for a sign kind ("stop", "give_way", ...) is the design of the country iso3 (None:
-    unknown). A wrong country's sign is left out rather than shown: a US YIELD plate in Eindhoven."""
-    if kind == "give_way":
-        return iso3 in YIELD_TEXT
-    if kind == "stop":
-        return iso3 not in NO_OCTAGON
-    return True
+    """True when CARLA's plate for a sign kind ("stop", "give_way", "speed", "no_entry") is the design of the
+    country iso3 (None: unknown). A wrong country's sign is left out rather than shown: a US YIELD or SPEED LIMIT
+    plate in Eindhoven."""
+    from .localsigns import stock_fits
+    return stock_fits(kind, iso3)
 
 
 def classify(gap, tilt=0.0, upright=True):

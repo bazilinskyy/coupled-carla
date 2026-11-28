@@ -26,8 +26,8 @@ import yaml
 from . import analysis, compat, config, crowdpeds, crowdwindow, drivermix, inputs, livingcity, look, mapbuild, \
     nightlights, parking, photoreal, reactions, realworld, season, soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, ehmi_inside, levels, levelxodr, livemap, multigpu, placement, plates, staticactors, \
-    stationux, walkerlooks
+from . import ehmi_design, ehmi_inside, farring, levels, levelxodr, livemap, multigpu, placement, plates, \
+    staticactors, stationux, walkerlooks
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -121,8 +121,12 @@ def load_world(client, xodr, mc, slab=False, keep_lights=False):
         # with scenery: a 20 km paving cube whose top is the ground beyond the scenery tiles, out to the horizon (the
         # void beyond a smaller one shows as a black band under a cloudy sky); else a 3 km plane. A packaged CARLA 1.0
         # server may not have cooked the cube ("invalid actor description"): then the plane, then nothing.
-        choices = ([("/Game/Carla/Static/SideWalk/SideWalkCube.SideWalkCube", "20000", -0.45 - 10000.0)] if slab else [])
-        choices.append(("/Engine/BasicShapes/Plane.Plane", "3000", -0.3))
+        # The map's far landscape ring (farring.py: the real land to the horizon, cooked into the server) replaces both.
+        ring = farring.spawn(world, Path(xodr).parent, carla) if slab else 0
+        choices = ([("/Game/Carla/Static/SideWalk/SideWalkCube.SideWalkCube", "20000", -0.45 - 10000.0)]
+                   if slab and not ring else [])
+        if not ring:
+            choices.append(("/Engine/BasicShapes/Plane.Plane", "3000", -0.3))
         for mesh, scale, z in choices:
             bp.set_attribute("mesh_path", mesh)
             bp.set_attribute("scale", scale)
@@ -418,6 +422,12 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             # high up, looking at the sky, so it costs nothing (it rendered the whole city's scenery otherwise)
             world.get_spectator().set_transform(carla.Transform(carla.Location(z=3000.0), carla.Rotation(pitch=90.0)))
         log(f"world ready: {len(world.get_map().get_spawn_points())} spawn points")
+        try:        # CARLA's stock (US) sign actors -> the place's own signs (localsigns.py)
+            from . import localsigns
+            summary["stock_signs"] = localsigns.replace(client, world, plates.iso3(), log,
+                                                        tc["simulation"].get("stock_signs", "auto"))
+        except Exception as err:  # noqa: BLE001 - the trial runs with the server's signs
+            log(f"signs: stock signs left as they are ({type(err).__name__}: {err})")
         level_stream = bool(tc["map"].get("carla_level"))
 
         from .bridge import pipeline
@@ -466,7 +476,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                           lefthand=bool(tc["map"].get("lefthand")), log=log,
                           surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None,
                           region=signal_region(tc, mdir, compat.server_major(client)),
-                          stop_offsets=stoplines.read_offsets(getattr(sumo, "net_file", None)))
+                          stop_offsets=stoplines.read_offsets(getattr(sumo, "net_file", None)),
+                          crossings=[[(x, -y) for x, y in poly] for poly in stoplines.crossings(mdir, log=log)])
         if signals.style != "none":
             log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
                 f"{', meshes' if signals.meshes else ''}) drawn near participants")
@@ -609,6 +620,17 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if parked is not None:
                 parked.update(focus_points())
                 log(f"parked: {parked.n} cars within {parked.radius:.0f} m of the participants")
+                try:     # the trial's parked cars, for tools/traffic_seen.py (a dashcam counts them too)
+                    seen_xy = set()
+                    with open(out / "parked.csv", "w") as f:
+                        f.write("x;y;z;yaw\n")
+                        for it in parked.prov_data["items"]:
+                            if it is None or (round(it[1], 1), round(it[2], 1)) in seen_xy:
+                                continue      # a car's window glass is an item of its own at the same place
+                            seen_xy.add((round(it[1], 1), round(it[2], 1)))
+                            f.write(f"{it[1]:.2f};{it[2]:.2f};{it[3]:.2f};{it[4]:.1f}\n")
+                except (OSError, KeyError, TypeError, IndexError) as err:
+                    log(f"parked: parked.csv not written ({err})")
         for part in parts:   # BasicAgent planned from (0, 0, 0) before the first tick: plan from the spawn lane
             if hasattr(part.input, "attach"):     # the SUMO driver: its route from the spawn lane (sumodriver.py)
                 try:
@@ -654,6 +676,13 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if hasattr(crowd, "signals"):     # cross at signals with the light (pedsignals.py)
                 from .pedsignals import PedSignals
                 crowd.signals = PedSignals.from_sumo(sumo.net, BridgeHelper.offset)
+            if hasattr(crowd, "start_crossings"):     # crowds at busy and scramble crossings (scramble.py)
+                crowd.start_crossings(
+                    tc, mdir, geo, [(c.x, c.y) for c in crowd_centres], queue=carla_sim.queue,
+                    on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}),   # bicycles: no SUMO twin
+                    viewers=lambda: [r.camera for r in (film.rigs if film is not None else [])     # what is
+                                     if getattr(r, "camera", None) is not None] + list(focus_actors),   # in view
+                    log=log)
         # Controls and light states of the host's participants, agents and crowd go with the tick's batch (one
         # call per tick; on CARLA 1.0 several separate ones stall the tick, see side.py).
         queue = carla_sim.queue
@@ -710,11 +739,39 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         fc = tc.get("film") or {}
         if fc.get("camera") or fc.get("cameras"):       # demo-video cameras on a sim-time grid (tools/make_videos.py)
             from .film import Film
+            fc = dict(fc)
+            fc["camera_profile"], why = look.film_profile(tc)     # CARLA 1.0; 0.9.x ignores it
+            log(f"film: camera profile {fc['camera_profile']} ({why})"
+                + ("; it must be installed on the server (tools/install_profiles.py)" if look.ours(fc["camera_profile"])
+                   else ""))
             names = {**{p.role: p.actor for p in parts},
                      **{a.id: getattr(a, "vehicle", None) or getattr(a, "walker", None) for a in agents}}
             film = Film(fc, world, geo, out, log, names.get, step, queue, drone_world,
                         focus=focus_actors)
             film.hold(parts)
+        # cyclists where the drivers will see them, at the place's bikes per motor vehicle (bikewindow.py)
+        bikewin = None
+        try:
+            from . import bikewindow
+
+            def _viewers():
+                out_ = []
+                for r in (film.rigs if film is not None else []):
+                    cam = getattr(r, "camera", None)
+                    if cam is not None:
+                        try:
+                            loc = cam.get_location()
+                            out_.append((loc.x, loc.y))
+                        except RuntimeError:
+                            pass
+                return out_
+            bikewin = bikewindow.make(tc, parts, sync, sumo.net, BridgeHelper.offset, _viewers, log)
+            if bikewin is not None and sync.pipelined:     # TraCI only while SUMO is not stepping
+                sync.hooks.append(lambda: bikewin.step(bw_t[0]))
+        except Exception as err:  # noqa: BLE001 - the trial without it
+            log(f"bike window: not started ({type(err).__name__}: {err})")
+            bikewin = None
+        bw_t = [0.0]
         sc_ = tc.get("sound") or {}
         if parts and (getattr(args, "record_audio", False) or sc_.get("record")):
             # the first participant's soundscape in simulation time, into audio.wav (soundrec.py)
@@ -804,6 +861,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             for ag in agents:
                 ag.step(t, step, walkers_now)
             tools.step(t, step, walkers_now, snap.frame)      # automated drivers' cars, dashboard commands
+            if crowd is not None and hasattr(crowd, "tick"):       # bicycles pushed by crossing walkers
+                crowd.tick()
             if crowd is not None and summary["ticks"] % 4 == 0:     # a walker keeps its last control
                 crowd.step(t)
                 if getattr(crowd, "window", None) is not None:    # walkers left behind reappear ahead
@@ -817,7 +876,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 ship_world.step(t, step)
                 laps("ships")
             t_a = time.time()
+            bw_t[0] = t
             sync.tick()
+            if bikewin is not None and not sync.pipelined:
+                bikewin.step(t)
             if sig_driver is not None:
                 import traci
                 sig_driver.step(traci.simulation.getTime(), traci)
@@ -1118,6 +1180,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                         "station_stats": station_stats, "parked_cars": parked.n if parked is not None else 0})
         if drone_world is not None:
             summary["drones"] = drone_world.summary()
+        if bikewin is not None:
+            summary["bike_window"] = bikewin.summary()
         if ship_world is not None:
             summary["ships"] = ship_world.summary()
         if scenery is not None:

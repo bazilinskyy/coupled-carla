@@ -13781,6 +13781,19 @@
 0.0
 ]
 },
+"/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalBus.SM_CC_NL_SignalBus": {
+"cat": "furniture",
+"ext": [
+0.31,
+0.198,
+0.57
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
 "/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_SharkTeeth_3.SM_CC_NL_SharkTeeth_3": {
 "cat": "marking",
 "ext": [
@@ -14678,6 +14691,19 @@
 0.0
 ]
 },
+"/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPed.SM_CC_UK_SignalPed": {
+"cat": "furniture",
+"ext": [
+0.16,
+0.198,
+0.29
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
 "/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8.SM_CC_JP_LampGooseneck8": {
 "cat": "lamp",
 "ext": [
@@ -14938,6 +14964,3308 @@
 0.0
 ]
 },
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bakery_1.SM_CC_NL_Fascia_bakery_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bakery_2.SM_CC_NL_Fascia_bakery_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_cafe_1.SM_CC_NL_Fascia_cafe_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_cafe_2.SM_CC_NL_Fascia_cafe_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_restaurant_1.SM_CC_NL_Fascia_restaurant_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_restaurant_2.SM_CC_NL_Fascia_restaurant_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bar_1.SM_CC_NL_Fascia_bar_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bar_2.SM_CC_NL_Fascia_bar_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fastfood_1.SM_CC_NL_Fascia_fastfood_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fastfood_2.SM_CC_NL_Fascia_fastfood_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_hair_1.SM_CC_NL_Fascia_hair_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_hair_2.SM_CC_NL_Fascia_hair_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_pharmacy_1.SM_CC_NL_Fascia_pharmacy_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_pharmacy_2.SM_CC_NL_Fascia_pharmacy_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fashion_1.SM_CC_NL_Fascia_fashion_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fashion_2.SM_CC_NL_Fascia_fashion_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_books_1.SM_CC_NL_Fascia_books_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_books_2.SM_CC_NL_Fascia_books_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_florist_1.SM_CC_NL_Fascia_florist_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_florist_2.SM_CC_NL_Fascia_florist_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_supermarket_1.SM_CC_NL_Fascia_supermarket_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_supermarket_2.SM_CC_NL_Fascia_supermarket_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_shop_1.SM_CC_NL_Fascia_shop_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_shop_2.SM_CC_NL_Fascia_shop_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bakery_1.SM_CC_ES_Fascia_bakery_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bakery_2.SM_CC_ES_Fascia_bakery_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_cafe_1.SM_CC_ES_Fascia_cafe_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_cafe_2.SM_CC_ES_Fascia_cafe_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_restaurant_1.SM_CC_ES_Fascia_restaurant_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_restaurant_2.SM_CC_ES_Fascia_restaurant_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bar_1.SM_CC_ES_Fascia_bar_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bar_2.SM_CC_ES_Fascia_bar_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fastfood_1.SM_CC_ES_Fascia_fastfood_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fastfood_2.SM_CC_ES_Fascia_fastfood_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_hair_1.SM_CC_ES_Fascia_hair_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_hair_2.SM_CC_ES_Fascia_hair_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_pharmacy_1.SM_CC_ES_Fascia_pharmacy_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_pharmacy_2.SM_CC_ES_Fascia_pharmacy_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fashion_1.SM_CC_ES_Fascia_fashion_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fashion_2.SM_CC_ES_Fascia_fashion_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_books_1.SM_CC_ES_Fascia_books_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_books_2.SM_CC_ES_Fascia_books_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_florist_1.SM_CC_ES_Fascia_florist_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_florist_2.SM_CC_ES_Fascia_florist_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_supermarket_1.SM_CC_ES_Fascia_supermarket_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_supermarket_2.SM_CC_ES_Fascia_supermarket_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_shop_1.SM_CC_ES_Fascia_shop_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_shop_2.SM_CC_ES_Fascia_shop_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bakery_1.SM_CC_DE_Fascia_bakery_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bakery_2.SM_CC_DE_Fascia_bakery_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_cafe_1.SM_CC_DE_Fascia_cafe_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_cafe_2.SM_CC_DE_Fascia_cafe_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_restaurant_1.SM_CC_DE_Fascia_restaurant_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_restaurant_2.SM_CC_DE_Fascia_restaurant_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bar_1.SM_CC_DE_Fascia_bar_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bar_2.SM_CC_DE_Fascia_bar_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fastfood_1.SM_CC_DE_Fascia_fastfood_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fastfood_2.SM_CC_DE_Fascia_fastfood_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_hair_1.SM_CC_DE_Fascia_hair_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_hair_2.SM_CC_DE_Fascia_hair_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_pharmacy_1.SM_CC_DE_Fascia_pharmacy_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_pharmacy_2.SM_CC_DE_Fascia_pharmacy_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fashion_1.SM_CC_DE_Fascia_fashion_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fashion_2.SM_CC_DE_Fascia_fashion_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_books_1.SM_CC_DE_Fascia_books_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_books_2.SM_CC_DE_Fascia_books_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_florist_1.SM_CC_DE_Fascia_florist_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_florist_2.SM_CC_DE_Fascia_florist_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_supermarket_1.SM_CC_DE_Fascia_supermarket_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_supermarket_2.SM_CC_DE_Fascia_supermarket_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_shop_1.SM_CC_DE_Fascia_shop_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_shop_2.SM_CC_DE_Fascia_shop_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bakery_1.SM_CC_FI_Fascia_bakery_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bakery_2.SM_CC_FI_Fascia_bakery_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_cafe_1.SM_CC_FI_Fascia_cafe_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_cafe_2.SM_CC_FI_Fascia_cafe_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_restaurant_1.SM_CC_FI_Fascia_restaurant_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_restaurant_2.SM_CC_FI_Fascia_restaurant_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bar_1.SM_CC_FI_Fascia_bar_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bar_2.SM_CC_FI_Fascia_bar_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fastfood_1.SM_CC_FI_Fascia_fastfood_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fastfood_2.SM_CC_FI_Fascia_fastfood_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_hair_1.SM_CC_FI_Fascia_hair_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_hair_2.SM_CC_FI_Fascia_hair_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_pharmacy_1.SM_CC_FI_Fascia_pharmacy_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_pharmacy_2.SM_CC_FI_Fascia_pharmacy_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fashion_1.SM_CC_FI_Fascia_fashion_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fashion_2.SM_CC_FI_Fascia_fashion_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_books_1.SM_CC_FI_Fascia_books_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_books_2.SM_CC_FI_Fascia_books_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_florist_1.SM_CC_FI_Fascia_florist_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_florist_2.SM_CC_FI_Fascia_florist_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_supermarket_1.SM_CC_FI_Fascia_supermarket_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_supermarket_2.SM_CC_FI_Fascia_supermarket_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_shop_1.SM_CC_FI_Fascia_shop_1": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_shop_2.SM_CC_FI_Fascia_shop_2": {
+"cat": "furniture",
+"ext": [
+1.6,
+0.04,
+0.3
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bakery_1.SM_CC_EN_Fascia_bakery_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bakery_2.SM_CC_EN_Fascia_bakery_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_cafe_1.SM_CC_EN_Fascia_cafe_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_cafe_2.SM_CC_EN_Fascia_cafe_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_restaurant_1.SM_CC_EN_Fascia_restaurant_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_restaurant_2.SM_CC_EN_Fascia_restaurant_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bar_1.SM_CC_EN_Fascia_bar_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bar_2.SM_CC_EN_Fascia_bar_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fastfood_1.SM_CC_EN_Fascia_fastfood_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fastfood_2.SM_CC_EN_Fascia_fastfood_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_hair_1.SM_CC_EN_Fascia_hair_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_hair_2.SM_CC_EN_Fascia_hair_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_pharmacy_1.SM_CC_EN_Fascia_pharmacy_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_pharmacy_2.SM_CC_EN_Fascia_pharmacy_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fashion_1.SM_CC_EN_Fascia_fashion_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fashion_2.SM_CC_EN_Fascia_fashion_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_books_1.SM_CC_EN_Fascia_books_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_books_2.SM_CC_EN_Fascia_books_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_florist_1.SM_CC_EN_Fascia_florist_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_florist_2.SM_CC_EN_Fascia_florist_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_supermarket_1.SM_CC_EN_Fascia_supermarket_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_supermarket_2.SM_CC_EN_Fascia_supermarket_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_shop_1.SM_CC_EN_Fascia_shop_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_shop_2.SM_CC_EN_Fascia_shop_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.04,
+0.4
+],
+"off": [
+0.0,
+-0.04,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_ramen_1.SM_CC_JP_Kanban_ramen_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_ramen_2.SM_CC_JP_Kanban_ramen_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_sushi_1.SM_CC_JP_Kanban_sushi_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_sushi_2.SM_CC_JP_Kanban_sushi_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_izakaya_1.SM_CC_JP_Kanban_izakaya_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_izakaya_2.SM_CC_JP_Kanban_izakaya_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_cafe_1.SM_CC_JP_Kanban_cafe_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_cafe_2.SM_CC_JP_Kanban_cafe_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_restaurant_1.SM_CC_JP_Kanban_restaurant_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_restaurant_2.SM_CC_JP_Kanban_restaurant_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_karaoke_1.SM_CC_JP_Kanban_karaoke_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_karaoke_2.SM_CC_JP_Kanban_karaoke_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_pharmacy_1.SM_CC_JP_Kanban_pharmacy_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_pharmacy_2.SM_CC_JP_Kanban_pharmacy_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_hair_1.SM_CC_JP_Kanban_hair_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_hair_2.SM_CC_JP_Kanban_hair_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_fashion_1.SM_CC_JP_Kanban_fashion_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_fashion_2.SM_CC_JP_Kanban_fashion_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_books_1.SM_CC_JP_Kanban_books_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_books_2.SM_CC_JP_Kanban_books_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_supermarket_1.SM_CC_JP_Kanban_supermarket_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_supermarket_2.SM_CC_JP_Kanban_supermarket_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_shop_1.SM_CC_JP_Kanban_shop_1": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_shop_2.SM_CC_JP_Kanban_shop_2": {
+"cat": "furniture",
+"ext": [
+1.8,
+0.11,
+0.45
+],
+"off": [
+0.0,
+-0.11,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_1.SM_CC_JP_Tenant_1": {
+"cat": "furniture",
+"ext": [
+0.151,
+0.525,
+3.6
+],
+"off": [
+0.0,
+-0.525,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_2.SM_CC_JP_Tenant_2": {
+"cat": "furniture",
+"ext": [
+0.151,
+0.525,
+3.6
+],
+"off": [
+0.0,
+-0.525,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_3.SM_CC_JP_Tenant_3": {
+"cat": "furniture",
+"ext": [
+0.151,
+0.525,
+3.6
+],
+"off": [
+0.0,
+-0.525,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_4.SM_CC_JP_Tenant_4": {
+"cat": "furniture",
+"ext": [
+0.151,
+0.525,
+3.6
+],
+"off": [
+0.0,
+-0.525,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_5.SM_CC_JP_Tenant_5": {
+"cat": "furniture",
+"ext": [
+0.151,
+0.525,
+3.6
+],
+"off": [
+0.0,
+-0.525,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_6.SM_CC_JP_Tenant_6": {
+"cat": "furniture",
+"ext": [
+0.151,
+0.525,
+3.6
+],
+"off": [
+0.0,
+-0.525,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_1.SM_CC_JP_Nobori_1": {
+"cat": "furniture",
+"ext": [
+0.315,
+0.14,
+1.35
+],
+"off": [
+0.175,
+0.0,
+1.35
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_2.SM_CC_JP_Nobori_2": {
+"cat": "furniture",
+"ext": [
+0.315,
+0.14,
+1.35
+],
+"off": [
+0.175,
+0.0,
+1.35
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_3.SM_CC_JP_Nobori_3": {
+"cat": "furniture",
+"ext": [
+0.315,
+0.14,
+1.35
+],
+"off": [
+0.175,
+0.0,
+1.35
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_4.SM_CC_JP_Nobori_4": {
+"cat": "furniture",
+"ext": [
+0.315,
+0.14,
+1.35
+],
+"off": [
+0.175,
+0.0,
+1.35
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_5.SM_CC_JP_Nobori_5": {
+"cat": "furniture",
+"ext": [
+0.315,
+0.14,
+1.35
+],
+"off": [
+0.175,
+0.0,
+1.35
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_6.SM_CC_JP_Nobori_6": {
+"cat": "furniture",
+"ext": [
+0.315,
+0.14,
+1.35
+],
+"off": [
+0.175,
+0.0,
+1.35
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_7.SM_CC_JP_Nobori_7": {
+"cat": "furniture",
+"ext": [
+0.315,
+0.14,
+1.35
+],
+"off": [
+0.175,
+0.0,
+1.35
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_8.SM_CC_JP_Nobori_8": {
+"cat": "furniture",
+"ext": [
+0.315,
+0.14,
+1.35
+],
+"off": [
+0.175,
+0.0,
+1.35
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_1.SM_CC_JP_Stand_1": {
+"cat": "furniture",
+"ext": [
+0.275,
+0.185,
+0.59
+],
+"off": [
+0.0,
+0.0,
+0.59
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_2.SM_CC_JP_Stand_2": {
+"cat": "furniture",
+"ext": [
+0.275,
+0.185,
+0.59
+],
+"off": [
+0.0,
+0.0,
+0.59
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_3.SM_CC_JP_Stand_3": {
+"cat": "furniture",
+"ext": [
+0.275,
+0.185,
+0.59
+],
+"off": [
+0.0,
+0.0,
+0.59
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_4.SM_CC_JP_Stand_4": {
+"cat": "furniture",
+"ext": [
+0.275,
+0.185,
+0.59
+],
+"off": [
+0.0,
+0.0,
+0.59
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_5.SM_CC_JP_Stand_5": {
+"cat": "furniture",
+"ext": [
+0.275,
+0.185,
+0.59
+],
+"off": [
+0.0,
+0.0,
+0.59
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_6.SM_CC_JP_Stand_6": {
+"cat": "furniture",
+"ext": [
+0.275,
+0.185,
+0.59
+],
+"off": [
+0.0,
+0.0,
+0.59
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ABoard_1.SM_CC_NL_ABoard_1": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ABoard_2.SM_CC_NL_ABoard_2": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_ABoard_1.SM_CC_ES_ABoard_1": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_ABoard_2.SM_CC_ES_ABoard_2": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_ABoard_1.SM_CC_DE_ABoard_1": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_ABoard_2.SM_CC_DE_ABoard_2": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_ABoard_1.SM_CC_FI_ABoard_1": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_ABoard_2.SM_CC_FI_ABoard_2": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ABoard_1.SM_CC_EN_ABoard_1": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ABoard_2.SM_CC_EN_ABoard_2": {
+"cat": "furniture",
+"ext": [
+0.3,
+0.25,
+0.5
+],
+"off": [
+0.0,
+0.0,
+0.5
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_1.SM_CC_JP_Billboard_1": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_2.SM_CC_JP_Billboard_2": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_3.SM_CC_JP_Billboard_3": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_4.SM_CC_JP_Billboard_4": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_5.SM_CC_JP_Billboard_5": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_6.SM_CC_JP_Billboard_6": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_7.SM_CC_JP_Billboard_7": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_8.SM_CC_JP_Billboard_8": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_1.SM_CC_JP_BillboardTall_1": {
+"cat": "furniture",
+"ext": [
+2.29,
+0.176,
+4.04
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_2.SM_CC_JP_BillboardTall_2": {
+"cat": "furniture",
+"ext": [
+2.29,
+0.176,
+4.04
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_3.SM_CC_JP_BillboardTall_3": {
+"cat": "furniture",
+"ext": [
+2.29,
+0.176,
+4.04
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_4.SM_CC_JP_BillboardTall_4": {
+"cat": "furniture",
+"ext": [
+2.29,
+0.176,
+4.04
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_1.SM_CC_EN_Billboard_1": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_2.SM_CC_EN_Billboard_2": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_3.SM_CC_EN_Billboard_3": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_4.SM_CC_EN_Billboard_4": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_5.SM_CC_EN_Billboard_5": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_6.SM_CC_EN_Billboard_6": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_7.SM_CC_EN_Billboard_7": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_8.SM_CC_EN_Billboard_8": {
+"cat": "furniture",
+"ext": [
+4.04,
+0.176,
+2.29
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_1.SM_CC_EN_BillboardTall_1": {
+"cat": "furniture",
+"ext": [
+2.29,
+0.176,
+4.04
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_2.SM_CC_EN_BillboardTall_2": {
+"cat": "furniture",
+"ext": [
+2.29,
+0.176,
+4.04
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_3.SM_CC_EN_BillboardTall_3": {
+"cat": "furniture",
+"ext": [
+2.29,
+0.176,
+4.04
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_4.SM_CC_EN_BillboardTall_4": {
+"cat": "furniture",
+"ext": [
+2.29,
+0.176,
+4.04
+],
+"off": [
+0.0,
+-0.176,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_1.SM_CC_JP_RoofBillboard_1": {
+"cat": "furniture",
+"ext": [
+4.6,
+0.774,
+2.558
+],
+"off": [
+0.0,
+0.673,
+2.542
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_2.SM_CC_JP_RoofBillboard_2": {
+"cat": "furniture",
+"ext": [
+4.6,
+0.774,
+2.558
+],
+"off": [
+0.0,
+0.673,
+2.542
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_3.SM_CC_JP_RoofBillboard_3": {
+"cat": "furniture",
+"ext": [
+4.6,
+0.774,
+2.558
+],
+"off": [
+0.0,
+0.673,
+2.542
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_4.SM_CC_JP_RoofBillboard_4": {
+"cat": "furniture",
+"ext": [
+4.6,
+0.774,
+2.558
+],
+"off": [
+0.0,
+0.673,
+2.542
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_A.SM_CC_JP_Screen_A": {
+"cat": "furniture",
+"ext": [
+2.04,
+0.06,
+1.165
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_A.SM_CC_JP_ScreenTall_A": {
+"cat": "furniture",
+"ext": [
+1.165,
+0.06,
+2.04
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_B.SM_CC_JP_Screen_B": {
+"cat": "furniture",
+"ext": [
+2.04,
+0.06,
+1.165
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_B.SM_CC_JP_ScreenTall_B": {
+"cat": "furniture",
+"ext": [
+1.165,
+0.06,
+2.04
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_C.SM_CC_JP_Screen_C": {
+"cat": "furniture",
+"ext": [
+2.04,
+0.06,
+1.165
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_C.SM_CC_JP_ScreenTall_C": {
+"cat": "furniture",
+"ext": [
+1.165,
+0.06,
+2.04
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_D.SM_CC_JP_Screen_D": {
+"cat": "furniture",
+"ext": [
+2.04,
+0.06,
+1.165
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_D.SM_CC_JP_ScreenTall_D": {
+"cat": "furniture",
+"ext": [
+1.165,
+0.06,
+2.04
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_A.SM_CC_EN_Screen_A": {
+"cat": "furniture",
+"ext": [
+2.04,
+0.06,
+1.165
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_A.SM_CC_EN_ScreenTall_A": {
+"cat": "furniture",
+"ext": [
+1.165,
+0.06,
+2.04
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_B.SM_CC_EN_Screen_B": {
+"cat": "furniture",
+"ext": [
+2.04,
+0.06,
+1.165
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_B.SM_CC_EN_ScreenTall_B": {
+"cat": "furniture",
+"ext": [
+1.165,
+0.06,
+2.04
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_C.SM_CC_EN_Screen_C": {
+"cat": "furniture",
+"ext": [
+2.04,
+0.06,
+1.165
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_C.SM_CC_EN_ScreenTall_C": {
+"cat": "furniture",
+"ext": [
+1.165,
+0.06,
+2.04
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_D.SM_CC_EN_Screen_D": {
+"cat": "furniture",
+"ext": [
+2.04,
+0.06,
+1.165
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_D.SM_CC_EN_ScreenTall_D": {
+"cat": "furniture",
+"ext": [
+1.165,
+0.06,
+2.04
+],
+"off": [
+0.0,
+-0.06,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Mupi_1.SM_CC_JP_Mupi_1": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Mupi_2.SM_CC_JP_Mupi_2": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Mupi_3.SM_CC_JP_Mupi_3": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardStand_1.SM_CC_JP_BillboardStand_1": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardStand_2.SM_CC_JP_BillboardStand_2": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Mupi_1.SM_CC_EN_Mupi_1": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Mupi_2.SM_CC_EN_Mupi_2": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Mupi_3.SM_CC_EN_Mupi_3": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardStand_1.SM_CC_EN_BillboardStand_1": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardStand_2.SM_CC_EN_BillboardStand_2": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Mupi_1.SM_CC_NL_Mupi_1": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Mupi_2.SM_CC_NL_Mupi_2": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Mupi_3.SM_CC_NL_Mupi_3": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BillboardStand_1.SM_CC_NL_BillboardStand_1": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BillboardStand_2.SM_CC_NL_BillboardStand_2": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Mupi_1.SM_CC_ES_Mupi_1": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Mupi_2.SM_CC_ES_Mupi_2": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Mupi_3.SM_CC_ES_Mupi_3": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_BillboardStand_1.SM_CC_ES_BillboardStand_1": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_BillboardStand_2.SM_CC_ES_BillboardStand_2": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Mupi_1.SM_CC_DE_Mupi_1": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Mupi_2.SM_CC_DE_Mupi_2": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Mupi_3.SM_CC_DE_Mupi_3": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_BillboardStand_1.SM_CC_DE_BillboardStand_1": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_BillboardStand_2.SM_CC_DE_BillboardStand_2": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Mupi_1.SM_CC_FI_Mupi_1": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Mupi_2.SM_CC_FI_Mupi_2": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Mupi_3.SM_CC_FI_Mupi_3": {
+"cat": "furniture",
+"ext": [
+0.64,
+0.1,
+1.16
+],
+"off": [
+0.0,
+0.0,
+1.16
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_BillboardStand_1.SM_CC_FI_BillboardStand_1": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_BillboardStand_2.SM_CC_FI_BillboardStand_2": {
+"cat": "furniture",
+"ext": [
+3.1,
+0.211,
+2.85
+],
+"off": [
+0.0,
+0.1,
+2.85
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_AdColumn_1.SM_CC_ES_AdColumn_1": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+1.84
+],
+"off": [
+0.0,
+0.0,
+1.84
+]
+},
+"/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_AdColumn_2.SM_CC_ES_AdColumn_2": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+1.84
+],
+"off": [
+0.0,
+0.0,
+1.84
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_AdColumn_1.SM_CC_DE_AdColumn_1": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+1.84
+],
+"off": [
+0.0,
+0.0,
+1.84
+]
+},
+"/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_AdColumn_2.SM_CC_DE_AdColumn_2": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+1.84
+],
+"off": [
+0.0,
+0.0,
+1.84
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_AdColumn_1.SM_CC_FI_AdColumn_1": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+1.84
+],
+"off": [
+0.0,
+0.0,
+1.84
+]
+},
+"/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_AdColumn_2.SM_CC_FI_AdColumn_2": {
+"cat": "furniture",
+"ext": [
+0.7,
+0.7,
+1.84
+],
+"off": [
+0.0,
+0.0,
+1.84
+]
+},
 "/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole.SM_CC_JP_SignalPole": {
 "cat": "furniture",
 "ext": [
@@ -14957,6 +18285,45 @@
 0.72,
 0.198,
 0.36
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPed.SM_CC_JP_SignalPed": {
+"cat": "furniture",
+"ext": [
+0.185,
+0.198,
+0.34
+],
+"off": [
+0.0,
+0.255,
+0.0
+]
+},
+"/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPole.SM_CC_Any_SignalPole": {
+"cat": "furniture",
+"ext": [
+0.057,
+0.057,
+1.525
+],
+"off": [
+0.0,
+0.0,
+1.525
+]
+},
+"/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPed.SM_CC_Any_SignalPed": {
+"cat": "furniture",
+"ext": [
+0.16,
+0.198,
+0.29
 ],
 "off": [
 0.0,

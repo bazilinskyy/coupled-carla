@@ -107,8 +107,11 @@ def _yaw(n):
     return math.degrees(math.atan2(n[1], n[0])) + 90.0     # the face (mesh Unreal -y) out of the wall
 
 
-def _nearest_facade(blds, tree, x, y, reach, min_h=0.0):
-    """(building, edge) nearest (x, y) within reach, or None."""
+def _nearest_facade(blds, tree, x, y, reach, min_h=0.0, open_m=0.0):
+    """(building, edge) nearest (x, y) within reach, or None. open_m > 0: only an edge whose outside, open_m m out
+    from its point nearest (x, y), is in no other building: a street facade, not a party wall between two buildings
+    of a block (a sign there would hang inside the neighbour: 2026-11-28, 49 of Shibuya's 800 vertical signs and a
+    third of Eindhoven's fascias)."""
     from shapely.geometry import Point
     p = Point(x, y)
     best = None
@@ -118,9 +121,25 @@ def _nearest_facade(blds, tree, x, y, reach, min_h=0.0):
             continue
         for e in _edges(b["poly"]):
             d = _seg_dist(e[0], e[1], (x, y))
-            if d <= reach and (best is None or d < best[0]):
+            if d <= reach and (best is None or d < best[0]) and (open_m <= 0 or _open(blds, tree, int(i), e, x, y,
+                                                                                     open_m)):
                 best = (d, int(i), e)
     return None if best is None else (best[1], best[2])
+
+
+def inside_any(blds, tree, x, y):
+    from shapely.geometry import Point
+    q = Point(x, y)
+    return any(blds[int(j)]["poly"].contains(q) for j in tree.query(q))
+
+
+def _open(blds, tree, i, e, x, y, out_m):
+    """The point out_m m outside edge e (of building i) at its nearest point to (x, y) is in no building."""
+    from shapely.geometry import Point
+    (ax, ay), _b, L, (ex, ey), nn = e
+    t = max(0.0, min(L, (x - ax) * ex + (y - ay) * ey))
+    q = Point(ax + ex * t + nn[0] * out_m, ay + ey * t + nn[1] * out_m)
+    return not any(blds[int(j)]["poly"].contains(q) for j in tree.query(q))
 
 
 def _tree(blds):
@@ -128,12 +147,15 @@ def _tree(blds):
     return STRtree([b["poly"] for b in blds])
 
 
-def place_screen(pl, cat, b, edge, along, width, key, prov, z_centre=None):
-    """One screen on edge of building b, its middle `along` m from the edge's start; returns the item or None."""
+def place_screen(pl, cat, b, edge, along, width, key, prov, z_centre=None, loc=None):
+    """One screen on edge of building b, its middle `along` m from the edge's start; returns the item or None.
+    loc: the signage locale (signage.locale) whose screens show local-language content (SM_CC_JP_Screen_A, ...),
+    when the server has them; else the generic ones."""
     (ax, ay), _b, L, (ex, ey), n = edge
     h = float(b.get("h") or 0.0)
     tall = width < 6.0 and h > 30.0
-    mesh = f"SM_CC_Any_{'ScreenTall' if tall else 'Screen'}_{key}"
+    kind = "ScreenTall" if tall else "Screen"
+    mesh = f"SM_CC_{loc}_{kind}_{key}" if loc and f"SM_CC_{loc}_{kind}_{key}" in cat else f"SM_CC_Any_{kind}_{key}"
     if mesh not in cat:
         return None
     base = BASE_TALL_W if tall else BASE_W
@@ -149,10 +171,11 @@ def place_screen(pl, cat, b, edge, along, width, key, prov, z_centre=None):
         if hi < lo:
             return None
         z_centre = max(lo, min(hi, 0.55 * h))
+    b["has_screen"] = True        # (signage.py puts no billboard on this building)
     return pl.add(KIND, mesh, x, y, _yaw(n), scale, z=g + z_centre - hs / 2, prov=prov)
 
 
-def mapped_screens(pl, cat, blds, tree, elements, geo):
+def mapped_screens(pl, cat, blds, tree, elements, geo, loc=None):
     """OSM screens and lit wall billboards on their facades. Returns the count."""
     n = 0
     for el in elements:
@@ -173,7 +196,7 @@ def mapped_screens(pl, cat, blds, tree, elements, geo):
             w = SCREEN_W
         along = ((x - edge[0][0]) * edge[3][0] + (y - edge[0][1]) * edge[3][1])
         key = SCREEN_KEYS[zlib.crc32(str(el.get("id")).encode()) % len(SCREEN_KEYS)]
-        n += place_screen(pl, cat, blds[i], edge, along, w, key, ("register", "osm")) is not None
+        n += place_screen(pl, cat, blds[i], edge, along, w, key, ("register", "osm"), loc=loc) is not None
     return n
 
 
@@ -187,7 +210,7 @@ def places(path=PLACES):
         return []
 
 
-def place_screens(pl, cat, blds, tree, cx, cy, r, most, view_min=25.0):
+def place_screens(pl, cat, blds, tree, cx, cy, r, most, view_min=25.0, loc=None):
     """Screens on the tall walls around (cx, cy) that face it (within r m, VIEW: an open view of view_min m and
     more), one a building, tall and wide walls with a wide view first. Returns the count."""
     from shapely.geometry import Point
@@ -222,7 +245,8 @@ def place_screens(pl, cat, blds, tree, cx, cy, r, most, view_min=25.0):
             continue
         tall = L < 14.0 and h > 30.0
         w = min(5.9, max(4.0, 0.6 * L)) if tall else max(6.0, min(18.0, 0.55 * L))
-        if place_screen(pl, cat, blds[i], e, L / 2, w, SCREEN_KEYS[count % len(SCREEN_KEYS)], ("inferred", "screens")):
+        if place_screen(pl, cat, blds[i], e, L / 2, w, SCREEN_KEYS[count % len(SCREEN_KEYS)], ("inferred", "screens"),
+                        loc=loc):
             placed.append((mx, my))
             count += 1
     return count
@@ -242,9 +266,10 @@ def view_m(blds, tree, i, mx, my, nn):
     return best
 
 
-def vertical_signs(pl, cat, blds, tree, pts):
-    """A vertical sign per named shop / cafe / bar / restaurant on its facade. Returns the count."""
-    used, n = {}, 0
+def vertical_signs(pl, cat, blds, tree, pts, used=None):
+    """A vertical sign per named shop / cafe / bar / restaurant on its facade. Returns the count. used: edge key ->
+    [positions along it] of blade signs already there (shared with signage.tenant_signs)."""
+    used, n = ({} if used is None else used), 0
     for x, y, kind, tags in pts:
         if n >= MAX_SIGNS:
             break
@@ -253,7 +278,7 @@ def vertical_signs(pl, cat, blds, tree, pts):
         mesh = f"SM_CC_JP_SignV_{sign_key(tags)}"
         if mesh not in cat:
             continue
-        got = _nearest_facade(blds, tree, x, y, SIGN_REACH, SIGN_MIN_H)
+        got = _nearest_facade(blds, tree, x, y, SIGN_REACH, SIGN_MIN_H, open_m=1.0)
         if got is None:
             continue
         i, edge = got
@@ -278,6 +303,8 @@ def vertical_signs(pl, cat, blds, tree, pts):
             continue
         o = _out(cat, mesh, 1.0)
         sx, sy = ax + ex * t + nn[0] * o, ay + ey * t + nn[1] * o
+        if inside_any(blds, tree, sx, sy):
+            continue
         pl.add(KIND, mesh, sx, sy, _yaw(nn), 1.0, z=pl.ground(sx, sy) + centre - SIGN_H / 2,
                prov=("inferred", "screens"))
         taken.append(t)
@@ -295,14 +322,15 @@ def osm_screens(mdir):
     return [e for e in data.get("elements", []) if (e.get("tags") or {}).get("advertising") == "screen"]
 
 
-def add_to_scenery(pl, cat, blds, pts, region, mc, sc, mdir, geo, log=print):
-    """streetlife.add_to_scenery calls this. Returns the log phrases."""
+def add_to_scenery(pl, cat, blds, pts, region, mc, sc, mdir, geo, log=print, loc=None, used=None):
+    """streetlife.add_to_scenery calls this. Returns the log phrases. loc: the signage locale (local-language screen
+    content); used: the blade signs' spacing table, shared with signage.py."""
     on = sc.get("screens", "auto")
     if on is False or not blds or not (on is True or mc.get("carla_level")):
         return []
     tree = _tree(blds)
     said = []
-    n = mapped_screens(pl, cat, blds, tree, osm_screens(mdir), geo)
+    n = mapped_screens(pl, cat, blds, tree, osm_screens(mdir), geo, loc)
     if n:
         pl.counts["screens_mapped"] = n
         said.append(f"{n} mapped screens")
@@ -311,12 +339,12 @@ def add_to_scenery(pl, cat, blds, pts, region, mc, sc, mdir, geo, log=print):
         if not (s_ <= p["lat"] <= n_ and w_ <= p["lon"] <= e_):
             continue
         cx, cy = geo.to_carla(p["lat"], p["lon"])
-        n = place_screens(pl, cat, blds, tree, cx, cy, float(p.get("r", 90)), int(p.get("screens", 6)))
+        n = place_screens(pl, cat, blds, tree, cx, cy, float(p.get("r", 90)), int(p.get("screens", 6)), loc=loc)
         if n:
             pl.counts["screens_place"] = pl.counts.get("screens_place", 0) + n
             said.append(f"{n} screens around {p['name']}")
     if region == "JP":
-        n = vertical_signs(pl, cat, blds, tree, pts)
+        n = vertical_signs(pl, cat, blds, tree, pts, used)
         if n:
             pl.counts["signs_vertical"] = n
             said.append(f"{n} vertical shop signs")

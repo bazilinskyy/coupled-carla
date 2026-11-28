@@ -71,6 +71,7 @@ PALETTE = {
     "LensRed": ((0.12, 0.004, 0.004), 0.0, 0.1),
     "LensAmber": ((0.14, 0.05, 0.0), 0.0, 0.1),
     "LensGreen": ((0.0, 0.07, 0.045), 0.0, 0.1),
+    "LensWhite": ((0.07, 0.07, 0.065), 0.0, 0.1),           # the bar signals' unlit lens (lit white)
     "PoleWhite": ((0.78, 0.78, 0.77), 0.0, 0.4),
     "PoleBlack": ((0.015, 0.015, 0.016), 0.0, 0.4),
     "RoadWhite": ((0.70, 0.70, 0.68), 0.0, 0.62),           # thermoplastic road marking
@@ -126,6 +127,13 @@ SIGNV_COLOURS = {"izakaya": ((150, 20, 20), (255, 236, 200)), "ramen": ((235, 19
                  "shoten": ((20, 60, 40), (240, 220, 160)), "fuku": ((20, 20, 25), (255, 255, 255)),
                  "mise": ((200, 60, 20), (255, 255, 255))}
 PALETTE.update({f"SignV_{k}": ((1.0, 1.0, 1.0), 0.0, 0.4, f"signv_{k}", 2.0, 0.0, 0.0) for k in SIGNV_WORDS})
+# round 4: generated advertising and shop signage (tools/signage_art.py: invented brands, shop names and ads in the
+# local language; the placement is coupledcarla/signage.py). Lit items use the glow material (no pan, except the
+# region screens), printed ones the textured decal material.
+import signage_art  # noqa: E402
+for _it in signage_art.catalog():
+    PALETTE[_it["slot"]] = (((1.0, 1.0, 1.0), 0.0, 0.35, _it["tex"], _it["lit"]) + tuple(_it["pan"])) if _it["lit"] \
+        else ((1.0, 1.0, 1.0), 0.0, 0.6, _it["tex"])
 DECAL = {"Crack", "Patch", "Pothole", "Oil", "Leaves", "RedAsphalt", "Clinker", "Sett", "Grime", "Puddle", "Stains",
          "Litter"}    # masked, two-sided, no collision
 
@@ -481,10 +489,13 @@ def pictogram(m, mat, cx, y, cz, d, key):
                       (a[0] + nx, y, a[1] + nz)], (0, -1, 0), both=True)
 
 
-def signal_head(lenses=3, d=0.20, plate="SignalYellow", border=None, horizontal=False, pole_r=0.057, faces=None):
+def signal_head(lenses=3, d=0.20, plate="SignalYellow", border=None, horizontal=False, pole_r=0.057, faces=None,
+                lens_mat=None):
     """A signal head: a black body with `lenses` round lenses (diameter d: 200 mm Dutch and British car heads,
     cyclist and pedestrian heads; 300 mm Japanese car heads) under visors, on a back plate (Dutch yellow, or black
-    with a white border as the UK's). faces: a signalfaces pictogram per lens (None: a plain lens): a black mask
+    with a white border as the UK's; plate None: none, the body on the pole). lens_mat: one material for every lens
+    (the bar signals' "LensWhite"), else red, amber, green. faces: a signalfaces pictogram per lens (None: a plain
+    lens): a black mask
     over the lens with the pictogram in the lens's colour (the Dutch cyclist head's bicycle, the pedestrian
     head's standing and walking figures), so the unlit lens shows it faintly; signals.py lights the pictogram (or
     a plain lens as a round disc) in front of it. The lenses face model -y (Unreal +y); origin at the middle of
@@ -498,14 +509,18 @@ def signal_head(lenses=3, d=0.20, plate="SignalYellow", border=None, horizontal=
     bw, bh = (long_, short) if horizontal else (short, long_)
     y0 = -pole_r                         # the plate's back
     pw, ph = bw + 0.30, bh + 0.30        # back plate
-    if border:
+    if plate is None:
+        pw, ph = bw, bh
+        obox(m, "SignalBlack", (0, y0 - 0.008, 0), (0.08, 0.016, min(bh, 0.3)), np.eye(3))     # the pole clamp
+    elif border:
         obox(m, border, (0, y0 - 0.006, 0), (pw, 0.012, ph), np.eye(3))
         obox(m, plate, (0, y0 - 0.013, 0), (pw - 0.14, 0.004, ph - 0.14), np.eye(3))
     else:
         obox(m, plate, (0, y0 - 0.008, 0), (pw, 0.016, ph), np.eye(3))
     depth = 0.22
     obox(m, "SignalBlack", (0, y0 - 0.016 - depth / 2, 0), (bw, depth, bh), np.eye(3))
-    lens_mats = {3: ["LensRed", "LensAmber", "LensGreen"], 2: ["LensRed", "LensGreen"], 1: ["LensAmber"]}[n]
+    lens_mats = [lens_mat] * n if lens_mat else \
+        {3: ["LensRed", "LensAmber", "LensGreen"], 2: ["LensRed", "LensGreen"], 1: ["LensAmber"]}[n]
     centres = []
     for k in range(n):
         off = ((n - 1) / 2 - k) * pitch
@@ -801,15 +816,17 @@ def ad_column(poster="Poster_A"):
     return m, {}
 
 
-def shop_sign(face, width=3.0, height=0.6):
-    """A fascia sign: a board width x height x 0.08 m, its face (texture) towards model +y (Unreal -y, away from
-    the wall: placed with yaw so that -y in Unreal points out of the facade), origin at the middle of its back."""
+def shop_sign(face, width=3.0, height=0.6, depth=0.08):
+    """A fascia sign: a board width x height x depth m (a lit signboard box: 0.2 m and more), its face (texture)
+    towards model +y (Unreal -y, away from the wall: placed with yaw so that -y in Unreal points out of the facade),
+    origin at the middle of its back."""
     m = Mesh()
-    obox(m, "SignBack", (0, 0.04, 0), (width, 0.08, height), np.eye(3))
-    quad(m, face, [(width / 2 - 0.02, 0.0805, -height / 2 + 0.02), (-width / 2 + 0.02, 0.0805, -height / 2 + 0.02),
-                   (-width / 2 + 0.02, 0.0805, height / 2 - 0.02), (width / 2 - 0.02, 0.0805, height / 2 - 0.02)],
+    obox(m, "SignBack", (0, depth / 2, 0), (width, depth, height), np.eye(3))
+    y = depth + 0.0005
+    quad(m, face, [(width / 2 - 0.02, y, -height / 2 + 0.02), (-width / 2 + 0.02, y, -height / 2 + 0.02),
+                   (-width / 2 + 0.02, y, height / 2 - 0.02), (width / 2 - 0.02, y, height / 2 - 0.02)],
          (0, 1, 0), ((0, 1), (1, 1), (1, 0), (0, 0)))
-    return m, {"width": width}
+    return m, {"width": width, "height": height}
 
 
 def screen(face, width=4.0, height=2.25, depth=0.12):
@@ -839,6 +856,81 @@ def blade_sign(face, out=0.7, height=3.6, thick=0.12, gap=0.15):
     quad(m, face, [(-t - 0.001, y1, -h), (-t - 0.001, y0, -h), (-t - 0.001, y0, h), (-t - 0.001, y1, h)], (-1, 0, 0),
          ((0, 1), (1, 1), (1, 0), (0, 0)))
     return m, {"out": y1}
+
+
+def face2(m, face, w, h, y, zc, xc=0.0, back=True):
+    """A texture face w x h in the plane y (towards +y), centred at (xc, zc); back: the same face towards -y at -y,
+    readable from that side too (u to the viewer's right on both)."""
+    x0, x1, z0, z1 = xc - w / 2, xc + w / 2, zc - h / 2, zc + h / 2
+    quad(m, face, [(x1, y, z0), (x0, y, z0), (x0, y, z1), (x1, y, z1)], (0, 1, 0), ((0, 1), (1, 1), (1, 0), (0, 0)))
+    if back:
+        quad(m, face, [(x0, -y, z0), (x1, -y, z0), (x1, -y, z1), (x0, -y, z1)], (0, -1, 0),
+             ((0, 1), (1, 1), (1, 0), (0, 0)))
+
+
+def nobori(face, h=2.7, fw=0.45, fh=1.8):
+    """A cloth banner (nobori) on a thin pole in a weighted foot: the flag beside the pole in the model's x-z plane,
+    its text readable from both sides (placed across the pavement, so passers-by see it)."""
+    m = Mesh()
+    tube(m, "JPGrey", (0, 0, 0.0), (0, 0, 0.12), 0.14, 0.12, seg=16)
+    tube(m, "JPGrey", (0, 0, 0.12), (0, 0, h), 0.016, seg=8)
+    tube(m, "JPGrey", (0, 0, h - 0.06), (fw + 0.04, 0, h - 0.06), 0.01, seg=6)
+    face2(m, face, fw, fh, 0.002, h - 0.1 - fh / 2, 0.03 + fw / 2)
+    return m, {}
+
+
+def stand_box(face, w=0.45, d=0.22, h=1.1):
+    """A lit stand sign on the pavement: a box on a flat foot, the face on both broad sides."""
+    m = Mesh()
+    obox(m, "SignBack", (0, 0, 0.03), (w + 0.1, d + 0.15, 0.06), np.eye(3))
+    obox(m, "SignBack", (0, 0, 0.08 + h / 2), (w, d, h), np.eye(3))
+    face2(m, face, w - 0.03, h - 0.03, d / 2 + 0.001, 0.08 + h / 2)
+    return m, {}
+
+
+def a_board(face, w=0.6, h=1.0, spread=0.5):
+    """A folding A-board (pavement chalkboard): two boards leaning on each other, the face on both outer sides."""
+    m = Mesh()
+    yb, yt = spread / 2, 0.03
+    for s_ in (1, -1):
+        pts = [(w / 2, s_ * yb, 0.0), (-w / 2, s_ * yb, 0.0), (-w / 2, s_ * yt, h), (w / 2, s_ * yt, h)]
+        if s_ < 0:
+            pts = [(-w / 2, -yb, 0.0), (w / 2, -yb, 0.0), (w / 2, -yt, h), (-w / 2, -yt, h)]
+        nrm = np.array([0.0, s_ * h, (yb - yt)]) / math.hypot(h, yb - yt)
+        quad(m, face, pts, nrm, ((0, 1), (1, 1), (1, 0), (0, 0)))
+        m.add("SignBack", pts, np.tile(-nrm, (4, 1)), ((0, 1), (1, 1), (1, 0), (0, 0)), [0, 2, 1, 0, 3, 2])  # inside
+    return m, {}
+
+
+def mupi(face, w=1.18, h=1.76):
+    """A lit poster case (MUPI, abri panel) on a foot: the poster on both sides."""
+    m = Mesh()
+    obox(m, "SignBack", (0, 0, 0.18), (0.3, 0.2, 0.36), np.eye(3))
+    obox(m, "SignBack", (0, 0, 0.36 + (h + 0.2) / 2), (w + 0.1, 0.16, h + 0.2), np.eye(3))
+    face2(m, face, w, h, 0.081, 0.36 + (h + 0.2) / 2)
+    return m, {}
+
+
+def billboard_stand(face, w=6.0, h=3.0, clear=2.6):
+    """A roadside billboard on two posts: the poster towards +y, a plain back."""
+    m = Mesh()
+    for x in (-w * 0.32, w * 0.32):
+        tube(m, "Galvanised", (x, -0.2, 0.0), (x, -0.2, clear + h / 2), 0.11, seg=12)
+    obox(m, "SignBack", (0, 0, clear + h / 2), (w + 0.2, 0.22, h + 0.2), np.eye(3))
+    face2(m, face, w, h, 0.111, clear + h / 2, back=False)
+    return m, {}
+
+
+def roof_billboard(face, w=9.0, h=3.0, clear=2.0):
+    """A rooftop billboard on a steel frame (legs, braces), the poster towards +y; stands on the roof (z = 0)."""
+    m = Mesh()
+    for x in np.linspace(-w / 2 + 0.3, w / 2 - 0.3, 4):
+        tube(m, "Galvanised", (x, -0.15, 0.0), (x, -0.15, clear + h), 0.07, seg=8)
+        tube(m, "Galvanised", (x, -1.4, 0.0), (x, -0.15, clear + h * 0.6), 0.05, seg=8)
+    tube(m, "Galvanised", (-w / 2, -0.15, clear * 0.5), (w / 2, -0.15, clear * 0.5), 0.05, seg=8)
+    obox(m, "SignBack", (0, 0, clear + h / 2), (w + 0.2, 0.2, h + 0.2), np.eye(3))
+    face2(m, face, w, h, 0.101, clear + h / 2, back=False)
+    return m, {"out": 0.1}
 
 
 def surface_strip(mat, w=1.0, l=2.0, tile_m=2.0, z=0.009):
@@ -897,6 +989,9 @@ def specs():
     add("SignalPed", "NL", "TrafficLight", "signal_ped",
         lambda: signal_head(2, 0.20, faces=signalfaces.faces_for("ped", 2)), None,
         "200 mm pedestrian head, standing red and walking green figures")
+    add("SignalBus", "NL", "TrafficLight", "signal_bus",
+        lambda: signal_head(3, 0.20, faces=signalfaces.faces_for("bus", 3), lens_mat="LensWhite"), None,
+        "public-transport bar signal (OV-licht): white horizontal bar, dot, vertical bar")
     # markings and surfaces (RoadLine, Road)
     for n in (3, 4, 5):
         add(f"SharkTeeth_{n}", "NL", "RoadLine", "shark_teeth", lambda n=n: shark_teeth(n))
@@ -942,6 +1037,9 @@ def specs():
         lambda: replacing(signal_head(3, 0.20, plate="SignalBlack", border="SignalWhite"), "UK", "SignalCar",
                           signal_head(3, 0.30, plate="SignalBlack", border="SignalWhite")), None,
         "200 mm car head, black back plate with a white border")
+    add("SignalPed", "UK", "TrafficLight", "signal_ped",
+        lambda: signal_head(2, 0.20, plate=None, faces=signalfaces.faces_for("ped", 2)), None,
+        "far-side pedestrian head: red standing, green walking figure")
     add("LampGooseneck8", "JP", "Pole", "lamp_arm", lambda: lamp_jp(8.0), "SM_StreetLight06_A")
     # round 3: big screens (any region, screens.py) and Japanese vertical shop signs
     for k in SCREEN_KEYS:
@@ -952,9 +1050,24 @@ def specs():
     for k in SIGNV_WORDS:
         add(f"SignV_{k}", "JP", "Static", "sign_vertical", lambda k=k: blade_sign(f"SignV_{k}"), None,
             f"vertical shop sign: {SIGNV_WORDS[k]} (a generic word)")
+    # round 4: generated advertising and shop signage, per locale (tools/signage_art.py, coupledcarla/signage.py)
+    makers = {"shop_sign": shop_sign, "screen": screen, "blade_sign": blade_sign, "nobori": nobori,
+              "stand_box": stand_box, "a_board": a_board, "mupi": mupi, "billboard_stand": billboard_stand,
+              "roof_billboard": roof_billboard, "ad_column": ad_column}
+    for it in signage_art.catalog():
+        add(it["name"], it["loc"], it["folder"], it["role"],
+            lambda it=it: makers[it["maker"]](it["slot"], **it["kw"]), None, it["note"])
     add("SignalPole", "JP", "TrafficLight", "signal_pole", lambda: signal_pole_plain("Galvanised"))
     add("SignalCar", "JP", "TrafficLight", "signal_car",            # Japan's are 250-300 mm
         lambda: signal_head(3, 0.30, plate="SignalBlack", horizontal=True), None, "300 mm horizontal car head")
+    add("SignalPed", "JP", "TrafficLight", "signal_ped",
+        lambda: signal_head(2, 0.25, plate=None, faces=signalfaces.faces_for("ped", 2)), None,
+        "pedestrian head: red standing, blue-green walking figure")
+    # anywhere else: a plain dark pole and a pedestrian head without a back plate (CARLA has neither)
+    add("SignalPole", "Any", "TrafficLight", "signal_pole", lambda: signal_pole_plain("Anthracite", 3.0))
+    add("SignalPed", "Any", "TrafficLight", "signal_ped",
+        lambda: signal_head(2, 0.20, plate=None, faces=signalfaces.faces_for("ped", 2)), None,
+        "generic pedestrian head: red standing, green walking figure")
     return S
 
 
@@ -1336,6 +1449,7 @@ def build(out_dir):
     textures(out)
     textures2(out)
     textures3(out)
+    signage_art.textures(out)
     manifest = {"root": ROOT, "palette": {k: list(v[0]) + list(v[1:3]) + list(v[3:]) for k, v in PALETTE.items()},
                 "decal_slots": sorted(DECAL), "meshes": meshes}
     (out / "street_props.json").write_text(json.dumps(manifest, indent=1))
@@ -1362,6 +1476,11 @@ Data the shapes and the choices follow (facts, not copied works):
 - Shop signs and posters: lettering in DejaVu Sans Bold (Bitstream Vera / DejaVu licence, free to embed; the copy
   in matplotlib), generic Dutch trade words and invented poster titles, no brand or real event. Bikes: a generic
   Dutch city bike; the Swapfiets look is only its well-known blue front tyre (no logo).
+- Generated signage and advertising (round 4, `tools/signage_art.py`, coupledcarla/signage.py): every shop name,
+  brand, product, film, show and slogan is invented and the layouts are procedural; no real advertisement, logo or
+  trademark and no photo is in them (open street photos were looked at for the style only). Letters: Noto Sans CJK JP
+  Bold and Noto Serif CJK JP Bold (Adobe / Google, SIL Open Font Licence 1.1; subsets with only the characters drawn
+  in `unreal/StreetProps/fonts`, licence beside them), DejaVu Sans / Serif and STIX (free licences, from matplotlib).
 - Considered and not used: Sketchfab "City parking asset Amsterdammertje" (ustoopia, CC BY 4.0) and "Dutch Traffic
   Light" (tickinggears, CC BY 4.0); the procedural ones are exact in size, light and need no attribution in the
   package.

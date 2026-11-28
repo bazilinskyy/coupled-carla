@@ -673,7 +673,67 @@ def net_edges(map_dir):
                 osm.append({"id": g.getID(), "shape": [(p[0] - gx + mx, p[1] - gy + my) for p in g.getShape()],
                             "name": g.getName() or name, "ref": ref, "cls": road_class(g.getType())})
         label(edges, osm)
+    if all(e["cls"] == "minor" for e in edges):    # a twin's OpenDRIVE net: its roads' classes from OSM directly
+        try:
+            osm = osm_road_edges(map_dir, net)
+            if osm:
+                label(edges, osm)
+        except Exception as err:  # noqa: BLE001 - offline: every road minor, as before
+            print(f"[counts] OSM road classes not used ({type(err).__name__}: {err})", flush=True)
     return net, edges
+
+
+def osm_road_edges(map_dir, net, timeout=60):
+    """OSM's car roads in the map box (Overpass, cached in real/osm_roads.json) as label() edges in map.net.xml
+    coordinates, each two-way road in both directions: for nets built from a twin's OpenDRIVE, which keep neither
+    the OSM way ids nor the road classes."""
+    map_dir = Path(map_dir)
+    path = map_dir / "real" / "osm_roads.json"
+    if path.exists():
+        ways = json.loads(path.read_text())["ways"]
+    else:
+        import requests
+        from .realworld import OVERPASS, UA
+        s, w, n, e = json.loads((map_dir / "meta.json").read_text())["bbox"]
+        q = (f'[out:json][timeout:{timeout}];way["highway"~"^(motorway|trunk|primary|secondary|tertiary)(_link)?$"]'
+             f'({s},{w},{n},{e});out geom;')
+        data = None
+        for url in OVERPASS:
+            try:
+                r = requests.post(url, data={"data": q}, headers=UA, timeout=timeout + 5)
+                r.raise_for_status()
+                data = r.json()
+                break
+            except (requests.RequestException, ValueError):
+                continue
+        if data is None:
+            raise RuntimeError("no Overpass server answered")
+        ways = [{"id": el["id"], "highway": el["tags"]["highway"], "name": el["tags"].get("name"),
+                 "ref": el["tags"].get("ref"), "oneway": el["tags"].get("oneway") in ("yes", "1", "true"),
+                 "geom": [[g["lat"], g["lon"]] for g in el["geometry"]]}
+                for el in data.get("elements", []) if el.get("type") == "way" and el.get("geometry")]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"source": "OpenStreetMap via Overpass (ODbL)", "fetched": datetime.now().isoformat(),
+                                    "ways": ways}))
+    out = []
+    for wy in ways:
+        shape = [net.convertLonLat2XY(lon, lat) for lat, lon in wy["geom"]]
+        if len(shape) < 2:
+            continue
+        o = {"id": str(wy["id"]), "name": wy.get("name"), "ref": wy.get("ref"), "cls": road_class(wy["highway"])}
+        out.append(dict(o, shape=shape))
+        if not wy.get("oneway"):
+            out.append(dict(o, shape=shape[::-1]))
+    return out
+
+
+def class_flows(edges, day, hour, scale=1.0, classes=("primary", "secondary", "tertiary")):
+    """{edge id: cars/h} where no road is counted: each primary, secondary or tertiary edge carries its class's median
+    daily flow per lane (ADT_PER_LANE, from the counted maps) at the hour's share, x scale (the place's density).
+    routeSampler then routes the cars so that the main roads carry them, as on the counted maps; random trips alone
+    spread them evenly over every street of the box."""
+    w = day_weight(day, hour) * scale
+    return {e["id"]: e["lanes"] * ADT_PER_LANE[e["cls"]] * w for e in edges if e.get("cls") in classes}
 
 
 def osm_names(path):
@@ -738,22 +798,23 @@ def auto_cars_per_hour(edges, bbox, day, hour):
     return min(AUTO_MAX_PER_HOUR, vkt / (TRIP_KM_PER_BOX_KM * side_km))
 
 
-def car_routes(net_file, work, types, end, rate, flows, seed, log=print):
+def car_routes(net_file, work, types, end, rate, flows, seed, log=print, cand_rate=None):
     """Cars fitted to the counted edges: random candidate routes, routeSampler picks those that reproduce the
     counted flows in [0, end] and fills up to `rate` cars/hour with routes that pass no counter.
     Returns the route file, or None (no SUMO tools, routeSampler failed: the caller falls back)."""
     try:
-        return _car_routes(net_file, work, types, end, rate, flows, seed, log)
+        return _car_routes(net_file, work, types, end, rate, flows, seed, log, cand_rate)
     except Exception as err:  # noqa: BLE001
         log(f"counts: routeSampler not used ({type(err).__name__}: {err}); random car trips")
         return None
 
 
-def _car_routes(net_file, work, types, end, rate, flows, seed, log):
+def _car_routes(net_file, work, types, end, rate, flows, seed, log, cand_rate=None):
     import sumo
     tools = Path(sumo.SUMO_HOME) / "tools"
     counted = sum(flows.values())
-    cand_rate = max(rate, counted) * 8.0          # plenty of candidates through every counter
+    # plenty of candidates through every counter; class flows (hundreds of short edges): 8 x the demand
+    cand_rate = cand_rate or max(rate, counted) * 8.0
     cand = work / "car_candidates.rou.xml"
     subprocess.check_call(
         [sys.executable, str(tools / "randomTrips.py"), "-n", str(net_file), "-r", str(cand),
@@ -802,8 +863,9 @@ def _copy_vtypes(src, dst):
         Path(dst).write_text(d)
 
 
-def plan(cfg_traffic, map_dir, bbox, when, log=print):
-    """What traffic.prepare needs for the cars: (cars per hour, edge flows or None, edges, summary)."""
+def plan(cfg_traffic, map_dir, bbox, when, log=print, scale=1.0):
+    """What traffic.prepare needs for the cars: (cars per hour, edge flows or None, edges, summary). scale: the
+    place's density (crowdtraffic.py) on the road-network estimate and the class flows, not on measured counts."""
     from .transit import day_type
     day, hour = day_type(when), when.hour
     mode = cfg_traffic.get("counts", "auto")
@@ -811,16 +873,25 @@ def plan(cfg_traffic, map_dir, bbox, when, log=print):
     if mode in (False, None, "off") and per_hour != "auto":
         return float(per_hour), None, None, None
     net, edges = net_edges(map_dir)
-    if per_hour == "auto":
+    auto = per_hour == "auto"
+    if auto:
         per_hour = auto_cars_per_hour(edges, bbox, day, hour)
         km = lane_km(edges)
         log(f"cars: {per_hour:.0f}/h from the road network ({day} {hour:02d}:00; lane-km primary {km['primary']:.1f}, "
-            f"secondary {km['secondary']:.1f}, tertiary {km['tertiary']:.1f}, minor {km['minor']:.1f})")
+            f"secondary {km['secondary']:.1f}, tertiary {km['tertiary']:.1f}, minor {km['minor']:.1f})"
+            + (f" x {scale:.2f} (the place's density) = {per_hour * scale:.0f}/h" if scale != 1.0 else ""))
+        per_hour *= scale
     per_hour = float(per_hour)
     if mode in (False, None, "off"):
         return per_hour, None, edges, None
     data = load(map_dir, bbox)
     if not data:
+        flows = class_flows(edges, day, hour, scale) if auto and cfg_traffic.get("class_flows", True) else {}
+        if flows:
+            log(f"counts: none open here; the main roads carry their class's typical flow ({len(flows)} primary, "
+                f"secondary and tertiary edges, {sum(flows.values()) / max(1, len(flows)):.0f} cars/h each on "
+                f"average; {day} {hour:02d}:00)")
+            return per_hour, flows, edges, {"source": "road classes", "edges": len(flows), "day": day, "hour": hour}
         return per_hour, None, edges, None
     matches = match(data["counters"], edges, lambda lon, lat: net.convertLonLat2XY(lon, lat))
     flows = edge_flows(matches, day, hour)

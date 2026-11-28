@@ -374,7 +374,7 @@ def test_progress_in_plain_words(tmp_path):
     assert done["furniture"] == "done, 515 lamps, 45 benches, bins and other street furniture, 6 road signs"
     assert done["parked"].startswith("done, 1,374") and done["ground"] == "done, 6,840 ground tiles"
     assert done["buses"] == "done, 3 bus lines (1 with a real timetable)"
-    assert all(pr.state[s] == "done" for s in mm._ORDER[:-1])
+    assert all(pr.state[s] == "done" for s in mm._ORDER[:-1] if s != "farring")   # farring: after mapbuild
     lines = []
     pr2 = mm.Progress(mm.printer(type("S", (), {"write": lambda self, s: lines.append(s), "flush": lambda self: 0})()),
                       tmp_path)

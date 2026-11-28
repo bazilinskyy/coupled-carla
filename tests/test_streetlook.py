@@ -124,7 +124,8 @@ def test_manifest_matches_catalogue_and_generator(cat10):
     assert all(c[1] > 0 for c in head["lenses"]) and head["off"][1] > 0
     for n, spec in data["meshes"].items():
         assert spec["off"][2] - spec["ext"][2] == pytest.approx(0.0, abs=0.06) or "Signal" in n or "ShopSign" in n \
-            or "Screen" in n or "SignV" in n, n       # (wall-mounted: their pivot at mid-height)
+            or "Screen" in n or "SignV" in n or any(k in n for k in ("Fascia", "Kanban", "Tenant", "_Billboard")), \
+            n       # (wall-mounted: their pivot at mid-height)
 
 
 class FakePlacer:

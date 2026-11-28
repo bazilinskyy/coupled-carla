@@ -103,7 +103,6 @@ def kind_of(sign):
 
 # CARLA meshes: the same sign where CARLA has it (the speed, stop and give-way plates come from scenery.py's mesh
 # set), and blank plates of each outline (CARLA 1.0's TrafficSign/Signs, grey faces); 0.9.16 has no blank plates
-NO_ENTRY = {0: None, 1: "SM_DoNoEnter01"}
 GENERIC = {0: {}, 1: {"round": "SM_CircleShape", "triangle": "SM_DangerSignShape",
                       "inv_triangle": "SM_InvertedTriangleShape", "diamond": "SM_RomboidShape",
                       "octagon": "SM_OctogonalShape", "square": "SM_SquareShape",
@@ -126,8 +125,9 @@ def _major(cat):
 FACES_FILE = Path(__file__).resolve().parent / "data" / "nl_sign_faces.json"
 NUMBERED = {"A1", "A2", "A4"}      # speed signs: only the face with the sign's own number will do
 ZONES = {"ZB": "ZB", "ZH": "ZB", "ZE": "ZE"}     # register zone codes -> the board: begin (and repeat), end
-KEEP_REAL = {"stop", "no_entry"}    # CARLA's own meshes of these stay (its speed plates are US-style; its give-way
-                                    # plate says YIELD: a Dutch B6 face, a blank triangle or none instead)
+KEEP_REAL = {"stop"}    # CARLA's own octagon stays (its speed plate is the US "SPEED LIMIT" rectangle, its give-way
+                        # plate says YIELD, its no-entry plate DO NOT ENTER: the Dutch face, a blank plate of the
+                        # sign's shape or none instead; localsigns.py)
 
 
 @lru_cache(maxsize=None)
@@ -188,8 +188,8 @@ def fallbacks(names, cat):
 def choose(sign, cat, use_faces=True):
     """(mesh, plate width, tier) for a register sign on this catalogue: tier "real" (CARLA has the sign), "face"
     (CARLA 1.0: the Dutch design on a plate of its shape, data/nl_sign_faces.json), "generic" (a blank plate of its
-    shape) or "skipped" (mesh None; also for unknown codes). CARLA's stop, give-way and no-entry meshes go before
-    a face, a face before CARLA's speed plates (on 1.0 US-style, rectangular "SPEED LIMIT")."""
+    shape) or "skipped" (mesh None; also for unknown codes). CARLA's stop octagon goes before a face; its speed,
+    give-way and no-entry plates are US designs and never stand in the Netherlands."""
     k = kind_of(sign)
     if k is None:
         return None, None, "skipped"
@@ -201,9 +201,9 @@ def choose(sign, cat, use_faces=True):
     elif kind == "give_way":
         real = None         # CARLA's is the US plate with YIELD on it (placement.sign_fits); NL's B6 has no text
     elif kind == "speed" and value in ms.SPEEDS:
-        real = ms.SPEED.format(value)       # only the posted speed: 20 or 15 get a blank round plate
+        real = None         # CARLA's is the US "SPEED LIMIT" rectangle (placement.sign_fits): NL's A1 is the roundel
     elif kind == "no_entry":
-        real = NO_ENTRY.get(major)
+        real = None         # CARLA's says DO NOT ENTER (US); NL's C2 is the red disc with the white bar
     face = face_of(sign, cat) if use_faces else None
     if face and not (kind in KEEP_REAL and real in cat):
         return face["mesh"], face["width_m"], "face"

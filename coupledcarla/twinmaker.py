@@ -48,6 +48,7 @@ STEPS = [
     ("twin_detail", "Adding entrances, steps and open ground floors"),
     ("twin_gaps", "Closing gaps between road and pavement surfaces"),
     ("twin_paving", "Paving brick and cobblestone streets in the road surface"),
+    ("twin_farring", "Building the real landscape around the twin out to the horizon"),
     ("twin_credits", "Writing the data credits"),
     ("twin_bake", "Baking the CARLA 1.0 level (Unreal editor; the longest step)"),
     ("twin_nav", "Building the pedestrian navigation"),

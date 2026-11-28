@@ -10,7 +10,14 @@ red. SUMO is therefore the only source of truth for signals here:
   single square line, which showed as a flat rectangle). Where the meshes are missing (another CARLA version) the
   head is drawn: a dark box on a dark line. Style "marker": a line pole with a big glowing disc per signalled lane;
 - the heads stand at the stop line, which is before the crosswalk where one crosses the approach (stoplines.py:
-  SUMO's lane stopOffset), not at the end of SUMO's lane;
+  SUMO's lane stopOffset), not at the end of SUMO's lane; bus-only lanes get the region's bus head (the Dutch white
+  bar signal, "OV-licht": horizontal bar, dot, vertical bar), else its car head;
+- every signalised crossing (a crosswalk a signalised stream crosses: pedsignals.crossing_heads) gets a pedestrian
+  head at both ends, on the kerb, facing across to the people at the other end: the walking figure lit while every
+  stream crossing it shows red (as the crowd's walkers cross), else the standing one; the region's head (NL, UK, JP),
+  else the region-free one, else drawn;
+- the level's own CARLA traffic lights near our heads (a twin's big generic heads on mast arms) are hidden: their
+  meshes only (enable_environment_objects); the actors and their logic stay for CARLA's Traffic Manager and agents;
 - next_light() gives a participant's next light (id, distance, state) from its SUMO twin, for the autopilot,
   the log and the HUD.
 
@@ -58,8 +65,8 @@ LAMP_SIZE = 0.2                          # the lit lamp: a 0.2 m round lens in t
 
 # regional heads (CARLA 1.0 street content): the head's origin (its pole's axis, at the back plate) this high above the
 # road, so a car head's plate (1.44 m) spans 2.0-3.5 m on the 3.6 m pole and a cyclist head's (1.14 m) 1.9-3.0 m
-REGION_HEAD_Z = {"car": 2.75, "bike": 2.45, "ped": 2.3}
-LENS_D = {"car": 0.30, "bike": 0.20, "ped": 0.20}          # lens diameter (m) of a manifest entry without lens_d
+REGION_HEAD_Z = {"car": 2.75, "bike": 2.45, "ped": 2.3, "bus": 2.75}
+LENS_D = {"car": 0.30, "bike": 0.20, "ped": 0.20, "bus": 0.20}    # lens diameter (m) of an entry without lens_d
 LENS_FRONT = signalfaces.LIT_FRONT                         # the lit lens this far in front of the mesh's lens (m)
 
 
@@ -71,30 +78,46 @@ def _head_style(head, pole, mode):
 
 
 def regional_style(region, mode, props=None):
-    """How a region's head of a mode looks on CARLA 1.0: {"pole": mesh path or None (CARLA's), "head": mesh path,
-    "head_z", "lenses": [(x, y, z) of each lens from the head's origin, red first], "lens_d": lens diameter (m),
-    "faces": [pictogram key or None per lens], "mode", "alt": the style of the mesh it replaces (a server whose
-    content predates it) or None}, or None (no such head: CARLA's). props: streetlook.props()."""
-    if not region:
+    """How a region's head of a mode ("car", "bike", "bus", "ped") looks on CARLA 1.0: {"pole": mesh path or None
+    (CARLA's), "head": mesh path, "head_z", "lenses": [(x, y, z) of each lens from the head's origin, red first],
+    "lens_d": lens diameter (m), "faces": [pictogram key or None per lens], "mode", "alt": the style to spawn
+    instead on a server without this head (the mesh it replaces; a bus head's: the region's car head) or None},
+    or None (no such head: CARLA's). A region without a cyclist or bus head uses its car head; pedestrian heads
+    come from the region, else from the region-free set ("Any"; also for region None), never a car head.
+    props: streetlook.props()."""
+    if not region and mode != "ped":
         return None
     if props is None:
         from . import streetlook
         props = streetlook.props()
 
-    def of(role):           # by region and role, not name: a head's mesh name says its lens size
-        return next((v for _k, v in sorted(props.items()) if v.get("region") == region and v.get("role") == role),
+    def of(role, reg):          # by region and role, not name: a head's mesh name says its lens size
+        return next((v for _k, v in sorted(props.items()) if v.get("region") == reg and v.get("role") == role),
                     None)
-    mode = mode if mode in ("bike", "ped") else "car"
-    head = of(f"signal_{mode}")
-    if not head and mode != "car":          # no cyclist head in this region: the car head
-        head, mode = of("signal_car"), "car"
-    if not head or not head.get("lenses"):
+
+    def style(head, reg, m):
+        pole = of("signal_pole", reg)
+        pole = pole["path"] if pole else None
+        st = _head_style(head, pole, m)
+        old = head.get("replaces")
+        st["alt"] = _head_style(old, pole, m) if old and old.get("lenses") else None
+        return st
+
+    if mode == "ped":
+        for reg in ([region] if region else []) + ["Any"]:
+            head = of("signal_ped", reg)
+            if head and head.get("lenses"):
+                return style(head, reg, "ped")
         return None
-    pole = of("signal_pole")
-    pole = pole["path"] if pole else None
-    st = _head_style(head, pole, mode)
-    old = head.get("replaces")
-    st["alt"] = _head_style(old, pole, mode) if old and old.get("lenses") else None
+    mode = mode if mode in ("bike", "bus") else "car"
+    car = of("signal_car", region)
+    car = style(car, region, "car") if car and car.get("lenses") else None
+    head = of(f"signal_{mode}", region) if mode != "car" else None
+    if not head or not head.get("lenses"):      # no cyclist or bus head in this region: the car head
+        return car
+    st = style(head, region, mode)
+    if st["alt"] is None and mode == "bus":     # content without the bus head: the car head
+        st["alt"] = car
     return st
 
 
@@ -121,10 +144,11 @@ def lens_of(row, n_lenses):
 
 
 def lane_mode(lane):
-    """"bike" for a sumolib lane only cyclists use, else "car"."""
+    """"bike" for a sumolib lane only cyclists use, "bus" for a bus lane (buses, not cars), else "car"."""
     try:
-        return "bike" if lane.allows("bicycle") and not lane.allows("passenger") and not lane.allows("bus") \
-            else "car"
+        if lane.allows("bicycle") and not lane.allows("passenger") and not lane.allows("bus"):
+            return "bike"
+        return "bus" if lane.allows("bus") and not lane.allows("passenger") else "car"
     except Exception:  # noqa: BLE001
         return "car"
 
@@ -201,6 +225,10 @@ def head_candidates(kerb, max_back=5.0):
     return [(b, o) for b in backs for o in outs]
 
 
+# a pedestrian head drawn where the server has no mesh for it: two 200 mm lenses, its lit figure on the pole
+DRAWN_PED = {"pole": None, "head": "", "head_z": 2.3, "lenses": [(0.0, 0.1, 0.13), (0.0, 0.1, -0.13)], "lens_d": 0.2,
+             "faces": ["ped_stand", "ped_walk"], "mode": "ped", "alt": None}
+LEVEL_LIGHT_M = 35.0     # a level's own traffic light this close to one of our heads is the same junction's
 SIDE_BY_SIDE = 0.7       # a second head at the same kerb stands this much further out (backboards 0.5 m wide)
 
 
@@ -226,14 +254,16 @@ def head_spot(k, groups, by_index, place, on_road):
 
 class Signals:
     def __init__(self, world, net, offset, radius=120.0, every=5, step=0.02, debug=None, style="head",
-                 lefthand=False, log=print, surface=None, region=None, stop_offsets=None):
+                 lefthand=False, log=print, surface=None, region=None, stop_offsets=None, crossings=None):
         """net: the sumolib net SUMO runs (map.net.xml); offset: the bridge's SUMO->CARLA shift; debug: where to
         draw (the runner passes the side connection's, see side.py), else world.debug; style: "head" or
         "marker" (or "none": no drawing, next_light only); lefthand: the kerb is on the left of the lanes; surface:
         placement.GroundSurface of the scenery's ground tiles (the poles stand on them); region: "NL", "UK", "JP"
         (streetlook.region) for the region's heads on a CARLA 1.0 server with the street content, None: CARLA's;
         stop_offsets: {lane id: m} the net's stop lines before the lanes' ends (stoplines.read_offsets of the net
-        SUMO runs): the heads stand there and next_light() measures to them."""
+        SUMO runs): the heads stand there and next_light() measures to them; crossings: the map's crosswalk polygons
+        in CARLA coordinates (stoplines.crossings, y flipped): the signalised ones get pedestrian heads at both ends
+        (style "head")."""
         self.debug = world.debug if debug is None else debug
         cmap = world.get_map()
         self.surface = surface
@@ -337,9 +367,19 @@ class Signals:
             groups = group_links([(index, links) for index, (_lane, links) in lanes.items()], phases)
             for k, group in enumerate(groups):
                 links = [lk for index in group for lk in lanes[index][1]]
-                mode = "bike" if all(lane_mode(lanes[index][0]) == "bike" for index in group) else "car"
+                modes = {lane_mode(lanes[index][0]) for index in group}
+                mode = modes.pop() if len(modes) == 1 else "car"
                 add(links, *head_spot(k, groups, by_index, place, on_road), mode)
+        self.ped_heads = []     # (carla Location of the pole's foot, travel yaw, [(tls, link index)]) per pedestrian head
+        if self.style == "head" and crossings:
+            self.ped_heads = self._place_ped_heads(cmap, net, offset, crossings, road)
+        self.ped_styles = [None] * len(self.ped_heads)
         self.meshes = self.style == "head" and self._spawn_heads(world, log)
+        if self.ped_heads:
+            n = self._spawn_ped_heads(world, log) if self.meshes else 0
+            log(f"traffic lights: {len(self.ped_heads)} pedestrian heads at the signalised crossings "
+                f"({n} as meshes, the rest drawn)")
+        self.hidden = self._hide_level_lights(world, log) if self.style == "head" else 0
         self._tick = 0
 
     def _spawn_heads(self, world, log):
@@ -353,16 +393,8 @@ class Signals:
         regional = self.region is not None
         for h, (tls, idxs, loc, yaw) in enumerate(self.heads):
             st = regional_style(self.region, self.head_modes[h]) if regional else None
-            if st is not None and st["head"] in self._missing and st.get("alt"):
-                st = st["alt"]
             if st is not None:
-                ok = self._spawn_regional(world, bp, h, loc, yaw, st)
-                if ok is None and st.get("alt"):      # content older than this head: the mesh it replaces
-                    self._missing.add(st["head"])
-                    ok = self._spawn_regional(world, bp, h, loc, yaw, st["alt"])
-                    if ok:
-                        log(f"traffic lights: no {st['head'].rsplit('.', 1)[-1]} on this server; its older "
-                            f"{st['alt']['head'].rsplit('.', 1)[-1]} (re-import the street props)")
+                ok = self._spawn_chain(world, bp, h, loc, yaw, st, self.styles, log)
                 if ok:
                     continue
                 if ok is None and not self._have:     # the server lacks the content: CARLA's heads from here on
@@ -382,12 +414,32 @@ class Signals:
         n = sum(st is not None for st in self.styles)
         if n:
             log(f"traffic lights: {n} of {len(self.heads)} heads are {self.region} ones "
-                f"({sum(st is not None and st['mode'] == 'bike' for st in self.styles)} for cyclists)")
+                f"({sum(st is not None and st['mode'] == 'bike' for st in self.styles)} for cyclists, "
+                f"{sum(st is not None and st['mode'] == 'bus' for st in self.styles)} bus bar signals)")
         return True
 
-    def _spawn_regional(self, world, bp, h, loc, yaw, st):
+    def _spawn_chain(self, world, bp, h, loc, yaw, st, styles, log):
+        """_spawn_regional with style st, else (a server whose content lacks that head) its alt, and so on: True,
+        False (blocked here) or None (no such mesh on the server)."""
+        chain = [st]
+        while chain[-1].get("alt"):
+            chain.append(chain[-1]["alt"])
+        chain = [c for c in chain if c["head"] not in self._missing] or chain[-1:]
+        ok = None
+        for k, c in enumerate(chain):
+            ok = self._spawn_regional(world, bp, h, loc, yaw, c, styles)
+            if ok is None and k + 1 < len(chain):       # content older than this head: the one it replaces
+                self._missing.add(c["head"])
+                log(f"traffic lights: no {c['head'].rsplit('.', 1)[-1]} on this server; "
+                    f"{chain[k + 1]['head'].rsplit('.', 1)[-1]} instead (re-import the street props)")
+                continue
+            break
+        return ok
+
+    def _spawn_regional(self, world, bp, h, loc, yaw, st, styles=None):
         """The region's pole and head at head h: True; False when one did not spawn here (blocked: CARLA's head);
-        None when the server seems to lack the head mesh (it never spawned on this server)."""
+        None when the server seems to lack the head mesh (it never spawned on this server). styles: where head h's
+        style is recorded (self.styles; self.ped_styles for pedestrian heads)."""
         p = regional_points(loc.x, loc.y, loc.z, yaw, st, self._ground(loc))
         parts = [(st["head"], 1.0, p["head"], p["yaw"])]
         if st["pole"]:
@@ -406,9 +458,93 @@ class Signals:
                 return False if st["head"] in getattr(self, "_have", ()) else None
             spawned.append(a)
         self.actors += spawned
-        self.styles[h] = st
+        (self.styles if styles is None else styles)[h] = st
         getattr(self, "_have", set()).add(st["head"])
         return True
+
+    def _place_ped_heads(self, cmap, net, offset, crossings, road):
+        """pedsignals.crossing_heads on this map: the lane lookups at the road's own height (geo.nearest_waypoint)."""
+        from . import pedsignals
+        from .geo import nearest_waypoint
+
+        def height(x, y):
+            wp = nearest_waypoint(cmap, x, y, lane_type=carla.LaneType.Any, carla=carla)
+            return wp.transform.location.z if wp is not None else 0.0
+
+        paved = road | carla.LaneType.Parking | carla.LaneType.Shoulder | carla.LaneType.Restricted
+
+        def on_road(x, y):          # no pole on a lane, a parking lane or a shoulder
+            return cmap.get_waypoint(carla.Location(x=x, y=y, z=height(x, y)), project_to_road=False,
+                                     lane_type=paved) is not None
+        out = []
+        for x, y, yaw, ctl in pedsignals.crossing_heads(crossings, pedsignals.net_links(net, offset), on_road):
+            loc = carla.Location(x=x, y=y, z=height(x, y))
+            for _tls, _idxs, hl, _yaw in self.heads:      # not in a vehicle head's pole
+                if math.hypot(hl.x - loc.x, hl.y - loc.y) < 0.6:
+                    r = math.radians(yaw)
+                    loc = carla.Location(x=loc.x - math.sin(r) * 0.7, y=loc.y + math.cos(r) * 0.7, z=loc.z)
+                    break
+            out.append((loc, yaw, ctl))
+        return out
+
+    def _spawn_ped_heads(self, world, log):
+        """The region's (or the region-free) pedestrian head and pole at every pedestrian head: how many spawned;
+        the others are drawn (draw())."""
+        style = regional_style(self.region, "ped")
+        if style is None:
+            return 0
+        bp = world.get_blueprint_library().find("static.prop.mesh")
+        n = 0
+        for k, (loc, yaw, _ctl) in enumerate(self.ped_heads):
+            ok = self._spawn_chain(world, bp, k, loc, yaw, style, self.ped_styles, log)
+            if ok is None and not any(self.ped_styles):
+                log(f"traffic lights: no pedestrian head mesh ({style['head'].rsplit('.', 1)[-1]}) on this server; "
+                    f"pedestrian heads are drawn")
+                break
+            n += bool(ok)
+        return n
+
+    def _hide_level_lights(self, world, log, radius=None):
+        """Hide the meshes of the level's own CARLA traffic lights (a twin's, baked from its OpenDRIVE signals: the
+        big generic heads on mast arms) within `radius` of our heads, which stand for the same signals: each
+        junction then shows only the local heads. The traffic-light actors stay (their states, trigger volumes and
+        stop waypoints, which CARLA's Traffic Manager and agents read); only their environment objects, the mesh
+        components of each light (world.enable_environment_objects: hidden in game, no collision), go. Returns
+        how many lights were hidden."""
+        radius = LEVEL_LIGHT_M if radius is None else radius
+        try:
+            lights = list(world.get_actors().filter("traffic.traffic_light*"))
+        except RuntimeError:
+            return 0
+        ours = [h[2] for h in self.heads] + [p[0] for p in self.ped_heads]
+        near = [a.get_transform().location for a in lights
+                if any(math.hypot(a.get_location().x - o.x, a.get_location().y - o.y) <= radius for o in ours)]
+        if not near:
+            return 0
+        grid = {}
+        for label in ("TrafficLight", "Poles"):
+            lab = getattr(carla.CityObjectLabel, label, None)
+            if lab is None:
+                continue
+            try:
+                objs = world.get_environment_objects(lab)
+            except RuntimeError:
+                continue
+            for e in objs:
+                t = e.transform.location
+                grid.setdefault((round(t.x), round(t.y)), []).append((t, e.id))
+        ids = set()
+        for loc in near:                # a light's environment objects carry the light actor's own transform
+            for gx in (round(loc.x) - 1, round(loc.x), round(loc.x) + 1):
+                for gy in (round(loc.y) - 1, round(loc.y), round(loc.y) + 1):
+                    for t, i in grid.get((gx, gy), ()):
+                        if abs(t.x - loc.x) < 0.3 and abs(t.y - loc.y) < 0.3 and abs(t.z - loc.z) < 1.0:
+                            ids.add(i)
+        if ids:
+            world.enable_environment_objects(ids, False)
+        log(f"traffic lights: the level's own lights near our heads hidden: {len(near)} of {len(lights)} light "
+            f"actors ({len(ids)} mesh objects; the actors and their logic stay)")
+        return len(near) if ids else 0
 
     def _ground(self, loc):
         """The ground tiles' top under a pole off the lanes (scenery.json's ground_planes), else None (the road's)."""
@@ -486,8 +622,9 @@ class Signals:
                 p = regional_points(loc.x, loc.y, loc.z, yaw, rst)
                 lens = lens_of(lamp_row(st), len(rst["lenses"]))
                 if lens is not None:
+                    rgb = signalfaces.BAR_RGB if rst["mode"] == "bus" else LAMP_RGB[lamp_row(st)]
                     self._lit(p["lamps"][lens], p["yaw"], rst["lens_d"], rst["faces"][lens],
-                              carla.Color(*look.debug_colour(LAMP_RGB[lamp_row(st)])))
+                              carla.Color(*look.debug_colour(rgb)))
                 continue
             p = head_points(loc.x, loc.y, loc.z, yaw)
             if not self.meshes:     # no meshes on this server: a dark pole and housing, drawn
@@ -499,6 +636,36 @@ class Signals:
             row = lamp_row(st)
             if row is not None:
                 self._lit(p["lamps"][row], p["yaw"], LAMP_SIZE, None, carla.Color(*look.debug_colour(LAMP_RGB[row])))
+        if self.style == "head":
+            self._draw_ped(centres, states)
+
+    def _draw_ped(self, centres, states):
+        """The pedestrian heads near the centres: the walking figure lit while every vehicle stream crossing the
+        crossing shows red (pedsignals.all_red, as the crowd's walkers cross: PedSignals), else the standing one.
+        A head the server has no mesh for is drawn (a dark pole and housing)."""
+        from .pedsignals import all_red
+        for k, (loc, yaw, ctl) in enumerate(self.ped_heads):
+            if not any(math.hypot(loc.x - c.x, loc.y - c.y) <= self.radius for c in centres):
+                continue
+            for tls in {t for t, _ in ctl}:
+                if tls not in states:
+                    states[tls] = traci.trafficlight.getRedYellowGreenState(tls)
+            row = 2 if all_red(states, ctl) else 0
+            colour = carla.Color(*look.debug_colour(LAMP_RGB[row]))
+            st = self.ped_styles[k] if k < len(self.ped_styles) else None
+            if st is None:
+                st = DRAWN_PED
+                p = regional_points(loc.x, loc.y, loc.z, yaw, st)
+                self.debug.draw_line(loc, carla.Location(*p["head"]) - carla.Location(z=0.3), thickness=0.1,
+                                     color=carla.Color(0, 0, 0), life_time=self.life)
+                mid = [(a + b) / 2 for a, b in zip(p["lamps"][0], p["lamps"][1])]
+                self.debug.draw_box(carla.BoundingBox(carla.Location(*mid), carla.Vector3D(0.1, 0.08, 0.24)),
+                                    carla.Rotation(yaw=p["yaw"]), thickness=0.1, color=carla.Color(0, 0, 0),
+                                    life_time=self.life)
+            p = regional_points(loc.x, loc.y, loc.z, yaw, st)
+            lens = lens_of(row, len(st["lenses"]))
+            if lens is not None:
+                self._lit(p["lamps"][lens], p["yaw"], st["lens_d"], st["faces"][lens], colour)
 
     def _lit(self, centre, face_yaw, diameter, face, colour):
         """A lit lens at centre on a face turned to face_yaw: a round disc of thick lines, or its lit pictogram
