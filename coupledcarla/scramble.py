@@ -76,7 +76,7 @@ DEFAULTS = {
 REACH_M = 40.0               # kerb ends this close to a junction's centre belong to it
 CORNER_MAX_M = 35.0          # two kerb ends of one block corner are at most this far apart
 MAX_LEG_M = 70.0
-PROGRESS = 0.35              # steering keeps at least this share of the walking speed towards the goal
+PROGRESS = 0.55              # steering keeps at least this share of the walking speed towards the goal
 SPACING_M = 0.95             # between waiting walkers (about 1.1 per m2, a dense waiting crowd); CARLA's walkers
                              # collide with each other's skeletal meshes, and closer crowds cost the server dearly
                              # (Shibuya twin, -nullrhi, 420 walkers at 0.75 m: 750 ms per tick; README)
@@ -91,6 +91,7 @@ LEAVE_SHARE = 0.35           # of the walkers arriving at a corner, these leave 
                              # another leg of that corner at the next walk (a walker vanishes and reappears only out
                              # of everyone's sight: with a camera at the crossing nobody would come back otherwise)
 VIEW_M, VIEW_DEG = 90.0, 50.0
+TURN_DEG, TURN_SPEED = 25.0, 0.08        # a standing walker more than this off its facing creeps round
 BIKE_SIDE_M, WALKER_HALF_M = 0.55, 0.92   # a pushed bicycle's offset to the walker's right; walker origin height   # "in view": within this distance and half-angle of a viewer's heading
 
 # kinds: share is of walking units (groups and families are one unit); speed x the place's median; reaction time
@@ -406,8 +407,9 @@ def draw_units(n, rng, sc, kind, params, move, rain_mm_h=0.0, has_child=True, ha
             unit = [{"kind": kd}]
         else:
             fam = has_child and rng.random() < min(0.6, child_share * 3)
-            tourists = not fam and rng.random() < tour
-            kd = "family" if fam else ("tourist" if tourists else "group")
+            older = not fam and rng.random() < sc["older_share"]          # an older couple or friends
+            tourists = not fam and not older and rng.random() < tour
+            kd = "family" if fam else ("older" if older else "tourist" if tourists else "group")
             unit = [{"kind": kd} for _ in range(k)]
             if fam:
                 for m in unit[1:max(2, k - 1)]:
@@ -817,11 +819,11 @@ class CrossingModel:
             del self.phase[key]
 
     def _can_make(self, p, remaining):
-        """Whether p, starting now, gets across before the cars' green at a brisk pace (1.4 x its own, at most its
+        """Whether p, starting now, gets across before the cars' green at a brisk pace (1.2 x its own, at most its
         run): who cannot does not start (the slowest of a group sets its pace)."""
         a, b = self._leg_ends(p)
         dist = math.hypot(b[0] - p.pos[0], b[1] - p.pos[1])
-        v = min(min(q.vmax for q in self.group(p)), 1.4 * min(q.v0 for q in self.group(p)))
+        v = min(min(q.vmax for q in self.group(p)), 1.2 * min(q.v0 for q in self.group(p)))
         return dist / max(0.3, v) <= remaining - 1.5
 
     def _cross_start(self, p, t, why="walk"):
@@ -1154,8 +1156,33 @@ class CrossingCrowd:
                 zcache[key] = wp.transform.location.z if wp is not None else 0.0
             return zcache[key]
         n, ids = 0, []
+        looks = None
+        try:          # who they are: the place's street mix (walkerlooks.py); tourists from its visitors' mix
+            from . import walkerlooks
+            looks = walkerlooks.for_library(lib)
+        except Exception:  # noqa: BLE001 - a uniform pick then
+            looks = None
+        group_of = {}
         for p in self.model.peds:
-            bp = self.rng.choice(kids if p.child else old if p.kind == "older" else adults)
+            bp = None
+            if looks is not None:
+                lead = p.lead or p
+                if lead.i not in group_of:
+                    group_of[lead.i] = looks.draw_group(lead.kind == "tourist" or
+                                                        self.rng.random() < float(looks.street.get("visitor_share")
+                                                                                  or 0.0), self.rng)
+                same = self.rng.random() < float(looks.cfg.get("family_same_group", 0.9)) or p.lead is None
+                grp = group_of[lead.i] if same else looks.draw_group(lead.kind == "tourist", self.rng)
+                bid = looks.choose(grp, child=p.child, rng=self.rng) or looks.choose(grp, rng=self.rng)
+                if bid:
+                    looks.picked.append(bid)
+                    looks.drawn.append(grp)
+                    try:
+                        bp = lib.find(bid)
+                    except (RuntimeError, IndexError):
+                        bp = None
+            if bp is None:
+                bp = self.rng.choice(kids if p.child else old if p.kind == "older" else adults)
             if bp.has_attribute("is_invincible"):
                 bp.set_attribute("is_invincible", "false")
             bp.set_attribute("role_name", "crossing")
@@ -1177,15 +1204,18 @@ class CrossingCrowd:
                 b = self.rng.choice(bikes)
                 if b.has_attribute("role_name"):
                     b.set_attribute("role_name", "pushed_bike")
-                try:     # beside the walker, moved with it every tick (tick()): attached, it stayed behind
-                    bike = self.world.spawn_actor(b, carla.Transform(carla.Location(
-                        x=x + 0.55, y=y, z=ground(x, y) + 0.05), carla.Rotation(yaw=p.face or 0.0)))
-                    bike.set_simulate_physics(False)
+                # spawned clear above the walker, then beside it every tick (tick()): attached, it stayed where it
+                # was spawned; spawned beside the walker, it collided with it and was refused
+                bike = self.world.try_spawn_actor(b, carla.Transform(carla.Location(
+                    x=x, y=y, z=ground(x, y) + 40.0 + 3.0 * len(self.bikes)), carla.Rotation(yaw=p.face or 0.0)))
+                if bike is not None:
+                    try:
+                        bike.set_simulate_physics(False)
+                    except RuntimeError:
+                        pass
                     self.bikes[p.i] = bike
                     self.not_vehicles.add(bike.id)
                     ids.append(bike.id)
-                except RuntimeError:
-                    pass
         if on_spawn is not None and ids:
             on_spawn(ids)
         self.log(f"crossings: {n} of {len(self.model.peds)} walkers spawned at {len(self.model.sites)} sites"
@@ -1262,14 +1292,19 @@ class CrossingCrowd:
                 if c[0] == "walk":
                     (dx, dy), sp = c[1], c[2]
                     send(a, carla.WalkerControl(direction=carla.Vector3D(dx, dy, 0.0), speed=float(sp)))
-                    self._face.pop(i, None)
                 elif c[0] == "stand":
-                    send(a, carla.WalkerControl(speed=0.0))
-                    face = c[1]
-                    if face is not None and self._face.get(i) != round(face):
-                        self._face[i] = round(face)
-                        loc = a.get_location()
-                        self._transform(a, carla.Transform(loc, carla.Rotation(yaw=float(face))))
+                    # turning to face its leg: a creep in that direction turns the walker (its movement orients
+                    # it); a teleport to turn it cost the server ~10 ms per walker per tick in a trial (2026-11-28)
+                    face, turn = c[1], False
+                    if face is not None:
+                        yaw = a.get_transform().rotation.yaw
+                        turn = abs((float(face) - yaw + 180.0) % 360.0 - 180.0) > TURN_DEG
+                    if turn:
+                        f = math.radians(float(face))
+                        send(a, carla.WalkerControl(direction=carla.Vector3D(math.cos(f), math.sin(f), 0.0),
+                                                    speed=TURN_SPEED))
+                    else:
+                        send(a, carla.WalkerControl(speed=0.0))
                 elif c[0] == "teleport":
                     loc = a.get_location()
                     self._transform(a, carla.Transform(carla.Location(x=c[1], y=c[2], z=loc.z),
