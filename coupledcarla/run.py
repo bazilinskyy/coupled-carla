@@ -422,6 +422,12 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             # high up, looking at the sky, so it costs nothing (it rendered the whole city's scenery otherwise)
             world.get_spectator().set_transform(carla.Transform(carla.Location(z=3000.0), carla.Rotation(pitch=90.0)))
         log(f"world ready: {len(world.get_map().get_spawn_points())} spawn points")
+        try:        # CARLA's stock (US) sign actors -> the place's own signs (localsigns.py)
+            from . import localsigns
+            summary["stock_signs"] = localsigns.replace(client, world, plates.iso3(), log,
+                                                        tc["simulation"].get("stock_signs", "auto"))
+        except Exception as err:  # noqa: BLE001 - the trial runs with the server's signs
+            log(f"signs: stock signs left as they are ({type(err).__name__}: {err})")
         level_stream = bool(tc["map"].get("carla_level"))
 
         from .bridge import pipeline
