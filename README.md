@@ -1278,6 +1278,83 @@ flowchart LR
   `logs/stations/<role>_<time>.csv`: one row per rendered frame with wall-clock time, CARLA frame, simulation
   time, round trip, visual-sync flag, speed and eHMI.
 
+### Busy and scramble crossings
+
+`traffic.walkers.crossings` (`coupledcarla/scramble.py`, `pedsignals.py`; on whenever the crowd is): every
+signalised junction near the participants and their routes is a crossing site with a crowd of its own, which waits
+at the kerbs while the cars have green and crosses in waves on the walk signal. A scramble junction (OSM
+`crossing:scramble=yes`, as at Shibuya; a twin without `map.osm` asks Overpass once and caches
+`real/osm_crossings.json`; or a light whose programme has an all-red phase of 15 s or more) is crossed in every
+direction at once, both diagonals included.
+
+- **The all-pedestrian phase.** The scramble junction's SUMO nodes become one controller (signalplan.py's stages
+  for the cars), then all red for 2 s lead + 35 s walk + 7 s flashing + 3 s clearance, in a 120 s cycle, every light
+  of the junction in step (LIVE JAPAN: the green "averages about 40-50 s"; Wikipedia: a green every 2 minutes). The
+  OpenDRIVE nets have one light per OpenDRIVE signal, all green together (42 s green, 3 s amber, 3 s red); a crossing
+  at a signalised junction outside the Netherlands never had its cars stopped for more than 3 s, and at Shibuya only
+  5 of the junction's links had a light at all. With `busy_lights: auto` such nets get signalplan.py's junction
+  controllers everywhere (static: walkers read the phases ahead).
+- **Where they wait.** A site's kerb ends are the junction ends of the crowd's kerbs within 40 m; consecutive ends of
+  different roads are one block corner. A scramble site joins every pair of corners (side crossings and diagonals),
+  a busy site crosses each approach road. Walkers arrive along the pavements and take the free spot nearest their
+  leg's kerb end: rows 0.95 m apart along 18 m of kerb, 4 deep, so the crowd builds from the crossing outward.
+- **The wave.** On walk each starts after a reaction time (lognormal, median 0.7 s for commuters to 1.8 s for
+  people on their phone) plus 0.45 s per row behind the kerb and 0.04 s per metre along it. They cross with a lane
+  offset inside the leg's width (5 m, diagonals 7 m), step to the traffic's side (left in left-hand countries) for
+  someone coming the other way, keep their distance (social-force steering), slow behind a slower walker and keep
+  a third of their pace through a crowd; groups walk side by side.
+- **The end of the green.** Nobody starts on the flashing green (Japan's rule; one in five late arrivals runs for
+  it if it can make it); who cannot get across before the cars' green at a brisk pace does not start; a walker
+  whose distance left will not fit in the red left speeds up, to a run (2.6 m/s; older people 1.4 m/s). Cars
+  wait at their red and, on green, yield to whoever is still on the road (`yielding.py`, walkers checked by grid).
+- **On red.** CROWD measures no red-light crossing; a walker arriving on red crosses a side leg anyway with the
+  country's CROWD share of crossings without a crosswalk or pedestrian light (Japan 0.45 %), after 4-12 s and only
+  when no car is within the HCM critical gap.
+- **Who.** Groups of friends (Moussaid 2010's sizes at moderate density), commuters, tourists (15 % at a scramble
+  crossing, 3 % elsewhere), families with a child, older people (10 % of those alone, 0.75 x the pace, HCM),
+  people on their phone (Thompson 2013), cyclists walking a bicycle and delivery riders (a CARLA bicycle moved
+  beside them every tick; attached to the walker it stayed where it was spawned), umbrellas in rain (no umbrella
+  mesh: they keep 1.25 m and walk a little slower). Tourists stop mid-crossing for a photo, 2.5-6 s, so that the
+  crowd's share of people who stop matches CROWD's share who stopped mid-crossing at a marking in the country
+  (crowd-jaywalking's `crossing_movement.csv`: Japan 3.8 %, 16 countries 5.6 %). Their looks come from
+  `walkerlooks.py`.
+- **How many.** Crossers per cycle: a published count where `data/busy_crossings.json` has the crossing (Shibuya:
+  1,000-2,000 a green, up to 3,000), else 6 per leg x legs x CROWD's density factor of the place x the places
+  around the junction against the map's other junctions. A site keeps about that many walkers alive (one crosses
+  about once a cycle), up to `site_max` (scramble) or `busy_site_max`, and `max_walkers` in all. Walkers who reach a
+  corner go on across another of its legs at the next walk, or leave along a pavement and come back unseen (where
+  nobody sees them, else they turn back on the pavement), so a crowd watched by a camera at the crossing does not
+  drain away.
+- **Logs.** `crossings.csv` (one row per crossing: leg, kind of walker, time, ran, red, photo) and
+  `crossing_phases.csv` (per walk phase and site: waiting at its start per corner, crossers, diagonal crossers,
+  crossers on the road in view of the first camera or participant, crossing times, late runners, red-light
+  crossers); `python tools/crossing_report.py <trial>` sums them.
+
+**Measured** (Shibuya twin, lin5080, `-nullrhi`, 260 s with the driver on autopilot, 2026-11-28; before: 16
+walkers in the whole drive). The scramble site has 4 corners and 6 legs (sides 6-16 m, diagonals 28-30 m), 572
+waiting spots and 360 walkers (the published 1,500 a green, capped), 3 busy junctions near the route 60 more.
+
+| Walk phase | Waiting at its start | Crossers (diagonal) | On the road in the driver's view, max / mean |
+|---|---|---|---|
+| 75-110 s | 315 | 331 (94) | 153 / 125 |
+| 195-230 s | 228 | 212 (78) | 276 / 210 |
+
+Crossing times (from the kerb line): side legs (16 m) p10 10.5 s, median 20.3 s, p90 35.3 s; diagonals (30 m) 27.3,
+38.7, 52.1 s; 72 of 249 crossers ran at the end; 6 photo stops; 0 red-light crossers (Japan's 0.45 % is about one
+in 220 arrivals). Some walkers stayed on the road into the next phase (in view 276 against 212 crossers): blocked by
+cars, which the walkers did not steer around. Since then cars are discs in the steering (a walker waits at a car's
+side instead of pushing into it) and a walker on the road for over 3 x its leg's walking time + 15 s is counted as
+`stuck` and moves on; legs no light controls (the minor junctions' approaches, where the run counted only 4
+crossings) are crossed on gap acceptance. Not measured on the server again yet.
+
+**Server cost.** 440 walkers made the CARLA tick 69 ms (RTF 0.23 against about 0.5 without them, no rendering).
+Alone a walker costs about 0.09 ms per tick (400 spread, walking: 44 ms), more when they press into each other (400
+at 0.75 m walking through each other: 114 ms), hence the 0.95 m spacing. Turning a standing walker by teleport
+(ApplyTransform) cost about 1 ms per walker per tick inside a trial (240 walkers: 264 ms against 33 ms), so a
+standing walker turns to face its leg with a short creep in that direction. Clips render on the simulation-time
+grid, so a busy crossing only makes them slower to film; for a study in real time lower `site_max` and
+`max_walkers` (120 crossing walkers: about +20 ms per tick).
+
 ### Running the Eindhoven crossing
 
 [`experiments/eindhoven_crossing.yaml`](experiments/eindhoven_crossing.yaml): a straight two-way street east of
@@ -2328,8 +2405,8 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
 - **Pedestrians**: SUMO vehicles brake for every walker in or entering their path, using SUMO's own speeds (CARLA
   reads 0 m/s for a vehicle placed with physics off), comfortably when possible and as an emergency stop otherwise
   (`yielding.py`). Crowd walkers cross at signals only when the cars crossing them have red; OSM scramble crossings get
-  an all-pedestrian phase (`pedsignals.py`; Shibuya: 30 s a cycle at the crossing's light. The programmes are read
-  from the net as XML: sumolib's reader failed on our nets, and the phase was off until 2026-11-16). Tokyo, 2 runs: vehicle-walker contacts 25 → 0.
+  an all-pedestrian phase with crowds that wait and cross in waves ([Busy and scramble
+  crossings](#busy-and-scramble-crossings)). Tokyo, 2 runs: vehicle-walker contacts 25 → 0.
 
 - **Models.** SUMO's Extended IDM (EIDM) for car following (human-like reaction and drive-off) with
   `tau = 1.2 s`, `minGap = 2 m`, speed factor N(1.0, 0.1); the sublane model (`--lateral-resolution 0.25`)

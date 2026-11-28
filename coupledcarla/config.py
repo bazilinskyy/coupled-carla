@@ -332,6 +332,21 @@ DEFAULTS = {
                    "radius_m": 150,  # towns and baked levels only (towns.NavWalkers); spawned within radius_m of the
                    "speed_mps": 1.35, "run_share": 0.05,   # participants, walking to random destinations,
                    "cross_share": 0.05, "seed": 3},        # crossing at crosswalks (and cross_share elsewhere)
+            "crossings": {           # crowds at busy and scramble crossings (coupledcarla/scramble.py, README "Busy
+                                     # and scramble crossings"): waiting at the kerbs, crossing in waves on the walk
+                "enabled": True,     # signal, stragglers running, kinds of people; needs the crowd (count != 0)
+                "scramble": True,    # OSM crossing:scramble=yes junctions get the all-pedestrian phase (Shibuya)
+                "busy": True,        # crowds at the other signalised junctions near the participants
+                "busy_lights": "auto",   # one light per junction where SUMO's per-signal lights give walkers no time
+                "fetch": True,       # a twin (no map.osm) asks Overpass for its crossings once
+                "lead_s": 2.0, "walk_s": 35.0, "flash_s": 7.0, "clear_s": 3.0,   # the all-pedestrian phase: all
+                "cycle_s": 120.0,    # red, walk, flashing green, clearance (LIVE JAPAN: 40-50 s; every 2 min)
+                "max_walkers": 420, "site_max": 360, "busy_site_max": 24,   # walkers (server cost: README)
+                "busy_sites": 10, "reach_m": 150.0,  # busy junctions this close to the participants / routes
+                "rows": 4,           # rows of waiting walkers behind the kerb
+                "tourist_share": "auto", "older_share": 0.10, "bike_share": 0.02, "delivery_share": 0.012,
+                "seed": 5,
+            },
         },
     },
     "participants": [],

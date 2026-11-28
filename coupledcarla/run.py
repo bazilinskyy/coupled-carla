@@ -665,6 +665,13 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if hasattr(crowd, "signals"):     # cross at signals with the light (pedsignals.py)
                 from .pedsignals import PedSignals
                 crowd.signals = PedSignals.from_sumo(sumo.net, BridgeHelper.offset)
+            if hasattr(crowd, "start_crossings"):     # crowds at busy and scramble crossings (scramble.py)
+                crowd.start_crossings(
+                    tc, mdir, geo, [(c.x, c.y) for c in crowd_centres], queue=carla_sim.queue,
+                    on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}),   # bicycles: no SUMO twin
+                    viewers=lambda: [r.camera for r in (film.rigs if film is not None else [])     # what is
+                                     if getattr(r, "camera", None) is not None] + list(focus_actors),   # in view
+                    log=log)
         # Controls and light states of the host's participants, agents and crowd go with the tick's batch (one
         # call per tick; on CARLA 1.0 several separate ones stall the tick, see side.py).
         queue = carla_sim.queue
@@ -843,6 +850,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             for ag in agents:
                 ag.step(t, step, walkers_now)
             tools.step(t, step, walkers_now, snap.frame)      # automated drivers' cars, dashboard commands
+            if crowd is not None and hasattr(crowd, "tick"):       # bicycles pushed by crossing walkers
+                crowd.tick()
             if crowd is not None and summary["ticks"] % 4 == 0:     # a walker keeps its last control
                 crowd.step(t)
                 if getattr(crowd, "window", None) is not None:    # walkers left behind reappear ahead
