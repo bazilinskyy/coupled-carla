@@ -458,7 +458,11 @@ class ScriptedWalker:
         pts = [ground(cmap, *geo.to_carla(lat, lon)) for lat, lon in cfg["path"]]
         want = cfg.get("blueprint", "walker.pedestrian.*")
         bps = sorted(world.get_blueprint_library().filter(want), key=lambda b: b.id) if "*" in want else []
-        bp = bps[zlib.crc32(self.id.encode()) % len(bps)] if bps else compat.find(world, want)
+        if bps and want == "walker.pedestrian.*":      # the place's look (walkerlooks.py), fixed by the walker's id
+            from . import walkerlooks
+            bp = walkerlooks.choose_blueprint(world.get_blueprint_library(), None, bps, key=self.id)
+        else:
+            bp = bps[zlib.crc32(self.id.encode()) % len(bps)] if bps else compat.find(world, want)
         bp.set_attribute("role_name", self.id)
         if bp.has_attribute("is_invincible"):
             bp.set_attribute("is_invincible", "false")
@@ -519,7 +523,9 @@ class Crowd:
                 continue
             starts.append(outer(w))
         rng.shuffle(starts)
-        bps = sorted(world.get_blueprint_library().filter("walker.pedestrian.*"), key=lambda b: b.id)
+        from . import walkerlooks
+        lib = world.get_blueprint_library()
+        bps = sorted(lib.filter("walker.pedestrian.*"), key=lambda b: b.id)
         on_sidewalks = 0
         for start, sidewalk in starts:
             if len(self.walkers) >= count:
@@ -533,7 +539,7 @@ class Crowd:
                 pts.append(spot(w, sidewalk))
             if len(pts) < 8:
                 continue
-            bp = rng.choice(bps)
+            bp = walkerlooks.choose_blueprint(lib, rng, bps)      # the place's look, else uniform
             if bp.has_attribute("is_invincible"):
                 bp.set_attribute("is_invincible", "false")
             bp.set_attribute("role_name", "crowd")
@@ -547,6 +553,7 @@ class Crowd:
             on_sidewalks += sidewalk
         log(f"crowd: {len(self.walkers)} walkers beside the roads within {radius_m:.0f} m "
             f"({on_sidewalks} on sidewalk lanes)")
+        walkerlooks.report(self.walkers, log)
 
     def on_road(self):
         return []                      # never on the road
