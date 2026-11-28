@@ -75,6 +75,17 @@ def first_conflict(pose, yaw_rate_deg, walkers):
     return None
 
 
+GRID_M = 20.0
+
+
+def near_walkers(grid, x, y, reach):
+    """The walkers of grid {(cell x, cell y): [(x, y, vx, vy)]} (GRID_M cells) within reach m of (x, y)."""
+    r2, n = reach * reach, int(reach // GRID_M) + 1
+    gx, gy = int(x // GRID_M), int(y // GRID_M)
+    return [w for dx in range(-n, n + 1) for dy in range(-n, n + 1) for w in grid.get((gx + dx, gy + dy), ())
+            if (w[0] - x) ** 2 + (w[1] - y) ** 2 <= r2]
+
+
 def braking(speed, dist, decel=3.4, emergency=EMERGENCY):
     """(deceleration to use m/s^2, emergency?) to stop STOP_GAP_M before a walker dist m ahead of the front, or
     (0, False) when it can wait: further than a comfortable stop needs."""
@@ -114,6 +125,9 @@ class SumoYield:
                 continue
             wl.append((loc.x, loc.y, vel.x, vel.y))
         poses = getattr(sync, "poses", {})
+        grid = {}                  # walkers by 20 m cell: a crowd of hundreds (scramble.py) checked only near a car
+        for w in wl:
+            grid.setdefault((int(w[0] // GRID_M), int(w[1] // GRID_M)), []).append(w)
         ids = {cid: sid for sid, cid in sync.sumo2carla_ids.items()}
         for sid in [s for s in self.held if s not in sync.sumo2carla_ids]:   # gone from CARLA (or SUMO)
             self._release(sid)
@@ -125,11 +139,12 @@ class SumoYield:
             prev = self._yaw.get(cid, yaw)
             self._yaw[cid] = yaw
             rate = ((yaw - prev + 180.0) % 360.0 - 180.0) / (dt * self.every)
-            if not wl or all((w[0] - x) ** 2 + (w[1] - y) ** 2 > NEAR_M ** 2 for w in wl):
+            near = near_walkers(grid, x, y, NEAR_M)
+            if not near:
                 if sid in self.held:
                     self._release(sid)
                 continue
-            d = first_conflict(pose, rate, wl)
+            d = first_conflict(pose, rate, near)
             if d is None:
                 if sid in self.held:
                     if self.t - self.held[sid] >= CLEAR_S:

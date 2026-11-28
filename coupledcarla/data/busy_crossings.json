@@ -1,0 +1,10 @@
+{
+ "notes": "Published pedestrian counts of famous busy crossings, used for the crowd per signal cycle when a crossing of a map lies within r m of one (scramble.py); everywhere else the crowd comes from CROWD's pedestrians per minute of the place and the places around the crossing. per_cycle: people crossing in one green; cycle_s, walk_s: the signal cycle and the pedestrian green as reported.",
+ "crossings": [
+  {"name": "Shibuya scramble crossing", "lat": 35.65947, "lon": 139.70056, "r": 90,
+   "per_cycle": 1500, "per_cycle_peak": 3000, "per_day_weekday": 260000, "per_day_holiday": 390000,
+   "cycle_s": 120, "walk_s": [40, 50],
+   "source": "Wikipedia, Shibuya Crossing (1,000-2,000 people per green, up to 3,000 per green light every 2 minutes; 2014 survey: 260,000 a weekday, 390,000 on non-working days); LIVE JAPAN, Shibuya Scramble Crossing (the green averages about 40-50 s)",
+   "urls": ["https://en.wikipedia.org/wiki/Shibuya_Crossing", "https://livejapan.com/en/in-shibuya/article-a0002128"]}
+ ]
+}

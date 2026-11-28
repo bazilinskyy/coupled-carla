@@ -496,6 +496,22 @@ clips:
     duration_s: 20
     camera: {kind: follow, target: driver, offset: [-8.5, 0, 3.4], look_ahead_m: 12, look_up_m: 1.5, smooth_s: 0.8}
     carla: '1.0'
+  - name: twin_shibuya_scramble
+    title: The Shibuya scramble
+    place: Tokyo, Japan (CARLA 1.0 twin, left-hand)
+    role: orbiting camera above the crossing
+    when: midday
+    agents: the scramble crossing's crowd (waiting at the kerbs, crossing in every direction on the all-pedestrian
+      phase), SUMO cars waiting at their red
+    notice: the all-pedestrian phase (walk 75-110 s of each 120 s cycle), both diagonals, groups, tourists stopping
+      for a photo, stragglers running at the end (coupledcarla/scramble.py)
+    experiment: experiments/shibuya_twin.yaml
+    set: {simulation: {camera_profile: CoupledReal}, traffic: {seed: 43}}
+    start_s: 72
+    duration_s: 25
+    camera: {kind: orbit, centre: {lat: 35.65950, lon: 139.70052}, radius_m: 46, height_m: 22, start_deg: 210,
+             deg_per_s: 2}
+    carla: '1.0'
   - name: twin_drones
     title: Drones over the Eindhoven twin
     place: Eindhoven centre (CARLA 1.0 twin)
