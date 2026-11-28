@@ -1,0 +1,686 @@
+# Who is on the street, by broad appearance group, per place (coupledcarla/walkerlooks.py; method and limits in
+# the README, "Who the pedestrians are").
+#
+# Appearance is not nationality, and none of these numbers says who anyone is. They give a plausible look for a
+# crowd: the share of people on a street who would broadly read as East Asian, White, Black, ... Census and
+# registry tables count residents by nationality, country of birth or origin (Japan, the Netherlands, Spain,
+# Switzerland, Finland), or by self-identified race and ethnicity (the US, the UK, Canada, South Africa); tourism
+# statistics count visitors by country of residence. walkerlooks.py turns each count into appearance groups through
+# the "mixes", "countries" and "regions" below (a Chinese national -> east_asian; a US resident -> the US mix; ...),
+# then mixes residents and visitors:
+#
+#   street mix = (1 - v) * residents + v * visitors
+#   v = present visitors / (population + present visitors) * hotspot_factor   (capped at 0.6)
+#   present visitors = foreign visitor nights per year / 365
+#
+# Domestic visitors count as residents (they look like the country's residents). hotspot_factor (a judgment, given
+# per place) says how much denser visitors are where the twin is (Shibuya crossing, Dam square) than city-wide.
+#
+# groups: east_asian (East and Southeast Asian), south_asian, black, white, mena (Middle Eastern / North African),
+#         latin_american, mixed_unclear (mixed, Pacific, Indigenous, or no clear group).
+# checked: true = read from the cited table in this session (2026-11-28); false = an approximate value from the
+# named source or a judgment, not re-read; such numbers are rounded and should be checked before being quoted.
+version: 2026-11-28
+groups: [east_asian, south_asian, black, white, mena, latin_american, mixed_unclear]
+
+# --- appearance mixes of named population groups (judgment, coarse) ---------------------------------------------
+mixes:
+  japanese_nationals:
+    mix: {east_asian: 0.98, mixed_unclear: 0.02}
+    note: "Japan's nationals; ~2 % allowance for mixed parentage and naturalised citizens (judgment; MHLW vital
+      statistics give ~2-4 % of births with a foreign parent)."
+  dutch_origin:
+    mix: {white: 0.97, mixed_unclear: 0.02, black: 0.005, east_asian: 0.005}
+    note: "CBS 'Nederlandse herkomst' (born in the Netherlands, both parents born there): includes grandchildren of
+      migrants (judgment)."
+  nl_indonesian_origin:
+    mix: {mixed_unclear: 0.5, white: 0.3, east_asian: 0.2}
+    note: "CBS herkomst Indonesia: mostly Indo-Dutch families of mixed European-Indonesian ancestry (judgment)."
+  swiss_nationals:
+    mix: {white: 0.93, mena: 0.02, south_asian: 0.01, black: 0.01, east_asian: 0.01, latin_american: 0.01,
+          mixed_unclear: 0.01}
+    note: "Swiss citizens incl. naturalised ones, mostly of European origin (judgment from SFSO population by
+      migration status)."
+  finnish_background:
+    mix: {white: 0.99, mixed_unclear: 0.01}
+    note: "Statistics Finland 'Finnish background' (at least one parent born in Finland) (judgment)."
+  spain_born:
+    mix: {white: 0.95, latin_american: 0.02, mena: 0.015, black: 0.005, east_asian: 0.005, mixed_unclear: 0.005}
+    note: "Born in Spain, incl. children of immigrants (judgment)."
+  ukraine_residents:
+    mix: {white: 0.99, mixed_unclear: 0.01}
+    note: "Chernihiv: 2001 census, Ukrainians 89.6 %, Russians 8.8 % (both read as white here) (checked: false)."
+  france_non_immigrants:
+    mix: {white: 0.86, mena: 0.07, black: 0.04, east_asian: 0.01, mixed_unclear: 0.02}
+    note: "French residents born in France, incl. descendants of immigrants (INSEE: ~11 % of the population are
+      descendants of immigrants, about half of them with an African-born parent) (judgment)."
+
+# --- countries: residents' appearance mix (used for foreign residents and visitors from that country) -------------
+countries:
+  USA:
+    mix: {white: 0.58, latin_american: 0.19, black: 0.12, east_asian: 0.05, south_asian: 0.015, mena: 0.01,
+          mixed_unclear: 0.035}
+    source: "US Census Bureau, ACS 2023 1-year (race and Hispanic origin, non-Hispanic groups), rounded"
+    checked: false
+  CAN:
+    mix: {white: 0.70, south_asian: 0.07, east_asian: 0.10, black: 0.04, mena: 0.02, latin_american: 0.02,
+          mixed_unclear: 0.05}
+    source: "Statistics Canada, Census 2021, visible minority and Indigenous identity, rounded"
+    checked: false
+  GBR:
+    mix: {white: 0.82, south_asian: 0.075, east_asian: 0.015, black: 0.04, mena: 0.01, mixed_unclear: 0.04}
+    source: "ONS Census 2021 (England and Wales), ethnic group, rounded"
+    checked: false
+  AUS:
+    mix: {white: 0.76, east_asian: 0.12, south_asian: 0.05, mena: 0.02, black: 0.01, mixed_unclear: 0.04}
+    source: "ABS Census 2021, ancestry (approximate grouping)"
+    checked: false
+  NZL:
+    mix: {white: 0.68, mixed_unclear: 0.17, east_asian: 0.11, south_asian: 0.04}
+    source: "Stats NZ Census 2023 ethnic groups (multi-response, approximate; Maori and Pacific -> mixed_unclear)"
+    checked: false
+  BRA:
+    mix: {latin_american: 0.45, white: 0.44, black: 0.10, east_asian: 0.01}
+    source: "IBGE Censo 2022: parda 45.3 %, branca 43.5 %, preta 10.2 %, amarela 0.4 %, indigena 0.6 %"
+    checked: false
+  ARG: {mix: {white: 0.80, latin_american: 0.19, mixed_unclear: 0.01}, source: "judgment", checked: false}
+  MEX: {mix: {latin_american: 0.88, white: 0.10, black: 0.02}, source: "judgment (INEGI 2020 self-identification)", checked: false}
+  COL: {mix: {latin_american: 0.85, black: 0.09, white: 0.06}, source: "judgment (DANE 2018: 9.3 % Afro-Colombian)", checked: false}
+  CUB: {mix: {white: 0.60, latin_american: 0.27, black: 0.10, mixed_unclear: 0.03}, source: "ONEI census 2012 (approx.)", checked: false}
+  DOM: {mix: {latin_american: 0.74, black: 0.16, white: 0.10}, source: "judgment", checked: false}
+  SUR:
+    mix: {south_asian: 0.27, black: 0.38, east_asian: 0.15, mixed_unclear: 0.15, latin_american: 0.04, white: 0.01}
+    source: "Suriname census 2012: Hindustani 27.4 %, Maroon 21.7 %, Creole 15.7 %, Javanese 13.7 %, mixed 13.4 %"
+    checked: false
+  ANT:
+    mix: {black: 0.60, mixed_unclear: 0.25, latin_american: 0.10, white: 0.05}
+    note: "Dutch Caribbean (Curacao, Aruba, Bonaire, ...), judgment"
+    checked: false
+  ZAF:
+    mix: {black: 0.81, mixed_unclear: 0.08, white: 0.07, south_asian: 0.03, east_asian: 0.01}
+    source: "Stats SA Census 2022: Black African 81.4 %, Coloured 8.2 %, White 7.3 %, Indian/Asian 2.7 %"
+    checked: false
+  TUR: {mix: {mena: 0.75, white: 0.25}, source: "judgment (many Turks read as Southern European)", checked: false}
+  ISR: {mix: {white: 0.55, mena: 0.40, black: 0.02, mixed_unclear: 0.03}, source: "judgment (CBS Israel population groups)", checked: false}
+  IRN: {mix: {mena: 0.85, white: 0.15}, source: "judgment", checked: false}
+  ARE: {mix: {south_asian: 0.55, mena: 0.25, east_asian: 0.10, white: 0.05, black: 0.05}, source: "judgment (resident nationality estimates)", checked: false}
+  QAT: {mix: {south_asian: 0.55, mena: 0.25, east_asian: 0.12, black: 0.05, white: 0.03}, source: "judgment", checked: false}
+  SAU: {mix: {mena: 0.65, south_asian: 0.25, east_asian: 0.05, black: 0.05}, source: "judgment (GASTAT census 2022: 41.6 % non-Saudi)", checked: false}
+  SGP:
+    mix: {east_asian: 0.875, south_asian: 0.09, mixed_unclear: 0.035}
+    source: "SingStat 2023: Chinese 74 %, Malay 13.5 %, Indian 9 %, others 3.2 % (residents)"
+    checked: false
+  MYS: {mix: {east_asian: 0.93, south_asian: 0.07}, source: "DOSM 2020 census: Bumiputera 70 %, Chinese 22.6 %, Indian 6.6 %", checked: false}
+  HKG: {mix: {east_asian: 0.96, south_asian: 0.01, white: 0.01, mixed_unclear: 0.02}, source: "C&SD 2021 census (approx.)", checked: false}
+  JPN: {mix: {east_asian: 0.97, mixed_unclear: 0.02, white: 0.005, south_asian: 0.005}, source: "MIC: foreign residents 3.0 % of the population, ~85 % of them Asian (approx.)", checked: false}
+  FRA:
+    mix: {white: 0.82, mena: 0.09, black: 0.05, east_asian: 0.02, south_asian: 0.005, mixed_unclear: 0.015}
+    source: "judgment from INSEE immigrants (10.3 %, 2022) and descendants of immigrants by origin; France keeps no
+      ethnic statistics"
+    checked: false
+  DEU:
+    mix: {white: 0.88, mena: 0.08, black: 0.015, east_asian: 0.01, south_asian: 0.01, mixed_unclear: 0.005}
+    source: "judgment from Destatis Mikrozensus 2023 (population with a migration background 29.7 %, by origin)"
+    checked: false
+  ESP:
+    mix: {white: 0.86, latin_american: 0.08, mena: 0.04, black: 0.01, east_asian: 0.005, mixed_unclear: 0.005}
+    source: "judgment from INE (Estadistica Continua de Poblacion, born abroad ~19 %, by country)"
+    checked: false
+  ITA: {mix: {white: 0.92, mena: 0.03, black: 0.015, south_asian: 0.015, east_asian: 0.01, latin_american: 0.01}, source: "judgment (ISTAT foreign residents 8.9 %)", checked: false}
+  PRT: {mix: {white: 0.90, black: 0.05, latin_american: 0.03, south_asian: 0.01, mixed_unclear: 0.01}, source: "judgment", checked: false}
+  NLD: {mix: {white: 0.79, mena: 0.06, black: 0.04, south_asian: 0.03, east_asian: 0.03, latin_american: 0.01, mixed_unclear: 0.04}, source: "judgment from CBS 85458NED (2025) national origins", checked: false}
+  BEL: {mix: {white: 0.84, mena: 0.09, black: 0.04, south_asian: 0.01, east_asian: 0.01, mixed_unclear: 0.01}, source: "judgment (Statbel origin)", checked: false}
+  CHE: {mix: {white: 0.91, mena: 0.03, black: 0.02, south_asian: 0.02, east_asian: 0.01, mixed_unclear: 0.01}, source: "judgment (SFSO migration status)", checked: false}
+  SWE: {mix: {white: 0.85, mena: 0.08, black: 0.03, south_asian: 0.01, east_asian: 0.01, mixed_unclear: 0.02}, source: "judgment (SCB foreign background ~27 %)", checked: false}
+  RUS: {mix: {white: 0.92, east_asian: 0.03, mena: 0.03, mixed_unclear: 0.02}, source: "judgment (2021 census nationalities)", checked: false}
+  UKR: {mix: {white: 0.99, mixed_unclear: 0.01}, source: "2001 census", checked: false}
+  IND: {mix: {south_asian: 0.98, east_asian: 0.02}, source: "judgment", checked: false}
+
+# --- regions: fallback for any other country (ISO3 lists from the UN M49 sub-regions, grouped coarsely) ------------
+regions:
+  east_asia:
+    countries: [CHN, JPN, KOR, PRK, TWN, HKG, MAC, MNG]
+    mix: {east_asian: 0.98, mixed_unclear: 0.01, white: 0.01}
+  southeast_asia:
+    countries: [IDN, PHL, VNM, THA, MMR, MYS, KHM, LAO, SGP, BRN, TLS]
+    mix: {east_asian: 0.93, south_asian: 0.03, mixed_unclear: 0.04}
+  south_asia:
+    countries: [IND, PAK, BGD, LKA, NPL, BTN, MDV, AFG]
+    mix: {south_asian: 0.97, east_asian: 0.02, mixed_unclear: 0.01}
+  central_asia:
+    countries: [KAZ, UZB, TKM, KGZ, TJK]
+    mix: {east_asian: 0.35, white: 0.25, mena: 0.25, mixed_unclear: 0.15}
+  caucasus:
+    countries: [GEO, ARM, AZE]
+    mix: {white: 0.60, mena: 0.40}
+  west_asia_north_africa:
+    countries: [EGY, LBY, TUN, DZA, MAR, ESH, SDN, SAU, ARE, QAT, KWT, BHR, OMN, YEM, IRQ, IRN, JOR, LBN, SYR, ISR,
+                PSE, TUR, CYP]
+    mix: {mena: 0.90, black: 0.04, south_asian: 0.03, white: 0.03}
+  sub_saharan_africa:
+    countries: [NGA, ETH, COD, TZA, KEN, UGA, AGO, GHA, MOZ, MDG, CIV, CMR, NER, BFA, MLI, MWI, ZMB, SEN, TCD, SOM,
+                ZWE, GIN, RWA, BEN, BDI, SSD, TGO, SLE, LBR, CAF, COG, MRT, ERI, NAM, GMB, BWA, GAB, LSO, GNB, GNQ,
+                MUS, SWZ, DJI, COM, CPV, STP, SYC, ZAF, REU, MYT, SHN]
+    mix: {black: 0.96, mixed_unclear: 0.02, white: 0.01, south_asian: 0.01}
+  europe_west:
+    countries: [NLD, BEL, LUX, FRA, DEU, AUT, CHE, LIE, GBR, IRL, DNK, NOR, SWE, FIN, ISL, ESP, PRT, ITA, MLT, GRC,
+                AND, MCO, SMR, VAT, FRO, IMN, JEY, GGY, GIB, ALA]
+    mix: {white: 0.90, mena: 0.04, black: 0.03, south_asian: 0.01, east_asian: 0.01, mixed_unclear: 0.01}
+  europe_east:
+    countries: [POL, CZE, SVK, HUN, ROU, BGR, SVN, HRV, BIH, SRB, MNE, MKD, ALB, XKX, EST, LVA, LTU, BLR, UKR, MDA,
+                RUS]
+    mix: {white: 0.97, mena: 0.01, east_asian: 0.01, mixed_unclear: 0.01}
+  northern_america:
+    countries: [USA, CAN, BMU, GRL, SPM]
+    mix: {white: 0.60, latin_american: 0.17, black: 0.11, east_asian: 0.06, south_asian: 0.02, mena: 0.01,
+          mixed_unclear: 0.03}
+  latin_america:
+    countries: [MEX, GTM, HND, SLV, NIC, CRI, PAN, BLZ, COL, VEN, ECU, PER, BOL, CHL, ARG, URY, PRY, BRA, GUY, SUR,
+                GUF, FLK]
+    mix: {latin_american: 0.78, white: 0.12, black: 0.07, mixed_unclear: 0.03}
+  caribbean:
+    countries: [CUB, DOM, HTI, JAM, PRI, TTO, BHS, BRB, LCA, GRD, VCT, ATG, DMA, KNA, ABW, CUW, BES, SXM, MAF, GLP,
+                MTQ, VIR, VGB, CYM, TCA, AIA, MSR, BLM, ANT]
+    mix: {black: 0.62, latin_american: 0.25, mixed_unclear: 0.08, south_asian: 0.03, white: 0.02}
+  oceania:
+    countries: [AUS, NZL]
+    mix: {white: 0.74, east_asian: 0.12, south_asian: 0.05, mixed_unclear: 0.07, mena: 0.01, black: 0.01}
+  pacific:
+    countries: [PNG, FJI, SLB, VUT, NCL, PYF, WSM, TON, KIR, FSM, MHL, PLW, NRU, TUV, GUM, MNP, ASM, COK, NIU, WLF,
+                TKL, PCN]
+    mix: {mixed_unclear: 0.85, east_asian: 0.05, white: 0.05, south_asian: 0.05}
+region_note: "Region mixes are modelled (judgment) from UN World Population Prospects 2024 populations of the
+  countries in each region and the coarse groups above; they are a fallback, not data."
+
+# Shortcuts used in visitor origins: the rest of a continent after the named countries.
+aliases:
+  europe_rest: europe_west
+  asia_rest: southeast_asia
+  america_rest: latin_america
+  africa_rest: sub_saharan_africa
+
+# --- places --------------------------------------------------------------------------------------------------
+# match: a map whose centre lies within km of (lat, lon) uses this place; iso3 is its country.
+places:
+  tokyo_shibuya:
+    name: "Tokyo, Shibuya"
+    match: {lat: 35.6595, lon: 139.7005, km: 40, iso3: JPN}
+    residents:
+      what: "Shibuya City residents, 1 January 2025: 231,402 registered residents (Basic Resident Register), of whom
+        12,711 foreign nationals by nationality (TMG table 3)"
+      sources:
+        - {name: "Tokyo Metropolitan Government, Foreign population by municipality and nationality (外国人人口), 1 Jan 2025, table 3",
+           url: "https://www.toukei.metro.tokyo.lg.jp/gaikoku/2025/ga25ev0300.csv", year: 2025, checked: true}
+        - {name: "Shibuya City population, Basic Resident Register, 2025 (via opengov-jp)",
+           url: "https://opengov-jp.pages.dev/en/population/estimates/tokyo/shibuya/", year: 2025, checked: true}
+      counts:
+        japanese_nationals: 218691
+        CHN: 3561
+        KOR: 1905
+        TWN: 695
+        PHL: 297
+        VNM: 275
+        NPL: 198
+        IND: 184
+        IDN: 156
+        THA: 153
+        MMR: 123
+        SGP: 93
+        MYS: 85
+        TUR: 67
+        MNG: 57
+        ISR: 43
+        LKA: 33
+        asia_rest: 106
+        USA: 1404
+        CAN: 219
+        MEX: 43
+        america_rest: 16
+        FRA: 606
+        GBR: 518
+        DEU: 182
+        ITA: 182
+        RUS: 161
+        SWE: 85
+        ESP: 77
+        UZB: 65
+        NLD: 58
+        CHE: 44
+        europe_rest: 351
+        africa_rest: 82
+        BRA: 142
+        latin_america: 100
+        AUS: 251
+        NZL: 77
+        pacific: 6
+    visitors:
+      what: "Foreign visitors to Tokyo 2024 (24.79 million, TMG), origins as all visitor arrivals to Japan 2024 (JNTO)"
+      foreign_visitors_per_year: 24790000
+      nights: 4            # judgment: JNTO/JTA average stays in Japan are ~7-9 nights, about half of them in Tokyo
+      population: 14195730 # Tokyo Metropolis 2025
+      hotspot_factor: 6    # judgment: Shibuya scramble crossing is among Tokyo's busiest visitor spots
+      sources:
+        - {name: "TMG, 2024 tourism survey press release: about 24.79 million foreign visitors to Tokyo",
+           url: "https://www.metro.tokyo.lg.jp/information/press/2025/06/2025061303", year: 2024, checked: true}
+        - {name: "JNTO, Visitor arrivals to Japan, Dec 2024 (Jan-Dec 2024 preliminary)",
+           url: "https://asset.japan.travel/image/upload/v1737090620/pdf/Number_of_visitor_arrivals_to_Japan_in_December_2024.pdf",
+           year: 2024, checked: true}
+      origins:
+        KOR: 8817800
+        CHN: 6981200
+        TWN: 6044400
+        HKG: 2683500
+        THA: 1148900
+        SGP: 691100
+        MYS: 506800
+        IDN: 517600
+        PHL: 818700
+        VNM: 621100
+        IND: 233000
+        AUS: 920200
+        USA: 2724600
+        CAN: 579400
+        MEX: 151800
+        GBR: 437200
+        FRA: 385000
+        DEU: 325900
+        ITA: 229700
+        ESP: 182300
+        RUS: 99300
+        SWE: 150700       # JNTO "Nordic countries"
+        TUR: 166300       # JNTO "Middle East" (Israel, Turkey, GCC)
+        asia_rest: 727000 # half of JNTO "Others" (judgment)
+        europe_rest: 363000
+        america_rest: 218000
+        africa_rest: 145000
+
+  eindhoven:
+    name: "Eindhoven"
+    match: {lat: 51.4416, lon: 5.4697, km: 15, iso3: NLD}
+    residents:
+      what: "Eindhoven residents by country of origin (herkomstland: own country of birth, else the parents'),
+        1 January 2025: 249,035"
+      sources:
+        - {name: "CBS StatLine 85458NED, Bevolking; herkomstland, geboorteland, leeftijd, regio, 1 januari (Eindhoven GM0772, 2025)",
+           url: "https://opendata.cbs.nl/ODataApi/odata/85458NED", year: 2025, checked: true}
+      counts:
+        dutch_origin: 134959
+        nl_indonesian_origin: 5631
+        MAR: 6975
+        ANT: 3275
+        SUR: 3776
+        TUR: 13581
+        IND: 9214
+        CHN: 4167
+        SYR: 3293
+        IRN: 1882
+        AFG: 1231
+        IRQ: 1160
+        EGY: 1070
+        PAK: 489
+        VNM: 770
+        THA: 590
+        PHL: 573
+        asia_rest: 3660     # Asia (excl. Indonesia, Turkey) 28,529 minus the countries above
+        SOM: 1469
+        ZAF: 1110
+        ETH: 616
+        ERI: 512
+        NGA: 479
+        GHA: 370
+        africa_rest: 4082   # Africa (excl. Morocco) 8,638 minus the countries above
+        BRA: 1746
+        COL: 499
+        USA: 1196
+        CAN: 367
+        AUS: 388
+        america_rest: 2539  # America and Oceania (excl. Suriname, Dutch Caribbean) 6,735 minus the above
+        europe_west: 23421  # Europe (excl. NL) 36,936 minus the EU east (Central and Eastern EU) part below
+        europe_east: 13515  # CEE EU 11,961 + Ukraine 2,004 - overlap judgment; incl. Poland 4,956, Bulgaria, Romania
+    visitors:
+      what: "Foreign hotel guests in Noord-Brabant 2024 (CBS), Eindhoven's share of the nights a judgment"
+      foreign_nights_per_year: 590000   # judgment: ~35 % of Noord-Brabant's 1.677 million foreign hotel nights
+      population: 249035
+      hotspot_factor: 3                 # judgment: city centre / station
+      sources:
+        - {name: "CBS StatLine 82061NED, Hotels; gasten, overnachtingen, woonland, regio (Noord-Brabant 2024)",
+           url: "https://opendata.cbs.nl/ODataApi/odata/82061NED", year: 2024, checked: true}
+      origins: {BEL: 213, DEU: 156, GBR: 88, ESP: 66, FRA: 37, USA: 37, ITA: 25, POL: 25, IRL: 12, ROU: 11, CHE: 10,
+                PRT: 8, CHN: 8, IND: 6, TUR: 7, europe_rest: 70, asia_rest: 30, america_rest: 16, oceania: 8,
+                africa_rest: 8}
+
+  amsterdam:
+    name: "Amsterdam (Dam)"
+    match: {lat: 52.3731, lon: 4.8926, km: 15, iso3: NLD}
+    residents:
+      what: "Amsterdam residents by country of origin, 1 January 2025: 934,526"
+      sources:
+        - {name: "CBS StatLine 85458NED (Amsterdam GM0363, 2025)", url: "https://opendata.cbs.nl/ODataApi/odata/85458NED",
+           year: 2025, checked: true}
+      counts:
+        dutch_origin: 372256
+        nl_indonesian_origin: 22768
+        MAR: 79370
+        ANT: 12759
+        SUR: 61827
+        TUR: 47328
+        IND: 10931
+        CHN: 10074
+        PAK: 6592
+        IRN: 5567
+        SYR: 7340
+        EGY: 7377
+        AFG: 3644
+        IRQ: 3380
+        PHL: 3317
+        THA: 1799
+        VNM: 1422
+        asia_rest: 15617
+        GHA: 14272
+        ETH: 3487
+        NGA: 3369
+        ERI: 2305
+        SOM: 2095
+        ZAF: 4830
+        africa_rest: 19941
+        USA: 15067
+        CAN: 2803
+        BRA: 8133
+        COL: 3607
+        AUS: 3343
+        america_rest: 17652
+        europe_west: 125000   # Europe (excl. NL) 160,251, split by judgment from the listed EU countries
+        europe_east: 35251
+    visitors:
+      what: "Foreign hotel guests in Amsterdam 2024: 7.37 million guests, 17.68 million nights (CBS)"
+      foreign_nights_per_year: 17683000
+      population: 934526
+      hotspot_factor: 5      # judgment: Dam square and the centre
+      sources:
+        - {name: "CBS StatLine 82061NED (Amsterdam GM0363, 2024, guests x 1000 by country of residence)",
+           url: "https://opendata.cbs.nl/ODataApi/odata/82061NED", year: 2024, checked: true}
+      origins: {GBR: 1074, USA: 998, DEU: 942, FRA: 527, ESP: 413, ITA: 373, BEL: 349, IRL: 160, AUS: 155, CHE: 150,
+                CAN: 134, TUR: 130, BRA: 112, CHN: 109, IND: 83, POL: 77, SWE: 74, ISR: 71, PRT: 67, europe_rest: 370,
+                asia_rest: 281, america_rest: 211, oceania: 31, africa_rest: 90}
+
+  salamanca:
+    name: "Salamanca"
+    match: {lat: 40.9650, lon: -5.6640, km: 15, iso3: ESP}
+    residents:
+      what: "Salamanca residents by country of birth, 1 January 2026: 146,822 (INE Estadistica Continua de Poblacion)"
+      sources:
+        - {name: "INE, table 68547: Poblacion por sexo, edad y pais de nacimiento (capitales de provincia), Salamanca 2026",
+           url: "https://servicios.ine.es/wstempus/js/ES/DATOS_TABLA/68547", year: 2026, checked: true}
+      counts:
+        spain_born: 123584
+        PER: 3231
+        COL: 2679
+        VEN: 2659
+        HND: 1595
+        MAR: 1483
+        CUB: 834
+        BOL: 788
+        BRA: 710
+        DOM: 674
+        FRA: 672
+        ECU: 635
+        CHN: 634
+        ARG: 561
+        asia_rest: 472
+        MEX: 451
+        america_rest: 392
+        PRT: 373
+        RUS: 346
+        DEU: 336
+        ROU: 312
+        UKR: 302
+        CHE: 272
+        USA: 242
+        africa_rest: 235
+        ITA: 208
+        CHL: 187
+        SEN: 174
+        GNQ: 162
+        MLI: 138
+        PRY: 136
+        GBR: 127
+        BGR: 123
+        europe_rest: 174
+        PAK: 115
+        NIC: 95
+        NGA: 91
+        DZA: 86
+        PHL: 67
+        URY: 63
+        IND: 43
+        other_rest: 1162     # remaining countries, spread as the world mix
+    visitors:
+      what: "Hotel travellers in Salamanca (INE Encuesta de Ocupacion Hotelera, punto turistico): ~1 million a year,
+        about a quarter from abroad, ~1.6 nights; plus foreign students (judgment)"
+      foreign_nights_per_year: 600000   # judgment: ~250,000 foreign hotel travellers x 1.6 nights + students' stays
+      population: 146822
+      hotspot_factor: 6                 # judgment: Plaza Mayor and the old town
+      sources:
+        - {name: "INE, Encuesta de Ocupacion Hotelera, puntos turisticos (Salamanca), 2024", url: "https://www.ine.es/jaxiT3/Tabla.htm?t=2078",
+           year: 2024, checked: false}
+      origins: {PRT: 18, FRA: 14, USA: 12, ITA: 8, DEU: 6, GBR: 5, BRA: 5, MEX: 4, CHN: 5, JPN: 3, KOR: 3, ARG: 3,
+                europe_rest: 8, america_rest: 4, asia_rest: 2}
+
+  zurich:
+    name: "Zurich"
+    match: {lat: 47.3779, lon: 8.5403, km: 15, iso3: CHE}
+    residents:
+      what: "Zurich residents by nationality, end of 2025: 452,421 (Statistik Stadt Zurich, BEV336OD3361)"
+      sources:
+        - {name: "Statistik Stadt Zurich, Bevolkerung nach Nationalitat und Stadtquartier (BEV336OD3361), 2025",
+           url: "https://data.stadt-zuerich.ch/dataset/bev_bestand_jahr_quartier_nationalitaet_od3361", year: 2025,
+           checked: true}
+      counts:
+        swiss_nationals: 298828
+        DEU: 32598
+        ITA: 18106
+        ESP: 8734
+        PRT: 6907
+        FRA: 5985
+        AUT: 5141
+        GRC: 3804
+        TUR: 3535
+        POL: 3419
+        ERI: 3411
+        CHN: 3344
+        UKR: 3303
+        GBR: 2916
+        USA: 2603
+        IND: 2475
+        ROU: 2474
+        SRB: 2441
+        NLD: 2181
+        XKX: 1991
+        AFG: 1939
+        HUN: 1817
+        SYR: 1625
+        HRV: 1582
+        SOM: 1449
+        RUS: 1398
+        LKA: 1358
+        BRA: 1304
+        MKD: 1236
+        SVK: 1197
+        SWE: 1138
+        BEL: 1065
+        THA: 682
+        JPN: 623
+        IRN: 620
+        DOM: 573
+        CAN: 573
+        BGD: 532
+        europe_rest: 9000     # remaining European nationalities (judgment from the region totals)
+        asia_rest: 3200
+        africa_rest: 2500
+        america_rest: 3200
+        oceania: 450
+    visitors:
+      what: "City of Zurich hotels: a record 3.8 million overnight stays in 2023, ~70 % foreign (judgment)"
+      foreign_nights_per_year: 2700000
+      population: 452421
+      hotspot_factor: 3      # judgment: main station / Bahnhofstrasse
+      sources:
+        - {name: "Stadt Zurich, Tourismus (3.8 million hotel nights 2023); BFS HESTA by country of residence",
+           url: "https://www.stadt-zuerich.ch/artikel/de/stadt-der-zukunft/283274.html", year: 2023, checked: false}
+      origins: {DEU: 16, USA: 15, GBR: 7, FRA: 4, ITA: 4, CHN: 3, IND: 3, ARE: 2, ISR: 2, ESP: 3, NLD: 2, AUT: 2,
+                KOR: 1, JPN: 1, europe_rest: 14, asia_rest: 6, america_rest: 4, africa_rest: 2, oceania: 1}
+
+  helsinki:
+    name: "Helsinki"
+    match: {lat: 60.1699, lon: 24.9384, km: 15, iso3: FIN}
+    residents:
+      what: "Helsinki residents by background country, end of 2024: 684,018 (Statistics Finland 11rv)"
+      sources:
+        - {name: "Statistics Finland, 11rv: Origin and background country by sex, by municipality (Helsinki 2024)",
+           url: "https://pxdata.stat.fi/PxWeb/pxweb/en/StatFin/StatFin__vaerak/statfin_vaerak_pxt_11rv.px/",
+           year: 2024, checked: true}
+      counts:
+        finnish_background: 541722
+        europe_east: 33000    # former Soviet Union 21,037 (incl. Russia, Estonia), former Yugoslavia, Poland, Romania, ...
+        europe_west: 24776    # rest of Europe 57,776
+        SOM: 14884
+        IRQ: 8420
+        CHN: 5108
+        IND: 3652
+        PHL: 3651
+        NPL: 3588
+        VNM: 3574
+        BGD: 3559
+        AFG: 3431
+        TUR: 3149
+        IRN: 2623
+        PAK: 1937
+        LKA: 1801
+        SYR: 1695
+        THA: 1530
+        JPN: 646
+        asia_rest: 3240       # Asia 48,604 minus the above
+        NGA: 1725
+        MAR: 1498
+        ETH: 1466
+        COD: 1129
+        CMR: 803
+        GHA: 751
+        EGY: 681
+        DZA: 665
+        GMB: 660
+        KEN: 636
+        africa_rest: 2859     # Africa 27,757 minus the above
+        USA: 1788
+        BRA: 762
+        america_rest: 2825
+        other_rest: 2387      # unknown background country
+    visitors:
+      what: "Foreign overnight stays in Helsinki ~2.1 million a year (Statistics Finland accommodation statistics,
+        approximate)"
+      foreign_nights_per_year: 2100000
+      population: 684018
+      hotspot_factor: 3       # judgment: Senate Square and the centre
+      sources:
+        - {name: "Statistics Finland, Accommodation statistics (Helsinki, nights by country of residence), 2024",
+           url: "https://stat.fi/en/statistics/matk", year: 2024, checked: false}
+      origins: {DEU: 12, USA: 10, GBR: 8, SWE: 7, EST: 4, JPN: 4, CHN: 4, ESP: 5, FRA: 4, ITA: 4, NLD: 3, NOR: 3,
+                CHE: 2, KOR: 2, IND: 2, europe_rest: 16, asia_rest: 5, america_rest: 3, oceania: 1, africa_rest: 1}
+
+  new_york_manhattan:
+    name: "New York, Manhattan"
+    match: {lat: 40.7549, lon: -73.9840, km: 30, iso3: USA}
+    residents:
+      what: "New York County (Manhattan) residents by race and Hispanic origin, ACS 2019-2023 5-year: White
+        non-Hispanic 46.8 %, Hispanic 24.4 %, Black ~12.5 % and Asian ~13.2 % non-Hispanic, two or more / other ~3 %"
+      sources:
+        - {name: "US Census Bureau, QuickFacts New York County, NY (ACS 2019-2023)",
+           url: "https://www.census.gov/quickfacts/newyorkcountynewyork", year: 2023, checked: true}
+      shares: {white: 0.468, latin_american: 0.244, black: 0.125, east_asian: 0.11, south_asian: 0.022,
+               mixed_unclear: 0.031}
+    visitors:
+      what: "~65 million visitors to NYC in 2024, ~13 million international (UK 1.1 M, Canada ~1 M, France, Brazil,
+        Italy > 0.7 M each, China 0.61 M); domestic visitors carry the US mix"
+      visitor_share: 0.30    # judgment: Midtown / Times Square, where a large share of the people are visitors
+      sources:
+        - {name: "NYC Tourism + Conventions, 2024 year-end tourism numbers",
+           url: "https://business.nyctourism.com/press-media/press-releases/NYC-Tourism-year-end-tourism-numbers-2024",
+           year: 2024, checked: true}
+      origins: {USA: 52000, GBR: 1100, CAN: 1000, FRA: 750, BRA: 750, ITA: 720, CHN: 609, DEU: 600, ESP: 500,
+                MEX: 450, AUS: 420, IND: 400, KOR: 300, JPN: 300, ISR: 250, europe_rest: 1700, america_rest: 1200,
+                asia_rest: 800, africa_rest: 300}
+
+  lyon:
+    name: "Lyon"
+    match: {lat: 45.7640, lon: 4.8357, km: 15, iso3: FRA}
+    residents:
+      what: "Lyon residents: immigrants 14.4 % (INSEE census 2022), immigrant origins as France's (INSEE 2021:
+        Africa 48 %, of them 62 % Maghreb; Europe 32 %; Asia 14 %; America/Oceania 6 %); the rest as French residents
+        born in France incl. descendants of immigrants"
+      sources:
+        - {name: "INSEE, recensement 2022, commune de Lyon (via Institut Montaigne city sheet)",
+           url: "https://www.insee.fr/fr/statistiques/2011101?geo=COM-69123", year: 2022, checked: false}
+        - {name: "INSEE, Immigres et descendants d'immigres (2021 origins)", url: "https://www.insee.fr/fr/statistiques/6793226",
+           year: 2021, checked: true}
+      counts:
+        france_non_immigrants: 856
+        west_asia_north_africa: 43    # Maghreb + Turkey
+        sub_saharan_africa: 26
+        europe_west: 34
+        europe_east: 12
+        east_asia: 6
+        southeast_asia: 9
+        south_asia: 5
+        latin_america: 6
+        northern_america: 3
+    visitors:
+      what: "Foreign hotel nights in the Lyon metropolis ~2 million a year (INSEE/ONLYLYON, approximate)"
+      foreign_nights_per_year: 2000000
+      population: 520774
+      hotspot_factor: 2
+      sources:
+        - {name: "INSEE frequentation hoteliere (Metropole de Lyon), approximate", url: "https://www.insee.fr/fr/statistiques/2012693",
+           year: 2023, checked: false}
+      origins: {GBR: 12, DEU: 10, ITA: 10, ESP: 9, BEL: 7, CHE: 7, USA: 8, NLD: 4, CHN: 3, europe_rest: 18,
+                asia_rest: 5, america_rest: 4, africa_rest: 3}
+
+  kigali:
+    name: "Kigali"
+    match: {lat: -1.9441, lon: 30.0619, km: 25, iso3: RWA}
+    residents:
+      what: "Kigali residents: Rwandan nationals, foreign residents ~2 % (NISR census 2022, mostly from neighbouring
+        countries; approximate)"
+      sources:
+        - {name: "NISR, Fifth Population and Housing Census 2022, main indicators", url: "https://www.statistics.gov.rw/",
+           year: 2022, checked: false}
+      shares: {black: 0.985, south_asian: 0.004, east_asian: 0.004, white: 0.005, mixed_unclear: 0.002}
+    visitors:
+      what: "Rwanda ~1.4 million visitors a year, most from neighbouring countries (RDB, approximate); Kigali share
+        and hotspot a judgment"
+      visitor_share: 0.04
+      sources:
+        - {name: "Rwanda Development Board, tourism statistics 2023/2024 (approximate)", url: "https://rdb.rw/",
+           year: 2024, checked: false}
+      origins: {sub_saharan_africa: 80, europe_west: 9, USA: 5, IND: 2, CHN: 2, asia_rest: 2}
+
+  chernihiv:
+    name: "Chernihiv"
+    match: {lat: 51.4982, lon: 31.2893, km: 20, iso3: UKR}
+    residents:
+      what: "Chernihiv residents (2001 census: Ukrainians 89.6 %, Russians 8.8 %)"
+      sources:
+        - {name: "State Statistics Committee of Ukraine, All-Ukrainian population census 2001 (Chernihiv city)",
+           url: "http://2001.ukrcensus.gov.ua/", year: 2001, checked: false}
+      counts: {ukraine_residents: 1}
+    visitors:
+      what: "Few foreign visitors (wartime); a judgment"
+      visitor_share: 0.005
+      origins: {europe_west: 1}
+
+# A map with no matching place: its country (crowdpeds.locate) from "countries", else its region; with no known
+# country (a CARLA town), the world's mix: UN WPP 2024 populations by region in the groups above (rounded, modelled).
+generic:
+  name: "Generic (world)"
+  mix: {east_asian: 0.30, south_asian: 0.25, black: 0.15, white: 0.14, mena: 0.07, latin_american: 0.08,
+        mixed_unclear: 0.01}
+  source: "modelled from UN World Population Prospects 2024 regional populations (judgment)"

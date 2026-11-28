@@ -1133,8 +1133,9 @@ class CrowdSim:
         x, y = w["xy"] if "xy" in w else self.xy(w["seg"], w["side"], w["i"])
         if w.get("bp"):
             bp = self.lib.find(w["bp"])
-        else:
-            bp = self.rng.choice(self.bps)
+        else:       # the place's look (walkerlooks.py), else a uniform pick
+            from . import walkerlooks
+            bp = walkerlooks.choose_blueprint(self.lib, self.rng, self.bps, plan=w)
         if bp.has_attribute("is_invincible"):
             bp.set_attribute("is_invincible", "false")
         if w.get("wheelchair") and bp.has_attribute("use_wheelchair"):
@@ -1452,7 +1453,12 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log, parts
     if (tc.get("map") or {}).get("carla_town"):     # a CARLA town: kerbs onto its pavements (walls, sunken roads)
         from . import towns
         towns.snap_kerbs(world.get_map(), segs, log)
+    from . import walkerlooks      # who they are: walkers that look like the people of the place
+    looks = walkerlooks.for_library(world.get_blueprint_library(), int(wc.get("seed", 1)), log)
+    if looks is not None:
+        looks.dress(walkers)
     sim = CrowdSim(world, geo, segs, walkers, params, int(wc.get("seed", 1)), log)
+    walkerlooks.report(sim.actors, log)
     sim.stats = stats
     sim.living = living
     sim.window = None

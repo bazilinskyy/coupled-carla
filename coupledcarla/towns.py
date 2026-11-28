@@ -447,8 +447,9 @@ class NavWalkers:
         cmds = []
         speeds = []
         base = float(cfg.get("speed_mps", 1.35))
+        from . import walkerlooks
         for loc in spots:
-            bp = rng.choice(bps)
+            bp = walkerlooks.choose_blueprint(lib, rng, bps)      # the place's look (walkerlooks.py), else uniform
             if bp.has_attribute("is_invincible"):
                 bp.set_attribute("is_invincible", "false")
             run = rng.random() < float(cfg.get("run_share", 0.05))

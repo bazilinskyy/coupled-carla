@@ -27,7 +27,7 @@ from . import analysis, compat, config, crowdpeds, crowdwindow, drivermix, input
     nightlights, parking, photoreal, reactions, realworld, season, soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from . import ehmi_design, ehmi_inside, levels, levelxodr, livemap, multigpu, placement, plates, staticactors, \
-    stationux
+    stationux, walkerlooks
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -329,6 +329,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
     if not tc["map"].get("bbox"):   # a map built from an OpenDRIVE file: its box is in meta.json
         tc["map"]["bbox"] = json.loads((mdir / "meta.json").read_text())["bbox"]
     plates.setup(tc, mdir, log)                # country number plates on the vehicles (plates.py)
+    walkerlooks.setup(tc, mdir, log)           # walkers that look like the people of the place (walkerlooks.py)
     look.resolve_auto(tc, log)                 # camera_profile "auto": the place's fitted look (look.py)
     town = tc["map"].get("carla_town")       # a CARLA standard map (towns.py)
     if towns.resolve_xy(tc, geo):            # points given as CARLA {x, y}
