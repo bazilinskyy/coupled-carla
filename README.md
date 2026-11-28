@@ -623,6 +623,23 @@ texture API. SUMO's traffic lights show as signal heads on kerb poles (CARLA's o
 per approach, with the lit lamp in SUMO's colour (`simulation.traffic_lights.style: head`; `marker` for the old
 glowing points). On CARLA 1.0 use the `CoupledClean` post-process profile (`coupledcarla/data/postprocess`).
 
+**Demo-video cameras on CARLA 1.0 (2026-11-28).** CARLA 1.0's RGB camera has no lens attributes; its look is the
+post-process profile. Until now the film cameras (`film.py`) always asked for CARLA's `Dashcam`, whatever the clip
+set: colour fringes 0.8 that smear every edge away from the centre, film grain, a 0.7 vignette, bloom 1.2 and a
+6000 K white balance that turns the picture blue (twin_salamanca.mp4: the soft bench, trunk and facades at the edge
+of the frame). The film camera now takes the clip's profile (`film.camera_profile`, else `film.capture.profile`,
+else the trial's `simulation.capture.profile` / `simulation.camera_profile`, so the twin clips' `CoupledReal`
+applies) and swaps a stock profile with lens effects (`Dashcam`, `LegacyCCD`, `WideHDR8MP`, `GoPro`) for
+`CoupledClean` unless `film.camera_profile` names it on purpose (`look.film_profile`). Our profiles override fringe,
+grain, vignette, motion blur and the scene tint to neutral, so a level's own post-process volume cannot add them
+back; the server needs them installed (`tools/install_profiles.py`). What was measured on the 24 Nov Salamanca clip:
+the encode is not the blur (1080p, CRF 20, 11.9 Mb/s: a kept frame against its encoded frame 37 dB PSNR, the same
+sharpness); the lawn was the aerial photo itself (12 cm per texel, now a grass material: carla-digitaltwins
+`twinmodel/export/lawn.py`), and the lawn's texels looked 3-4 times coarser still at 5-10 m, so the texture streaming
+of the twin's ground is suspected too: render servers for clips may raise `r.Streaming.PoolSize` (4000 MB in CARLA
+1.0's DefaultEngine.ini; `-ExecCmds="r.Streaming.PoolSize 12000,r.MaxAnisotropy 16"` on a 32 GB card, capped by
+`r.Streaming.LimitPoolSizeToVRAM`).
+
 **Placement audit.** `python tools/placement_audit.py <experiment> --port <p> [--radius 300] [--frames 12]` checks
 placement on a running server: it spawns the map's scenery, parked stalls and SUMO's signal heads around a point and
 flags objects that float or are sunk (box bottom against the ground under it), tilted, duplicated, standing on a lane

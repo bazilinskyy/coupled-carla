@@ -693,6 +693,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         fc = tc.get("film") or {}
         if fc.get("camera") or fc.get("cameras"):       # demo-video cameras on a sim-time grid (tools/make_videos.py)
             from .film import Film
+            fc = dict(fc)
+            fc["camera_profile"], why = look.film_profile(tc)     # CARLA 1.0; 0.9.x ignores it
+            log(f"film: camera profile {fc['camera_profile']} ({why})"
+                + ("; it must be installed on the server (tools/install_profiles.py)" if look.ours(fc["camera_profile"])
+                   else ""))
             names = {**{p.role: p.actor for p in parts},
                      **{a.id: getattr(a, "vehicle", None) or getattr(a, "walker", None) for a in agents}}
             film = Film(fc, world, geo, out, log, names.get, step, queue, drone_world,

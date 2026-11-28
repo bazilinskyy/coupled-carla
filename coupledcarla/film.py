@@ -597,14 +597,14 @@ class Film:
         bp = self.world.get_blueprint_library().find("sensor.camera.rgb")
         # film.capture (look.py; default: simulation.capture's defaults): rendered at 2x and downscaled by the
         # writers, no motion blur or flare, bloom 0.3, a manual exposure from the sun and clouds (0.9.x)
-        cap = look.settings(self.fc.get("capture", {}))
+        cap = {**look.settings(self.fc.get("capture", {})), "profile": None}   # run.py resolved it (look.film_profile)
         w, h = look.capture_size(self.fc["size"], cap)
         bp.set_attribute("image_size_x", str(int(w)))
         bp.set_attribute("image_size_y", str(int(h)))
         bp.set_attribute("fov", str(c.get("fov", self.fc["fov"])))
         if bp.has_attribute("sensor_tick"):
             bp.set_attribute("sensor_tick", "0.0")       # every tick: images are picked by their timestamp
-        setup_camera(bp, 0.0, self.fc.get("camera_profile", "Dashcam"), world=self.world, capture=cap)
+        setup_camera(bp, 0.0, self.fc.get("camera_profile") or look.LENS_FX["Dashcam"], world=self.world, capture=cap)
         for k, v in {**(self.fc.get("attributes") or {}), **(c.get("attributes") or {})}.items():
             if bp.has_attribute(k):
                 bp.set_attribute(k, str(v))
