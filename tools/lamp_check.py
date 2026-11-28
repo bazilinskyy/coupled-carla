@@ -31,6 +31,7 @@ sys.path.insert(0, str(ROOT))
 
 import carla  # noqa: E402
 from coupledcarla.compat import left_lane, right_lane  # noqa: E402
+from coupledcarla.geo import nearest_waypoint  # noqa: E402
 
 LAMP_BP = "blueprint.cc_streetlight06_a"
 LIFT = 100.0
@@ -214,7 +215,7 @@ def main():
 
     if a.at:
         x, y = (float(v) for v in a.at.split(","))
-        wp = cmap.get_waypoint(carla.Location(x, y, 0.0), project_to_road=True)
+        wp = nearest_waypoint(cmap, x, y)
         start = wp.transform
     else:
         start = cmap.get_spawn_points()[a.spawn_index]

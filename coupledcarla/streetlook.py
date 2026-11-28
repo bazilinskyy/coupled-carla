@@ -33,6 +33,7 @@ import zlib
 from functools import lru_cache
 from pathlib import Path
 from .compat import left_lane, right_lane
+from .geo import nearest_waypoint
 
 DATA = Path(__file__).resolve().parent / "data" / "street_props.json"
 REGION_OF = {"NLD": "NL", "GBR": "UK", "JPN": "JP"}
@@ -308,7 +309,7 @@ def shark_teeth(pl, cat, cmap, carla, points, lefthand=False, log=print):
         return 0
     done, rows = set(), 0
     for x, y in points:
-        wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
+        wp = nearest_waypoint(cmap, x, y, carla.LaneType.Driving, carla=carla)
         if wp is None or math.hypot(wp.transform.location.x - x, wp.transform.location.y - y) > 25:
             continue
         wp = placement.approach(wp)
@@ -653,7 +654,7 @@ def smoothness_by_road(cmap, carla, geo, ways):
             continue
         for g in (w.get("geometry") or [])[::2]:
             x, y = geo.to_carla(g["lat"], g["lon"])
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
+            wp = nearest_waypoint(cmap, x, y, carla=carla)
             if wp is not None and math.hypot(wp.transform.location.x - x, wp.transform.location.y - y) < 6:
                 out[wp.road_id] = max(out.get(wp.road_id, 0.0), f)
     return out

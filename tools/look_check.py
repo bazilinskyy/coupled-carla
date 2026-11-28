@@ -24,7 +24,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from coupledcarla import config, look, parking, run  # noqa: E402
 from coupledcarla.display import VIEWS  # noqa: E402
-from coupledcarla.geo import Geo, heading_to_yaw  # noqa: E402
+from coupledcarla.geo import Geo, heading_to_yaw, nearest_waypoint  # noqa: E402
 from coupledcarla.scenery import Scenery  # noqa: E402
 from coupledcarla.compat import left_lane, right_lane  # noqa: E402
 
@@ -135,7 +135,7 @@ def main():
             focus = mount.location
         else:
             x, y = geo.to_carla(lat, lon)
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
+            wp = nearest_waypoint(cmap, x, y, carla.LaneType.Driving)
             if a.heading is not None:
                 want = heading_to_yaw(a.heading)
                 for cand in (wp, left_lane(wp), right_lane(wp)):

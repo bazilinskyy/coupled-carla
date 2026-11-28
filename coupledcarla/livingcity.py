@@ -48,6 +48,7 @@ import zlib
 from pathlib import Path
 from .compat import left_lane, right_lane
 from . import plates
+from .geo import nearest_waypoint
 
 SOURCES = {
     "moussaid2010": "Moussaid M, Perozo N, Garnier S, Helbing D, Theraulaz G (2010). The walking behaviour of "
@@ -826,7 +827,7 @@ class LivingCity:
 
     def ground_z(self, x, y):
         carla = self.carla
-        wp = self.cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Any)
+        wp = nearest_waypoint(self.cmap, x, y, carla.LaneType.Any, carla=carla)
         return wp.transform.location.z if wp is not None else 0.0
 
     # -- crowd hooks --
@@ -905,8 +906,7 @@ class LivingCity:
         cmap = self.cmap
 
         def toward_road(x, y, fa, fb):
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True,
-                                   lane_type=carla.LaneType.Driving)
+            wp = nearest_waypoint(cmap, x, y, carla.LaneType.Driving, carla=carla)
             if wp is None:
                 return fa
             rx, ry = wp.transform.location.x - x, wp.transform.location.y - y
@@ -1110,7 +1110,7 @@ class LivingCity:
     def _lane_beside(self, x, y):
         """The driving waypoint nearest a stall and whether a second lane in its direction lets traffic pass."""
         carla = self.carla
-        wp = self.cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
+        wp = nearest_waypoint(self.cmap, x, y, carla.LaneType.Driving, carla=carla)
         if wp is None:
             return None, False
         two = False

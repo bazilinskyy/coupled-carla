@@ -43,6 +43,8 @@ import shutil
 import socket
 from pathlib import Path
 
+from .geo import nearest_waypoint
+
 # name -> (what it is, cars entering per hour, bikes per hour). CARLA 0.9.16 has each with and without _Opt (the
 # layered version: same roads, map layers that can be unloaded); CARLA 1.0 ships the _Opt towns and Mine_01.
 TOWNS = {
@@ -229,7 +231,7 @@ def build_scenery(cfg, out, meta, cmap=None, server_major=None, log=print):
     counts = {}
     if sc.get("parked", True):
         def ground(x, y):
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
+            wp = nearest_waypoint(cmap, x, y)
             return wp.transform.location.z if wp is not None else 0.0
         bbox = mc.get("bbox") or meta.get("bbox")
         counts = parking.build(out, dict(cfg, map=dict(mc, bbox=bbox)), None, cat, cmap, ground,
@@ -386,8 +388,7 @@ def snap_kerbs(cmap, segments, log=print, reach=6.0):
         for side in seg.sides:
             for i, (x, y) in enumerate(side):
                 tot += 1
-                wp = cmap.get_waypoint(carla.Location(x=x, y=-y), project_to_road=True,
-                                       lane_type=carla.LaneType.Sidewalk)
+                wp = nearest_waypoint(cmap, x, -y, carla.LaneType.Sidewalk)
                 if wp is None:
                     continue
                 loc = wp.transform.location

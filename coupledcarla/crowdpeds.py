@@ -36,6 +36,8 @@ import xml.etree.ElementTree as ET
 from functools import lru_cache
 from pathlib import Path
 
+from .geo import nearest_waypoint
+
 DATA = Path(__file__).resolve().parent / "data" / "crowd_pedestrians.json"
 SOURCES = {
     "crowd": ("CROWD: City Road Observations With Dashcams (crowd-dataset/crowd), with crowd-city crossing speeds "
@@ -1084,7 +1086,7 @@ class CrowdSim:
         if w.get("wheelchair") and bp.has_attribute("use_wheelchair"):
             bp.set_attribute("use_wheelchair", "true")
         bp.set_attribute("role_name", w.get("role", "crowd"))
-        wp = self.cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Any)
+        wp = nearest_waypoint(self.cmap, x, y, carla.LaneType.Any, carla=carla)
         z = wp.transform.location.z if wp is not None else 0.0      # the road's height there (geo.ground)
         at = carla.Location(x=x, y=y, z=z + 1.0)
         actor = self.world.try_spawn_actor(bp, carla.Transform(at, carla.Rotation(yaw=float(w["yaw"])))

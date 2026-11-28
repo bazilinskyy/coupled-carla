@@ -31,7 +31,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from coupledcarla import config, look, nightlights, parking  # noqa: E402
 from coupledcarla.display import VIEWS  # noqa: E402
-from coupledcarla.geo import Geo, ground, heading_to_yaw  # noqa: E402
+from coupledcarla.geo import Geo, ground, heading_to_yaw, nearest_waypoint  # noqa: E402
 from coupledcarla.run import load_world, set_weather  # noqa: E402
 from coupledcarla.scenery import Scenery  # noqa: E402
 from coupledcarla.server import Server  # noqa: E402
@@ -170,7 +170,7 @@ def main():
             name, spec = v.split(":")
             lat, lon, heading = (float(x) for x in spec.split(","))
             x, y = geo.to_carla(lat, lon)
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
+            wp = nearest_waypoint(cmap, x, y, carla.LaneType.Driving)
             want = heading_to_yaw(heading)
             for cand in (wp, left_lane(wp), right_lane(wp)):
                 if cand is not None and cand.lane_type == carla.LaneType.Driving and \

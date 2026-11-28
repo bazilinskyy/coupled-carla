@@ -285,12 +285,15 @@ class MovingCars:
         self.loaded["cars"], self.n = [], 0
 
 
+GROUND_TICKS = 30      # render: ticks at most for a twin's ground under a view to stream in (geo.level_ground)
+
+
 def cmd_render(args):
     import queue
 
     import carla
     from coupledcarla import compat, look
-    from coupledcarla.geo import Geo, heading_to_yaw
+    from coupledcarla.geo import Geo, heading_to_yaw, level_ground
     from coupledcarla.scenery import Scenery
     cfg, mdir, bbox = _map(args.experiment)
     out = Path(args.out)
@@ -469,15 +472,19 @@ def cmd_render(args):
                 except Exception as err:  # noqa: BLE001 - views without parked cars
                     print(f"parked cars left out ({err})", flush=True)
             x, y = geo.to_carla(v["lat"], v["lon"])
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Any)
-            z0 = wp.transform.location.z if wp is not None else 0.0
-            gz = z0
-            try:
-                gp = world.ground_projection(carla.Location(x=x, y=y, z=z0 + 1.5), 6.0)
-                if gp is not None:
-                    gz = gp.location.z
-            except Exception:  # noqa: BLE001 - older API: the lane height
-                pass
+            # the camera stands on the level's own ground under the photo's position (geo.level_ground), not on the
+            # lane a lookup at z = 0 returns: on a twin far above sea level that is often a lower street up to
+            # 150 m away, which left 21 of SalamancaPlaza's 39 cameras under the level's ground (round 41b)
+            gz, gsrc, z0 = level_ground(world, cmap, x, y)
+            if gsrc != "ray" and hasattr(world, "cast_ray"):
+                # a twin level streams its ground in around the spectator (World Partition): over the point first
+                spectator.set_transform(carla.Transform(carla.Location(x=x, y=y, z=z0 + 40.0),
+                                                        carla.Rotation(pitch=-90.0)))
+                for _ in range(getattr(args, "ground_ticks", GROUND_TICKS)):
+                    world.tick()
+                    gz, gsrc, z0 = level_ground(world, cmap, x, y)
+                    if gsrc == "ray":
+                        break
             loc = carla.Location(x=x, y=y, z=gz + v["height_m"])
             tf = carla.Transform(loc, carla.Rotation(yaw=heading_to_yaw(v["heading"]), pitch=v["pitch"], roll=0.0))
             ev = None
@@ -520,7 +527,8 @@ def cmd_render(args):
             Image.fromarray(s.copy()).save(rdir / f"{v['id']}_sem.png")
             w_, h_, f_ = wide[v["id"]]
             rows.append({"id": v["id"], "x": round(x, 2), "y": round(y, 2), "ground_z": round(gz, 2),
-                         "lane_z": round(z0, 2), "cam_z": round(loc.z, 2), "yaw": round(tf.rotation.yaw, 2),
+                         "ground_from": gsrc, "lane_z": round(z0, 2), "cam_z": round(loc.z, 2),
+                         "yaw": round(tf.rotation.yaw, 2),
                          "wide_w": w_, "wide_h": h_, "wide_hfov": round(f_, 2), "frame": frame,
                          "sun_alt": round(world.get_weather().sun_altitude_angle, 1),
                          "cloudiness": round(world.get_weather().cloudiness, 1), "ev": "" if ev is None else ev,
@@ -1328,6 +1336,8 @@ def main():
     p.add_argument("--delta", type=float, default=0.05, help="fixed time step while rendering (s)")
     p.add_argument("--settle", type=int, default=30, help="ticks after each move (auto exposure adapts)")
     p.add_argument("--first-settle", type=int, default=150)
+    p.add_argument("--ground-ticks", type=int, default=GROUND_TICKS,
+                   help="ticks at most for the level's ground under a view to stream in before the camera is placed")
     p.add_argument("--profile", default="Dashcam", help="CARLA 1.0 post-process profile")
     p.add_argument("--weather", default="real", help="'real' (Open-Meteo at the photo's hour), a preset or 'fixed'")
     p.add_argument("--budget-min", type=float, default=10.0, help="stop rendering after this many minutes")

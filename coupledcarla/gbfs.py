@@ -37,6 +37,7 @@ from pathlib import Path
 import requests
 
 from . import realworld
+from .geo import nearest_waypoint
 
 SYSTEMS = "https://raw.githubusercontent.com/MobilityData/gbfs/master/systems.csv"
 CACHE = Path.home() / ".cache" / "coupled-carla" / "gbfs"
@@ -468,7 +469,7 @@ def _carla_helpers(cmap, buildings=None):
         tree = STRtree(buildings)
 
     def road_at(x, y):
-        wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
+        wp = nearest_waypoint(cmap, x, y)
         if wp is None:
             return None
         loc = wp.transform.location
@@ -560,8 +561,7 @@ def refresh_scenery(scenery, cfg, mdir, geo, cmap, log=log):
                 lat, lon = geo.to_latlon(x, y)
                 z = dem.sample(lat, lon) - base
             else:
-                import carla
-                wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
+                wp = nearest_waypoint(cmap, x, y)
                 z = wp.transform.location.z if wp is not None else 0.0
             px, py, pz, pyaw = cat.place(mesh, x, y, z, yaw, scale)
             scenery.cells[(int(px // scenery.cell), int(py // scenery.cell))].append(

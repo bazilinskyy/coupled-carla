@@ -54,6 +54,8 @@ import zlib
 from collections import defaultdict
 from pathlib import Path
 
+from .geo import nearest_waypoint
+
 DATA = Path(__file__).parent / "data"
 VERSION = 1
 # where a stall came from (parked.json slot index 7)
@@ -945,7 +947,7 @@ def build(mdir, cfg, geo, cat, cmap, ground, placer, blds, log=print):
             rows.append((v, facing))
             v, facing = (v + STALL_L + AISLE, -1) if facing == 1 else (v + STALL_L, 1)
         if len(rows) == 1:      # one row (a strip along a street): the aisle is the road on its nearer side
-            wp = cmap.get_waypoint(carla.Location(x=cx0, y=cy0), project_to_road=True, lane_type=LT.Driving)
+            wp = nearest_waypoint(cmap, cx0, cy0, LT.Driving)
             if wp is not None:
                 d = (wp.transform.location.x - cx0) * vx + (wp.transform.location.y - cy0) * vy
                 rows = [(rows[0][0], 1 if d > 0 else -1)]

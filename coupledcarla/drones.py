@@ -32,6 +32,7 @@ import numpy as np
 from . import dronemodel as dm
 from . import droneplan as plan
 from .droneinput import BotPilot, Hold, Sticks, VIEWS, pilot_command
+from .geo import nearest_waypoint
 
 PACK_BLUEPRINT = "blueprint.cc_drone_{}"
 MESH_PATH = "/Game/CoupledCarla/Drones/SM_CCDrone_{0}.SM_CCDrone_{0}"
@@ -413,15 +414,14 @@ class DroneWorld:
         carla = self.carla
         z = self.surface(x, y, 300.0)
         if z is None:
-            wp = self.cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True,
-                                        lane_type=carla.LaneType.Any)
+            wp = nearest_waypoint(self.cmap, x, y, carla.LaneType.Any, carla=carla)
             z = wp.transform.location.z if wp is not None else 0.0
         self.ground_cache[key] = z
         return z
 
     def road_z(self, x, y):
         carla = self.carla
-        wp = self.cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Any)
+        wp = nearest_waypoint(self.cmap, x, y, carla.LaneType.Any, carla=carla)
         return wp.transform.location.z if wp is not None else 0.0
 
     def _add(self, af, pos_m, yaw, name, kind, role):

@@ -38,6 +38,7 @@ import numpy as np
 
 from . import nightlights, provenance
 from .compat import left_lane, right_lane
+from .geo import nearest_waypoint
 
 DATA = Path(__file__).parent / "data"
 CELL = 100.0          # streaming cell size (m)
@@ -927,7 +928,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
             return dem.sample(lat, lon) - base
     elif mc.get("carla_level"):     # a baked level without a (matching) terrain model: its nearest road's height
         def ground(x, y):
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
+            wp = nearest_waypoint(cmap, x, y)
             return wp.transform.location.z if wp is not None else 0.0
     else:
         def ground(x, y):
@@ -1244,7 +1245,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
     # street furniture and lamps
     if sc.get("furniture", True):
         def road_yaw(x, y):
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
+            wp = nearest_waypoint(cmap, x, y)
             if wp is None:
                 return 0.0, None
             loc = wp.transform.location
@@ -1273,8 +1274,10 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                     continue
                 lamp_at.setdefault((int(x // 2), int(y // 2)), []).append((x, y))
                 _, towards = road_yaw(x, y)
-                wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True)
-                far = wp is None or wp.transform.location.distance(carla.Location(x=x, y=y)) > 9
+                wp = nearest_waypoint(cmap, x, y)
+                # in plan: a distance to a point at z = 0 put every lamp of a twin far above sea level (Salamanca,
+                # about 790 m) more than 9 m from its road, so all of them got the park mast
+                far = wp is None or math.hypot(wp.transform.location.x - x, wp.transform.location.y - y) > 9
                 far = far or (_number(t.get("height")) or 99) <= 4.5      # a low mast (register): a park lamp
                 own = look.street_lamp(t, not far)     # the region's mast for the register's type (streetlook.py)
                 stock, syaw = ms.PARK_LAMP if far else ms.LAMP, 0.0 if far or towards is None else towards + ms.LAMP_YAW
@@ -1407,7 +1410,7 @@ def build(mdir, cfg, geo, dem=None, base=0.0, cmap=None, log=print, server_major
                 continue
             if face:
                 sign = face
-            wp = cmap.get_waypoint(carla.Location(x=x, y=y), project_to_road=True, lane_type=carla.LaneType.Driving)
+            wp = nearest_waypoint(cmap, x, y, carla.LaneType.Driving)
             if wp is None or wp.transform.location.distance(carla.Location(x=x, y=y, z=wp.transform.location.z)) > 25:
                 continue
             wp = placement.approach(wp)     # a sign mapped in a junction belongs at the kerb of the lane into it

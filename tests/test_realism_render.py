@@ -134,10 +134,7 @@ def fake_carla():
     return c
 
 
-def test_render_with_a_fake_server(tmp_path, monkeypatch):
-    pytest.importorskip("sumolib")      # Geo reads the net with sumolib
-    carla = fake_carla()
-    monkeypatch.setitem(sys.modules, "carla", carla)
+def _render_setup(tmp_path, monkeypatch, carla):
     import realism_check as T
     from coupledcarla import realism as R
     mdir = tmp_path / "map"
@@ -160,6 +157,14 @@ def test_render_with_a_fake_server(tmp_path, monkeypatch):
                               profile="Dashcam", weather="fixed", budget_min=10, no_scenery=True, no_parked=True,
                               again=False, moving_cars=0, seed=1, look="capture", ev_bias=0.0, camera_attr="",
                               cloud_scale=None)
+    return T, R, out, args
+
+
+def test_render_with_a_fake_server(tmp_path, monkeypatch):
+    pytest.importorskip("sumolib")      # Geo reads the net with sumolib
+    carla = fake_carla()
+    monkeypatch.setitem(sys.modules, "carla", carla)
+    T, R, out, args = _render_setup(tmp_path, monkeypatch, carla)
     T.cmd_render(args)
     from PIL import Image
     w, h, f = R.wide_size(64, 36, 90.0, 12.0, 6.0)
@@ -171,6 +176,7 @@ def test_render_with_a_fake_server(tmp_path, monkeypatch):
     rows = list(csv.DictReader((out / "renders.csv").open()))
     assert [r["id"] for r in rows] == ["v0", "v1"]
     assert float(rows[0]["ground_z"]) == 15.5 and float(rows[0]["cam_z"]) == pytest.approx(17.6)
+    assert rows[0]["ground_from"] == "projection" and float(rows[0]["lane_z"]) == 16.0     # no cast_ray here
     assert abs(float(rows[0]["x"])) < 0.5 and float(rows[0]["yaw"]) == 0.0      # heading east = CARLA yaw 0
     world = carla.last.world
     assert world.applied[0] == (True, 0.05) and world.applied[-1] == (False, None)
@@ -178,6 +184,36 @@ def test_render_with_a_fake_server(tmp_path, monkeypatch):
     assert world.sensors[0].bp.attrs["post_process_profile"] == "Dashcam"
     T.cmd_render(args)                            # again: nothing left to render
     assert len(list(csv.DictReader((out / "renders.csv").open()))) == 2
+
+
+def test_render_stands_the_camera_on_the_levels_ground(tmp_path, monkeypatch):
+    # a server with cast_ray: the camera stands on the level's surface under the photo point (a pavement 2.2 m above
+    # the lane there), found once the ground has streamed in (nothing on the first ray of each view)
+    pytest.importorskip("sumolib")
+    carla = fake_carla()
+    rays = []
+    base = carla.Client
+
+    class Client(base):
+        def __init__(self, host, port):
+            super().__init__(host, port)
+
+            def cast_ray(a, b):
+                rays.append(self.world.frame)
+                if len(rays) % 2:       # not streamed in yet
+                    return []
+                return [types.SimpleNamespace(location=carla.Location(a.x, a.y, z), label=f"CityObjectLabel.{lab}")
+                        for z, lab in ((24.0, "Vegetation"), (18.2, "Sidewalks"))]
+            self.world.cast_ray = cast_ray
+    carla.Client = Client
+    monkeypatch.setitem(sys.modules, "carla", carla)
+    T, R, out, args = _render_setup(tmp_path, monkeypatch, carla)
+    T.cmd_render(args)
+    rows = list(csv.DictReader((out / "renders.csv").open()))
+    assert [r["ground_from"] for r in rows] == ["ray", "ray"]
+    assert float(rows[0]["ground_z"]) == 18.2 and float(rows[0]["cam_z"]) == pytest.approx(20.3)
+    assert float(rows[0]["lane_z"]) == 16.0
+    assert len(rays) == 4 and rays[0] < rays[1]         # one tick between a view's empty ray and the next
 
 
 def test_moving_cars_in_view(monkeypatch):

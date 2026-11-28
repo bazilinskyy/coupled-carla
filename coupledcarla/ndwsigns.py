@@ -32,6 +32,7 @@ from pathlib import Path
 
 import requests
 from .compat import left_lane, right_lane
+from .geo import nearest_waypoint
 
 API = "https://data.ndw.nu/api/rest/static-road-data/traffic-signs/v4/current-state"
 WKD = ("https://geo.rijkswaterstaat.nl/services/ogc/gdr/maximum_snelheden_wegen/ogc/features/v1/collections/"
@@ -303,7 +304,7 @@ class Roads:
 
     def _wp(self, x, y):
         c = self.carla
-        return self.cmap.get_waypoint(c.Location(x=x, y=y), project_to_road=True, lane_type=c.LaneType.Driving)
+        return nearest_waypoint(self.cmap, x, y, c.LaneType.Driving, carla=c)
 
     def distance(self, x, y):
         """Metres to the nearest driving lane's centre (inf: none)."""
