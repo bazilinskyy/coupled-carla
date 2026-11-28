@@ -69,6 +69,7 @@ def sizes(version="0.9.16"):
 
 def size_attrs(bp, vclass):
     """length/width/height attributes of a SUMO vType for a CARLA blueprint ("" when the size is unknown)."""
+    bp = bp.split("#")[0]                          # a type's variant ("#taxi", "#red"): its blueprint's size
     s = sizes().get(bp) or sizes("1.0").get(bp)     # a CARLA 1.0 blueprint (fleet.py names them on 1.0 levels)
     if not s:
         return ""
@@ -84,6 +85,34 @@ def car(bp, vclass, cf, speed_factor, probability):
     return (f'<vType id="{bp}" vClass="{vclass}" probability="{probability}" carFollowModel="{cf}" '
             f'speedFactor="{speed_factor}" '
             f'{attrs(CAR)} {size_attrs(bp, vclass)}').rstrip() + "/>"
+
+
+# motorcycles and scooters: a car's following with a shorter gap, filtering beside cars in the sublane model
+MOTO = dict(CAR, accel=3.5, decel=4.0, apparentDecel=4.0, emergencyDecel=8.0, tau=1.0, minGap=1.5)
+# lorries and fire engines: slower to accelerate, braking as a bus
+LORRY = dict(BUS, accel=1.2, decel=3.0, apparentDecel=3.0, emergencyDecel=6.5, minGap=2.5)
+MAX_WIDTH.update({"motorcycle": 1.0, "truck": 2.55, "emergency": 2.55, "taxi": 2.1})
+
+
+def motorcycle(bp, cf, probability):
+    return (f'<vType id="{bp}" vClass="motorcycle" probability="{probability}" carFollowModel="{cf}" '
+            f'speedFactor="normc(1.05,0.12,0.8,1.3)" latAlignment="arbitrary" minGapLat="0.4" {attrs(MOTO)} '
+            f'{size_attrs(bp, "motorcycle")}').rstrip() + "/>"
+
+
+def lorry(bp, vclass, cf, probability):
+    return (f'<vType id="{bp}" vClass="{vclass}" probability="{probability}" carFollowModel="{cf}" '
+            f'speedFactor="normc(0.95,0.08,0.8,1.1)" {attrs(LORRY)} {size_attrs(bp, vclass)}').rstrip() + "/>"
+
+
+def vtype(bp, vclass, cf, speed_factor, probability):
+    """The vType of one member of the car stream (crowdtraffic.mix_types) by its vClass."""
+    if vclass == "motorcycle":
+        return motorcycle(bp, cf, probability)
+    size = sizes("1.0").get(bp.split("#")[0]) or sizes().get(bp.split("#")[0]) or {}
+    if vclass == "truck" or (vclass == "emergency" and size.get("length", 0) > 7):
+        return lorry(bp, vclass, cf, probability)
+    return car(bp, vclass, cf, speed_factor, probability)
 
 
 def bike(bp, cf, probability):

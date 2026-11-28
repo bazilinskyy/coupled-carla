@@ -1,0 +1,100 @@
+# Walker appearance catalogue (coupledcarla/walkerlooks.py). One row per walker blueprint and CARLA version.
+# Tagged 2026-11-28 by eye from CARLA's own catalogue stills (CARLA repo Docs/img/catalogue/pedestrians: ue58-dev
+# for 1.0, ue4-dev for 0.9.16), appearance only: nothing about nationality, origin, identity or anything else.
+# group: the broad appearance group the walker most plausibly reads as on a street (east_asian = East and
+#   Southeast Asian, south_asian, black, white, mena = Middle Eastern / North African, latin_american,
+#   mixed_unclear); also_reads_as: groups it can pass for as well (used, at lower weight, when a place needs more
+#   walkers of that group than the catalogue has).
+# skin_tone: perceived, coarse 1-5 (1 light, 2 light-medium, 3 medium, 4 medium-dark, 5 dark).
+# carla_age/carla_gender/wheelchair: CARLA's own blueprint attributes (1.0: WalkerParameters.json; 0.9.16: read
+#   from the server at run time when empty). presentation: perceived gender presentation.
+# clothing: casual, business, workwear, uniform, tourist (backpack). mesh: same body/face = same mesh (variants only
+#   change clothes); 0.9.16 rows name the 1.0 blueprint with the same mesh.
+# crowd_weight: relative chance among walkers of the same group (uniforms are rare in a crowd).
+carla,blueprint,carla_age,carla_gender,wheelchair,mesh,group,also_reads_as,skin_tone,age_group,presentation,clothing,special,crowd_weight,note
+1.0,walker.pedestrian.0015,adult,female,true,AfroF01,black,latin_american;mixed_unclear,4,adult,female,casual,,1,quilted jacket and jeans
+1.0,walker.pedestrian.0016,adult,female,true,AfroF01,black,latin_american;mixed_unclear,4,adult,female,casual,,1,
+1.0,walker.pedestrian.0017,adult,female,false,AfroF02,black,,5,adult,female,casual,,1,track jacket
+1.0,walker.pedestrian.0018,adult,female,false,AfroF02,black,,5,adult,female,casual,,1,
+1.0,walker.pedestrian.0019,adult,female,false,AfroF02,black,,5,adult,female,workwear,,1,utility suit
+1.0,walker.pedestrian.0020,adult,female,false,AfroF02,black,,5,adult,female,uniform,police,0.1,police officer
+1.0,walker.pedestrian.0021,adult,female,false,AfroF02,black,,5,adult,female,casual,,1,
+1.0,walker.pedestrian.0022,adult,female,false,AfroF03,black,,5,adult,female,casual,,1,
+1.0,walker.pedestrian.0023,adult,female,false,AfroF03,black,,5,adult,female,casual,,1,
+1.0,walker.pedestrian.0024,adult,female,false,AfroF03,black,,5,adult,female,casual,,1,
+1.0,walker.pedestrian.0025,adult,male,true,AfroM01,black,,4,adult,male,casual,,1,
+1.0,walker.pedestrian.0026,adult,male,true,AfroM01,black,,4,adult,male,casual,,1,puffer jacket
+1.0,walker.pedestrian.0027,adult,male,false,AfroM02,black,,5,older_adult,male,business,,1,waistcoat and tie; grey hair
+1.0,walker.pedestrian.0028,adult,male,true,AmerM01,latin_american,mixed_unclear;mena,3,adult,male,casual,,1,
+1.0,walker.pedestrian.0029,adult,male,true,AmerM01,latin_american,mixed_unclear;mena,3,adult,male,casual,,1,
+1.0,walker.pedestrian.0030,adult,male,false,AmerM01,latin_american,mixed_unclear;mena,3,adult,male,casual,,1,
+1.0,walker.pedestrian.0031,adult,male,false,AmerM01,latin_american,mixed_unclear;mena,3,adult,male,uniform,police,0.1,police officer
+1.0,walker.pedestrian.0032,adult,female,false,AsiaF01,east_asian,latin_american,2,adult,female,casual,,1,
+1.0,walker.pedestrian.0033,adult,female,false,AsiaF01,east_asian,latin_american,2,adult,female,casual,,1,
+1.0,walker.pedestrian.0034,adult,male,false,AsiaM01,south_asian,mena;latin_american,3,adult,male,casual,,1,
+1.0,walker.pedestrian.0035,adult,male,false,AsiaM01,south_asian,mena;latin_american,3,adult,male,casual,,1,
+1.0,walker.pedestrian.0036,adult,male,false,AsiaM02,east_asian,,2,adult,male,casual,,1,
+1.0,walker.pedestrian.0037,adult,male,false,AsiaM02,east_asian,,2,adult,male,casual,,1,
+1.0,walker.pedestrian.0038,adult,male,false,AsiaM02,east_asian,,2,adult,male,casual,,1,
+1.0,walker.pedestrian.0039,adult,female,false,EuroF01,white,,1,adult,female,casual,,1,knitted dress
+1.0,walker.pedestrian.0040,adult,female,false,EuroF01,white,,1,adult,female,casual,,1,
+1.0,walker.pedestrian.0041,adult,female,false,EuroF01,white,,1,adult,female,casual,,1,
+1.0,walker.pedestrian.0042,adult,female,false,EuroF02,white,mena,1,adult,female,casual,,1,
+1.0,walker.pedestrian.0043,adult,female,false,EuroF02,white,mena,1,adult,female,casual,,1,
+1.0,walker.pedestrian.0045,adult,male,false,EuroM01,white,,1,older_adult,male,casual,,1,bald; lined face
+1.0,walker.pedestrian.0046,adult,male,false,EuroM01,white,,1,older_adult,male,casual,,1,
+1.0,walker.pedestrian.0047,adult,male,false,EuroM02,white,,1,adult,male,casual,,1,hoodie
+1.0,walker.pedestrian.0048,adult,male,false,EuroM02,white,,1,adult,male,casual,,1,
+1.0,walker.pedestrian.0049,child,female,false,EuroG02,white,,1,child,female,casual,,1,
+1.0,walker.pedestrian.0050,child,male,false,EuroB02,mixed_unclear,latin_american;white;mena;south_asian,3,child,male,casual,,1,
+1.0,walker.pedestrian.0051,child,female,false,AfroG01,black,mixed_unclear,4,child,female,casual,,1,
+1.0,walker.pedestrian.0052,child,male,false,AfroB01,black,mixed_unclear,4,child,male,casual,,1,
+0.9.16,walker.pedestrian.0001,adult,,,Gen1F,white,,1,adult,female,casual,,1,first-generation female
+0.9.16,walker.pedestrian.0002,adult,,,Gen1M,white,,1,adult,male,casual,,1,first-generation male
+0.9.16,walker.pedestrian.0003,adult,,,Gen1M,white,,1,adult,male,casual,,1,
+0.9.16,walker.pedestrian.0004,adult,,,Gen1M,white,,1,adult,male,casual,,1,
+0.9.16,walker.pedestrian.0005,adult,,,Gen1F,white,,1,adult,female,casual,,1,
+0.9.16,walker.pedestrian.0006,adult,,,Gen1F,white,,1,adult,female,casual,,1,
+0.9.16,walker.pedestrian.0007,adult,,,Gen1F,white,,1,adult,female,casual,,1,
+0.9.16,walker.pedestrian.0008,adult,,,Gen1F,white,,1,adult,female,casual,,1,
+0.9.16,walker.pedestrian.0009,child,,,Gen1G,white,,1,child,female,casual,,1,
+0.9.16,walker.pedestrian.0010,child,,,Gen1G,white,,1,child,female,casual,,1,
+0.9.16,walker.pedestrian.0011,child,,,Gen1G,white,,1,child,female,casual,,1,
+0.9.16,walker.pedestrian.0012,child,,,Gen1B,white,,1,child,male,casual,,1,dungarees
+0.9.16,walker.pedestrian.0013,child,,,Gen1B,white,,1,child,male,casual,,1,
+0.9.16,walker.pedestrian.0014,child,,,Gen1B,white,,1,child,male,casual,,1,
+0.9.16,walker.pedestrian.0015,adult,,,AfroF01,black,latin_american;mixed_unclear,4,adult,female,casual,,1,= 1.0 0015
+0.9.16,walker.pedestrian.0016,adult,,,EuroM01,white,,1,older_adult,male,casual,,1,= 1.0 0045
+0.9.16,walker.pedestrian.0017,adult,,,EuroM01,white,,1,older_adult,male,casual,,1,= 1.0 0046
+0.9.16,walker.pedestrian.0018,adult,,,AfroM01,black,,4,adult,male,casual,,1,= 1.0 0025
+0.9.16,walker.pedestrian.0019,adult,,,AfroF01,black,latin_american;mixed_unclear,4,adult,female,casual,,1,= 1.0 0016
+0.9.16,walker.pedestrian.0020,adult,,,EuroF02,white,mena,1,adult,female,casual,,1,= 1.0 0042
+0.9.16,walker.pedestrian.0021,adult,,,EuroF02,white,mena,1,adult,female,casual,,1,= 1.0 0043
+0.9.16,walker.pedestrian.0022,adult,,,AsiaF01,east_asian,latin_american,2,adult,female,casual,,1,= 1.0 0032
+0.9.16,walker.pedestrian.0023,adult,,,AsiaF01,east_asian,latin_american,2,adult,female,casual,,1,= 1.0 0033
+0.9.16,walker.pedestrian.0024,adult,,,AsiaM01,south_asian,mena;latin_american,3,adult,male,casual,,1,= 1.0 0034
+0.9.16,walker.pedestrian.0025,adult,,,AsiaM01,south_asian,mena;latin_american,3,adult,male,casual,,1,= 1.0 0035
+0.9.16,walker.pedestrian.0026,adult,,,AfroM01,black,,4,adult,male,casual,,1,= 1.0 0026
+0.9.16,walker.pedestrian.0027,adult,,,AmerM01,latin_american,mixed_unclear;mena,3,adult,male,casual,,1,= 1.0 0028
+0.9.16,walker.pedestrian.0028,adult,,,AmerM01,latin_american,mixed_unclear;mena,3,adult,male,casual,,1,= 1.0 0029
+0.9.16,walker.pedestrian.0029,adult,,,AmerM01,latin_american,mixed_unclear;mena,3,adult,male,casual,,1,= 1.0 0030
+0.9.16,walker.pedestrian.0030,adult,,,AmerM01,latin_american,mixed_unclear;mena,3,adult,male,uniform,police,0.1,= 1.0 0031 (police)
+0.9.16,walker.pedestrian.0031,adult,,,AfroF02,black,,5,adult,female,casual,,1,= 1.0 0021
+0.9.16,walker.pedestrian.0032,adult,,,AfroF02,black,,5,adult,female,uniform,police,0.1,= 1.0 0020 (police)
+0.9.16,walker.pedestrian.0033,adult,,,AfroF02,black,,5,adult,female,casual,,1,= 1.0 0018
+0.9.16,walker.pedestrian.0034,adult,,,EuroM02,white,,1,adult,male,casual,,1,= 1.0 0047
+0.9.16,walker.pedestrian.0035,adult,,,EuroF01,white,,1,adult,female,casual,,1,= 1.0 0039
+0.9.16,walker.pedestrian.0036,adult,,,EuroF01,white,,1,adult,female,casual,,1,= 1.0 0041
+0.9.16,walker.pedestrian.0037,adult,,,EuroF01,white,,1,adult,female,casual,,1,= 1.0 0040
+0.9.16,walker.pedestrian.0038,adult,,,EuroM02,white,,1,adult,male,casual,,1,= 1.0 0048
+0.9.16,walker.pedestrian.0039,adult,,,AfroM02,black,,5,older_adult,male,business,,1,= 1.0 0027
+0.9.16,walker.pedestrian.0040,adult,,,AfroF02,black,,5,adult,female,workwear,,1,= 1.0 0019
+0.9.16,walker.pedestrian.0041,adult,,,AfroF02,black,,5,adult,female,casual,,1,= 1.0 0017
+0.9.16,walker.pedestrian.0042,adult,,,AfroF03,black,,5,adult,female,casual,,1,= 1.0 0022
+0.9.16,walker.pedestrian.0043,adult,,,AfroF03,black,,5,adult,female,casual,,1,= 1.0 0023
+0.9.16,walker.pedestrian.0044,adult,,,AfroF03,black,,5,adult,female,casual,,1,= 1.0 0024
+0.9.16,walker.pedestrian.0045,adult,,,AsiaM02,east_asian,,2,adult,male,casual,,1,= 1.0 0038
+0.9.16,walker.pedestrian.0046,adult,,,AsiaM02,east_asian,,2,adult,male,casual,,1,= 1.0 0036
+0.9.16,walker.pedestrian.0047,adult,,,AsiaM02,east_asian,,2,adult,male,casual,,1,= 1.0 0037
+0.9.16,walker.pedestrian.0048,child,,,EuroG02,white,,1,child,female,casual,,1,= 1.0 0049
+0.9.16,walker.pedestrian.0049,child,,,EuroB02,mixed_unclear,latin_american;white;mena;south_asian,3,child,male,casual,,1,= 1.0 0050

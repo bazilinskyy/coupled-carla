@@ -63,7 +63,7 @@ the drivable road network, cycleways in red, the participant in red and SUMO tra
 - [Maps](#cities): [19 cities](#cities), [real-world scenery, terrain and weather](#real-world-scenery-terrain-and-weather), [parked cars](#parked-cars), [night and rain](#night-and-rain), [scenery on CARLA 1.0](#scenery-on-carla-10-and-on-baked-levels), [public transport](#public-transport), [standard CARLA maps](#standard-carla-maps)
 - [Experiments](#experiment-files): [experiment files](#experiment-files), [participants, inputs and views](#participants-inputs-and-views), [coupled experiments](#coupled-experiments-phase-2), [the Eindhoven crossing](#running-the-eindhoven-crossing), [study tools](#study-tools), [simulated humans](#simulated-humans-optional), [session dashboard](#session-dashboard), [VR stations](docs/lab_guide.md#vr-stations), [sound, in-car displays and eHMIs](#sound-in-car-displays-and-designed-ehmis), [drones](#drones), [ships](#ships)
 - [CARLA 1.0 and the digital twin](#phase-3-carla-10-and-the-eindhoven-digital-twin): [running on CARLA 1.0](#running-on-carla-10), [the Eindhoven twin](#the-eindhoven-digital-twin)
-- [Traffic](#traffic) · [Traffic lights](#traffic-lights)
+- [Traffic](#traffic) · [Who the pedestrians are](#who-the-pedestrians-are) · [Traffic lights](#traffic-lights)
 - [Data](#logging-and-data): [logging](#logging-and-data), [analysis](#analysis), [trial viewer](#trial-viewer)
 - [Performance](#performance) · [coupled-sim features](#coupled-sim-features-in-coupled-carla) · [Known limits](#known-limits) · [Roadmap](#roadmap)
 - [Lessons learned](#lessons-learned-gotchas) · [Project layout](#project-layout)
@@ -139,7 +139,8 @@ map, choose small (about 1 km), medium (1.4 km) or large (2 km), press **Build t
 
 The map maker fills in what you would otherwise have to know: the driving side from the country, how busy the
 traffic is from the size of the town (OSM's population figures; a big city nearby counts), a readable name, and a
-commented experiment file (`experiments/places/<name>.yaml`) with the same city block as the 19 cities. While it
+commented experiment file (`experiments/places/<name>.yaml`) with the same city block as the 19 cities; from
+that city and country the pedestrians get the place's look ([who the pedestrians are](#who-the-pedestrians-are)). While it
 builds, it says what it is doing in plain words; the technical log goes to `maps/<name>/build.log`. At the end it
 draws the map from above (`preview.png`) and lists what is in it and which open data it came from, with their
 licences (`summary.txt`). Step by step, with troubleshooting: [docs/make_a_map.md](docs/make_a_map.md).
@@ -1151,7 +1152,9 @@ flowchart LR
   33 km/h, as the 2 x density x speed estimate above predicts; 17.4 on a 300 s drive; Shibuya 22.4 against Tokyo's
   25.4). Kerbs are added along the route when it runs past the prepared ones (a SUMO driver's next random
   destination). Walkers near a participant on foot stay put;
-  `window: {enabled: false}` plans once along the route as before. Speeds are the place's median crossing speed
+  `window: {enabled: false}` plans once along the route as before. The walkers look like the people of the place
+  (residents and visitors, from census and tourism data; [who the pedestrians are](#who-the-pedestrians-are)).
+  Speeds are the place's median crossing speed
   and quartiles (crowd-city). Walkers cross `crossings_per_km` (2.0) times per km, scaled by the share of tracked
   pedestrians that crossed; a crossing is mid-block with the country's measured share (crowd-jaywalking: Japan
   0.45%, France 1.5%, Netherlands 7.1%, Vietnam 30%, Bangladesh 77%; modelled from pedestrians per minute
@@ -2280,7 +2283,76 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
 - **Demand without counts.** `traffic.cars_per_hour: auto` derives the cars per hour from the map: lane-km by road
   class x the median daily flow per lane measured on the counted maps (primary 3,400, secondary and tertiary
   2,600, other 1,000 cars) x the hour's share / the mean trip length, capped at 5,000 cars/h (above that random
-  trips jam SUMO's junctions). The city files keep their explicit numbers.
+  trips jam SUMO's junctions). The city files keep their explicit numbers of cars (by size class); the twins and
+  the twin maker use `auto`, scaled by the place's density from CROWD (next).
+- **Traffic of the place, from CROWD** (`coupledcarla/crowdtraffic.py`, `traffic.crowd`, data
+  `coupledcarla/data/crowd_traffic.json` built by `tools/crowd_traffic.py`). The CROWD dashcam dataset counts the
+  unique cars, trucks, buses, motorcycles, bicycles and persons that YOLO tracks in each minute of over 33,000 hours
+  of driving footage in about 3,500 localities, by day and by night. Every trial takes from the nearest CROWD
+  locality (within 25 km), shrunk towards its country, continent and the world (a locality's tracks plus 120 minutes
+  at the next level's rate, so Salamanca's single hour leans on Spain's 230):
+  - **the mix of the car stream** (`cars_per_hour`: every motor vehicle but the buses): cars, vans and lorries
+    (CROWD's "truck" class, 70% vans), motorcycles and scooters in the place's shares, plus 0.4% ambulances,
+    police cars and fire engines (`service_share`; COCO has no such class, so this one is not measured);
+  - **the cyclists**: `bikes_per_hour: auto` (the default now) is the car stream x CROWD's bicycles per motor
+    vehicle of the place (the ratio of tracks is taken as the ratio of flows); open bike counters still win;
+  - **random buses** on maps without OSM lines: `buses_per_hour: auto` = the car stream x buses per motor vehicle;
+  - **the density**: `cars_per_hour: auto` x (the place's motor vehicles per minute / the median CROWD locality's)
+    ^ 0.5, clipped to 0.7-1.4; the hourly profile stays counts.py's (CROWD only tells day from night: the night
+    rates apply from 20:00 to 06:00).
+
+  The pedestrians per minute were already CROWD's (`traffic.walkers`, crowdpeds.py). At midday on a weekday (shares
+  of the vehicles seen; crowd_traffic.json of crowd-dataset/crowd 354ea3b6, 2026-11-27; `tools/crowd_traffic.py`):
+
+  | Place | CROWD source (footage, segments) | Cars | Trucks/vans | Buses | Motorcycles | Bicycles | Persons/min | Density |
+  |---|---|---|---|---|---|---|---|---|
+  | Eindhoven (EhvCentre, TU/e) | locality Eindhoven, 171 h, 408 | 71% | 7% | 1.6% | 2.5% | 18.4% | 16.3 | x0.92 |
+  | Amsterdam (Dam) | locality Amsterdam, 112 h, 246 | 47% | 6% | 2.3% | 5.9% | 38.3% | 40.4 | x0.90 |
+  | Tokyo (Shibuya) | locality Tokyo, 170 h, 347 | 66% | 21% | 6.1% | 2.4% | 5.0% | 24.5 | x0.93 |
+  | Salamanca | locality Salamanca, 1 h, 3 (+ Spain, 230 h) | 81% | 8% | 2.8% | 6.5% | 1.7% | 21.4 | x1.02 |
+  | Zurich (HB) | locality Zürich, 40 h, 90 | 74% | 10% | 3.5% | 4.5% | 8.4% | 24.3 | x0.90 |
+  | Helsinki | locality Helsinki, 197 h, 555 | 83% | 10% | 3.5% | 0.4% | 2.6% | 13.2 | x0.93 |
+  | New York (Midtown) | locality New York, 1,902 h, 3,379 | 83% | 12% | 2.5% | 1.0% | 1.9% | 22.4 | x1.19 |
+  | Kigali | locality Kigali, 3 h, 5 (+ Rwanda) | 48% | 12% | 2.4% | 33.2% | 3.7% | 74.9 | x1.14 |
+  | Chernihiv | locality Chernihiv, 4 h, 27 (+ Ukraine, 460 h) | 80% | 13% | 4.8% | 0.7% | 1.3% | 13.0 | x0.95 |
+  | Lyon | locality Lyon, 13 h, 38 | 79% | 10% | 1.9% | 3.0% | 6.0% | 17.7 | x0.97 |
+  | London (Westminster) | locality London, 1,181 h, 1,775 | 70% | 13% | 6.1% | 3.8% | 6.7% | 37.4 | x0.94 |
+  | Taipei | locality Taipei, 20 h, 49 | 62% | 8% | 3.1% | 25.5% | 2.0% | 23.1 | x1.14 |
+  | Ho Chi Minh City | locality Ho Chi Minh City, 75 h, 183 | 27% | 7% | 2.2% | 63.4% | 1.1% | 63.4 | x1.32 |
+  | São Paulo | locality Sao Paulo, 250 h, 648 | 79% | 10% | 2.1% | 7.2% | 1.3% | 20.5 | x1.10 |
+  | Cairo | locality Cairo, 39 h, 113 | 84% | 10% | 3.7% | 2.6% | 0.2% | 27.3 | x1.40 |
+  | Sydney | locality Sydney, 682 h, 1,586 | 83% | 13% | 2.0% | 1.0% | 0.9% | 10.1 | x1.21 |
+
+  **Limits.** A dashcam count is a proxy for flow, not a flow: parked cars and bikes are tracked too (a Dutch
+  street's parked bikes count as cyclists), a slow or stuck dashcam sees more of everything, YOLO's "truck" also
+  takes vans and pickups and its "motorcycle" scooters and mopeds, and the footage follows main roads and highways
+  that a twin's streets are not. Footage of every viewpoint counts, as in CROWD's own tables (Eindhoven's is partly
+  filmed from a bicycle on the cycle paths, which sees more cyclists; `--viewpoints 0,1,2` builds a car-dashcam-only
+  table: Eindhoven 7% bicycles instead of 18%). So the mix is taken as the visible mix, the density only within
+  0.7-1.4 and only where cars_per_hour is `auto`, and the hour's profile is not CROWD's. Rebuild the table after a
+  CROWD release with `python tools/crowd_traffic.py --mapping <crowd>/mapping.csv --detections
+  <crowd>/analysis_data/detection_counts.csv.gz --crowd-version "..."`.
+- **Which vehicles** (`coupledcarla/data/place_vehicles.json`). CROWD says how many cars, trucks and two-wheelers;
+  this file says which CARLA models stand in for them, per region (Europe, eastern Europe, Japan, east, south-east
+  and south Asia, North America, Africa, Latin America, the world), per country (the taxis of DE, ES, NL, GB, FR,
+  CH, FI, RW, VN) and per listed place (Manhattan's yellow cabs, a quarter of its cars; central Tokyo's taxis, a
+  fifth): the car body mix where no open register is read (Japan: compact and kei-sized cars and minivans; the US:
+  SUVs, pickups, sedans; Africa: SUVs, pickups and minibuses), the taxis and their livery colour, the motorcycles
+  and scooters (Vespas in Asia and southern Europe, Harleys in the US, commuter bikes for Kigali's moto-taxis), the
+  vans, lorries and service vehicles. On CARLA 1.0 every one becomes the closest model that drives there
+  (`crowdtraffic.for_server`: the Sprinter, the Carla-Cola lorry, the fire engine, the ambulance, the police
+  Charger, the four motorcycles). A taxi model that is also a private car is its own SUMO type (`<model>#taxi`) and
+  gets the livery colour. The demo clips' own cars are chosen to show the range: a Tesla in Eindhoven, a Mini in
+  Salamanca, a dark blue Tokyo taxi in Shibuya, a Prius in Eindhoven's rush hour, a yellow cab in New York (with
+  service vehicles turned up to 3% to show them), a Seat in Chernihiv, a Patrol in Kigali, a C3 in Lyon, a Charger
+  and an Impala in the CARLA towns.
+- **Warm-up** (`coupledcarla/warmup.py`, `traffic.warmup_s: auto` = 600 s). SUMO used to start empty: trips entered
+  from t = 0 and took minutes to reach the middle of the map, so the first minute of every trial had almost no
+  traffic (the Eindhoven drone clip, filmed at 25-45 s: 11 cars and 6 bikes on the whole twin at 30 s, none in
+  view). The demand is now made for [0, end + 600 s] and shifted 600 s earlier; a vehicle that would have left
+  before t = 0 starts where it would be at t = 0 (the route edge it would have reached at 60% of the limits, a cyclist
+  at 4.5 m/s; `departEdge`, a random free place on it), or is left out when it would have arrived. Buses keep their
+  timetable. `warmup_s: 0` restores the empty start.
 - **Cyclists** (`coupledcarla/cycling.py`, `traffic.cycling`). Bike trips follow the real cycle network: OSM
   bicycle route relations (LCN/RCN/NCN, the Dutch and Belgian knooppunten) and cycle tracks, lanes and cycle
   streets are laid on the SUMO net's bike lanes (cached as `cycling.json`). 70% of bike trips start and end on
@@ -2292,7 +2364,7 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
 
   | Map | Cycle routes matched | Bike-km on cycle routes (random -> cycling) | Counters | Bikes/h at 08:00 weekday |
   |---|---|---|---|---|
-  | Eindhoven | 19 (11 knooppunten) | 22% -> 34% | none keyless (NDW needs an account) | 1200 (as set) |
+  | Eindhoven | 19 (11 knooppunten) | 22% -> 34% | none keyless (NDW needs an account) | 1200 (as set; since 2026-11-28 `auto`: 0.23 per car, ~1,000 on the twin at 17:00) |
   | Lyon | 9 | 11% -> 21% | 6 (Métropole de Lyon) | 3000 (counted 4277, capped) |
   | New York | 14 | 49% -> 70% | 1 (NYC DOT, 8th Ave) | 300, 107 of them entering on 8th Ave |
   | Sydney | 8 | 13% -> 45% | 13 (City of Sydney) | 1503 |
@@ -2315,7 +2387,140 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
 - **Interaction.** The participant's car is mirrored into SUMO each tick (`moveToXY`), so SUMO vehicles brake
   for it, queue behind it and yield to it.
 - **Level of detail.** SUMO simulates the whole map; a SUMO vehicle exists in CARLA only within
-  `simulation.lod_radius_m` (250 m) of a participant and is removed beyond 280 m.
+  `simulation.lod_radius_m` (250 m) of a participant and is removed beyond 280 m. A drone pilot's camera looks far
+  beyond that from 50 m up: the ground point its gimbal ray meets (30-220 m ahead, `drones.look_points`) counts as
+  a participant too, for SUMO's vehicles, the parked cars and the frame log, and a bot pilot's crowd is planned
+  along its flight and where its camera will look (`drones.path_points`).
+
+### Who the pedestrians are
+
+The walkers look like the people on the street of the map's place: mostly East Asian in Tokyo, a European mix with
+the city's own share of other appearances in Eindhoven, Amsterdam, Salamanca, Zurich, Helsinki and Lyon, New York's
+mix in Manhattan, with a share of visitors from the place's tourism statistics (`coupledcarla/walkerlooks.py`,
+`traffic.walkers.looks`, on by default). It applies to every walker coupled-carla spawns on its own: the CROWD
+crowd, the crowd window's walkers, the living city's groups, children, wheelchair users and door and bus walkers,
+the walkers beside the roads (`behaviour: off`), CARLA-town AI walkers and scripted walkers whose `blueprint` is
+the pattern `walker.pedestrian.*`. A participant's own avatar (`blueprint`) is never changed.
+
+**Appearance is not nationality.** Nothing here says who a person is. The groups are broad and coarse on purpose:
+`east_asian` (East and Southeast Asian), `south_asian`, `black`, `white`, `mena` (Middle Eastern / North African),
+`latin_american` and `mixed_unclear` (mixed, Pacific, Indigenous or no clear group). The numbers are approximate. The
+goal is a crowd that looks plausible for the place, not a census.
+
+**How the mix is made** (data and sources: `coupledcarla/data/walker_demographics.yaml`).
+
+1. *The place.* The nearest place in the file whose radius holds the map's centre; else the map's country
+   (`crowdpeds.locate`: the experiment's `city.country`, CROWD's localities, OSM Nominatim) from the file's
+   `countries`, else its region (UN M49 sub-regions, grouped coarsely). A CARLA town or a place with no known country
+   gets the world mix (`generic`). Maps of any place built with the map maker get their place or country this way,
+   so they need no setup.
+2. *Residents.* Official counts of the residents by nationality (Tokyo), country of origin (CBS for Eindhoven and
+   Amsterdam), country of birth (INE for Salamanca), nationality (Zurich), background country (Statistics Finland for
+   Helsinki), or race and Hispanic origin (US Census ACS for Manhattan). Each count becomes appearance groups through
+   the origin's own mix: a Chinese national counts as `east_asian`, a US resident as the US mix (ACS), a Surinamese
+   resident of Amsterdam as Suriname's mix (census 2012: Hindustani, Maroon, Creole, Javanese, mixed), Japan's or
+   Switzerland's nationals as a mostly single-group mix with a small allowance for naturalised and mixed citizens.
+3. *Visitors.* The share of people on the street who are foreign visitors:
+   `v = present / (population + present) x hotspot_factor` (at most 0.6), with `present` = foreign visitor nights
+   per year / 365 from the tourism statistics (TMG and JNTO for Tokyo, CBS hotel guests for Amsterdam and
+   Noord-Brabant, NYC Tourism + Conventions). `hotspot_factor` (a judgment, per place) says how much denser visitors
+   are where the twin is (Shibuya crossing 6, Dam square 5, Eindhoven centre 3) than city-wide. The visitors' mix
+   comes from their countries of residence, each turned into groups as above. Domestic visitors count as residents.
+4. *The street mix* is `(1 - v) x residents + v x visitors`.
+
+**Sampling.** `coupledcarla/data/walker_looks.csv` tags every walker blueprint of CARLA 0.9.16 (49) and 1.0 (37)
+with a broad appearance group, the groups it can also pass for, a coarse perceived skin tone (1-5), age group,
+gender presentation and clothing, by eye from CARLA's own catalogue stills (`Docs/img/catalogue/pedestrians` in
+the CARLA repo): appearance only, nothing else is inferred. The server's library decides which version's tags
+apply (the two versions number the same people differently); a walker the file does not know counts as
+`mixed_unclear`. Each walking unit (a single walker, or a living-city group) is a resident or a visitor (with the
+visitor share), its leader's group is drawn from that component's mix, and each member shares the leader's group
+(`family_same_group`, 0.9) or draws again from the same component: families stay together, a tourist group is a
+tourist group. Within a group, women and men get equal halves; walkers that only *also* pass for a group stand in
+for it at `also_weight` (0.25) of a tagged one, or alone when no walker is tagged with it. A child is a child walker
+of the family's group; when the catalogue has none, the member walks as an adult of that group. A wheelchair user is
+a walker of its group that can use one, else it walks. A police walker is rare (weight 0.1).
+
+```yaml
+traffic:
+  walkers:
+    looks:
+      enabled: true          # false: every walker blueprint equally likely (as before 2026-11-28)
+      place: auto            # or a place key (tokyo_shibuya, eindhoven, ...), an ISO3 code, generic, uniform
+      mix: null              # or your own {group: share}, e.g. {east_asian: 0.8, white: 0.2}
+      family_same_group: 0.9
+      also_weight: 0.25
+```
+
+The trial log says which place and mix it used and the realised mix of the spawned crowd ("walker looks: ...").
+`python tools/walker_looks_check.py logs/<experiment>/<stamp>_trial0` counts every walker of a trial by group
+against the target; `--place tokyo_shibuya --carla 1.0` samples offline; `--table` prints the table below.
+Measured on CARLA 1.0 (lin5080, `-nullrhi`, 150 s drives, 2026-11-28): the Shibuya twin's trial spawned 34
+walkers, 91 % East Asian against a 94 % target (2 stood in by a walker that also passes for the group, 1
+white); the Eindhoven twin's 50 walkers were 76 % white (target 70 %), 6 % East Asian (5 %), with its 10 %
+Middle Eastern / North African share stood in by Latin American and mixed walkers (12 % and 6 %). Offline, 5,000
+walkers on 1.0's catalogue meet every place's target within 1 percentage point by the group they were drawn
+for (`tests/test_walkerlooks.py` requires 2 points).
+
+**Target mix per place** (share of the people on the street, %; v = visitors):
+
+| Place | v | east_asian | south_asian | black | white | mena | latin_american | mixed_unclear | Residents (year) | Visitors (year) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Tokyo, Shibuya | 11 | 94 | <1 | <1 | 3 | <1 | <1 | 2 | TMG foreign residents by municipality and nationality; Shibuya resident register (2025) | TMG tourism survey, 24.79 M foreign visitors; JNTO arrivals by country (2024) |
+| Eindhoven | 2 | 5 | 5 | 6 | 70 | 10 | 2 | 3 | CBS 85458NED, origin (2025) | CBS 82061NED hotel guests, Noord-Brabant (2024) |
+| Amsterdam (Dam) | 25 | 6 | 4 | 9 | 62 | 12 | 4 | 3 | CBS 85458NED (2025) | CBS 82061NED, Amsterdam: 17.7 M foreign hotel nights (2024) |
+| Salamanca | 7 | 2 | <1 | 2 | 82 | 2 | 10 | 1 | INE 68547, country of birth (2026) | INE hotel occupancy survey (2024, approx.) |
+| Zurich | 5 | 3 | 3 | 3 | 85 | 4 | 2 | 1 | Statistik Stadt Zürich BEV336OD3361, nationality (2025) | Stadt Zürich hotel nights (2023, approx.) |
+| Helsinki | 3 | 3 | 3 | 4 | 86 | 3 | 1 | 1 | Statistics Finland 11rv, background country (2024) | Statistics Finland accommodation (2024, approx.) |
+| New York, Manhattan | 30 | 10 | 2 | 12 | 50 | <1 | 23 | 3 | US Census QuickFacts, ACS 2019-2023 | NYC Tourism + Conventions (2024) |
+| Lyon | 2 | 2 | 1 | 6 | 78 | 10 | 1 | 2 | INSEE census, immigrants 14.4 % (2022) with France's origins (2021) | INSEE hotel nights (approx.) |
+| Kigali | 4 | 1 | 1 | 98 | 1 | <1 | <1 | <1 | NISR census (2022, approx.) | RDB (approx.) |
+| Chernihiv | 0.5 | <1 | <1 | <1 | 99 | <1 | 0 | 1 | Ukrainian census (2001) | judgment (wartime) |
+| Generic (world) | 0 | 30 | 25 | 15 | 14 | 7 | 8 | 1 | modelled from UN WPP 2024 regional populations | |
+
+Every other place uses its country's mix (US, Canada, UK, Australia, Brazil, South Africa, Singapore and others from
+their census, many European countries modelled from their migration statistics) or its region's (modelled).
+
+**Limits.** The groups are a simplification; real people do not sort into seven boxes, and appearance and
+nationality differ (a Dutch citizen of Moroccan origin, a Japanese citizen of mixed parentage). Registries count
+residents, not who is on a given street at a given hour: commuters, students and visitors who stay with friends are
+missing, and the hotspot factors are judgments. Turning a nationality or origin into appearance needs an assumed mix
+per origin: where a country publishes race or ethnicity (US, UK, Canada, South Africa, Brazil, Singapore) that is
+used; elsewhere (France, Germany, the Netherlands' and Switzerland's own nationals, regions) the mix is a judgment,
+marked `checked: false` in the YAML with its source. Numbers marked `checked: true` were read from the cited
+table on 2026-11-28; the others are rounded and should be checked before being quoted. The tags in
+`walker_looks.csv` are one person's reading of CARLA's renders.
+
+**Coverage gaps in CARLA's stock walkers.** CARLA 1.0 has 33 adults (13 tagged `black`, 9 `white`, 5 `east_asian`,
+4 `latin_american`, 2 `south_asian`; on 13 distinct bodies), 4 children (white, mixed, 2 black), and only black and
+Latin American walkers can use a wheelchair. 0.9.16 adds 14 first-generation white walkers (8 children) and has no
+wheelchair attribute values in the docs. So:
+
+- Tokyo's 94 % `east_asian` are 5 blueprints, two faces (a woman in 2 outfits, a man in 3): each appears in ~1 of
+  5 walkers. There is no East Asian child (children of Tokyo families walk as adults) and no East Asian wheelchair
+  user.
+- No walker reads clearly as Middle Eastern / North African: Eindhoven's, Amsterdam's and Lyon's 10-12 % `mena`
+  are stood in for by walkers that also pass for it (the South Asian, Latin American and two light-skinned
+  walkers). No South Asian woman, no East Asian or South Asian child.
+
+The fix is more walkers, imported as CARLA walkers (`import-carla-ue58-walker` skill of the CARLA repo,
+`Skills/ue58/`):
+
+1. CARLA 1.0's content has an East Asian man's mesh that no blueprint uses: `Static/Pedestrian/AsiaM03_G3/SK_AsiaM03_G3`
+   (generation 3). Registering it needs a generation-3 adult donor blueprint (the only generation-3 blueprints are
+   children) and a look in a render.
+2. [Microsoft Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox) avatars (MIT licence), chosen from their
+   preview images: East Asian `Female_Adult_03`, `Male_Adult_09`, `Male_Adult_10`, `Business_Male_02`; Middle
+   Eastern / North African `Female_Adult_06`, `Female_Adult_10`, `Female_Child_02`, `Male_Adult_15`, `Male_Adult_19`;
+   South Asian `Male_Adult_17`, `Business_Female_01` (11 avatars, 942 MB). `python tools/fetch_walker_assets.py
+   <dir>` fetches them at a pinned commit with their licence and an `ATTRIBUTION.md` (never into git). They are
+   rigged to a 3ds Max Biped skeleton, so each must be re-skinned to CARLA's pedestrian skeleton (a Blender
+   retarget) before the skill imports it, then checked in a render and tagged in `walker_looks.csv` (rows of version
+   `cc`, used by whatever server has them).
+3. Rocketbox has no East Asian child. [MakeHuman](http://www.makehumancommunity.org) / MPFB 2 for Blender makes
+   characters of any age and appearance whose exported models are CC0, with a game-engine skeleton close to CARLA's.
+
+None is imported yet (see [Known limits](#known-limits)); until then the sampler stands in as described above.
 
 ### Smooth traffic and clip QA
 
@@ -2597,6 +2802,10 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
   facades, tree models and props, and flat or tilted ground tiles (steps between tiles on steep maps). No road
   markings or crossings on OSM maps, and lamps give no light on 0.9.16 (on CARLA 1.0 they do). Exact buildings, aerial-photo ground and markings
   need the UE 5.8 digital twin (phase 3).
+- **Walker looks** ([who the pedestrians are](#who-the-pedestrians-are)): CARLA's stock walkers cannot meet
+  every place's mix. Tokyo's crowd is two East Asian faces in five outfits, with no East Asian child or wheelchair
+  user; no walker reads clearly as Middle Eastern / North African. Imports of openly licensed walkers (CARLA's
+  unused AsiaM03 mesh, Microsoft Rocketbox avatars re-skinned to CARLA's skeleton) are planned, not done.
 - **Pedestrians:** human pedestrians, scripted AI walkers and the crowd walk by direct control (no navigation
   mesh). Crowd walkers keep to one street, cross at OSM crossings, junctions or mid-block, and ignore pedestrian lights. Walkers off the road walk on the ground plane,
   0.3 m below the road surface. `map.sidewalks: true` puts sidewalk lanes into the OpenDRIVE (not into SUMO's
@@ -2778,6 +2987,9 @@ coupledcarla/
   canopy.py          tree heights from Meta/WRI's 1 m canopy height map
   meshes10.py        CARLA 1.0's mesh choices for scenery.py
   crowdpeds.py       the pedestrian crowd calibrated with CROWD per country (speeds, crossings, gaps, places)
+  walkerlooks.py     who the walkers are: blueprints sampled from the place's resident and visitor mix
+  crowdtraffic.py    the place's vehicle mix, cyclists and density from CROWD; its models (data/place_vehicles.json)
+  warmup.py          SUMO's demand as if it had run 600 s: streets busy at t = 0
   parking.py         parked cars at the kerbs and on car parks
   ndwsigns.py        the Dutch national traffic sign register (NDW) and Rijkswaterstaat's speed limits
   season.py          leaf state by date and place; lit street lamps on CARLA 1.0
@@ -2834,7 +3046,9 @@ experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhove
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, test_towns.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
                      render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py,
-                     crowdpeds_check.py, crowd_table.py, speeds_check.py, signal_check.py, signal_heads.py
+                     crowdpeds_check.py, crowd_table.py, crowd_traffic.py (CROWD -> data/crowd_traffic.json),
+                     traffic_seen.py (vehicles and walkers in a clip camera's view), traffic_mix_check.py (a clip's
+                     SUMO traffic without CARLA), speeds_check.py, signal_check.py, signal_heads.py
 docs/                city_tests.md, town_tests.md, make_a_map.md (the map maker, step by step), street_photos.md, signals.md, img/
 make_map.bat, make_map.sh, "Make a map.command"   double-click launchers of the map maker (Windows, Linux, macOS)
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions
@@ -2889,6 +3103,11 @@ just as much; how to report bugs, propose features and run the tests: [CONTRIBUT
   crossing speeds and crowd-jaywalking crossing checks; [Overture Maps](https://overturemaps.org) places (CDLA
   Permissive 2.0); [NYC DOT Bi-Annual Pedestrian Counts](https://data.cityofnewyork.us/d/cqsj-cfgu); [City of Sydney
   walking counts](https://data.cityofsydney.nsw.gov.au) (CC BY 4.0).
+- Walker looks (`coupledcarla/data/walker_demographics.yaml`, every figure with its source and year): Tokyo
+  Metropolitan Government foreign-resident and tourism statistics, JNTO visitor arrivals, CBS StatLine 85458NED
+  and 82061NED, INE (Estadística Continua de Población), Statistik Stadt Zürich open data, Statistics Finland
+  StatFin, US Census Bureau QuickFacts / ACS, NYC Tourism + Conventions, INSEE, NISR, and national censuses named
+  in the file; walker tags from CARLA's catalogue stills (MIT).
 - Signs and speeds (NL): [NDW Verkeersborden](https://docs.ndw.nu) (CC0), Rijkswaterstaat Wegkenmerkendatabase
   maximum speeds (CC0), NDW floating-car speeds. Speeds elsewhere: PBOT speed counts (Portland), Taipei Traffic
   Control Center detectors (Taiwan OGDL 1.0), Intendencia de Montevideo.
