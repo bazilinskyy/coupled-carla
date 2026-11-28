@@ -39,7 +39,9 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(1, str(Path(__file__).resolve().parent.parent))
 from drone_mesh import Mesh, box, disc, sphere, tube, write_glb  # noqa: E402
+from coupledcarla import signalfaces  # noqa: E402
 
 ROOT = "/Game/CoupledCarla/Street"
 LICENCE = "procedural, coupled-carla (MIT): tools/street_props.py"
@@ -453,14 +455,45 @@ def signal_pole_plain(mat, h=3.6):
     return m, {"top": [0.0, 0.0, h]}
 
 
-def signal_head(lenses=3, d=0.30, plate="SignalYellow", border=None, horizontal=False, pole_r=0.057):
-    """A signal head: a black body with `lenses` round lenses (diameter d: 300 mm car heads, 200 mm cyclist and
-    pedestrian heads) under visors, on a back plate (Dutch yellow, or black with a white border as the UK's). The
-    lenses face model -y (Unreal +y); origin at the middle of the back plate's back, which stands pole_r in front
-    of the pole's axis when the head hangs on a pole at x = 0 (y = 0 is the pole's axis)."""
+def _face_disc(m, mat, centre, r, seg=28):
+    """A disc of radius r facing model -y (Unreal +y) at centre (x, y, z)."""
+    sub = Mesh()
+    disc(sub, mat, (0, 0, 0), r, seg=seg, both=False)
+    R = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])        # disc normal +z -> -y
+    for v, nn, uv, ix in zip(*[sub.parts[mat][j] for j in range(4)]):
+        m.add(mat, v @ R.T + np.asarray(centre, float), nn @ R.T, uv, ix - ix.min())
+
+
+def pictogram(m, mat, cx, y, cz, d, key):
+    """signalfaces.PICTOGRAMS[key] as flat strokes facing model -y in a lens of diameter d centred at (cx, y, cz):
+    the same strokes signals.py lights with debug lines in front of it."""
+    s = d / 2 * signalfaces.PICTO_FILL
+    for prim in signalfaces.PICTOGRAMS[key]:
+        if prim[0] == "dot":
+            (px, pz), r = prim[1], prim[2]
+            _face_disc(m, mat, (cx + px * s, y, cz + pz * s), r * s, seg=12)
+            continue
+        (x0, z0), (x1, z1), w = prim[1], prim[2], prim[3]
+        L = math.hypot(x1 - x0, z1 - z0) or 1e-9
+        nx, nz = -(z1 - z0) / L * w * s / 2, (x1 - x0) / L * w * s / 2
+        a, b = (cx + x0 * s, cz + z0 * s), (cx + x1 * s, cz + z1 * s)
+        quad(m, mat, [(a[0] - nx, y, a[1] - nz), (b[0] - nx, y, b[1] - nz), (b[0] + nx, y, b[1] + nz),
+                      (a[0] + nx, y, a[1] + nz)], (0, -1, 0), both=True)
+
+
+def signal_head(lenses=3, d=0.20, plate="SignalYellow", border=None, horizontal=False, pole_r=0.057, faces=None):
+    """A signal head: a black body with `lenses` round lenses (diameter d: 200 mm Dutch and British car heads,
+    cyclist and pedestrian heads; 300 mm Japanese car heads) under visors, on a back plate (Dutch yellow, or black
+    with a white border as the UK's). faces: a signalfaces pictogram per lens (None: a plain lens): a black mask
+    over the lens with the pictogram in the lens's colour (the Dutch cyclist head's bicycle, the pedestrian
+    head's standing and walking figures), so the unlit lens shows it faintly; signals.py lights the pictogram (or
+    a plain lens as a round disc) in front of it. The lenses face model -y (Unreal +y); origin at the middle of
+    the back plate's back, which stands pole_r in front of the pole's axis when the head hangs on a pole at x = 0
+    (y = 0 is the pole's axis)."""
     m = Mesh()
     pitch = d + 0.06
     n = lenses
+    faces = list(faces) if faces else [None] * n
     long_, short = n * pitch + 0.06, d + 0.12
     bw, bh = (long_, short) if horizontal else (short, long_)
     y0 = -pole_r                         # the plate's back
@@ -478,12 +511,11 @@ def signal_head(lenses=3, d=0.30, plate="SignalYellow", border=None, horizontal=
         off = ((n - 1) / 2 - k) * pitch
         cx, cz = (-off, 0.0) if horizontal else (0.0, off)
         yf = y0 - 0.016 - depth
-        disc_c = np.array([cx, yf - 0.002, cz])
-        sub = Mesh()
-        disc(sub, lens_mats[k], (0, 0, 0), d / 2, seg=28, both=False)
-        R = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])        # disc normal +z -> -y
-        for v, nn, uv, ix in zip(*[sub.parts[lens_mats[k]][j] for j in range(4)]):
-            m.add(lens_mats[k], v @ R.T + disc_c, nn @ R.T, uv, ix - ix.min())
+        _face_disc(m, lens_mats[k], (cx, yf - 0.002, cz), d / 2)
+        if faces[k]:                    # the black mask, the pictogram in the lens's colour on it
+            ym = yf - 0.002 - signalfaces.MASK_FRONT
+            _face_disc(m, "SignalBlack", (cx, ym, cz), d / 2 * 0.97)
+            pictogram(m, lens_mats[k], cx, ym - 0.001, cz, d, faces[k])
         # visor: a half tube over the lens
         for a0 in range(6):
             a = math.pi * a0 / 6
@@ -495,7 +527,18 @@ def signal_head(lenses=3, d=0.30, plate="SignalYellow", border=None, horizontal=
                                     (p0[0], yf - 0.16, p0[1])],
                  (math.cos((a + a1) / 2), 0, math.sin((a + a1) / 2)), both=True)
         centres.append([round(cx, 3), round(-(yf - 0.002), 3), round(cz, 3)])     # Unreal (x, y, z)
-    return m, {"lenses": centres, "plate": [round(pw, 3), round(ph, 3)]}
+    return m, {"lenses": centres, "plate": [round(pw, 3), round(ph, 3)], "lens_d": d, "faces": faces}
+
+
+def replacing(made, region, name, old):
+    """A head mesh `made` (signal_head's (mesh, extra)) that replaces an older one of another name: its manifest
+    entry says which ("replaces": the older mesh's path, lens centres and diameter), so signals.py spawns the older
+    one, with its own lens positions, on a server whose content predates this one."""
+    m, extra = made
+    _, old_extra = old
+    extra = dict(extra, replaces={"path": mesh_path(region, "TrafficLight", name), "lenses": old_extra["lenses"],
+                                  "lens_d": old_extra["lens_d"], "faces": old_extra["faces"]})
+    return m, extra
 
 
 # -- markings and road surface -----------------------------------------------------------------------------------
@@ -843,9 +886,17 @@ def specs():
     add("Nietje_x6", "NL", "Static", "bike_stand", lambda: nietjes(6), "SM_BikeParking02")
     # Dutch traffic lights (TrafficLight): for signals.py's head style
     add("SignalPole", "NL", "TrafficLight", "signal_pole", signal_pole)
-    add("SignalCar", "NL", "TrafficLight", "signal_car", lambda: signal_head(3, 0.30))
-    add("SignalBike", "NL", "TrafficLight", "signal_bike", lambda: signal_head(3, 0.20))
-    add("SignalPed", "NL", "TrafficLight", "signal_ped", lambda: signal_head(2, 0.20))
+    # 200 mm lenses (Dutch urban car heads; 300 mm ones are for roads outside built-up areas): until 2026-11-28 a
+    # 300 mm head as SignalCar, which signals.py still spawns where the server's content predates SignalCar200
+    add("SignalCar200", "NL", "TrafficLight", "signal_car",
+        lambda: replacing(signal_head(3, 0.20), "NL", "SignalCar", signal_head(3, 0.30)), None,
+        "200 mm car head, yellow back plate")
+    add("SignalBike", "NL", "TrafficLight", "signal_bike",
+        lambda: signal_head(3, 0.20, faces=signalfaces.faces_for("bike", 3)), None,
+        "200 mm cyclist head, a bicycle in each lens")
+    add("SignalPed", "NL", "TrafficLight", "signal_ped",
+        lambda: signal_head(2, 0.20, faces=signalfaces.faces_for("ped", 2)), None,
+        "200 mm pedestrian head, standing red and walking green figures")
     # markings and surfaces (RoadLine, Road)
     for n in (3, 4, 5):
         add(f"SharkTeeth_{n}", "NL", "RoadLine", "shark_teeth", lambda n=n: shark_teeth(n))
@@ -887,8 +938,10 @@ def specs():
     add("LampColumn8", "UK", "Pole", "lamp_arm", lambda: lamp_uk(8.0), "SM_StreetLight06_A", "BS EN 40 column")
     add("BinCast", "UK", "Static", "bin", bin_uk, "SM_TrashCan01")
     add("SignalPole", "UK", "TrafficLight", "signal_pole", lambda: signal_pole_plain("PoleBlack"))
-    add("SignalCar", "UK", "TrafficLight", "signal_car",
-        lambda: signal_head(3, 0.30, plate="SignalBlack", border="SignalWhite"))
+    add("SignalCar200", "UK", "TrafficLight", "signal_car",       # 200 mm (300 mm on fast roads only)
+        lambda: replacing(signal_head(3, 0.20, plate="SignalBlack", border="SignalWhite"), "UK", "SignalCar",
+                          signal_head(3, 0.30, plate="SignalBlack", border="SignalWhite")), None,
+        "200 mm car head, black back plate with a white border")
     add("LampGooseneck8", "JP", "Pole", "lamp_arm", lambda: lamp_jp(8.0), "SM_StreetLight06_A")
     # round 3: big screens (any region, screens.py) and Japanese vertical shop signs
     for k in SCREEN_KEYS:
@@ -900,8 +953,8 @@ def specs():
         add(f"SignV_{k}", "JP", "Static", "sign_vertical", lambda k=k: blade_sign(f"SignV_{k}"), None,
             f"vertical shop sign: {SIGNV_WORDS[k]} (a generic word)")
     add("SignalPole", "JP", "TrafficLight", "signal_pole", lambda: signal_pole_plain("Galvanised"))
-    add("SignalCar", "JP", "TrafficLight", "signal_car",
-        lambda: signal_head(3, 0.30, plate="SignalBlack", horizontal=True))
+    add("SignalCar", "JP", "TrafficLight", "signal_car",            # Japan's are 250-300 mm
+        lambda: signal_head(3, 0.30, plate="SignalBlack", horizontal=True), None, "300 mm horizontal car head")
     return S
 
 

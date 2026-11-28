@@ -2208,6 +2208,8 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
   vehicle class; `tools/drive_check.py <trial>` measures a CARLA trial (the ego's events, jerk, overlapping vehicles,
   walker contacts, heading jumps). With SUMO driving the autopilot, the ego got stuck 0 times in 8 runs of 150 s
   (before: 3-31 times per run).
+- **Stop lines before crosswalks** (`traffic.stop_lines`, default true): vehicles wait before a crosswalk at a
+  junction, not on it ([Traffic lights](#traffic-lights)).
 - **Junctions without internal stops** (`map.internal_junctions`, default false). `tools/junction_check.py` found
   that most SUMO collisions hit a vehicle waiting at an internal junction (a turning vehicle's waiting point inside
   the junction). On junctions rebuilt from OpenDRIVE that point often lies within a neighbouring lane its path does
@@ -2457,10 +2459,25 @@ in a world built from OpenDRIVE: they have no OpenDRIVE id, so they cannot be li
 - each signalled lane's light is **drawn in the world** at its stop line (a pole with a lamp, right of the
   lane), coloured from SUMO, for lights near a participant; the drawing shows in every camera, so the driver
   sees it. On CARLA 1.0 with the street content (`map.scenery.street_props`), the heads are the country's: in the
-  Netherlands the black-and-white banded pole with a car head (300 mm lenses on a yellow back plate) or, over a cycle
-  lane, the cyclist head; the UK's and Japan's (horizontal) car heads on CARLA's pole; the lit lens is the mesh's
-  own. On eindhoven_centre all 148 heads were Dutch (70 for cyclists; lin5080, CARLA 1.0 -nullrhi). CARLA 0.9.16 and
-  servers without the content keep CARLA's pole and backboard;
+  Netherlands the black-and-white banded pole with a car head (200 mm lenses on a yellow back plate) or, over a cycle
+  lane, the cyclist head (200 mm lenses with a bicycle in each); the UK's car head (200 mm) and Japan's (300 mm,
+  horizontal) on their own poles. The lit aspect is drawn on the mesh's own lens: a **round** lens (six thick debug
+  lines whose rectangles' corners lie on its circle; until 2026-11-28 one square line, which showed as a flat
+  rectangle), and on a cyclist or pedestrian lens only the **pictogram**, lit on the black mask over the lens as the
+  real LED heads do (`coupledcarla/signalfaces.py`; the meshes carry the same pictograms, faint when unlit). A server
+  whose content predates the 200 mm car heads spawns the older 300 mm ones with their own lens positions. On
+  eindhoven_centre all 148 heads were Dutch (70 for cyclists; lin5080, CARLA 1.0 -nullrhi). CARLA 0.9.16 and servers
+  without the content keep CARLA's pole and backboard, with the same round lit lens;
+- **stop lines before the crosswalks** (`traffic.stop_lines`, default true; `coupledcarla/stoplines.py`): SUMO
+  stopped a vehicle that must wait with its front at the end of its lane, and the nets have no crossings, so a car
+  waiting at a red light stood on the zebra painted across the approach (the Eindhoven twin clip, 2026-11-28). Each
+  approach lane where a waiting car would stand on a crosswalk now gets a SUMO stop line (`<stopOffset>`) 1 m before
+  it (and before the next one back while the car would cover that), followed back over SUMO's short edges in front
+  of a signal; the heads stand there and the participants' next-light distance ends there. Crosswalks: the
+  OpenDRIVE's crosswalk objects (twins, towns) or OSM's crossing nodes (maps from OSM). The trial's net gets them at
+  start (no rebuild). `python tools/stopline_check.py maps/*` lists, per map, where a waiting car would stand on a
+  crosswalk without and with them (2026-11-28: on 9 twins 2,161 → 29 approach lanes, 936 → 12 at signals; on the
+  21 OSM maps 4,100 → 145; the rest have no room for a car between the crosswalk and the junction before it);
 - each participant's **next light** (id, distance, state) comes from the lane their SUMO twin is on; it drives
   the autopilot, the HUD, the per-frame log (`next_tl*` columns) and a `next_light` event whenever it changes.
 
@@ -2917,6 +2934,8 @@ coupledcarla/
   bridge/            SUMO <-> CARLA bridge, vendored from CARLA 0.9.16 (MIT) with fixes (batching,
                      level of detail, traffic lights, offsets, TM port); util/netconvert_carla.py
   signals.py         SUMO traffic lights drawn in CARLA, next light per participant
+  signalfaces.py     a lit lens drawn round, cyclist and pedestrian pictograms (debug lines and the head meshes)
+  stoplines.py       SUMO stop lines before the crosswalks at junctions (lane stopOffset)
   signalplan.py      a programme per junction: controllers matched to the city's signals, Dutch timings
   signaldata.py      real signal data: phase logs replayed (programme or exact), live feeds through TraCI
   inputs/            keyboard, G25 wheel (steering_wheel.py), autopilot

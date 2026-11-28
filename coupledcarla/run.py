@@ -451,11 +451,13 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # stacked roads: where SUMO's lane heights are CARLA's, a car off its lane's height is put back (levels.py)
         carla_sim._cmap = world.get_map()
         carla_sim.check_level = levels.check_heights(carla_sim._cmap, sumo.net, BridgeHelper.offset, log=log)
+        from . import stoplines     # the stop lines before crosswalks in the net SUMO runs (traffic.prepare)
         signals = Signals(world, sumo.net, BridgeHelper.offset, step=step, debug=side.debug,
                           style=(tc["simulation"].get("traffic_lights") or {}).get("style", "head"),
                           lefthand=bool(tc["map"].get("lefthand")), log=log,
                           surface=placement.ground_surface(mdir / "scenery.json") if has_scenery else None,
-                          region=signal_region(tc, mdir, compat.server_major(client)))
+                          region=signal_region(tc, mdir, compat.server_major(client)),
+                          stop_offsets=stoplines.read_offsets(getattr(sumo, "net_file", None)))
         if signals.style != "none":
             log(f"traffic lights: {len(signals.heads)} signal heads from SUMO ({signals.style}"
                 f"{', meshes' if signals.meshes else ''}) drawn near participants")
