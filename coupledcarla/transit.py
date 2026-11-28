@@ -763,10 +763,18 @@ def routes(map_dir, work, end_s, vtype, vtype_xml, when, pc, seed, net, live=Fal
     if not data["lines"]:
         return None
     # lines and stops on edges the net lacks (a transit.json built for another SUMO net) are left out, not fatal
-    known = {e.getID() for e in net.getEdges()}
-    lanes = {ln.getID() for e in net.getEdges() for ln in e.getLanes()}
-    bad_lines = [ln for ln in data["lines"] if any(e not in known for e in ln["edges"])]
-    bad_stops = {st["id"] for st in data["stops"] if st["lane"] not in lanes}
+    seen = {}
+
+    def known(e):
+        if e not in seen:
+            try:
+                net.getEdge(e)
+                seen[e] = True
+            except Exception:  # noqa: BLE001 - sumolib raises KeyError for an unknown edge
+                seen[e] = False
+        return seen[e]
+    bad_lines = [ln for ln in data["lines"] if not all(known(e) for e in ln["edges"])]
+    bad_stops = {st["id"] for st in data["stops"] if not known(st["lane"].rsplit("_", 1)[0])}
     if bad_lines or bad_stops:
         log(f"transit.json: {len(bad_lines)} of {len(data['lines'])} lines and {len(bad_stops)} stops name edges "
             f"this SUMO net lacks (built for another net: python -m coupledcarla.mapbuild <experiment> --transit); "
