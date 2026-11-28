@@ -294,3 +294,24 @@ def test_every_walker_spawner_goes_through_walkerlooks():
             if re.search(r"\.choice\((self\.)?(bps|walker_bps|walkers_bps)\)", line):
                 bad.append(f"{f.name}:{i}: {line.strip()}")
     assert not bad, bad
+
+
+def test_check_tool_counts_a_trial(tmp_path, capsys):
+    """tools/walker_looks_check.py on a trial folder: the right CARLA version's tags (0032 is an East Asian woman on
+    1.0 but a police officer on 0.9.16)."""
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location(
+        "walker_looks_check", Path(wl.__file__).resolve().parents[1] / "tools" / "walker_looks_check.py")
+    tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tool)
+    assert tool.version_of(["walker.pedestrian.0032", "walker.pedestrian.0051"]) == "1.0"
+    assert tool.version_of(["walker.pedestrian.0032", "walker.pedestrian.0003"]) == "0.9.16"
+    assert tool.version_of(["walker.pedestrian.0032"], default="1.0") == "1.0"
+    (tmp_path / "config.yaml").write_text("map: {carla_town: Town10HD_Opt}\n")
+    rows = ["timestamp;frame;actor_id;kind;role;type_id"]
+    rows += [f"0.0;1;{i};walker;crowd;walker.pedestrian.{b}" for i, b in enumerate(["0032", "0033", "0036", "0039"])]
+    rows += ["0.0;1;99;participant;driver;vehicle.lincoln.mkz_2020"]
+    (tmp_path / "frames.csv").write_text("\n".join(rows) + "\n")
+    st, real, n = tool.trial(tmp_path)
+    assert n == 4 and real["east_asian"] == 0.75 and real["white"] == 0.25

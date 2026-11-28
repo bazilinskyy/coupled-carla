@@ -29,7 +29,18 @@ def header(with_n=False):
             "---|" * (len(wl.GROUPS) + 1 + with_n))
 
 
-def trial(folder):
+def version_of(type_ids, default="1.0"):
+    """The CARLA version whose catalogue numbers these walkers: 0001-0014 and 0044 exist only on 0.9.16, 0050-0052
+    only on 1.0 (the two number the same people differently); else default."""
+    nums = {int(t.rsplit(".", 1)[1]) for t in type_ids if t.rsplit(".", 1)[-1].isdigit()}
+    if nums & (set(range(1, 15)) | {44}):
+        return "0.9.16"
+    if nums & {50, 51, 52}:
+        return "1.0"
+    return default
+
+
+def trial(folder, carla="1.0"):
     import yaml
     folder = Path(folder)
     tc = yaml.safe_load((folder / "config.yaml").read_text())
@@ -39,14 +50,15 @@ def trial(folder):
         for r in csv.DictReader(f, delimiter=";"):
             if r["kind"] == "walker" and r.get("role") not in ("participant",):
                 types[r["actor_id"]] = r["type_id"]
-    version = "1.0" if any(t.endswith(("0050", "0051", "0052")) for t in types.values()) else None
-    rows = [r for r in wl.catalogue() if version is None or r["carla"] == version]
-    group = {r["blueprint"]: r["group"] for r in rows}
+    version = version_of(types.values(), carla)
+    group = {r["blueprint"]: r["group"] for r in wl.catalogue() if r["carla"] == version}
+    group.update({r["blueprint"]: r["group"] for r in wl.catalogue()          # imported walkers (carla = cc)
+                  if r["carla"] not in ("0.9.16", "1.0")})
     c = Counter(group.get(t, "mixed_unclear") for t in types.values())
     n = sum(c.values())
     real = {g: c[g] / n for g in wl.GROUPS} if n else None
     print(f"{folder} - {st['name']} ({st.get('how', '')}), {n} walkers, "
-          f"{len(set(types.values()))} distinct blueprints")
+          f"{len(set(types.values()))} distinct blueprints, CARLA {version} catalogue")
     print(header(True))
     print(_row("target", st["mix"], ""))
     print(_row("realised (catalogue group)", real, n))
@@ -57,18 +69,11 @@ def offline(place, carla, n, seed):
     st = wl.street(place) if place in wl.demographics()["places"] or place in ("generic",) or ":" in place else \
         wl.street(f"country:{place.upper()}")
     rows = [r for r in wl.catalogue() if r["carla"] == carla]
-
-    class _A:
-        def __init__(self, v):
-            self.v = v
-
-        def as_str(self):
-            return self.v
     walkers = [{"id": r["blueprint"], "age": r["carla_age"], "gender": r["carla_gender"] or r["presentation"],
                 "wheelchair": r["wheelchair"] == "true"} for r in rows]
     entries, _, _ = wl.entries_for(walkers)
     lk = wl.Looks(entries, st, seed=seed)
-    plans, k = [], 0
+    plans = []
     import random
     rng = random.Random(seed)
     while len(plans) < n:          # walking units of 1-3 (Moussaid's low-density shares, roughly), a child now and then
@@ -77,7 +82,6 @@ def offline(place, carla, n, seed):
         plans.append({"legs": []})
         for j in range(size - 1):
             plans.append({"legs": [], "follow": (lead, 0.75, 0.0), **({"child": True} if rng.random() < 0.15 else {})})
-        k += 1
     lk.dress(plans[:n])
     real, got = lk.realised()
     drawn = Counter(lk.drawn)
@@ -105,7 +109,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("trials", nargs="*")
     ap.add_argument("--place")
-    ap.add_argument("--carla", default="1.0", choices=("1.0", "0.9.16"))
+    ap.add_argument("--carla", default="1.0", choices=("1.0", "0.9.16"),
+                    help="the catalogue for --place, and for a trial whose walker ids do not tell (default 1.0)")
     ap.add_argument("--n", type=int, default=5000)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--table", action="store_true")
@@ -115,7 +120,7 @@ def main(argv=None):
     if a.place:
         offline(a.place, a.carla, a.n, a.seed)
     for t in a.trials:
-        trial(t)
+        trial(t, a.carla)
     if not (a.table or a.place or a.trials):
         ap.print_help()
 
