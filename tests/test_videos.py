@@ -58,7 +58,10 @@ def test_derived_experiment():
     assert f["start_s"] == c["start_s"] and f["duration_s"] == c["duration_s"] and f["fps"] == 25
     assert f["hold"] == c["hold"] and f["camera"] == c["camera"]
     assert exp["trials"][0]["duration_s"] == c["start_s"] + c["duration_s"] + c["tail_s"]
-    assert exp["trials"][0]["patch"]["participants"]["driver"]["route"]      # a planned route (SUMO driver)
+    rush = mv.derive_experiment(clips["eindhoven_rush_hour"], SERVER)
+    drv = rush["trials"][0]["patch"]["participants"]["driver"]
+    assert drv["route"] and drv["vehicle"] == "vehicle.toyota.prius"      # a planned route (SUMO driver), its ego
+    assert rush["traffic"]["cars_per_hour"] == "auto"      # the place's traffic (crowdtraffic.py), not hand numbers
 
 
 def test_derived_experiment_folds_trial_and_stations():

@@ -13,7 +13,7 @@ simulation:
   weather: CloudyNoon
 
 traffic:
-  cars_per_hour: 2400
+  cars_per_hour: auto      # the road network at the trial's hour x CROWD's density of Eindhoven (crowdtraffic.py)
   bikes_per_hour: auto
   buses_per_hour: 12
 
