@@ -281,6 +281,15 @@ DEFAULTS = {
             "crossings_per_km": 2.0, # crossings per km walked where CROWD's crossing share is the median city's
             "speed_mps": "auto",     # median walking speed, or "auto": the place's CROWD crossing speed
             "jaywalk_share": "auto", # share of crossings mid-block, or "auto": the country's in CROWD
+            "window": {              # the crowd where a driver sees it (coupledcarla/crowdwindow.py): walkers at
+                                     # walkers_per_km along the drivers' routes, those left behind reappear ahead
+                "enabled": "auto",   # "auto": on when a participant drives (driver, av_passenger); false: planned
+                                     # once around the start and along the route, max_count spread over it all
+                "ahead_m": 300, "behind_m": 50, "band_m": 50,   # route ahead, around the car, either side of the
+                                     # route (no route, e.g. a person at the wheel: radius_m around the car)
+                "spawn_band_m": 100, "spawn_min_m": 60,   # new walkers in the window's last 100 m, unseen, >= 60 m
+                "check_s": 1.0, "route_max_m": 6000,      # from any participant; kerbs prepared along 6 km of route
+            },
             "perception": {          # how walkers judge gaps at the kerb (coupledcarla/embodiedped.py)
                 "model": "off",      # "off": every car's true position and speed (HCM critical gap); "embodied":
                                      # only what each walker has seen, with embodied-human's eyes (saccades),

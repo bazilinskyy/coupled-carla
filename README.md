@@ -1123,10 +1123,18 @@ flowchart LR
   tracks). `count: auto` gives `walkers_per_km` (14) per km of kerb, scaled by CROWD's pedestrians per minute of the
   city (else country, continent, world: 18.1) and its night/day ratio. 14 makes a car at an urban 25 km/h meet about
   as many walkers a minute as CROWD's dashcams count (with 8 the re-filmed twin clips saw about half: Eindhoven 8.7
-  against 15.8 a minute); `tools/crowd_seen.py` measures a trial's rate against CROWD. A SUMO-driven participant's
-  crowd also covers its planned route ahead, as far as it can drive in the trial (at most 1.5 km): planned only around
-  the start, the crowd was left behind by a car that drove off. The cap `max_count` (80) bounds the cost (about
-  0.4 ms per walker per tick). Speeds are the place's median crossing speed
+  against 15.8 a minute); `tools/crowd_seen.py` measures a trial's rate against CROWD. When a participant drives,
+  the crowd follows it in a rolling window (`traffic.walkers.window`, `coupledcarla/crowdwindow.py`, on by default):
+  walkers at that density only on the kerbs within 50 m of its route from 50 m behind the car to 300 m ahead (a
+  person at the wheel, without a route: within `radius_m`), and a walker left behind, out of everyone's sight, is
+  planned anew in the window's last 100 m (at least 60 m from any participant), groups together. The cap
+  `max_count` (80) bounds the cost (about 0.4 ms per walker per tick); spread over the whole route it left the
+  driver too few to meet (Eindhoven twin, 110 s drive: 80 walkers over 18 kerb-km, 10.0 met a minute against
+  CROWD's 15.8); the window spends it where the car is (17 walkers on 1.4 kerb-km: 18.9 a minute at the drive's
+  33 km/h, as the 2 x density x speed estimate above predicts; 17.4 on a 300 s drive; Shibuya 22.4 against Tokyo's
+  25.4). Kerbs are added along the route when it runs past the prepared ones (a SUMO driver's next random
+  destination). Walkers near a participant on foot stay put;
+  `window: {enabled: false}` plans once along the route as before. Speeds are the place's median crossing speed
   and quartiles (crowd-city). Walkers cross `crossings_per_km` (2.0) times per km, scaled by the share of tracked
   pedestrians that crossed; a crossing is mid-block with the country's measured share (crowd-jaywalking: Japan
   0.45%, France 1.5%, Netherlands 7.1%, Vietnam 30%, Bangladesh 77%; modelled from pedestrians per minute

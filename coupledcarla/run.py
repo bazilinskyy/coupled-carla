@@ -23,8 +23,8 @@ from pathlib import Path
 import carla
 import yaml
 
-from . import analysis, compat, config, crowdpeds, drivermix, inputs, livingcity, look, mapbuild, nightlights, \
-    parking, photoreal, reactions, realworld, season, soundrec, study, towns, traffic
+from . import analysis, compat, config, crowdpeds, crowdwindow, drivermix, inputs, livingcity, look, mapbuild, \
+    nightlights, parking, photoreal, reactions, realworld, season, soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
 from . import ehmi_design, ehmi_inside, levels, levelxodr, livemap, multigpu, placement, plates, staticactors, \
     stationux
@@ -612,14 +612,16 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # ai.Crowd beside the roads; its walkers join walkers_now (cars yield to them) only while on the road
         livingcity.apply_crowd_default(tc, livingcity.settings(tc), log)   # a living city has a crowd
         crowd_centres = [p.actor.get_location() for p in parts]
-        ahead = [p.input.route_xy(crowdpeds.route_reach(duration)) for p in parts
-                 if callable(getattr(p.input, "route_xy", None))]
-        if any(ahead):      # a driver leaves the start: its crowd also covers the route it will drive
+        wcfg = crowdwindow.settings(tc)     # a rolling window keeps the crowd around the drivers (crowdwindow.py)
+        reach = crowdpeds.route_reach(duration, wcfg["route_max_m"] if wcfg["enabled"] else
+                                      crowdpeds.ROUTE_AHEAD_MAX_M)
+        ahead = [p.input.route_xy(reach) for p in parts if callable(getattr(p.input, "route_xy", None))]
+        if any(ahead):      # a driver leaves the start: its crowd's kerbs also cover the route it will drive
             extra = crowdpeds.route_centres(ahead)
             crowd_centres += [carla.Location(x, y, 0.0) for x, y in extra]
-            log(f"crowd: also along the drivers' routes ahead ({len(extra)} points, "
-                f"{crowdpeds.route_reach(duration):.0f} m at most)")
-        crowd = crowdpeds.make_crowd(world, geo, tc, mdir, crowd_centres, wx["night"], duration, log)
+            log(f"crowd: also along the drivers' routes ahead ({len(extra)} points, {reach:.0f} m at most)")
+        crowd = crowdpeds.make_crowd(world, geo, tc, mdir, crowd_centres, wx["night"], duration, log,
+                                     parts=parts if wcfg["enabled"] else None)
         wai = (tc["traffic"].get("walkers") or {}).get("ai") or {}
         if int(wai.get("count") or 0) > 0 and tc["map"].get("carla_level"):   # CARLA's AI walkers (navigation mesh)
             navw = towns.NavWalkers(client, world, wai, [p.actor.get_location() for p in parts], log)
@@ -785,6 +787,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             tools.step(t, step, walkers_now, snap.frame)      # automated drivers' cars, dashboard commands
             if crowd is not None and summary["ticks"] % 4 == 0:     # a walker keeps its last control
                 crowd.step(t)
+                if getattr(crowd, "window", None) is not None:    # walkers left behind reappear ahead
+                    crowd.window.step(t)
             laps("agents")
             if drone_world is not None:   # the flight model, crash checks, the drones' and cameras' transforms
                 drone_world.step(t, step, events, snap)

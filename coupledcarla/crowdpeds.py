@@ -398,9 +398,10 @@ ROUTE_SPEED_MPS = 13.9           # m/s: how far a driver gets in the trial, for 
 ROUTE_STEP_M = 60.0              # m between the corridor's centres (the crop radius is 120 m)
 
 
-def route_reach(duration_s):
-    """m of a driving participant's route ahead that its crowd covers: what it can drive in the trial, capped."""
-    return min(ROUTE_AHEAD_MAX_M, ROUTE_SPEED_MPS * float(duration_s or 0.0))
+def route_reach(duration_s, cap=ROUTE_AHEAD_MAX_M):
+    """m of a driving participant's route ahead that its crowd covers: what it can drive in the trial, capped (the
+    rolling window, crowdwindow.py, prepares kerbs further: traffic.walkers.window.route_max_m)."""
+    return min(float(cap), ROUTE_SPEED_MPS * float(duration_s or 0.0))
 
 
 def route_centres(polylines, step=ROUTE_STEP_M):
@@ -458,14 +459,37 @@ def edges_xy(net, edges, offset, max_m, start_pos=0.0):
     return out
 
 
+def driver_route_xy(net, offset, route, pos, live, max_m):
+    """A SUMO driver's route ahead in CARLA x, y up to max_m (sumodriver.SumoDriver.route_xy): live = (SUMO's route,
+    the index of the edge it is on) once SUMO drives the car, from the start of that edge; else the planned route
+    (edges) from pos m into its first edge."""
+    if net is None:
+        return []
+    if live:
+        edges, idx = live
+        return edges_xy(net, list(edges[max(0, idx):]), offset, max_m, 0.0)
+    if not route:
+        return []
+    return edges_xy(net, route, offset, max_m, float(pos or 0.0))
+
+
 def crop(segments, centres, radius):
     """The part of each segment within `radius` of any centre (its longest run of samples); [] centres: all."""
     if not centres:
         return list(segments)
+    cell = max(1.0, float(radius))
+    grid = {}
+    for cx, cy in centres:
+        grid.setdefault((int(cx // cell), int(cy // cell)), []).append((cx, cy))
+
+    def near(x, y):
+        gx, gy = int(x // cell), int(y // cell)
+        return any(math.hypot(x - cx, y - cy) <= radius for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+                   for cx, cy in grid.get((gx + dx, gy + dy), ()))
+
     out = []
     for s in segments:
-        inside = [any(math.hypot(s.mid(i)[0] - cx, s.mid(i)[1] - cy) <= radius for cx, cy in centres)
-                  for i in range(s.n)]
+        inside = [near(*s.mid(i)) for i in range(s.n)]
         best, start = (0, -1), None
         for i, ok in enumerate(inside + [False]):
             if ok and start is None:
@@ -712,8 +736,6 @@ def plan(segments, att, params, count, duration_s, rng):
     stretch; the wish to cross comes as a Poisson process in the distance walked (params["crossings_per_km"]). It
     then crosses where it is with probability params["jaywalk_share"] (mid-block, not within 10 m of a marked
     crossing or an end), else walks to the nearest marked crossing of its segment, else to a junction end."""
-    rate = params["crossings_per_km"] / 1000.0
-    jay = params["jaywalk_share"]
     choices, cum, acc = [], [], 0.0
     for k, sides in enumerate(att):
         for side in (0, 1):
@@ -725,50 +747,58 @@ def plan(segments, att, params, count, duration_s, rng):
         return walkers
     for _ in range(count):
         k, side = choices[min(len(choices) - 1, _bisect.bisect(cum, rng.random() * acc))]
-        s = segments[k]
-        i = rng.choices(range(s.n), weights=att[k][side])[0]
-        speed = min(2.4, max(0.6, rng.gauss(params["speed_median"], params["speed_sd"])))
-        d = rng.choice((-1, 1))
-        start, legs, walked = (k, side, i), [], 0.0
-        need = speed * duration_s + 30.0
-        wish = rng.expovariate(rate) if rate > 0 else float("inf")    # metres until the next wish to cross
-
-        def walk(j):
-            nonlocal i, walked
-            if j != i:
-                legs.append(("walk", k, side, i, j))
-                walked += abs(j - i) * s.step
-                i = j
-
-        for _ in range(5000):
-            if walked >= need:
-                break
-            end = s.n - 1 if d > 0 else 0
-            stretch = abs(end - i) * s.step
-            if wish > stretch:
-                walk(end)
-                wish -= stretch
-                d = -d
-                continue
-            walk(max(0, min(s.n - 1, i + d * int(round(wish / s.step)))))
-            wish = rng.expovariate(rate)
-            kind = None
-            if rng.random() < jay and 4 <= i <= s.n - 5 and all(abs(i - c) > 4 for c in s.crossings):
-                kind = "midblock"
-            elif s.crossings:
-                walk(min(s.crossings, key=lambda c: abs(c - i)))
-                kind = "crosswalk"
-            else:
-                ends = [e for e, jn in ((0, s.junction[0]), (s.n - 1, s.junction[1])) if jn]
-                if ends:
-                    walk(min(ends, key=lambda e: abs(e - i)))
-                    kind = "junction"
-            if kind:
-                legs.append(("cross", k, side, i, kind))
-                side = 1 - side
-                d = rng.choice((-1, 1))
-        walkers.append({"seg": start[0], "side": start[1], "i": start[2], "speed": round(speed, 3), "legs": legs})
+        i = rng.choices(range(segments[k].n), weights=att[k][side])[0]
+        walkers.append(plan_from(segments, params, k, side, i, duration_s, rng))
     return walkers
+
+
+def plan_from(segments, params, k, side, i, duration_s, rng):
+    """One walker of plan() that starts at kerb sample (k, side, i) (crowdwindow.py places walkers ahead of a
+    driver with it); the same draws, in the same order, as plan() makes after choosing the start."""
+    rate = params["crossings_per_km"] / 1000.0
+    jay = params["jaywalk_share"]
+    s = segments[k]
+    speed = min(2.4, max(0.6, rng.gauss(params["speed_median"], params["speed_sd"])))
+    d = rng.choice((-1, 1))
+    start, legs, walked = (k, side, i), [], 0.0
+    need = speed * duration_s + 30.0
+    wish = rng.expovariate(rate) if rate > 0 else float("inf")    # metres until the next wish to cross
+
+    def walk(j):
+        nonlocal i, walked
+        if j != i:
+            legs.append(("walk", k, side, i, j))
+            walked += abs(j - i) * s.step
+            i = j
+
+    for _ in range(5000):
+        if walked >= need:
+            break
+        end = s.n - 1 if d > 0 else 0
+        stretch = abs(end - i) * s.step
+        if wish > stretch:
+            walk(end)
+            wish -= stretch
+            d = -d
+            continue
+        walk(max(0, min(s.n - 1, i + d * int(round(wish / s.step)))))
+        wish = rng.expovariate(rate)
+        kind = None
+        if rng.random() < jay and 4 <= i <= s.n - 5 and all(abs(i - c) > 4 for c in s.crossings):
+            kind = "midblock"
+        elif s.crossings:
+            walk(min(s.crossings, key=lambda c: abs(c - i)))
+            kind = "crosswalk"
+        else:
+            ends = [e for e, jn in ((0, s.junction[0]), (s.n - 1, s.junction[1])) if jn]
+            if ends:
+                walk(min(ends, key=lambda e: abs(e - i)))
+                kind = "junction"
+        if kind:
+            legs.append(("cross", k, side, i, kind))
+            side = 1 - side
+            d = rng.choice((-1, 1))
+    return {"seg": start[0], "side": start[1], "i": start[2], "speed": round(speed, 3), "legs": legs}
 
 
 def plan_calibrated(segments, att, params, count, duration_s, seed=1, rounds=6, sample=1500):
@@ -932,10 +962,14 @@ def _next_arrival(a, b, vehicles, speed=False):
 # --- set-up for a trial ---------------------------------------------------------------------------------------------
 
 def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fetch=True, crossings_xy=None,
-            want_att=False):
+            want_att=False, region=None, extend=None):
     """Everything about the crowd that needs no server: (params, segments, walkers, stats). centres_xy in geo.net
     x, y (the participants; [] for the whole map). crossings_xy: crossings in geo.net x, y for a map without
-    map.osm (a baked level: its OpenDRIVE crosswalks, see make_crowd)."""
+    map.osm (a baked level: its OpenDRIVE crosswalks, see make_crowd). region(segments) -> [[side 0 bools, side 1
+    bools] per segment]: plan the walkers only on those kerb samples, count "auto" from their length (the drivers'
+    windows, crowdwindow.initial_mask); the kerbs outside stay in `segments` for walkers placed later. extend: a
+    dict filled with what kerbs further away need (all the map's segments, the places and count sites in geo.net
+    x, y): crowdwindow adds them when a driver's route grows past the prepared ones."""
     wc = {**DEFAULTS, **(tc["traffic"].get("walkers") or {})}
     bbox = tc["map"]["bbox"]
     real = Path(mdir) / "real"
@@ -948,6 +982,7 @@ def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fe
     if not xings and crossings_xy:
         pts = list(crossings_xy)
     n_x = snap_crossings(segs, pts)
+    all_segs = segs
     segs = crop(segs, centres_xy, float(wc.get("radius_m", 120)) + 30.0)
     pois, counts, used = [], [], []
     if wc["places"] not in (False, "off", None):
@@ -963,17 +998,26 @@ def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fe
         if counts:
             used.append(pc["source"])
     to_xy = geo_net.convertLonLat2XY
-    att = attraction(segs, [(*to_xy(lon, lat), w) for lat, lon, w, _ in pois],
-                     [(*to_xy(c["lon"], c["lat"]), c["count"]) for c in counts])
+    pois_xy = [(*to_xy(lon, lat), w) for lat, lon, w, _ in pois]
+    counts_xy = [(*to_xy(c["lon"], c["lat"]), c["count"]) for c in counts]
+    att = attraction(segs, pois_xy, counts_xy)
+    if extend is not None:
+        extend.update({"segments": all_segs, "pois": pois_xy, "counts": counts_xy})
     kerb_km = sum(2 * s.length for s in segs) / 1000.0
+    att_plan, plan_km = att, kerb_km
+    if region is not None:
+        got, km = masked(segs, att, region(segs))
+        if km > 0:          # a window without kerbs (a motorway): the whole corridor as before
+            att_plan, plan_km = got, km
     count = wc.get("count", 0)
     if count == "auto":
-        count = int(round(min(params["max_count"], params["walkers_per_km"] * kerb_km)))
+        count = int(round(min(params["max_count"], params["walkers_per_km"] * plan_km)))
     count = int(count)
-    walkers, rate, jay = plan_calibrated(segs, att, params, count, duration_s, int(wc.get("seed", 1)))
+    walkers, rate, jay = plan_calibrated(segs, att_plan, params, count, duration_s, int(wc.get("seed", 1)))
     stats = plan_stats(segs, walkers, duration_s)
     stats["rate_used"], stats["jaywalk_used"] = round(rate, 3), round(jay, 4)
-    stats.update({"kerb_km": round(kerb_km, 2), "segments": len(segs), "osm_crossings": len(xings),
+    stats.update({"kerb_km": round(kerb_km, 2), "plan_kerb_km": round(plan_km, 2),
+                  "walkers_per_kerb_km": round(count / plan_km, 2) if plan_km else None, "segments": len(segs), "osm_crossings": len(xings),
                   "xodr_crossings": len(crossings_xy or []) if not xings else 0, "crossings_snapped": n_x, "segments_with_crossing": sum(1 for s in segs if s.crossings),
                   "places": len(pois), "count_sites": len(counts), "place_sources": used,
                   "plan_s": round(time.time() - t0, 1)})
@@ -983,10 +1027,20 @@ def prepare(tc, mdir, geo_net, centres_xy, duration_s, night=False, log=_log, fe
         f"{params['crossings_per_km']} crossings/km, mid-block share {params['jaywalk_share']:.3f} "
         f"({params['jaywalk_from']}); {stats['crossings']} crossings planned "
         f"({stats['crosswalk']} marked, {stats['junction']} at junctions, {stats['midblock']} mid-block); "
-        f"{len(pois)} places, {len(counts)} count sites")
+        f"{len(pois)} places, {len(counts)} count sites"
+        + (f"; planned on {plan_km:.2f} of {kerb_km:.2f} kerb-km (the drivers' windows), "
+           f"{stats['walkers_per_kerb_km']} walkers per kerb-km" if plan_km != kerb_km else ""))
     if want_att:        # the living city plans walks of its own on the same weights (livingcity.walk_from)
         return params, segs, walkers, stats, att
     return params, segs, walkers, stats
+
+
+def masked(segments, att, mask):
+    """(att with the samples outside mask set to 0, kerb-km of the samples inside): plan() then starts walkers only
+    inside (prepare's region)."""
+    km = sum(s.step for s, m in zip(segments, mask) for side in m for on in side if on) / 1000.0
+    return [[[v if on else 0.0 for v, on in zip(vals, m_side)] for vals, m_side in zip(sides, m)]
+            for sides, m in zip(att, mask)], km
 
 
 class CrowdSim:
@@ -1347,9 +1401,10 @@ def blocked(x, y, poses, margin=0.3):
     return False
 
 
-def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):
+def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log, parts=None):
     """The trial's crowd: None without walkers, ai.Crowd (beside the roads, never crossing) with behaviour off, else
-    a CrowdSim planned by prepare()."""
+    a CrowdSim planned by prepare(). parts (run.py's participants): with traffic.walkers.window on and a driving
+    participant, the walkers are planned in the drivers' windows and kept there (crowdwindow.py, sim.window)."""
     wc = {**DEFAULTS, **(tc["traffic"].get("walkers") or {})}
     count = wc.get("count", 0)
     if count != "auto" and int(count or 0) <= 0:
@@ -1369,9 +1424,18 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):
             xodr_x = [(c.centroid.x, -c.centroid.y) for c in xp["crossing"]]       # CARLA -> geo.net
         except Exception as err:  # noqa: BLE001 - then junction and mid-block crossings only, as before
             log(f"crowd: no OpenDRIVE crossings ({type(err).__name__}: {err})")
+    from . import crowdwindow
+    wcfg, region, starts = crowdwindow.settings(tc), None, ([], [])
+    radius = float(wc.get("radius_m", 120))
+    if wcfg["enabled"] and parts:
+        starts = crowdwindow.anchors_at_start(parts, wcfg)
+        if starts[0]:
+            region = lambda segs: crowdwindow.initial_mask(segs, starts[0], starts[1], wcfg, radius)  # noqa: E731
+    extend = {}
     try:
         params, segs, walkers, stats, att = prepare(tc, mdir, geo.net, centres_xy, duration_s, night, log,
-                                                    crossings_xy=xodr_x, want_att=True)
+                                                    crossings_xy=xodr_x, want_att=True, region=region,
+                                                    extend=extend)
     except Exception as err:  # noqa: BLE001 - a map the planner cannot read: the crowd of before
         log(f"crowd: CROWD behaviour failed ({err!r}); walkers beside the roads instead")
         return legacy()
@@ -1391,6 +1455,15 @@ def make_crowd(world, geo, tc, mdir, centres, night, duration_s, log=_log):
     sim = CrowdSim(world, geo, segs, walkers, params, int(wc.get("seed", 1)), log)
     sim.stats = stats
     sim.living = living
+    sim.window = None
+    if region is not None and stats.get("walkers_per_kerb_km"):
+        used = dict(params, crossings_per_km=stats["rate_used"], jaywalk_share=stats["jaywalk_used"])
+        sim.window = crowdwindow.make(sim, segs, att, used, parts, wcfg, radius, stats["walkers_per_kerb_km"],
+                                      duration_s, log, int(wc.get("seed", 1)), extend=extend)
+        if sim.window is not None:
+            log(f"crowd: rolling window around {len(sim.window.anchors)} driving participant(s): "
+                f"{wcfg['ahead_m']:.0f} m of route ahead (+-{wcfg['band_m']:.0f} m), {wcfg['behind_m']:.0f} m "
+                f"behind, else {radius:.0f} m around; walkers left behind reappear ahead")
     from . import embodiedped      # traffic.walkers.perception: crossings from what each walker sees (embodied-human)
     sim.decider = embodiedped.make(tc, sim.events, log)
     if sim.decider is not None:
