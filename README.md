@@ -2350,6 +2350,14 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
   | Sydney | 8 | 13% -> 45% | 13 (City of Sydney) | 1503 |
   | Leuven | 9 (5 knooppunten) | 22% -> 27% | 2 nearby (AWV), outside the net | 1200 (as set) |
 
+- **Cyclists where the driver sees them** (`coupledcarla/bikewindow.py`, `traffic.cycling.window`, on when a
+  participant drives). Over the map the bikes are the place's share, but they ride the cycle network everywhere, so
+  a driver's few hundred metres can lack them: the Eindhoven twin clip (bikes 20% of the vehicles on the map) had
+  no cyclist in its 20 s chase view. Every 2 s the window counts the SUMO vehicles within 40 m of the driver's
+  route from 30 m behind to 250 m ahead (or within 150 m of a driver without a planned route) and, when the bikes
+  fall short of CROWD's bicycles per motor vehicle times the motor vehicles there, adds SUMO bikes on the bike lanes
+  70-250 m ahead, out of every participant's and camera's sight, cycle tracks three times as often as shared lanes,
+  each riding to a bike edge 300-1,500 m away; its bikes are taken off again 320 m from everyone (at most 40).
 - **Speed limits and driving style** (`coupledcarla/urbanspeeds.py`, `coupledcarla/speeds.py`). Where OSM gives a
   road no `maxspeed`, netconvert would use its rural defaults (100 km/h on trunk, primary and secondary roads, 80 on
   tertiary: 61 edges of Midtown Manhattan, 218 around Taipei Main Station, 189 in Cairo). The map build gives these
@@ -2834,6 +2842,7 @@ coupledcarla/
   meshes10.py        CARLA 1.0's mesh choices for scenery.py
   crowdpeds.py       the pedestrian crowd calibrated with CROWD per country (speeds, crossings, gaps, places)
   crowdtraffic.py    the place's vehicle mix, cyclists and density from CROWD; its models (data/place_vehicles.json)
+  bikewindow.py      cyclists around the drivers at the place's bikes per motor vehicle (SUMO bikes added ahead)
   warmup.py          SUMO's demand as if it had run 600 s: streets busy at t = 0
   parking.py         parked cars at the kerbs and on car parks
   ndwsigns.py        the Dutch national traffic sign register (NDW) and Rijkswaterstaat's speed limits

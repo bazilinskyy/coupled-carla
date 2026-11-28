@@ -714,6 +714,29 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             film = Film(fc, world, geo, out, log, names.get, step, queue, drone_world,
                         focus=focus_actors)
             film.hold(parts)
+        # cyclists where the drivers will see them, at the place's bikes per motor vehicle (bikewindow.py)
+        bikewin = None
+        try:
+            from . import bikewindow
+
+            def _viewers():
+                out_ = []
+                for r in (film.rigs if film is not None else []):
+                    cam = getattr(r, "camera", None)
+                    if cam is not None:
+                        try:
+                            loc = cam.get_location()
+                            out_.append((loc.x, loc.y))
+                        except RuntimeError:
+                            pass
+                return out_
+            bikewin = bikewindow.make(tc, parts, sync, sumo.net, BridgeHelper.offset, _viewers, log)
+            if bikewin is not None and sync.pipelined:     # TraCI only while SUMO is not stepping
+                sync.hooks.append(lambda: bikewin.step(bw_t[0]))
+        except Exception as err:  # noqa: BLE001 - the trial without it
+            log(f"bike window: not started ({type(err).__name__}: {err})")
+            bikewin = None
+        bw_t = [0.0]
         sc_ = tc.get("sound") or {}
         if parts and (getattr(args, "record_audio", False) or sc_.get("record")):
             # the first participant's soundscape in simulation time, into audio.wav (soundrec.py)
@@ -816,7 +839,10 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 ship_world.step(t, step)
                 laps("ships")
             t_a = time.time()
+            bw_t[0] = t
             sync.tick()
+            if bikewin is not None and not sync.pipelined:
+                bikewin.step(t)
             if sig_driver is not None:
                 import traci
                 sig_driver.step(traci.simulation.getTime(), traci)
@@ -1117,6 +1143,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                         "station_stats": station_stats, "parked_cars": parked.n if parked is not None else 0})
         if drone_world is not None:
             summary["drones"] = drone_world.summary()
+        if bikewin is not None:
+            summary["bike_window"] = bikewin.summary()
         if ship_world is not None:
             summary["ships"] = ship_world.summary()
         if scenery is not None:
