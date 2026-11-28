@@ -19,9 +19,11 @@ tools/street_props.py in /Game/CoupledCarla/Street; a server without them spawns
   Swapfiets with the blue front tyre: 12 %) in the bike stands (occupancy by context), in rows against facades
   near shops, cafes and stations (BIKES_AT), a few against lamp posts; leaning on their kickstands.
 - advertising columns where OSM maps advertising=column (three poster sets; any country).
-- shop signs: a fascia board with the trade's Dutch word (BAKKERIJ, CAFÉ, APOTHEEK, ...: generic words, no brand)
-  on the facade nearest each OSM shop, cafe or restaurant, at 3.2 m; on baked twins only by default (their
-  buildings are the real ones; CARLA's building meshes on OSM maps do not reach the footprint's walls).
+- shop signs: signage.py's generated fascias in the country's language (invented shop names; Japan: lit kanban,
+  banners, billboards); without those props on the server, a board with the trade's Dutch word (BAKKERIJ, CAFÉ,
+  APOTHEEK, ...: generic words, no brand) on the facade nearest each OSM shop, cafe or restaurant, at 3.2 m; on
+  baked twins only by default (their buildings are the real ones; CARLA's building meshes on OSM maps do not reach
+  the footprint's walls).
 All placements are repeatable (hashes of positions), and fail soft without data.
 """
 import json
@@ -656,8 +658,9 @@ def _seg_dist(a, b, p):
 
 # --- the hook ---------------------------------------------------------------------------------------------------
 
-def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, blds, region, bgt_data, free, log=print):
-    """streetlook.add_to_scenery calls this: stone roads, grime and litter, parked bikes, shop signs."""
+def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, blds, region, bgt_data, free, log=print, iso3=None):
+    """streetlook.add_to_scenery calls this: stone roads, grime and litter, parked bikes, shop signs, screens and the
+    generated signage of the country iso3 (signage.py)."""
     said = []
     rdir = Path(mdir) / "real"
     try:
@@ -694,12 +697,15 @@ def add_to_scenery(pl, cat, cmap, carla, geo, mc, sc, mdir, blds, region, bgt_da
         if got:
             said.append(f"{sum(v for k, v in got.items() if k != 'swapfiets')} parked bikes ("
                         + ", ".join(f"{k} {v}" for k, v in sorted(got.items())) + ")")
+    from . import screens, signage   # big screens and vertical shop signs; generated signage in the local language
+    loc, used = signage.locale(iso3), {}
+    said += screens.add_to_scenery(pl, cat, blds, pts, region, mc, sc, mdir, geo, log, loc=loc, used=used)
+    got, fascias = signage.add_to_scenery(pl, cat, blds, pts, iso3, mc, sc, geo, used, log)
+    said += got
     signs = sc.get("shop_signs", "auto")
-    if region == "NL" and (signs is True or (signs == "auto" and mc.get("carla_level"))):
-        n = shop_signs(pl, cat, blds, pts)
+    if region == "NL" and not fascias and (signs is True or (signs == "auto" and mc.get("carla_level"))):
+        n = shop_signs(pl, cat, blds, pts)      # the older generic boards (a server without the round-4 props)
         pl.counts["shop_signs"] = n
         said.append(f"{n} shop signs on the facades of {len(pts)} shops, cafes and stations")
-    from . import screens       # big screens and vertical shop signs (Japanese twins; mapped screens anywhere)
-    said += screens.add_to_scenery(pl, cat, blds, pts, region, mc, sc, mdir, geo, log)
     if said:
         log("scenery: street life: " + "; ".join(said))

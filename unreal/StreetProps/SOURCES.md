@@ -17,6 +17,11 @@ Data the shapes and the choices follow (facts, not copied works):
 - Shop signs and posters: lettering in DejaVu Sans Bold (Bitstream Vera / DejaVu licence, free to embed; the copy
   in matplotlib), generic Dutch trade words and invented poster titles, no brand or real event. Bikes: a generic
   Dutch city bike; the Swapfiets look is only its well-known blue front tyre (no logo).
+- Generated signage and advertising (round 4, `tools/signage_art.py`, coupledcarla/signage.py): every shop name,
+  brand, product, film, show and slogan is invented and the layouts are procedural; no real advertisement, logo or
+  trademark and no photo is in them (open street photos were looked at for the style only). Letters: Noto Sans CJK JP
+  Bold and Noto Serif CJK JP Bold (Adobe / Google, SIL Open Font Licence 1.1; subsets with only the characters drawn
+  in `unreal/StreetProps/fonts`, licence beside them), DejaVu Sans / Serif and STIX (free licences, from matplotlib).
 - Considered and not used: Sketchfab "City parking asset Amsterdammertje" (ustoopia, CC BY 4.0) and "Dutch Traffic
   Light" (tickinggears, CC BY 4.0); the procedural ones are exact in size, light and need no attribution in the
   package.
@@ -54,7 +59,218 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_Any_Sett_W6 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W6` | 12.00 x 6.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Sett_W8 | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Sett_W8` | 16.00 x 8.00 x 0.00 | 2 | - | sett_road | MIT (procedural) |
 | SM_CC_Any_Stains_A | `/Game/CoupledCarla/Street/Any/Road/SM_CC_Any_Stains_A` | 1.50 x 1.50 x 0.00 | 2 | - | stains | MIT (procedural) |
+| SM_CC_DE_ABoard_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_ABoard_1` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
+| SM_CC_DE_ABoard_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_ABoard_2` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
+| SM_CC_DE_AdColumn_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_AdColumn_1` | 1.40 x 1.40 x 3.68 | 1100 | - | Morris column with local event posters (invented) | MIT (procedural) |
+| SM_CC_DE_AdColumn_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_AdColumn_2` | 1.40 x 1.40 x 3.68 | 1100 | - | Morris column with local event posters (invented) | MIT (procedural) |
+| SM_CC_DE_BillboardStand_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_BillboardStand_1` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_DE_BillboardStand_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_BillboardStand_2` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_DE_Fascia_bakery_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bakery_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BÄCKEREI Sonnenkorn (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_bakery_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bakery_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Confiserie Zum Mühlerad (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_bar_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bar_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BAR Nachtfalter (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_bar_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_bar_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Weinstube Zum Fass (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_books_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_books_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BUCHHANDLUNG Seitenwind (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_books_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_books_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Antiquariat Eselsohr (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_cafe_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_cafe_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: CAFÉ Zur Linde (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_cafe_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_cafe_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Kaffeebar Bohnenglück (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_fashion_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fashion_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: MODE Stoffwechsel (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_fashion_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fashion_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Boutique Silberdistel (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_fastfood_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fastfood_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: IMBISS Wurstbude am Platz (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_fastfood_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_fastfood_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Take-away Falafel & Co. (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_florist_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_florist_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BLUMEN Enzian (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_florist_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_florist_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Floristik Löwenzahn (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_hair_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_hair_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: COIFFEUR Haarwerk (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_hair_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_hair_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Coiffeur Schnittpunkt (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_pharmacy_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_pharmacy_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: APOTHEKE am Platz (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_pharmacy_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_pharmacy_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Drogerie Kamille (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_restaurant_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_restaurant_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: RESTAURANT Zum Goldenen Hirschen (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_restaurant_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_restaurant_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Gasthaus Alpenrose (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_shop_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_shop_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: GESCHENKE Schatzkiste (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_shop_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_shop_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Laden Allerlei (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_supermarket_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_supermarket_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: LEBENSMITTEL Quartierladen (invented) | MIT (procedural) |
+| SM_CC_DE_Fascia_supermarket_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Fascia_supermarket_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Markt Frischeck (invented) | MIT (procedural) |
+| SM_CC_DE_Mupi_1 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Mupi_1` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_DE_Mupi_2 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Mupi_2` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_DE_Mupi_3 | `/Game/CoupledCarla/Street/DE/Static/SM_CC_DE_Mupi_3` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_EN_ABoard_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ABoard_1` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
+| SM_CC_EN_ABoard_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ABoard_2` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
+| SM_CC_EN_BillboardStand_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardStand_1` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_EN_BillboardStand_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardStand_2` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_EN_BillboardTall_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_1` | 4.58 x 0.35 x 8.08 | 14 | - | wall billboard, invented ad, 9:16 | MIT (procedural) |
+| SM_CC_EN_BillboardTall_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_2` | 4.58 x 0.35 x 8.08 | 14 | - | wall billboard, invented ad, 9:16 | MIT (procedural) |
+| SM_CC_EN_BillboardTall_3 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_3` | 4.58 x 0.35 x 8.08 | 14 | - | wall billboard, invented ad, 9:16 | MIT (procedural) |
+| SM_CC_EN_BillboardTall_4 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_BillboardTall_4` | 4.58 x 0.35 x 8.08 | 14 | - | wall billboard, invented ad, 9:16 | MIT (procedural) |
+| SM_CC_EN_Billboard_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_1` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_EN_Billboard_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_2` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_EN_Billboard_3 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_3` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_EN_Billboard_4 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_4` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_EN_Billboard_5 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_5` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_EN_Billboard_6 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_6` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_EN_Billboard_7 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_7` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_EN_Billboard_8 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Billboard_8` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_EN_Fascia_bakery_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bakery_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: BAKERY Rise & Crumb (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_bakery_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bakery_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Bagels Hudson Street Ovens (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_bar_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bar_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: BAR The Copper Lantern (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_bar_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_bar_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Tavern Old Pier Taproom (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_books_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_books_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: BOOKS Dog-Eared Pages (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_books_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_books_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Bookshop Ink & Paper (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_cafe_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_cafe_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: COFFEE Grind & Gable (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_cafe_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_cafe_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Café The Corner Cup (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_fashion_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fashion_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: APPAREL Thread & Thimble (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_fashion_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fashion_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Boutique Wren Lane (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_fastfood_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fastfood_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: PIZZA Gino & Sons Slice (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_fastfood_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_fastfood_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Deli Ninth Avenue Heroes (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_florist_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_florist_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: FLOWERS Petalwise (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_florist_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_florist_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Florist Bloom Room (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_hair_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_hair_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: SALON Snip & Sparrow (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_hair_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_hair_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Barbershop Ninth Street Shears (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_pharmacy_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_pharmacy_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: PHARMACY Midtown Chemists (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_pharmacy_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_pharmacy_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Drugs Lexington Rx (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_restaurant_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_restaurant_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: RESTAURANT Marlowe's Table (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_restaurant_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_restaurant_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Diner Eighth Avenue Grill (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_shop_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_shop_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: GIFTS Gotham Souvenirs (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_shop_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_shop_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Electronics Wired Up (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_supermarket_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_supermarket_1` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: DELI & GROCERY Fresh Corner (invented) | MIT (procedural) |
+| SM_CC_EN_Fascia_supermarket_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Fascia_supermarket_2` | 3.60 x 0.08 x 0.80 | 14 | - | fascia: Market 24/7 Food Mart (invented) | MIT (procedural) |
+| SM_CC_EN_Mupi_1 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Mupi_1` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_EN_Mupi_2 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Mupi_2` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_EN_Mupi_3 | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Mupi_3` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_EN_ScreenTall_A | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_A` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_EN_ScreenTall_B | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_B` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_EN_ScreenTall_C | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_C` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_EN_ScreenTall_D | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_ScreenTall_D` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_EN_Screen_A | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_A` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, invented ads in the local language | MIT (procedural) |
+| SM_CC_EN_Screen_B | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_B` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, invented ads in the local language | MIT (procedural) |
+| SM_CC_EN_Screen_C | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_C` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, invented ads in the local language | MIT (procedural) |
+| SM_CC_EN_Screen_D | `/Game/CoupledCarla/Street/EN/Static/SM_CC_EN_Screen_D` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, invented ads in the local language | MIT (procedural) |
+| SM_CC_ES_ABoard_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_ABoard_1` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
+| SM_CC_ES_ABoard_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_ABoard_2` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
+| SM_CC_ES_AdColumn_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_AdColumn_1` | 1.40 x 1.40 x 3.68 | 1100 | - | Morris column with local event posters (invented) | MIT (procedural) |
+| SM_CC_ES_AdColumn_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_AdColumn_2` | 1.40 x 1.40 x 3.68 | 1100 | - | Morris column with local event posters (invented) | MIT (procedural) |
+| SM_CC_ES_BillboardStand_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_BillboardStand_1` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_ES_BillboardStand_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_BillboardStand_2` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_ES_Fascia_bakery_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bakery_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: PANADERÍA La Espiga (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_bakery_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bakery_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Horno San Cristóbal (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_bar_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bar_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BAR La Parra (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_bar_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_bar_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Taberna Los Faroles (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_books_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_books_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: LIBRERÍA Hojas Sueltas (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_books_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_books_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Librería El Quijote (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_cafe_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_cafe_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: CAFETERÍA El Mirador (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_cafe_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_cafe_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Café La Tertulia (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_fashion_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fashion_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: MODAS Carmela (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_fashion_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fashion_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Moda Lino y Algodón (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_fastfood_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fastfood_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BOCADILLERÍA El Buen Bocado (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_fastfood_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_fastfood_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Kebab Plaza (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_florist_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_florist_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: FLORISTERÍA Azahar (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_florist_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_florist_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Flores La Violeta (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_hair_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_hair_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: PELUQUERÍA Tijeras de Oro (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_hair_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_hair_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Barbería Navaja (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_pharmacy_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_pharmacy_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: FARMACIA Lda. M. Rivas (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_pharmacy_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_pharmacy_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Farmacia del Puente (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_restaurant_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_restaurant_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: RESTAURANTE Casa Aurelio (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_restaurant_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_restaurant_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Mesón El Arco (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_shop_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_shop_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: REGALOS La Alacena (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_shop_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_shop_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Tienda El Rincón (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_supermarket_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_supermarket_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: ALIMENTACIÓN Ultramarinos Pilar (invented) | MIT (procedural) |
+| SM_CC_ES_Fascia_supermarket_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Fascia_supermarket_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Supermercado La Cesta (invented) | MIT (procedural) |
+| SM_CC_ES_Mupi_1 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Mupi_1` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_ES_Mupi_2 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Mupi_2` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_ES_Mupi_3 | `/Game/CoupledCarla/Street/ES/Static/SM_CC_ES_Mupi_3` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_FI_ABoard_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_ABoard_1` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
+| SM_CC_FI_ABoard_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_ABoard_2` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
+| SM_CC_FI_AdColumn_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_AdColumn_1` | 1.40 x 1.40 x 3.68 | 1100 | - | Morris column with local event posters (invented) | MIT (procedural) |
+| SM_CC_FI_AdColumn_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_AdColumn_2` | 1.40 x 1.40 x 3.68 | 1100 | - | Morris column with local event posters (invented) | MIT (procedural) |
+| SM_CC_FI_BillboardStand_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_BillboardStand_1` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_FI_BillboardStand_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_BillboardStand_2` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_FI_Fascia_bakery_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bakery_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: LEIPOMO · BAGERI Ruiskukka (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_bakery_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bakery_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Leipomo Kaurahiutale (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_bar_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bar_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BAARI · BAR Revontuli (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_bar_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_bar_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Pub Vanha Ankkuri (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_books_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_books_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: KIRJAKAUPPA · BOKHANDEL Sivulause (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_books_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_books_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Antikvariaatti Koirankorva (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_cafe_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_cafe_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: KAHVILA · KAFÉ Pulla & Kuppi (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_cafe_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_cafe_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Kahvila Satamakivi (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_fashion_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fashion_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: VAATTEET · KLÄDER Pellava (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_fashion_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fashion_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Muoti Lumikide (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_fastfood_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fastfood_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: GRILLI · GRILL Nakkikioski (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_fastfood_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_fastfood_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Kebab Kauppatori (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_florist_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_florist_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: KUKKAKAUPPA · BLOMSTER Kielo (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_florist_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_florist_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Kukka Ruusunmarja (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_hair_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_hair_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: KAMPAAMO · FRISÖR Saksiniekka (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_hair_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_hair_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Parturi Partaveitsi (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_pharmacy_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_pharmacy_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: APTEEKKI · APOTEK Kruununhaka (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_pharmacy_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_pharmacy_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Apteekki Senaatti (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_restaurant_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_restaurant_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: RAVINTOLA · RESTAURANG Merituuli (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_restaurant_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_restaurant_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Ravintola Kuusikallio (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_shop_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_shop_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: LAHJAT · PRESENTER Aarrearkku (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_shop_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_shop_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Puoti Kaikkea Kivaa (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_supermarket_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_supermarket_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: RUOKAKAUPPA · LIVSMEDEL Kulmapuoti (invented) | MIT (procedural) |
+| SM_CC_FI_Fascia_supermarket_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Fascia_supermarket_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Lähikauppa Torikori (invented) | MIT (procedural) |
+| SM_CC_FI_Mupi_1 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Mupi_1` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_FI_Mupi_2 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Mupi_2` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_FI_Mupi_3 | `/Game/CoupledCarla/Street/FI/Static/SM_CC_FI_Mupi_3` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_JP_BillboardStand_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardStand_1` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_JP_BillboardStand_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardStand_2` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_JP_BillboardTall_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_1` | 4.58 x 0.35 x 8.08 | 14 | - | wall billboard, invented ad, 9:16 | MIT (procedural) |
+| SM_CC_JP_BillboardTall_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_2` | 4.58 x 0.35 x 8.08 | 14 | - | wall billboard, invented ad, 9:16 | MIT (procedural) |
+| SM_CC_JP_BillboardTall_3 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_3` | 4.58 x 0.35 x 8.08 | 14 | - | wall billboard, invented ad, 9:16 | MIT (procedural) |
+| SM_CC_JP_BillboardTall_4 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_BillboardTall_4` | 4.58 x 0.35 x 8.08 | 14 | - | wall billboard, invented ad, 9:16 | MIT (procedural) |
+| SM_CC_JP_Billboard_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_1` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_JP_Billboard_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_2` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_JP_Billboard_3 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_3` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_JP_Billboard_4 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_4` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_JP_Billboard_5 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_5` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_JP_Billboard_6 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_6` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_JP_Billboard_7 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_7` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_JP_Billboard_8 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Billboard_8` | 8.08 x 0.35 x 4.58 | 14 | - | wall billboard, invented ad, 16:9 | MIT (procedural) |
+| SM_CC_JP_Kanban_books_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_books_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 書店 ふみの森 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_books_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_books_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 古書 しおり堂 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_cafe_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_cafe_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 喫茶 こもれび (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_cafe_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_cafe_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: カフェ ほしのね (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_fashion_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_fashion_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 古着屋 ミモザ (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_fashion_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_fashion_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: セレクトショップ 縞 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_hair_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_hair_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 美容室 リュンヌ (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_hair_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_hair_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: ヘアサロン 風花 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_izakaya_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_izakaya_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 居酒屋 灯り家 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_izakaya_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_izakaya_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 炉端 こはる (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_karaoke_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_karaoke_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: カラオケ うたまる (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_karaoke_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_karaoke_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: カラオケ ルミナ (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_pharmacy_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_pharmacy_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: ドラッグ みどり堂 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_pharmacy_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_pharmacy_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 薬局 すずかぜ (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_ramen_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_ramen_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 麺屋 とりあかり (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_ramen_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_ramen_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: らあめん 月見坂 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_restaurant_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_restaurant_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: ひだまり食堂 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_restaurant_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_restaurant_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 洋食 グリル朝凪 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_shop_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_shop_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 雑貨 てとて (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_shop_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_shop_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 電器 かみなり堂 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_supermarket_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_supermarket_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: コンビニ ひなた (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_supermarket_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_supermarket_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: ミニマート あおぞら (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_sushi_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_sushi_1` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 寿司処 海凪 (invented) | MIT (procedural) |
+| SM_CC_JP_Kanban_sushi_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Kanban_sushi_2` | 3.60 x 0.22 x 0.90 | 14 | - | lit signboard: 回転寿司 まるなみ (invented) | MIT (procedural) |
 | SM_CC_JP_LampGooseneck8 | `/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8` | 2.25 x 0.28 x 8.05 | 784 | SM_StreetLight06_A | lamp_arm | MIT (procedural) |
+| SM_CC_JP_Mupi_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Mupi_1` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_JP_Mupi_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Mupi_2` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_JP_Mupi_3 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Mupi_3` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_JP_Nobori_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_1` | 0.63 x 0.28 x 2.70 | 124 | - | banner: 営業中 | MIT (procedural) |
+| SM_CC_JP_Nobori_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_2` | 0.63 x 0.28 x 2.70 | 124 | - | banner: ランチ | MIT (procedural) |
+| SM_CC_JP_Nobori_3 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_3` | 0.63 x 0.28 x 2.70 | 124 | - | banner: 生ビール | MIT (procedural) |
+| SM_CC_JP_Nobori_4 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_4` | 0.63 x 0.28 x 2.70 | 124 | - | banner: ラーメン | MIT (procedural) |
+| SM_CC_JP_Nobori_5 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_5` | 0.63 x 0.28 x 2.70 | 124 | - | banner: 焼き鳥 | MIT (procedural) |
+| SM_CC_JP_Nobori_6 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_6` | 0.63 x 0.28 x 2.70 | 124 | - | banner: 大盛無料 | MIT (procedural) |
+| SM_CC_JP_Nobori_7 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_7` | 0.63 x 0.28 x 2.70 | 124 | - | banner: 期間限定 | MIT (procedural) |
+| SM_CC_JP_Nobori_8 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Nobori_8` | 0.63 x 0.28 x 2.70 | 124 | - | banner: 新メニュー | MIT (procedural) |
+| SM_CC_JP_RoofBillboard_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_1` | 9.20 x 1.55 x 5.12 | 302 | - | rooftop billboard on a steel frame, invented ad | MIT (procedural) |
+| SM_CC_JP_RoofBillboard_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_2` | 9.20 x 1.55 x 5.12 | 302 | - | rooftop billboard on a steel frame, invented ad | MIT (procedural) |
+| SM_CC_JP_RoofBillboard_3 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_3` | 9.20 x 1.55 x 5.12 | 302 | - | rooftop billboard on a steel frame, invented ad | MIT (procedural) |
+| SM_CC_JP_RoofBillboard_4 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_RoofBillboard_4` | 9.20 x 1.55 x 5.12 | 302 | - | rooftop billboard on a steel frame, invented ad | MIT (procedural) |
+| SM_CC_JP_ScreenTall_A | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_A` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_JP_ScreenTall_B | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_B` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_JP_ScreenTall_C | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_C` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_JP_ScreenTall_D | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_ScreenTall_D` | 2.33 x 0.12 x 4.08 | 14 | - | facade screen, 9:16 | MIT (procedural) |
+| SM_CC_JP_Screen_A | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_A` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, invented ads in the local language | MIT (procedural) |
+| SM_CC_JP_Screen_B | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_B` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, invented ads in the local language | MIT (procedural) |
+| SM_CC_JP_Screen_C | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_C` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, invented ads in the local language | MIT (procedural) |
+| SM_CC_JP_Screen_D | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Screen_D` | 4.08 x 0.12 x 2.33 | 14 | - | facade screen, 16:9, invented ads in the local language | MIT (procedural) |
 | SM_CC_JP_SignV_biyo | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_biyo` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 美容室 (a generic word) | MIT (procedural) |
 | SM_CC_JP_SignV_cafe | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_cafe` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: カフェ (a generic word) | MIT (procedural) |
 | SM_CC_JP_SignV_fuku | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_fuku` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 洋服 (a generic word) | MIT (procedural) |
@@ -68,6 +284,20 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_JP_SignV_sushi | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_SignV_sushi` | 0.12 x 0.85 x 3.60 | 40 | - | vertical shop sign: 寿司 (a generic word) | MIT (procedural) |
 | SM_CC_JP_SignalCar | `/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalCar` | 1.44 x 0.40 x 0.72 | 180 | - | 300 mm horizontal car head | MIT (procedural) |
 | SM_CC_JP_SignalPole | `/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPole` | 0.11 x 0.11 x 3.65 | 128 | - | signal_pole | MIT (procedural) |
+| SM_CC_JP_Stand_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_1` | 0.55 x 0.37 x 1.18 | 28 | - | lit stand sign: カフェ 2F | MIT (procedural) |
+| SM_CC_JP_Stand_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_2` | 0.55 x 0.37 x 1.18 | 28 | - | lit stand sign: ランチ営業中 | MIT (procedural) |
+| SM_CC_JP_Stand_3 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_3` | 0.55 x 0.37 x 1.18 | 28 | - | lit stand sign: カラオケ 3F | MIT (procedural) |
+| SM_CC_JP_Stand_4 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_4` | 0.55 x 0.37 x 1.18 | 28 | - | lit stand sign: 本日のおすすめ | MIT (procedural) |
+| SM_CC_JP_Stand_5 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_5` | 0.55 x 0.37 x 1.18 | 28 | - | lit stand sign: 居酒屋 地下1階 | MIT (procedural) |
+| SM_CC_JP_Stand_6 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Stand_6` | 0.55 x 0.37 x 1.18 | 28 | - | lit stand sign: 美容室 4F | MIT (procedural) |
+| SM_CC_JP_Tenant_1 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_1` | 0.30 x 1.05 x 7.20 | 40 | - | multi-tenant vertical sign (floors, generic trades) | MIT (procedural) |
+| SM_CC_JP_Tenant_2 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_2` | 0.30 x 1.05 x 7.20 | 40 | - | multi-tenant vertical sign (floors, generic trades) | MIT (procedural) |
+| SM_CC_JP_Tenant_3 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_3` | 0.30 x 1.05 x 7.20 | 40 | - | multi-tenant vertical sign (floors, generic trades) | MIT (procedural) |
+| SM_CC_JP_Tenant_4 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_4` | 0.30 x 1.05 x 7.20 | 40 | - | multi-tenant vertical sign (floors, generic trades) | MIT (procedural) |
+| SM_CC_JP_Tenant_5 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_5` | 0.30 x 1.05 x 7.20 | 40 | - | multi-tenant vertical sign (floors, generic trades) | MIT (procedural) |
+| SM_CC_JP_Tenant_6 | `/Game/CoupledCarla/Street/JP/Static/SM_CC_JP_Tenant_6` | 0.30 x 1.05 x 7.20 | 40 | - | multi-tenant vertical sign (floors, generic trades) | MIT (procedural) |
+| SM_CC_NL_ABoard_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ABoard_1` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
+| SM_CC_NL_ABoard_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_ABoard_2` | 0.60 x 0.50 x 1.00 | 8 | - | chalk A-board | MIT (procedural) |
 | SM_CC_NL_Amsterdammertje | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Amsterdammertje` | 0.14 x 0.14 x 1.01 | 680 | SM_Bollard_Grey | bollard_amsterdam | MIT (procedural) |
 | SM_CC_NL_BenchEindhoven_DarkBrown | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BenchEindhoven_DarkBrown` | 1.80 x 0.59 x 0.85 | 140 | SM_Bench01 | bench | MIT (procedural) |
 | SM_CC_NL_BenchEindhoven_LightBrown | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BenchEindhoven_LightBrown` | 1.80 x 0.59 x 0.85 | 140 | SM_Bench01 | bench | MIT (procedural) |
@@ -83,6 +313,8 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_NL_Bike_Navy | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Navy` | 1.87 x 0.67 x 1.11 | 2024 | - | bike | MIT (procedural) |
 | SM_CC_NL_Bike_Red | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Red` | 1.87 x 0.67 x 1.11 | 2024 | - | bike | MIT (procedural) |
 | SM_CC_NL_Bike_Swapfiets | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Bike_Swapfiets` | 1.87 x 0.67 x 1.11 | 2024 | - | bike_swapfiets | MIT (procedural) |
+| SM_CC_NL_BillboardStand_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BillboardStand_1` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
+| SM_CC_NL_BillboardStand_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BillboardStand_2` | 6.20 x 0.42 x 5.70 | 110 | - | roadside billboard (OSM advertising=billboard), invented ad | MIT (procedural) |
 | SM_CC_NL_BinPost_Anthracite | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinPost_Anthracite` | 0.46 x 0.39 x 1.00 | 240 | SM_TrashCan02 | campus / park bin on a post (TU/e campus: data/furniture_areas.json) | MIT (procedural) |
 | SM_CC_NL_BinRound_Green | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinRound_Green` | 0.43 x 0.43 x 0.95 | 676 | SM_TrashCan01 | bin | MIT (procedural) |
 | SM_CC_NL_BinRound_Grey | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_BinRound_Grey` | 0.43 x 0.43 x 0.95 | 676 | SM_TrashCan01 | bin | MIT (procedural) |
@@ -95,12 +327,39 @@ Data the shapes and the choices follow (facts, not copied works):
 | SM_CC_NL_Clinker_W4 | `/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W4` | 8.00 x 4.00 x 0.00 | 2 | - | clinker_road | MIT (procedural) |
 | SM_CC_NL_Clinker_W6 | `/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W6` | 12.00 x 6.00 x 0.00 | 2 | - | clinker_road | MIT (procedural) |
 | SM_CC_NL_Clinker_W8 | `/Game/CoupledCarla/Street/NL/Road/SM_CC_NL_Clinker_W8` | 16.00 x 8.00 x 0.00 | 2 | - | clinker_road | MIT (procedural) |
+| SM_CC_NL_Fascia_bakery_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bakery_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BAKKERIJ De Korenschoof (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_bakery_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bakery_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Bakker Het Zuurdesemhuis (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_bar_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bar_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BRUIN CAFÉ De Twee Zwanen (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_bar_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_bar_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Bar Nachtuil (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_books_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_books_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BOEKHANDEL Het Leeshuis (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_books_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_books_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Antiquariaat Ezelsoor (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_cafe_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_cafe_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: CAFÉ De Vergulde Lantaarn (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_cafe_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_cafe_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Koffiehuis Bonenbrander (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_fashion_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fashion_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: MODE Atelier Noorderlicht (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_fashion_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fashion_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Kleding Lapjeswinkel (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_fastfood_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fastfood_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: SNACKBAR De Frietkoning (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_fastfood_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_fastfood_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Shoarma & Grill Zuiderpoort (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_florist_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_florist_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BLOEMEN Tulpenhof (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_florist_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_florist_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Bloemsierkunst Het Madeliefje (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_hair_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_hair_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: KAPSALON Knipwerk (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_hair_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_hair_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Barbier Scheermes & Zeep (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_pharmacy_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_pharmacy_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: APOTHEEK De Lindeboom (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_pharmacy_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_pharmacy_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Drogisterij De Vijzel (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_restaurant_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_restaurant_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: RESTAURANT De Gouden Pollepel (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_restaurant_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_restaurant_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Eetcafé Het Hoekje (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_shop_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_shop_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: WINKEL 't Snuffelhoekje (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_shop_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_shop_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Cadeaus Prul & Pracht (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_supermarket_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_supermarket_1` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: BUURTSUPER Dagvers (invented) | MIT (procedural) |
+| SM_CC_NL_Fascia_supermarket_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Fascia_supermarket_2` | 3.20 x 0.08 x 0.60 | 14 | - | fascia: Supermarkt De Korf (invented) | MIT (procedural) |
 | SM_CC_NL_LampArm12 | `/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampArm12` | 2.85 x 0.30 x 12.01 | 284 | SM_StreetLight06_A | ST 11-16 with a 2 m arm | MIT (procedural) |
 | SM_CC_NL_LampArm9 | `/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampArm9` | 2.35 x 0.30 x 9.00 | 284 | SM_StreetLight06_A | ST 8-10 STANDAARD with ST ENKEL 1,50 M | MIT (procedural) |
 | SM_CC_NL_LampDouble10 | `/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampDouble10` | 4.44 x 0.30 x 10.00 | 440 | SM_StreetLight06_A | ST 9-11 M.V.U. DUBBEL 1,50 M (medians) | MIT (procedural) |
 | SM_CC_NL_LampHeritage4 | `/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampHeritage4` | 0.58 x 0.58 x 4.20 | 584 | SM_StreetLight03 | GY 3,5 cast iron with a lantern (old centres) | MIT (procedural) |
 | SM_CC_NL_LampPostTop4 | `/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampPostTop4` | 0.47 x 0.47 x 4.30 | 512 | SM_StreetLight03 | AL 3,5 / AL 4 CONISCH, post-top luminaire (Ceder, CitySoul) | MIT (procedural) |
 | SM_CC_NL_LampTopLed6 | `/Game/CoupledCarla/Street/NL/Pole/SM_CC_NL_LampTopLed6` | 0.90 x 0.26 x 6.14 | 204 | SM_StreetLight06_A | AL 6 / AL 7 NEDAL, top spigot + LED (Digistreet, Iridium) | MIT (procedural) |
+| SM_CC_NL_Mupi_1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Mupi_1` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_NL_Mupi_2 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Mupi_2` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
+| SM_CC_NL_Mupi_3 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Mupi_3` | 1.28 x 0.20 x 2.32 | 28 | - | lit poster case (OSM advertising=poster_box/board), invented ad | MIT (procedural) |
 | SM_CC_NL_Nietje_x1 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x1` | 0.05 x 0.75 x 0.77 | 816 | SM_BikeParking01 | bike_stand | MIT (procedural) |
 | SM_CC_NL_Nietje_x3 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x3` | 1.85 x 0.75 x 0.77 | 2448 | SM_BikeParking01 | bike_stand | MIT (procedural) |
 | SM_CC_NL_Nietje_x6 | `/Game/CoupledCarla/Street/NL/Static/SM_CC_NL_Nietje_x6` | 4.55 x 0.75 x 0.77 | 4896 | SM_BikeParking02 | bike_stand | MIT (procedural) |
