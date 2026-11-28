@@ -892,6 +892,25 @@ CARLA lower its terrain 3 m under them. On lin5080 (2026-11-27) it lowered 100,5
 over the channel then met the terrain at -1.9 m under water at 1.1 m, and the land stayed as it was. A server without
 the patch ignores the userData.
 
+**The landscape to the horizon (far ring).** A twin ends at its last tile and a generated map at its scenery's ground
+tiles; aerial and long views used to see a black ground plane (twins) or a grey paving slab to the horizon (generated
+maps). carla-digitaltwins' `tools/far_ring.py` builds the real land around them, open data only: the national terrain
+model (else the AWS Terrain Tiles) with the Earth's curvature, the national aerial photo (else Sentinel-2 cloudless
+2016, CC BY 4.0) at about 1 m/px to 2.5 km, 5 m/px to 20 km and 30 m/px to 60 km, LoD1 buildings to 3 km (3DBAG in
+the Netherlands, else Overture or OSM) with photo roofs, and an ESA WorldCover forest canopy to 8 km; it meets the
+twin 0.5 m under its edge, and an aerial-perspective setting fades it into the sky (details and numbers in the
+carla-digitaltwins README). Every twin gets one in its bake (`twinmodel twin`, step `farring`;
+`ue/bake_far_ring.py` adds it to a baked level). For a generated map the map maker builds it into
+`maps/<name>/far_ring/` when the twin toolchain is configured (`coupledcarla/farring.py` reads the map's
+geoReference, ground tiles and terrain base); after `bake_far_ring.py --assets-only` has cooked it into the CARLA 1.0
+server, the run spawns it instead of the slab (a server without it keeps the slab):
+
+```bash
+python -c "from coupledcarla import farring; farring.build('maps/lyon', '<carla-digitaltwins>/TwinModel')"
+UnrealEditor-Cmd <CarlaUnreal.uproject> -run=pythonscript -nullrhi \
+    -script="<carla-digitaltwins>/TwinModel/ue/bake_far_ring.py --far-ring $PWD/maps/lyon/far_ring/far_ring.json --name Lyon --assets-only"
+```
+
 ### Where each object comes from (provenance)
 
 Every placement in `scenery.json` carries a provenance tag and its source (`coupledcarla/provenance.py`), so an

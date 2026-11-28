@@ -26,8 +26,8 @@ import yaml
 from . import analysis, compat, config, crowdpeds, crowdwindow, drivermix, inputs, livingcity, look, mapbuild, \
     nightlights, parking, photoreal, reactions, realworld, season, soundrec, study, towns, traffic
 from .ai import DEFAULT_EHMI, MutualGaze, PathWalker, ScriptedCar, ScriptedWalker, SumoYield, draw_ehmi
-from . import ehmi_design, ehmi_inside, levels, levelxodr, livemap, multigpu, placement, plates, staticactors, \
-    stationux, walkerlooks
+from . import ehmi_design, ehmi_inside, farring, levels, levelxodr, livemap, multigpu, placement, plates, \
+    staticactors, stationux, walkerlooks
 from .bridge.synchronization import BridgeHelper, CarlaSimulation, SimulationSynchronization, SumoSimulation
 from .coupling import ControlServer
 from .display import View
@@ -121,8 +121,12 @@ def load_world(client, xodr, mc, slab=False, keep_lights=False):
         # with scenery: a 20 km paving cube whose top is the ground beyond the scenery tiles, out to the horizon (the
         # void beyond a smaller one shows as a black band under a cloudy sky); else a 3 km plane. A packaged CARLA 1.0
         # server may not have cooked the cube ("invalid actor description"): then the plane, then nothing.
-        choices = ([("/Game/Carla/Static/SideWalk/SideWalkCube.SideWalkCube", "20000", -0.45 - 10000.0)] if slab else [])
-        choices.append(("/Engine/BasicShapes/Plane.Plane", "3000", -0.3))
+        # The map's far landscape ring (farring.py: the real land to the horizon, cooked into the server) replaces both.
+        ring = farring.spawn(world, Path(xodr).parent, carla) if slab else 0
+        choices = ([("/Game/Carla/Static/SideWalk/SideWalkCube.SideWalkCube", "20000", -0.45 - 10000.0)]
+                   if slab and not ring else [])
+        if not ring:
+            choices.append(("/Engine/BasicShapes/Plane.Plane", "3000", -0.3))
         for mesh, scale, z in choices:
             bp.set_attribute("mesh_path", mesh)
             bp.set_attribute("scale", scale)

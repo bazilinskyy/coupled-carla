@@ -634,6 +634,7 @@ STEPS = [
     ("ground", "Laying out parks, water and pavements"),
     ("parked", "Parking cars along the streets"),
     ("buses", "Finding the bus lines and timetables"),
+    ("farring", "Building the real landscape out to the horizon"),
     ("picture", "Drawing the preview picture"),
 ]
 TITLES = dict(STEPS)
@@ -868,6 +869,9 @@ def build(exp_path, emit=None, force=False, check=True):
         cur = prog.current or "streets"
         prog.set(cur, "failed", msg)
         raise MapMakerError(msg, f"{advice} The full build log is {log_path}.")
+    prog.set("farring", "running", "terrain, aerial photo, buildings and woods to 60 km")
+    ok, text = far_ring(mdir, log_path)
+    prog.set("farring", "done" if ok else "skipped", text)
     for s in _ORDER[:-1]:
         if prog.state[s] in ("pending", "running"):
             prog.set(s, "done" if prog.state[s] == "running" else "skipped",
@@ -888,6 +892,25 @@ def build(exp_path, emit=None, force=False, check=True):
     (mdir / "summary.json").write_text(json.dumps(summ, indent=1, ensure_ascii=False), encoding="utf-8")
     (mdir / "summary.txt").write_text(summary_text(summ), encoding="utf-8")
     return summ
+
+
+def far_ring(mdir, log_path):
+    """The map's far landscape ring (coupledcarla.farring: carla-digitaltwins tools/far_ring.py, needs the twin
+    toolchain config) -> (ok, plain words). A map keeps its paving slab to the horizon without it."""
+    from . import farring, twinmaker
+    cfg = twinmaker.load_config() or {}
+    cdt = Path(cfg.get("digitaltwins") or "") / "TwinModel"
+    if not (cdt / "tools" / "far_ring.py").exists():
+        return False, "needs carla-digitaltwins (the twin toolchain, docs/make_a_map.md); a plain ground to the horizon"
+    if (Path(mdir) / "far_ring" / "far_ring.json").exists():
+        return True, "built before"
+    with open(log_path, "a", encoding="utf-8") as logf:
+        rc = farring.build(mdir, cdt, cfg.get("python") or sys.executable, log=lambda m: logf.write(m + "\n"),
+                           stdout=logf)
+    if rc != 0:
+        return False, f"could not be built (see {log_path}); a plain ground to the horizon"
+    return True, ("ready in far_ring/ (a CARLA 1.0 server shows it once it is cooked in: "
+                  "carla-digitaltwins ue/bake_far_ring.py --assets-only)")
 
 
 def summary(mdir, cfg=None):
