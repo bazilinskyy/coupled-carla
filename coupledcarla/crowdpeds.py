@@ -1219,6 +1219,11 @@ class CrowdSim:
             self.on_vanish(k, actor, reason)
         return True
 
+    def tick(self):
+        """Every tick (the walkers' own controls go every 4th): what moves with a walker (pushed bicycles)."""
+        if self.crossings is not None:
+            self.crossings.tick()
+
     def on_road(self):
         own = [a for a, st in zip(self.actors, self.state) if st["alive"] and st["crossing"]]
         return own + (self.crossings.on_road() if self.crossings is not None else [])

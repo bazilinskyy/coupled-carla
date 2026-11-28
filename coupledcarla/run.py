@@ -794,6 +794,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             for ag in agents:
                 ag.step(t, step, walkers_now)
             tools.step(t, step, walkers_now, snap.frame)      # automated drivers' cars, dashboard commands
+            if crowd is not None and hasattr(crowd, "tick"):       # bicycles pushed by crossing walkers
+                crowd.tick()
             if crowd is not None and summary["ticks"] % 4 == 0:     # a walker keeps its last control
                 crowd.step(t)
                 if getattr(crowd, "window", None) is not None:    # walkers left behind reappear ahead

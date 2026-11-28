@@ -76,15 +76,22 @@ DEFAULTS = {
 REACH_M = 40.0               # kerb ends this close to a junction's centre belong to it
 CORNER_MAX_M = 35.0          # two kerb ends of one block corner are at most this far apart
 MAX_LEG_M = 70.0
-SPACING_M = 0.75             # between waiting walkers (about 2 per m2, a dense waiting crowd)
-ARM_M = 14.0                 # waiting spots along this much kerb from each kerb end
+PROGRESS = 0.35              # steering keeps at least this share of the walking speed towards the goal
+SPACING_M = 0.95             # between waiting walkers (about 1.1 per m2, a dense waiting crowd); CARLA's walkers
+                             # collide with each other's skeletal meshes, and closer crowds cost the server dearly
+                             # (Shibuya twin, -nullrhi, 420 walkers at 0.75 m: 750 ms per tick; README)
+ARM_M = 18.0                 # waiting spots along this much kerb from each kerb end
 ROW_DELAY_S = 0.45           # start-up delay per row behind the kerb
 START_WAVE_S = 0.04          # and per metre along it
 CROSSERS_PER_LEG = 6.0       # crossers per cycle and leg at the world's CROWD density and a typical junction
 LEG_WIDTH = {"side": 5.0, "diagonal": 7.0, "busy": 4.0}
-APPROACH_M = (15.0, 38.0)    # walkers come from this far along a pavement
-LEAVE_M = (12.0, 30.0)       # and walk this far away after crossing
-VIEW_M, VIEW_DEG = 90.0, 50.0   # "in view": within this distance and half-angle of a viewer's heading
+APPROACH_M = (15.0, 70.0)    # walkers come from this far along a pavement (at most its kerb's length)
+LEAVE_M = (25.0, 70.0)       # and those who leave walk this far away after crossing
+LEAVE_SHARE = 0.35           # of the walkers arriving at a corner, these leave the junction; the others go on across
+                             # another leg of that corner at the next walk (a walker vanishes and reappears only out
+                             # of everyone's sight: with a camera at the crossing nobody would come back otherwise)
+VIEW_M, VIEW_DEG = 90.0, 50.0
+BIKE_SIDE_M, WALKER_HALF_M = 0.55, 0.92   # a pushed bicycle's offset to the walker's right; walker origin height   # "in view": within this distance and half-angle of a viewer's heading
 
 # kinds: share is of walking units (groups and families are one unit); speed x the place's median; reaction time
 # median (s) at the start of the walk; run: top speed when the light runs out
@@ -467,10 +474,63 @@ def steer(px, py, gx, gy, v0, neighbours, keep_left=False, spacing=SPACING_M, a=
             elif along < -0.15:                           # someone coming the other way: step to the keep side
                 fx += lx * 0.7
                 fy += ly * 0.7
+    fwd = fx * ex + fy * ey                # people squeeze on through a crowd: some progress towards the goal stays
+    if fwd < PROGRESS * v0:
+        fx += ex * (PROGRESS * v0 - fwd)
+        fy += ey * (PROGRESS * v0 - fwd)
     n = math.hypot(fx, fy)
     if n < 1e-6:
         return (ex, ey), 0.0
     return (fx / n, fy / n), min(n, slow, v0 * 1.3)
+
+
+def steer_many(reqs, others, keep_left=False, a=0.9, b=0.3):
+    """steer() for many walkers at once (numpy): reqs [((x, y), (gx, gy), v0, spacing)], others [(x, y, vx, vy)] (the
+    walker itself among them: skipped at distance 0). Returns [((dx, dy), speed)]."""
+    try:
+        import numpy as np
+    except ImportError:          # the same, one by one
+        return [steer(p[0], p[1], g[0], g[1], v, [o for o in others if (o[0], o[1]) != tuple(p)], keep_left, sp, a, b)
+                for p, g, v, sp in reqs]
+    P = np.array([r[0] for r in reqs], float)
+    G = np.array([r[1] for r in reqs], float)
+    v0 = np.array([r[2] for r in reqs], float)
+    sp = np.array([r[3] for r in reqs], float)
+    O = np.array(others, float).reshape(-1, 4)
+    E = G - P
+    dn = np.hypot(E[:, 0], E[:, 1])
+    still = dn < 1e-6
+    E = E / np.where(still, 1.0, dn)[:, None]
+    F = E * v0[:, None]
+    slow = v0.copy()
+    if len(O):
+        dx = P[:, 0:1] - O[None, :, 0]                    # from each other walker to this one (K x M)
+        dy = P[:, 1:2] - O[None, :, 1]
+        r2 = dx * dx + dy * dy
+        k, m = np.nonzero((r2 > 1e-6) & (r2 <= 6.25))     # the pairs within 2.5 m: few, so the rest is per pair
+        if len(k):
+            px, py = dx[k, m], dy[k, m]
+            r = np.sqrt(r2[k, m])
+            ex, ey = E[k, 0], E[k, 1]
+            ahead = -(px * ex + py * ey) / r
+            mag = a * np.exp((sp[k] - r) / b) * np.where(ahead > -0.2, 1.0, 0.35)
+            F[:, 0] += np.bincount(k, mag * px / r, minlength=len(P))
+            F[:, 1] += np.bincount(k, mag * py / r, minlength=len(P))
+            front = (ahead > 0.8) & (r < sp[k] + 0.9)
+            along = O[m, 2] * ex + O[m, 3] * ey
+            fol = front & (along > 0.15)
+            if fol.any():
+                np.minimum.at(slow, k[fol], np.maximum(0.25, along[fol]))
+            coming = np.bincount(k[front & (along < -0.15)], minlength=len(P)).astype(float)
+            L = np.stack([E[:, 1], -E[:, 0]], axis=1) if keep_left else np.stack([-E[:, 1], E[:, 0]], axis=1)
+            F += L * (0.7 * coming)[:, None]
+    fwd = F[:, 0] * E[:, 0] + F[:, 1] * E[:, 1]
+    F += E * np.maximum(0.0, PROGRESS * v0 - fwd)[:, None]
+    n = np.hypot(F[:, 0], F[:, 1])
+    ok = (n > 1e-6) & ~still
+    dirs = np.where(ok[:, None], F / np.where(ok, n, 1.0)[:, None], E)
+    speed = np.where(ok, np.minimum(np.minimum(n, slow), v0 * 1.3), 0.0)
+    return [((float(dx), float(dy)), float(s)) for (dx, dy), s in zip(dirs, speed)]
 
 
 class Grid:
@@ -494,7 +554,7 @@ class Ped:
     __slots__ = ("i", "site", "unit", "lead", "off", "kind", "v0", "vmax", "react", "photo", "umbrella", "child",
                  "bike", "pos", "vel", "state", "end", "slot", "leg", "from_a", "lane", "start_at", "kerb_t",
                  "path", "path_i", "photo_until", "photo_done", "red", "red_at", "arrived_t", "face", "ran",
-                 "started_in", "hidden_tries", "queued_t", "tag", "loiter")
+                 "started_in", "hidden_tries", "queued_t", "tag", "loiter", "wait_new", "retry_t")
 
     def __init__(self, i, site, unit, m):
         self.i, self.site, self.unit = i, site, unit
@@ -509,7 +569,7 @@ class Ped:
         self.photo_until = None
         self.photo_done, self.red, self.red_at, self.arrived_t = False, False, None, None
         self.face, self.ran, self.started_in, self.hidden_tries, self.queued_t = None, False, None, 0, None
-        self.tag, self.loiter = "", False
+        self.tag, self.loiter, self.wait_new, self.retry_t = "", False, False, 0.0
 
 
 class CrossingModel:
@@ -638,9 +698,10 @@ class CrossingModel:
     def _new_leave(self, p, progress=0.0):
         site = self.sites[p.site]
         e = self.rng.choice(site.ends)
+        self._choose_leg(p, e.corner)
         path = path_upto(e.arm, min(polyline_length(e.arm), self.rng.uniform(*LEAVE_M)))
         p.path = path_from(path, progress * polyline_length(path))
-        p.path_i, p.pos, p.state = 1, p.path[0], "leave"
+        p.path_i, p.pos, p.state, p.loiter = 1, p.path[0], "leave", e.corner
         self._reset(p)
         for q in self.members.get(p.i, []):
             q.state, q.pos = "leave", self._behind(p, q)
@@ -703,7 +764,7 @@ class CrossingModel:
                 else:
                     stages[(k, lg.k)] = st
                 self._phase_edge(self.key(k, lg), st[0] == "walk", t)
-        grid = Grid([(p.pos[0], p.pos[1], p.vel[0], p.vel[1], p.i) for p in self.peds if p.state != "gone"])
+        grid = None                                         # steering: _steer_all
         cmds = {}
         for p in self.peds:
             if p.lead is None:
@@ -712,8 +773,19 @@ class CrossingModel:
         for p in self.peds:                                 # after the leaders: they follow this step's leader
             if p.lead is not None:
                 cmds[p.i] = self._follower(p, grid)
+        self._steer_all(cmds)
         self._view_count(viewers)
         return cmds
+
+    def _steer_all(self, cmds):
+        """Turns the ("go", target, speed, spacing) commands into walks, steered among all walkers on the street."""
+        go = [(i, c) for i, c in cmds.items() if c[0] == "go"]
+        if not go:
+            return
+        others = [(p.pos[0], p.pos[1], p.vel[0], p.vel[1]) for p in self.peds if p.state != "gone"]
+        out = steer_many([(self.peds[i].pos, c[1], c[2], c[3]) for i, c in go], others, self.keep_left)
+        for (i, _c), res in zip(go, out):
+            cmds[i] = ("walk", res[0], res[1])
 
     def _phase_edge(self, key, walking, t):
         rec = self.phase.get(key)
@@ -731,6 +803,7 @@ class CrossingModel:
                                "diagonal": 0, "in_view_max": 0, "in_view_sum": 0, "in_view_n": 0,
                                "late_runners": 0, "red": 0}
             for p in queued:                               # the wave: the front first, the start ripples back
+                p.wait_new = False
                 if p.lead is not None:
                     continue
                 sl = site.slots[p.slot] if p.slot is not None else (0, 0, 0, ROWS_BEHIND, ARM_M)
@@ -778,7 +851,7 @@ class CrossingModel:
                 return self._path_done(p, t, st, hidden)
             return self._go(p, p.path[p.path_i], p.v0 * (0.8 if p.state == "toslot" else 1.0), grid)
         if p.state == "queue":
-            if stg == "walk":
+            if stg == "walk" and not p.wait_new:
                 if p.start_at is None:                     # its leg's walk began after it arrived
                     p.start_at = t + _lognormal(self.rng, p.react) * 0.5
                 if t >= p.start_at and self._can_make(p, remaining):
@@ -796,8 +869,6 @@ class CrossingModel:
             return ("stand", p.face)
         if p.state in ("cross", "photo"):
             return self._cross(p, t, st, grid)
-        if p.state == "gone":
-            return self._path_done(p, t, st, hidden)
         return ("stand", None)
 
     def _path_done(self, p, t, st, hidden):
@@ -826,18 +897,26 @@ class CrossingModel:
         if p.state == "toslot":
             p.state, p.queued_t = "queue", t
             return ("stand", p.face)
-        # left (or gone): back into the crowd's supply once it can vanish unseen
-        p.state = "gone"
+        # left: back into the crowd's supply, vanishing and reappearing only where nobody sees it; else it turns
+        # and walks back to the corner it came from (a pavement has people going both ways)
         if hidden is None or hidden(*p.pos):
-            for _ in range(6):
-                old = p.pos
+            for _ in range(3):
+                old, path = p.pos, p.path
                 self._new_approach(p)
                 if hidden is None or hidden(*p.pos):
                     nxt = p.path[min(1, len(p.path) - 1)]
                     yaw = math.degrees(math.atan2(nxt[1] - p.pos[1], nxt[0] - p.pos[0]))
                     return ("teleport", p.pos[0], p.pos[1], yaw)
-                p.pos, p.state = old, "gone"
-        return ("stand", None)
+                p.pos, p.path = old, path
+        corner = p.loiter if isinstance(p.loiter, int) and not isinstance(p.loiter, bool) else p.end.corner
+        back = list(reversed(p.path))
+        self._choose_leg(p, corner)
+        self._reset(p)
+        p.path, p.path_i, p.state = back, 1, "approach"
+        for q in self.members.get(p.i, []):
+            self._reset(q)
+            q.state = "approach"
+        return self._go(p, back[min(1, len(back) - 1)], p.v0, None)
 
     def _cross(self, p, t, st, grid):
         stg, remaining = st
@@ -887,20 +966,42 @@ class CrossingModel:
                                "group": len(self.group(p))})
         dest = p.leg.b if p.from_a else p.leg.a
         site = self.sites[p.site]
+        if self.rng.random() >= LEAVE_SHARE and self._chain(p, dest, t):
+            return ("stand", p.face)
         e = self.rng.choice(site.corners[dest.corner])
         p.path = path_upto(e.arm, min(polyline_length(e.arm), self.rng.uniform(*LEAVE_M)))
-        p.path_i, p.state = 0, "leave"
+        p.path_i, p.state, p.loiter = 0, "leave", dest.corner
         for q in self.members.get(p.i, []):
             q.state = "leave"
         return self._go(p, p.path[0], p.v0, None)
 
+    def _chain(self, p, dest, t):
+        """p goes on across another leg of the corner it reached, at the next walk: to a waiting spot there."""
+        site = self.sites[p.site]
+        crossed = p.leg
+        opts = [(lg, fa) for lg, fa in site.legs_from.get(dest.corner, ()) if lg is not crossed]
+        if not opts:
+            return False
+        lg, from_a = self.rng.choice(opts)
+        p.leg, p.from_a = lg, from_a
+        p.end = lg.a if from_a else lg.b
+        half = lg.width / 2.0
+        p.lane = max(-half, min(half, self.rng.gauss(0.25 * half * (1 if self.keep_left else -1), half / 2.0)))
+        for q in self.members.get(p.i, []):
+            q.leg, q.from_a, q.end, q.lane = p.leg, p.from_a, p.end, p.lane
+        if not self._take_slot(p):
+            return False
+        self._reset(p)
+        p.state, p.path, p.path_i, p.wait_new = "toslot", [self._slot_xy(p)], 0, True
+        p.face = self._leg_yaw(p)
+        for q in self.members.get(p.i, []):
+            self._reset(q)
+            self._take_slot(q, near=self._slot_xy(p))
+        return True
+
     def _go(self, p, target, v, grid):
-        nb = []
-        if grid is not None:
-            nb = [(x, y, vx, vy) for x, y, vx, vy, j in grid.near(*p.pos) if j != p.i]
-        (dx, dy), speed = steer(p.pos[0], p.pos[1], target[0], target[1], v, nb, self.keep_left,
-                                spacing=1.0 if p.umbrella else SPACING_M)
-        return ("walk", (dx, dy), speed)
+        """A walk towards target at v: steered with everyone else's in one go at the end of step()."""
+        return ("go", (float(target[0]), float(target[1])), float(v), 1.25 if p.umbrella else SPACING_M)
 
     def _follower(self, p, grid):
         L = p.lead
@@ -1076,9 +1177,9 @@ class CrossingCrowd:
                 b = self.rng.choice(bikes)
                 if b.has_attribute("role_name"):
                     b.set_attribute("role_name", "pushed_bike")
-                try:     # beside the walker, wheels on the ground (the walker's origin is its capsule's centre)
-                    bike = self.world.spawn_actor(b, carla.Transform(carla.Location(x=0.25, y=0.55, z=-0.55)),
-                                                  attach_to=actor, attachment_type=carla.AttachmentType.Rigid)
+                try:     # beside the walker, moved with it every tick (tick()): attached, it stayed behind
+                    bike = self.world.spawn_actor(b, carla.Transform(carla.Location(
+                        x=x + 0.55, y=y, z=ground(x, y) + 0.05), carla.Rotation(yaw=p.face or 0.0)))
                     bike.set_simulate_physics(False)
                     self.bikes[p.i] = bike
                     self.not_vehicles.add(bike.id)
@@ -1094,6 +1195,23 @@ class CrossingCrowd:
     @property
     def walkers(self):
         return [a for a in self.actors if a is not None]
+
+    def tick(self):
+        """Every tick: each pushed bicycle beside its walker, wheels on the ground (CARLA 1.0 left a vehicle
+        attached to a walker where it was spawned, 2026-11-28). The walker's origin is its capsule's centre."""
+        carla = self.carla
+        for i, bike in self.bikes.items():
+            a = self.actors[i]
+            try:
+                tf = a.get_transform()
+            except RuntimeError:
+                continue
+            yaw = math.radians(tf.rotation.yaw)
+            fx, fy = math.cos(yaw), math.sin(yaw)
+            rx, ry = -fy, fx                               # right of the heading in CARLA's x, y
+            loc = carla.Location(x=tf.location.x + 0.3 * fx + BIKE_SIDE_M * rx,
+                                 y=tf.location.y + 0.3 * fy + BIKE_SIDE_M * ry, z=tf.location.z - WALKER_HALF_M)
+            self._transform(bike, carla.Transform(loc, carla.Rotation(yaw=tf.rotation.yaw)))
 
     def on_road(self):
         return [self.actors[i] for i in self.model.on_road() if self.actors[i] is not None]

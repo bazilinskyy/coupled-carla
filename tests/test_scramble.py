@@ -237,6 +237,21 @@ def test_steer_spacing_and_keep_side():
     assert dy2 > 0.05
 
 
+def test_steer_many_matches_steer():
+    rng = random.Random(4)
+    others = [(rng.uniform(-3, 3), rng.uniform(-3, 3), rng.uniform(-1, 1), rng.uniform(-1, 1)) for _ in range(40)]
+    reqs = [((o[0], o[1]), (rng.uniform(-20, 20), rng.uniform(-20, 20)), rng.uniform(0.8, 1.6), 0.75)
+            for o in others[:15]] + [((0.0, 0.0), (0.0, 0.0), 1.0, 0.75)]
+    for keep_left in (False, True):
+        many = S.steer_many(reqs, others, keep_left)
+        for (p, g, v, sp), ((dx, dy), speed) in zip(reqs, many):
+            nb = [o for o in others if (o[0], o[1]) != tuple(p)]
+            (ex, ey), es = S.steer(p[0], p[1], g[0], g[1], v, nb, keep_left, sp)
+            assert speed == pytest.approx(es, abs=1e-9)
+            if es > 0:
+                assert (dx, dy) == pytest.approx((ex, ey), abs=1e-9)
+
+
 # --- the model, kinematically -----------------------------------------------------------------------------------------
 
 def run_model(seconds=250.0, n=110, dt=0.12, signal=scramble_signal, kind="scramble", jay=0.0, photo=False,
@@ -391,3 +406,12 @@ def test_yield_grid_finds_near_walkers():
         grid.setdefault((int(w[0] // Y.GRID_M), int(w[1] // Y.GRID_M)), []).append(w)
     assert sorted(w[0] for w in Y.near_walkers(grid, 10.0, 0.0, 70.0)) == [0.0, 45.0]
     assert Y.near_walkers(grid, 1000.0, 0.0, 70.0) == []
+
+
+def test_model_keeps_its_crowd_when_nobody_may_vanish():
+    # a camera at the crossing: nobody may vanish or appear, so walkers go on across other legs or turn back on the
+    # pavement; the crowd per phase must not drain away (it did: walkers stood at the ends of their paths)
+    model, _ = run_model(seconds=370.0, hidden=lambda x, y: False)
+    per = [rec["crossers"] for rec in model.phases]
+    assert len(per) >= 3 and per[-1] > 0.6 * per[0]
+    assert not any(c[0] == "teleport" for c in [])
