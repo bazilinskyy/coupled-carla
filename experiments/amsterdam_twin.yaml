@@ -20,8 +20,8 @@ simulation:
   weather: CloudyNoon
 
 traffic:
-  cars_per_hour: 2400
-  bikes_per_hour: 1200
+  cars_per_hour: auto
+  bikes_per_hour: auto
 
 participants:
   - role: driver

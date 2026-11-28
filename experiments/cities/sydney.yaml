@@ -18,7 +18,7 @@ map:
   lefthand: true
 traffic:
   cars_per_hour: 3000
-  bikes_per_hour: 300
+  bikes_per_hour: auto
   buses_per_hour: 20
 participants:
 - role: driver

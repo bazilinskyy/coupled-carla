@@ -17,9 +17,9 @@ simulation:
   step: 0.02
   weather: CloudyNoon
 
-traffic:
-  cars_per_hour: 2400
-  bikes_per_hour: 1200
+traffic:            # the place's traffic: road-network demand at the trial's hour x CROWD's density, mix and cyclists
+  cars_per_hour: auto
+  bikes_per_hour: auto
 
 participants:
   - role: driver

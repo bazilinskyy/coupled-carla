@@ -22,7 +22,7 @@ simulation:
   weather: real
 traffic:
   cars_per_hour: auto
-  bikes_per_hour: 1200
+  bikes_per_hour: auto
   counts: auto
   walkers:
     count: auto

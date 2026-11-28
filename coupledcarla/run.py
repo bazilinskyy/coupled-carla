@@ -202,6 +202,8 @@ def spawn_vehicle(world, geo, p, log):
     cmap = world.get_map()
     bp = compat.find(world, p.get("vehicle", "vehicle.lincoln.mkz_2020"), "passenger")
     bp.set_attribute("role_name", p["role"])
+    if p.get("color") and bp.has_attribute("color"):     # "r,g,b": a taxi's livery, a company car's paint
+        bp.set_attribute("color", str(p["color"]))
     plates.tag(bp)
     sp = p.get("spawn") or {}
     if "lat" in sp:
@@ -425,6 +427,13 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         side = Side(tc["server"]["host"], tc["server"]["port"])
         carla_sim.use_side(side.world)
         focus_actors = []   # SUMO actors appear in CARLA only near these (the participants)
+
+        def focus_points():
+            """The participants and where the pilots' drone cameras look on the ground (drones.look_points)."""
+            pts = [a.get_location() for a in focus_actors]
+            if drone_world is not None:
+                pts += drone_world.look_points()
+            return pts
         sync = SimulationSynchronization(
             sumo, carla_sim, tc["simulation"]["tls_manager"], sync_vehicle_lights=True,
             sync_vehicle_color=True,     # each SUMO car's colour (traffic.py: from the vehicle register) on its CARLA car
@@ -435,7 +444,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             driver_mix_seed=(tc["traffic"].get("seed", 42) if tc["traffic"].get("driver_mix", True) else None),
             red_running=drivermix.red_running(tc),
             depart_hide_m=tc["simulation"].get("depart_hide_m", 60.0),   # no car appears out of nowhere nearby
-            focus=lambda: [a.get_location() for a in focus_actors] or None)
+            focus=lambda: focus_points() or None)
         if town:      # the town's traffic-light actors, run by SUMO through the bridge
             both = sync.sumo.traffic_light_ids & sync.carla.traffic_light_ids
             summary["town_lights"] = {"carla": len(sync.carla.traffic_light_ids), "sumo": len(sync.sumo.traffic_light_ids),
@@ -597,7 +606,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
                 parked = parking.scenery(client, world, mdir, tc, log,
                                          on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}))
             if parked is not None:
-                parked.update([a.get_location() for a in focus_actors])
+                parked.update(focus_points())
                 log(f"parked: {parked.n} cars within {parked.radius:.0f} m of the participants")
         for part in parts:   # BasicAgent planned from (0, 0, 0) before the first tick: plan from the spawn lane
             if hasattr(part.input, "attach"):     # the SUMO driver: its route from the spawn lane (sumodriver.py)
@@ -614,6 +623,11 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         # ai.Crowd beside the roads; its walkers join walkers_now (cars yield to them) only while on the road
         livingcity.apply_crowd_default(tc, livingcity.settings(tc), log)   # a living city has a crowd
         crowd_centres = [p.actor.get_location() for p in parts]
+        if drone_world is not None:   # a bot pilot's crowd covers its flight and the ground its camera films
+            fly = drone_world.path_points()
+            if fly:
+                crowd_centres += [carla.Location(x, y, 0.0) for x, y in fly]
+                log(f"crowd: also along the drone flights and their camera views ({len(fly)} points)")
         wcfg = crowdwindow.settings(tc)     # a rolling window keeps the crowd around the drivers (crowdwindow.py)
         reach = crowdpeds.route_reach(duration, wcfg["route_max_m"] if wcfg["enabled"] else
                                       crowdpeds.ROUTE_AHEAD_MAX_M)
@@ -690,6 +704,8 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
         for x in own_logs:      # inputs and the crowd with logs of their own (myodriver.py, embodiedped.py)
             x.open_log(out)
         logger.velocities = sync.velocity        # SUMO vehicles' speeds in frames.csv (see above)
+        if drone_world is not None:              # AI actors near the drones and where their cameras look, too
+            logger.extra_centres = lambda: [a.get_location() for a in focus_actors] + drone_world.look_points()
         fc = tc.get("film") or {}
         if fc.get("camera") or fc.get("cameras"):       # demo-video cameras on a sim-time grid (tools/make_videos.py)
             from .film import Film
@@ -821,7 +837,7 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if scenery is not None and summary["ticks"] % 50 == 25:
                 scenery.update([a.get_location() for a in focus_actors])
             if parked is not None and summary["ticks"] % 50 == 35:
-                parked.update([a.get_location() for a in focus_actors])
+                parked.update(focus_points())
             if photo is not None and photo.s.get("cameras") == "spectator" and summary["ticks"] % 5 == 0:
                 # Cesium streams the photo tiles for the spectator's view: keep it where the saved or shown view is
                 # (with cameras: sensors the plugin hands CARLA's camera sensors to Cesium instead)
