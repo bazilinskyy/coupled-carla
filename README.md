@@ -2371,7 +2371,13 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
   class x the median daily flow per lane measured on the counted maps (primary 3,400, secondary and tertiary
   2,600, other 1,000 cars) x the hour's share / the mean trip length, capped at 5,000 cars/h (above that random
   trips jam SUMO's junctions). The city files keep their explicit numbers of cars (by size class); the twins and
-  the twin maker use `auto`, scaled by the place's density from CROWD (next).
+  the twin maker use `auto`, scaled by the place's density from CROWD (next). With `auto` and no counts in reach,
+  the main roads carry their class's typical flow (`traffic.class_flows`, `counts.class_flows`): every primary,
+  secondary and tertiary edge gets the median daily flow per lane above at the hour's share (x the place's density)
+  and SUMO's `routeSampler` routes the cars to match, as on the counted maps; random trips alone spread them evenly
+  over every street, so a city centre's arterials looked half empty. A twin's net, built from its OpenDRIVE, has no
+  road classes: they come from OSM (Overpass, cached in `real/osm_roads.json`) by position and direction. Eindhoven
+  twin at 17:00: 242 main-road edges at ~420 cars/h each, cars on the map at once 285 -> 456.
 - **Traffic of the place, from CROWD** (`coupledcarla/crowdtraffic.py`, `traffic.crowd`, data
   `coupledcarla/data/crowd_traffic.json` built by `tools/crowd_traffic.py`). The CROWD dashcam dataset counts the
   unique cars, trucks, buses, motorcycles, bicycles and persons that YOLO tracks in each minute of over 33,000 hours

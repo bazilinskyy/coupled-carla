@@ -211,6 +211,9 @@ DEFAULTS = {
         "counts": "auto",            # "auto": fit the cars to open traffic counts where they cover the map
                                      # (NYC DOT, DfT, Lyon, Montevideo, Auckland, Portland, VTrans) with SUMO's
                                      # routeSampler, topped up to cars_per_hour; false: random trips only
+        "class_flows": True,         # where no counts reach and cars_per_hour is "auto": the primary, secondary and
+                                     # tertiary roads (OSM; Overpass for a twin's net) carry their class's median
+                                     # flow per lane at the hour (counts.class_flows), routed with routeSampler
         "bikes_per_hour": "auto",    # bikes entering per hour, or "auto": the car stream x CROWD's bicycles per
                                      # motor vehicle of the place (crowdtraffic.py; 1200 without CROWD); open bike
                                      # counters still set it where they reach (traffic.cycling.counts)

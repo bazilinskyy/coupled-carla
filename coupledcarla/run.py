@@ -620,6 +620,17 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if parked is not None:
                 parked.update(focus_points())
                 log(f"parked: {parked.n} cars within {parked.radius:.0f} m of the participants")
+                try:     # the trial's parked cars, for tools/traffic_seen.py (a dashcam counts them too)
+                    seen_xy = set()
+                    with open(out / "parked.csv", "w") as f:
+                        f.write("x;y;z;yaw\n")
+                        for it in parked.prov_data["items"]:
+                            if it is None or (round(it[1], 1), round(it[2], 1)) in seen_xy:
+                                continue      # a car's window glass is an item of its own at the same place
+                            seen_xy.add((round(it[1], 1), round(it[2], 1)))
+                            f.write(f"{it[1]:.2f};{it[2]:.2f};{it[3]:.2f};{it[4]:.1f}\n")
+                except (OSError, KeyError, TypeError, IndexError) as err:
+                    log(f"parked: parked.csv not written ({err})")
         for part in parts:   # BasicAgent planned from (0, 0, 0) before the first tick: plan from the spawn lane
             if hasattr(part.input, "attach"):     # the SUMO driver: its route from the spawn lane (sumodriver.py)
                 try:

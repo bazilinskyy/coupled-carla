@@ -231,3 +231,33 @@ def test_copy_vtypes(tmp_path):
     root = ET.parse(rou).getroot()
     assert [t.get("id") for t in root.iter("vType")] == ["vehicle.audi.a2", "vehicle.seat.leon"]
     assert list(root)[0].tag == "vType"
+
+
+def test_class_flows_on_the_main_roads(grid_net):
+    f = C.class_flows(grid_net, "weekday", 17)
+    w = C.day_weight("weekday", 17)
+    assert set(f) == {"main_e", "main_w", "oak_n", "oak_s"}                  # Elm Street is minor: random trips
+    assert f["main_e"] == pytest.approx(2 * C.ADT_PER_LANE["secondary"] * w)
+    assert C.class_flows(grid_net, "weekday", 17, scale=0.5)["oak_n"] == pytest.approx(f["oak_n"] / 2)
+    assert C.class_flows(grid_net, "weekday", 3)["main_e"] < f["main_e"] / 5
+
+
+class _LinearNet:
+    def convertLonLat2XY(self, lon, lat):
+        return lon * 1000.0, lat * 1000.0
+
+
+def test_osm_road_edges_from_the_cache_both_ways(tmp_path):
+    (tmp_path / "real").mkdir()
+    ways = [{"id": 1, "highway": "secondary", "name": "Parklaan", "ref": None, "oneway": False,
+             "geom": [[0.0, 0.0], [0.0, 0.2]]},
+            {"id": 2, "highway": "primary_link", "name": None, "ref": "N2", "oneway": True,
+             "geom": [[0.1, 0.0], [0.1, 0.1]]}]
+    (tmp_path / "real" / "osm_roads.json").write_text(json.dumps({"ways": ways}))
+    out = C.osm_road_edges(tmp_path, _LinearNet())
+    assert [o["id"] for o in out] == ["1", "1", "2"]                         # two-way: both directions
+    assert out[0]["shape"] == [(0.0, 0.0), (200.0, 0.0)] and out[1]["shape"] == [(200.0, 0.0), (0.0, 0.0)]
+    assert out[0]["cls"] == "secondary" and out[2]["cls"] == "primary" and out[2]["ref"] == "N2"
+    edges = [_edge("e", [(0, 1), (200, 1)], cls="minor", lanes=1)]
+    C.label(edges, out)
+    assert edges[0]["cls"] == "secondary" and edges[0]["name"] == "Parklaan"

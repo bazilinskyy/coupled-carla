@@ -150,17 +150,14 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
             s = pt[2]
             log(f"public transport ({s['day']} {s['hour']:02d}:00): {s['lines_running']} of {s['lines']} OSM bus "
                 f"lines running, {s['buses']} buses")
-    cars_per_hour, flows = tc["cars_per_hour"], None
+    cars_per_hour, flows, csum = tc["cars_per_hour"], None, None
     try:   # measured counts and the road-network demand estimate (counts.py)
         from . import counts
-        cars_per_hour, flows, _, _ = counts.plan(tc, map_dir, bbox, when, log)
+        dens = ct["density"] if (ct is not None and cs.get("density", True)) else 1.0
+        cars_per_hour, flows, _, csum = counts.plan(tc, map_dir, bbox, when, log, scale=dens)
     except Exception as err:  # noqa: BLE001 - counts are a refinement: never fail the trial for them
         log(f"counts: not used ({type(err).__name__}: {err})")
         cars_per_hour = 2400 if cars_per_hour == "auto" else cars_per_hour
-    if tc["cars_per_hour"] == "auto" and ct is not None and cs.get("density", True) and not flows:
-        log(f"cars: {cars_per_hour:.0f}/h x {ct['density']:.2f} (CROWD density of the place) = "
-            f"{cars_per_hour * ct['density']:.0f}/h")
-        cars_per_hour *= ct["density"]
     if ct is not None:      # the bike window keeps this ratio around the drivers (bikewindow.py)
         cfg["traffic"]["_bikes_per_motor"] = round(ct["bikes_per_motor"], 4)
     if tc.get("bikes_per_hour") == "auto":     # CROWD's bicycles per motor vehicle of the place x the car stream
@@ -183,7 +180,9 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
         if not per_hour:
             continue
         rou = work / f"{name}.rou.xml"
-        if name == "car" and flows and counts.car_routes(net, work, types, gen_end, per_hour, flows, tc["seed"], log):
+        cand = 8.0 * per_hour if (csum or {}).get("source") == "road classes" else None
+        if name == "car" and flows and counts.car_routes(net, work, types, gen_end, per_hour, flows, tc["seed"], log,
+                                                         cand_rate=cand):
             _cars_mix(rou, tc, net, livery, log)
             painter = fleet.Painter(reg, tc["seed"])
             painter.taxis = bool(reg and reg["body"].get("taxi"))

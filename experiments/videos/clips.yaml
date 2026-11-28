@@ -398,7 +398,7 @@ clips:
     when: weekday 17:15
     agents: SUMO cars from the Dutch register, cyclists, real bus lines at their timetable
     notice: 3DBAG buildings with real roofs and facade styles, aerial-photo ground, CARLA road markings, trees and
-      street furniture from open data
+      street furniture from open data; the Parklaan's cycle tracks
     experiment: experiments/eindhoven_twin.yaml
     time: "2026-06-17 17:15"      # the clip's weekday rush hour (traffic, buses, sun); unset meant 08:00
     # traffic seed 43: with 42 a bus swerved through the camera window (2026-11-23 re-render, realism QA)
@@ -409,11 +409,16 @@ clips:
       participants:
         driver:
           vehicle: vehicle.tesla.model3      # every clip its own ego, from the place's fleet (README: vehicles)
+          # down the John F. Kennedylaan and east along the Parklaan, whose cycle tracks the twin has as lanes for
+          # bikes only (edges -4, -482..-487 eastbound, -82 westbound): Eindhoven's cyclists in view (bike window)
+          spawn: {lat: 51.44225, lon: 5.48535, heading: 157}
           route:
-          - - 51.44479
-            - 5.48053
-          - - 51.4423
-            - 5.4852
+          - - 51.44225
+            - 5.48535
+          - - 51.4416
+            - 5.4870
+          - - 51.44178
+            - 5.4929
     start_s: 25
     duration_s: 20
     camera:
