@@ -130,3 +130,16 @@ def test_window_adds_bikes_to_the_place_share_and_takes_them_off():
     w.step(6.0)
     assert w.dropped == 5 and not any(k.startswith("bikewin") for k in tr.vehicles)
     assert math.isclose(w.summary()["ratio"], 0.226)
+
+
+def test_a_failing_window_stops_quietly():
+    msgs = []
+
+    class Bad:
+        def get_transform(self):
+            raise ValueError("boom")
+    w = bw.BikeWindow([{"actor": Bad(), "route": None}], [], dict(bw.DEFAULTS, ratio=0.2), {}, lambda: [], {},
+                      lambda: {}, log=msgs.append, traci=FakeTraci())
+    w.step(0.0)
+    w.step(5.0)
+    assert w.broken and len(msgs) == 1 and w.summary()["broken"]

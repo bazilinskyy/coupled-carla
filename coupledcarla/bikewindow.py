@@ -121,6 +121,7 @@ class BikeWindow:
         self.traci = traci
         self.last, self.last_log, self.n = None, 0.0, 0
         self.mine = set()
+        self.broken = False
         self.pending = {}       # own bikes added, not shown in CARLA yet: {SUMO id: t added}
         self._t = 0.0
         self.added = self.dropped = self.failed = 0
@@ -159,6 +160,16 @@ class BikeWindow:
         return {"x": x, "y": y, "yaw": tf.rotation.yaw, "ri": ri, "s": ri.locate(x, y) if ri is not None else 0.0}
 
     def step(self, t):
+        """Checks the windows every check_s; never fails the trial (an error is logged once and the window stops)."""
+        if self.broken:
+            return
+        try:
+            self._step(t)
+        except Exception as err:  # noqa: BLE001 - a refinement: the trial goes on without it
+            self.broken = True
+            self.log(f"bike window: stopped ({type(err).__name__}: {err})")
+
+    def _step(self, t):
         if self.last is not None and t - self.last < self.cfg["check_s"]:
             return
         self.last = self._t = t
@@ -262,7 +273,7 @@ class BikeWindow:
     def summary(self):
         s = self.seen
         n = len(s) or 1
-        return {"added": self.added, "dropped": self.dropped, "failed": self.failed, "checks": len(s),
+        return {"broken": self.broken, "added": self.added, "dropped": self.dropped, "failed": self.failed, "checks": len(s),
                 "bikes_mean": round(sum(x[1] for x in s) / n, 2), "motors_mean": round(sum(x[2] for x in s) / n, 2),
                 "target_mean": round(sum(x[3] for x in s) / n, 2), "ratio": self.cfg["ratio"]}
 
