@@ -2,7 +2,7 @@
 
     python tools/walker_looks_check.py logs/<experiment>/<stamp>_trial0 [...]     every walker a trial spawned
                                                                                   (frames.csv), by catalogue group
-    python tools/walker_looks_check.py --place tokyo_shibuya --carla 1.0 [--n 5000] [--seed 1]
+    python tools/walker_looks_check.py --place tokyo_shibuya --carla 1.0 [--imported] [--n 5000] [--seed 1]
                                                                                   offline: sample n walkers in groups
                                                                                   as the crowd does, no server
     python tools/walker_looks_check.py --table                                    the target mix of every place
@@ -65,10 +65,10 @@ def trial(folder, carla="1.0"):
     return st, real, n
 
 
-def offline(place, carla, n, seed):
+def offline(place, carla, n, seed, imported=False):
     st = wl.street(place) if place in wl.demographics()["places"] or place in ("generic",) or ":" in place else \
         wl.street(f"country:{place.upper()}")
-    rows = [r for r in wl.catalogue() if r["carla"] == carla]
+    rows = [r for r in wl.catalogue() if r["carla"] == carla or (imported and r["carla"] not in ("1.0", "0.9.16"))]
     walkers = [{"id": r["blueprint"], "age": r["carla_age"], "gender": r["carla_gender"] or r["presentation"],
                 "wheelchair": r["wheelchair"] == "true"} for r in rows]
     entries, _, _ = wl.entries_for(walkers)
@@ -85,7 +85,8 @@ def offline(place, carla, n, seed):
     lk.dress(plans[:n])
     real, got = lk.realised()
     drawn = Counter(lk.drawn)
-    print(f"{st['name']}: {got} walkers on CARLA {carla}'s stock catalogue, seed {seed}")
+    print(f"{st['name']}: {got} walkers on CARLA {carla}'s " + ("stock + imported" if imported else "stock")
+          + f" catalogue, seed {seed}")
     print(header(False))
     print(_row("target", st["mix"]))
     print(_row("drawn for", {g: drawn[g] / got for g in wl.GROUPS}))
@@ -114,11 +115,13 @@ def main(argv=None):
     ap.add_argument("--n", type=int, default=5000)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--table", action="store_true")
+    ap.add_argument("--imported", action="store_true",
+                    help="--place: also the walkers coupled-carla imports (carla = cc rows; on a server that has them)")
     a = ap.parse_args(argv)
     if a.table:
         table()
     if a.place:
-        offline(a.place, a.carla, a.n, a.seed)
+        offline(a.place, a.carla, a.n, a.seed, a.imported)
     for t in a.trials:
         trial(t, a.carla)
     if not (a.table or a.place or a.trials):

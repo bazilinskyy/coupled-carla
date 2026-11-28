@@ -340,10 +340,10 @@ class Looks:
         for es in pres.values():
             tot = sum(e["weight"] for e in es) or 1.0
             out += [(e, e["weight"] / tot / len(pres)) for e in es]
-        if also:
-            aw = float(self.cfg["also_weight"]) * (1.0 if prim else 4.0)
-            tot = sum(e["weight"] for e in also) or 1.0
-            out += [(e, aw * e["weight"] / tot) for e in also]
+        if also:       # each counts also_weight of one tagged walker (times its crowd weight); alone when none is
+            per = 1.0 / len(prim) if prim else 1.0
+            aw = float(self.cfg["also_weight"]) if prim else 1.0
+            out += [(e, aw * e["weight"] * per) for e in also]
         return out
 
     def _draw(self, cands, rng):

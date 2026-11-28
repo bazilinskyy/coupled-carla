@@ -315,3 +315,23 @@ def test_check_tool_counts_a_trial(tmp_path, capsys):
     (tmp_path / "frames.csv").write_text("\n".join(rows) + "\n")
     st, real, n = tool.trial(tmp_path)
     assert n == 4 and real["east_asian"] == 0.75 and real["white"] == 0.25
+
+
+def test_imported_walkers_join_the_stock_catalogue():
+    """walker.pedestrian.0100-0111 (carla = cc rows) are used on a server that has them, besides 1.0's stock."""
+    rows = [r for r in wl.catalogue() if r["carla"] == "cc"]
+    assert len(rows) == 12 and {r["blueprint"][-4:] for r in rows} == {f"{i:04d}" for i in range(100, 112)}
+    lib = _lib("1.0")
+    for r in rows:
+        lib.bps[r["blueprint"]] = _BP(r["blueprint"], r["carla_age"], r["carla_gender"])
+    entries, version, untagged = wl.entries_for(wl.library_walkers(lib))
+    assert version == "1.0" and not untagged
+    groups = Counter(e["group"] for e in entries if not e["child"])
+    assert groups["east_asian"] == 9 and groups["mena"] == 4 and groups["south_asian"] == 4
+    assert [e for e in entries if e["group"] == "mena" and e["child"]]          # a girl for MENA families
+    lk = wl.Looks(entries, wl.street("tokyo_shibuya"), seed=2)
+    lk.dress(_plans(3000))
+    used = Counter(lk.picked)
+    assert max(used.values()) / 3000 < 0.2                                     # no walker in a fifth of the crowd
+    on_stock_only, _, _ = wl.entries_for(wl.library_walkers(_lib("1.0")))
+    assert not [e for e in on_stock_only if e["id"].endswith(("0100", "0105"))]  # absent where the server lacks them

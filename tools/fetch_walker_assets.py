@@ -81,7 +81,7 @@ def fetch(out, names, dry_run=False, log=print):
             _get(f"https://raw.githubusercontent.com/{REPO}/{COMMIT}/LICENSE.md"))
         lines = ["# Walker assets: attribution", "",
                  f"Microsoft Rocketbox avatar library, https://github.com/{REPO} (commit {COMMIT}), MIT License",
-                 "(LICENSE.md beside this file). Copyright (c) Microsoft Corporation.", "",
+                 "(LICENSE.md beside this file). Copyright (c) 2020 Microsoft.", "",
                  "| Avatar | Fills group | Clothing |", "|---|---|---|"]
         lines += [f"| {n} | {SELECTION[n][1]} | {SELECTION[n][2]} |" for n in done]
         (out / "ATTRIBUTION.md").write_text("\n".join(lines) + "\n")

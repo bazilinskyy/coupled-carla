@@ -2486,24 +2486,55 @@ wheelchair attribute values in the docs. So:
   are stood in for by walkers that also pass for it (the South Asian, Latin American and two light-skinned
   walkers). No South Asian woman, no East Asian or South Asian child.
 
-The fix is more walkers, imported as CARLA walkers (`import-carla-ue58-walker` skill of the CARLA repo,
-`Skills/ue58/`):
+**Imported walkers (CARLA 1.0, 2026-11-28).** Twelve walkers fill the largest gaps, `walker.pedestrian.0100`-`0111`
+on a server whose content has them (lin5080's tree now; win5090's package after its next content rebuild; the sampler
+uses them wherever the blueprint library has them and does without elsewhere):
 
-1. CARLA 1.0's content has an East Asian man's mesh that no blueprint uses: `Static/Pedestrian/AsiaM03_G3/SK_AsiaM03_G3`
-   (generation 3). Registering it needs a generation-3 adult donor blueprint (the only generation-3 blueprints are
-   children) and a look in a render.
-2. [Microsoft Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox) avatars (MIT licence), chosen from their
-   preview images: East Asian `Female_Adult_03`, `Male_Adult_09`, `Male_Adult_10`, `Business_Male_02`; Middle
-   Eastern / North African `Female_Adult_06`, `Female_Adult_10`, `Female_Child_02`, `Male_Adult_15`, `Male_Adult_19`;
-   South Asian `Male_Adult_17`, `Business_Female_01` (11 avatars, 942 MB). `python tools/fetch_walker_assets.py
-   <dir>` fetches them at a pinned commit with their licence and an `ATTRIBUTION.md` (never into git). They are
-   rigged to a 3ds Max Biped skeleton, so each must be re-skinned to CARLA's pedestrian skeleton (a Blender
-   retarget) before the skill imports it, then checked in a render and tagged in `walker_looks.csv` (rows of version
-   `cc`, used by whatever server has them).
-3. Rocketbox has no East Asian child. [MakeHuman](http://www.makehumancommunity.org) / MPFB 2 for Blender makes
-   characters of any age and appearance whose exported models are CC0, with a game-engine skeleton close to CARLA's.
+| Id | Source | Group (tag) | Presentation, clothing |
+|---|---|---|---|
+| 0100 | Rocketbox Female_Adult_03 | east_asian | woman, casual |
+| 0101 | CARLA's unused `SK_AsiaM03_G3` | mixed_unclear (also East / South Asian; tagged from its textures, no render yet) | man, hi-vis vest (weight 0.3) |
+| 0102 | Rocketbox Male_Adult_09 | east_asian | man, casual |
+| 0103 | Rocketbox Male_Adult_10 | east_asian | man, track jacket |
+| 0104 | Rocketbox Business_Male_02 | east_asian | man, suit |
+| 0105 | Rocketbox Female_Adult_06 | mena | woman, headscarf |
+| 0106 | Rocketbox Female_Adult_10 | mena | woman, abaya |
+| 0107 | Rocketbox Female_Child_02 | mena | girl, headscarf (age Child) |
+| 0108 | Rocketbox Male_Adult_15 | mena | man, thobe and cap |
+| 0109 | Rocketbox Male_Adult_19 | mena | man, thobe and keffiyeh (weight 0.5) |
+| 0110 | Rocketbox Male_Adult_17 | south_asian | man, hoodie |
+| 0111 | Rocketbox Business_Female_01 | south_asian | woman, suit |
 
-None is imported yet (see [Known limits](#known-limits)); until then the sampler stands in as described above.
+With them Tokyo's crowd has 9 East Asian blueprints on 7 faces (the most used walker is in 17 % of the crowd instead
+of 24 %), and Eindhoven's, Amsterdam's and Lyon's Middle Eastern / North African share is mostly drawn from walkers
+tagged with it (offline: `python tools/walker_looks_check.py --place amsterdam --imported`). Still missing: an East
+Asian child, a South Asian child, and wheelchair users outside the black and Latin American walkers.
+
+How they were made (all scripts in `tools/`, rerunnable; assets never in git):
+
+1. `fetch_walker_assets.py <dir>` fetches the 11 [Microsoft Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox)
+   avatars (MIT; pinned commit, 942 MB, with `LICENSE.md` and `ATTRIBUTION.md`); attribution: [ATTRIBUTION.md](ATTRIBUTION.md).
+2. The reference is CARLA's GEN3 skeleton (`Skel_Pedestrian_G3`: 26 bones, no fingers or face; the animation blueprint
+   `ABP_GEN3`), taken from a GEN3 walk animation exported to FBX by `ue_walker_export.py` in an Unreal commandlet
+   (`-nullrhi`; a skeletal mesh export asserts there, an animation does not).
+3. `blender_reskin_walker.py` (Blender 4.5 LTS, background) re-poses each avatar's 3ds Max Biped rig to CARLA's T pose
+   segment by segment, renames and merges its skin weights onto CARLA's bones, and, because GEN3 takes every bone's
+   translation from the animation (`Animation` retargeting on all 26 bones), bakes CARLA's exact joint positions into
+   the mesh after the least-squares uniform scale that brings the avatar's joints closest to CARLA's (`--conform`);
+   the walker blueprint scales the mesh back to the avatar's height (`bp_scale`, 0.96-0.99 for adults, 0.79 for the
+   girl). `blender_walker_preview.py` renders each one in its rest pose and driven by CARLA's walk (Cycles on the CPU).
+4. `import_walkers.py <spec.json>` imports them in one Unreal commandlet (`-nullrhi`), bound to the shared GEN3
+   skeleton (the skill refuses a private one: it would not animate), duplicates the GEN3 blueprint `BP_AfroG01_A_G3`
+   (a child blueprint: the mesh component's scale 0.65 is replaced by the walker's own, with a capsule as tall as the
+   mesh), and registers the ids in `WalkerParameters.json` (backed up first).
+5. `walker_spawn_check.py --port P <ids>` on a `-nullrhi` server: every new walker is in the blueprint library, spawns
+   at its height (adults 1.79-1.88 m, the girl 1.46 m), walks at the commanded 1.4 m/s under `WalkerControl`, and a
+   `controller.ai.walker` takes it 12.6 m across Town10 (stock walkers: 11.2-12.6 m). Bone animation cannot be read
+   on a `-nullrhi` server (stock walkers read 0 too); it rests on the shared-skeleton binding and the Blender renders
+   with CARLA's walk. A look in a CARLA render is still to come.
+
+[MakeHuman](http://www.makehumancommunity.org) / MPFB 2 for Blender (CC0 models) could add East and South Asian
+children the same way; not done yet.
 
 ### Smooth traffic and clip QA
 
@@ -2785,10 +2816,11 @@ runs in real time. Map building takes 2-4 s per city plus the Overpass downloads
   facades, tree models and props, and flat or tilted ground tiles (steps between tiles on steep maps). No road
   markings or crossings on OSM maps, and lamps give no light on 0.9.16 (on CARLA 1.0 they do). Exact buildings, aerial-photo ground and markings
   need the UE 5.8 digital twin (phase 3).
-- **Walker looks** ([who the pedestrians are](#who-the-pedestrians-are)): CARLA's stock walkers cannot meet
-  every place's mix. Tokyo's crowd is two East Asian faces in five outfits, with no East Asian child or wheelchair
-  user; no walker reads clearly as Middle Eastern / North African. Imports of openly licensed walkers (CARLA's
-  unused AsiaM03 mesh, Microsoft Rocketbox avatars re-skinned to CARLA's skeleton) are planned, not done.
+- **Walker looks** ([who the pedestrians are](#who-the-pedestrians-are)): with CARLA's stock walkers Tokyo's crowd is
+  two East Asian faces in five outfits and no walker reads as Middle Eastern / North African. Twelve imported walkers
+  (0100-0111: Rocketbox avatars re-skinned to CARLA's GEN3 skeleton, CARLA's unused AsiaM03 mesh) fill most of that
+  on lin5080's tree; win5090's package gets them with its next content rebuild. Still no East or South Asian child,
+  and they have not been seen in a CARLA render yet.
 - **Pedestrians:** human pedestrians, scripted AI walkers and the crowd walk by direct control (no navigation
   mesh). Crowd walkers keep to one street, cross at OSM crossings, junctions or mid-block, and ignore pedestrian lights. Walkers off the road walk on the ground plane,
   0.3 m below the road surface. `map.sidewalks: true` puts sidewalk lanes into the OpenDRIVE (not into SUMO's
@@ -3090,7 +3122,9 @@ just as much; how to report bugs, propose features and run the tests: [CONTRIBUT
   Metropolitan Government foreign-resident and tourism statistics, JNTO visitor arrivals, CBS StatLine 85458NED
   and 82061NED, INE (Estadística Continua de Población), Statistik Stadt Zürich open data, Statistics Finland
   StatFin, US Census Bureau QuickFacts / ACS, NYC Tourism + Conventions, INSEE, NISR, and national censuses named
-  in the file; walker tags from CARLA's catalogue stills (MIT).
+  in the file; walker tags from CARLA's catalogue stills (MIT). Imported walkers 0100 and 0102-0111: [Microsoft
+  Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox) avatars (MIT, © 2020 Microsoft), re-skinned; fetched,
+  never redistributed in this repository ([ATTRIBUTION.md](ATTRIBUTION.md)).
 - Signs and speeds (NL): [NDW Verkeersborden](https://docs.ndw.nu) (CC0), Rijkswaterstaat Wegkenmerkendatabase
   maximum speeds (CC0), NDW floating-car speeds. Speeds elsewhere: PBOT speed counts (Portland), Taipei Traffic
   Control Center detectors (Taiwan OGDL 1.0), Intendencia de Montevideo.

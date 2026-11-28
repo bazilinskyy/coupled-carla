@@ -11,6 +11,8 @@
 # clothing: casual, business, workwear, uniform, tourist (backpack). mesh: same body/face = same mesh (variants only
 #   change clothes); 0.9.16 rows name the 1.0 blueprint with the same mesh.
 # crowd_weight: relative chance among walkers of the same group (uniforms are rare in a crowd).
+# carla = cc: walkers imported by coupled-carla (tools/fetch_walker_assets.py, blender_reskin_walker.py,
+#   import_walkers.py; ids 0100-0111 on a server that has them; tagged from Blender renders of the re-skinned meshes).
 carla,blueprint,carla_age,carla_gender,wheelchair,mesh,group,also_reads_as,skin_tone,age_group,presentation,clothing,special,crowd_weight,note
 1.0,walker.pedestrian.0015,adult,female,true,AfroF01,black,latin_american;mixed_unclear,4,adult,female,casual,,1,quilted jacket and jeans
 1.0,walker.pedestrian.0016,adult,female,true,AfroF01,black,latin_american;mixed_unclear,4,adult,female,casual,,1,
@@ -98,3 +100,15 @@ carla,blueprint,carla_age,carla_gender,wheelchair,mesh,group,also_reads_as,skin_
 0.9.16,walker.pedestrian.0047,adult,,,AsiaM02,east_asian,,2,adult,male,casual,,1,= 1.0 0037
 0.9.16,walker.pedestrian.0048,child,,,EuroG02,white,,1,child,female,casual,,1,= 1.0 0049
 0.9.16,walker.pedestrian.0049,child,,,EuroB02,mixed_unclear,latin_american;white;mena;south_asian,3,child,male,casual,,1,= 1.0 0050
+cc,walker.pedestrian.0100,adult,female,false,RB_Female_Adult_03,east_asian,latin_american,2,adult,female,casual,,1,Rocketbox Female_Adult_03 (MIT) re-skinned to CARLA GEN3; tools/import_walkers.py
+cc,walker.pedestrian.0101,adult,male,false,AsiaM03,mixed_unclear,east_asian;south_asian,3,adult,male,workwear,,0.3,CARLA's unused SK_AsiaM03_G3 mesh registered (GEN3); hi-vis safety vest; tagged from its textures only (no render yet)
+cc,walker.pedestrian.0102,adult,male,false,RB_Male_Adult_09,east_asian,,2,adult,male,casual,,1,Rocketbox Male_Adult_09; ponytail
+cc,walker.pedestrian.0103,adult,male,false,RB_Male_Adult_10,east_asian,latin_american;mixed_unclear,2,adult,male,casual,,1,Rocketbox Male_Adult_10; track jacket
+cc,walker.pedestrian.0104,adult,male,false,RB_Business_Male_02,east_asian,,2,adult,male,business,,1,Rocketbox Business_Male_02; suit
+cc,walker.pedestrian.0105,adult,female,false,RB_Female_Adult_06,mena,south_asian,2,adult,female,casual,,1,Rocketbox Female_Adult_06; headscarf
+cc,walker.pedestrian.0106,adult,female,false,RB_Female_Adult_10,mena,south_asian,3,adult,female,casual,,1,Rocketbox Female_Adult_10; abaya
+cc,walker.pedestrian.0107,child,female,false,RB_Female_Child_02,mena,south_asian,2,child,female,casual,,1,Rocketbox Female_Child_02; headscarf
+cc,walker.pedestrian.0108,adult,male,false,RB_Male_Adult_15,mena,south_asian,3,adult,male,casual,,1,Rocketbox Male_Adult_15; thobe and cap
+cc,walker.pedestrian.0109,adult,male,false,RB_Male_Adult_19,mena,,3,adult,male,casual,,0.5,Rocketbox Male_Adult_19; thobe and keffiyeh (Gulf dress: rarer in a crowd)
+cc,walker.pedestrian.0110,adult,male,false,RB_Male_Adult_17,south_asian,mena;latin_american,3,adult,male,casual,,1,Rocketbox Male_Adult_17; hoodie and cap
+cc,walker.pedestrian.0111,adult,female,false,RB_Business_Female_01,south_asian,black;mixed_unclear;latin_american,3,adult,female,business,,1,Rocketbox Business_Female_01; suit
