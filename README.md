@@ -2224,6 +2224,8 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
   vehicle class; `tools/drive_check.py <trial>` measures a CARLA trial (the ego's events, jerk, overlapping vehicles,
   walker contacts, heading jumps). With SUMO driving the autopilot, the ego got stuck 0 times in 8 runs of 150 s
   (before: 3-31 times per run).
+- **Stop lines before crosswalks** (`traffic.stop_lines`, default true): vehicles wait before a crosswalk at a
+  junction, not on it ([Traffic lights](#traffic-lights)).
 - **Junctions without internal stops** (`map.internal_junctions`, default false). `tools/junction_check.py` found
   that most SUMO collisions hit a vehicle waiting at an internal junction (a turning vehicle's waiting point inside
   the junction). On junctions rebuilt from OpenDRIVE that point often lies within a neighbouring lane its path does
@@ -2280,7 +2282,76 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
 - **Demand without counts.** `traffic.cars_per_hour: auto` derives the cars per hour from the map: lane-km by road
   class x the median daily flow per lane measured on the counted maps (primary 3,400, secondary and tertiary
   2,600, other 1,000 cars) x the hour's share / the mean trip length, capped at 5,000 cars/h (above that random
-  trips jam SUMO's junctions). The city files keep their explicit numbers.
+  trips jam SUMO's junctions). The city files keep their explicit numbers of cars (by size class); the twins and
+  the twin maker use `auto`, scaled by the place's density from CROWD (next).
+- **Traffic of the place, from CROWD** (`coupledcarla/crowdtraffic.py`, `traffic.crowd`, data
+  `coupledcarla/data/crowd_traffic.json` built by `tools/crowd_traffic.py`). The CROWD dashcam dataset counts the
+  unique cars, trucks, buses, motorcycles, bicycles and persons that YOLO tracks in each minute of over 33,000 hours
+  of driving footage in about 3,500 localities, by day and by night. Every trial takes from the nearest CROWD
+  locality (within 25 km), shrunk towards its country, continent and the world (a locality's tracks plus 120 minutes
+  at the next level's rate, so Salamanca's single hour leans on Spain's 230):
+  - **the mix of the car stream** (`cars_per_hour`: every motor vehicle but the buses): cars, vans and lorries
+    (CROWD's "truck" class, 70% vans), motorcycles and scooters in the place's shares, plus 0.4% ambulances,
+    police cars and fire engines (`service_share`; COCO has no such class, so this one is not measured);
+  - **the cyclists**: `bikes_per_hour: auto` (the default now) is the car stream x CROWD's bicycles per motor
+    vehicle of the place (the ratio of tracks is taken as the ratio of flows); open bike counters still win;
+  - **random buses** on maps without OSM lines: `buses_per_hour: auto` = the car stream x buses per motor vehicle;
+  - **the density**: `cars_per_hour: auto` x (the place's motor vehicles per minute / the median CROWD locality's)
+    ^ 0.5, clipped to 0.7-1.4; the hourly profile stays counts.py's (CROWD only tells day from night: the night
+    rates apply from 20:00 to 06:00).
+
+  The pedestrians per minute were already CROWD's (`traffic.walkers`, crowdpeds.py). At midday on a weekday (shares
+  of the vehicles seen; crowd_traffic.json of crowd-dataset/crowd 354ea3b6, 2026-11-27; `tools/crowd_traffic.py`):
+
+  | Place | CROWD source (footage, segments) | Cars | Trucks/vans | Buses | Motorcycles | Bicycles | Persons/min | Density |
+  |---|---|---|---|---|---|---|---|---|
+  | Eindhoven (EhvCentre, TU/e) | locality Eindhoven, 171 h, 408 | 71% | 7% | 1.6% | 2.5% | 18.4% | 16.3 | x0.92 |
+  | Amsterdam (Dam) | locality Amsterdam, 112 h, 246 | 47% | 6% | 2.3% | 5.9% | 38.3% | 40.4 | x0.90 |
+  | Tokyo (Shibuya) | locality Tokyo, 170 h, 347 | 66% | 21% | 6.1% | 2.4% | 5.0% | 24.5 | x0.93 |
+  | Salamanca | locality Salamanca, 1 h, 3 (+ Spain, 230 h) | 81% | 8% | 2.8% | 6.5% | 1.7% | 21.4 | x1.02 |
+  | Zurich (HB) | locality Zürich, 40 h, 90 | 74% | 10% | 3.5% | 4.5% | 8.4% | 24.3 | x0.90 |
+  | Helsinki | locality Helsinki, 197 h, 555 | 83% | 10% | 3.5% | 0.4% | 2.6% | 13.2 | x0.93 |
+  | New York (Midtown) | locality New York, 1,902 h, 3,379 | 83% | 12% | 2.5% | 1.0% | 1.9% | 22.4 | x1.19 |
+  | Kigali | locality Kigali, 3 h, 5 (+ Rwanda) | 48% | 12% | 2.4% | 33.2% | 3.7% | 74.9 | x1.14 |
+  | Chernihiv | locality Chernihiv, 4 h, 27 (+ Ukraine, 460 h) | 80% | 13% | 4.8% | 0.7% | 1.3% | 13.0 | x0.95 |
+  | Lyon | locality Lyon, 13 h, 38 | 79% | 10% | 1.9% | 3.0% | 6.0% | 17.7 | x0.97 |
+  | London (Westminster) | locality London, 1,181 h, 1,775 | 70% | 13% | 6.1% | 3.8% | 6.7% | 37.4 | x0.94 |
+  | Taipei | locality Taipei, 20 h, 49 | 62% | 8% | 3.1% | 25.5% | 2.0% | 23.1 | x1.14 |
+  | Ho Chi Minh City | locality Ho Chi Minh City, 75 h, 183 | 27% | 7% | 2.2% | 63.4% | 1.1% | 63.4 | x1.32 |
+  | São Paulo | locality Sao Paulo, 250 h, 648 | 79% | 10% | 2.1% | 7.2% | 1.3% | 20.5 | x1.10 |
+  | Cairo | locality Cairo, 39 h, 113 | 84% | 10% | 3.7% | 2.6% | 0.2% | 27.3 | x1.40 |
+  | Sydney | locality Sydney, 682 h, 1,586 | 83% | 13% | 2.0% | 1.0% | 0.9% | 10.1 | x1.21 |
+
+  **Limits.** A dashcam count is a proxy for flow, not a flow: parked cars and bikes are tracked too (a Dutch
+  street's parked bikes count as cyclists), a slow or stuck dashcam sees more of everything, YOLO's "truck" also
+  takes vans and pickups and its "motorcycle" scooters and mopeds, and the footage follows main roads and highways
+  that a twin's streets are not. Footage of every viewpoint counts, as in CROWD's own tables (Eindhoven's is partly
+  filmed from a bicycle on the cycle paths, which sees more cyclists; `--viewpoints 0,1,2` builds a car-dashcam-only
+  table: Eindhoven 7% bicycles instead of 18%). So the mix is taken as the visible mix, the density only within
+  0.7-1.4 and only where cars_per_hour is `auto`, and the hour's profile is not CROWD's. Rebuild the table after a
+  CROWD release with `python tools/crowd_traffic.py --mapping <crowd>/mapping.csv --detections
+  <crowd>/analysis_data/detection_counts.csv.gz --crowd-version "..."`.
+- **Which vehicles** (`coupledcarla/data/place_vehicles.json`). CROWD says how many cars, trucks and two-wheelers;
+  this file says which CARLA models stand in for them, per region (Europe, eastern Europe, Japan, east, south-east
+  and south Asia, North America, Africa, Latin America, the world), per country (the taxis of DE, ES, NL, GB, FR,
+  CH, FI, RW, VN) and per listed place (Manhattan's yellow cabs, a quarter of its cars; central Tokyo's taxis, a
+  fifth): the car body mix where no open register is read (Japan: compact and kei-sized cars and minivans; the US:
+  SUVs, pickups, sedans; Africa: SUVs, pickups and minibuses), the taxis and their livery colour, the motorcycles
+  and scooters (Vespas in Asia and southern Europe, Harleys in the US, commuter bikes for Kigali's moto-taxis), the
+  vans, lorries and service vehicles. On CARLA 1.0 every one becomes the closest model that drives there
+  (`crowdtraffic.for_server`: the Sprinter, the Carla-Cola lorry, the fire engine, the ambulance, the police
+  Charger, the four motorcycles). A taxi model that is also a private car is its own SUMO type (`<model>#taxi`) and
+  gets the livery colour. The demo clips' own cars are chosen to show the range: a Tesla in Eindhoven, a Mini in
+  Salamanca, a dark blue Tokyo taxi in Shibuya, a Prius in Eindhoven's rush hour, a yellow cab in New York (with
+  service vehicles turned up to 3% to show them), a Seat in Chernihiv, a Patrol in Kigali, a C3 in Lyon, a Charger
+  and an Impala in the CARLA towns.
+- **Warm-up** (`coupledcarla/warmup.py`, `traffic.warmup_s: auto` = 600 s). SUMO used to start empty: trips entered
+  from t = 0 and took minutes to reach the middle of the map, so the first minute of every trial had almost no
+  traffic (the Eindhoven drone clip, filmed at 25-45 s: 11 cars and 6 bikes on the whole twin at 30 s, none in
+  view). The demand is now made for [0, end + 600 s] and shifted 600 s earlier; a vehicle that would have left
+  before t = 0 starts where it would be at t = 0 (the route edge it would have reached at 60% of the limits, a cyclist
+  at 4.5 m/s; `departEdge`, a random free place on it), or is left out when it would have arrived. Buses keep their
+  timetable. `warmup_s: 0` restores the empty start.
 - **Cyclists** (`coupledcarla/cycling.py`, `traffic.cycling`). Bike trips follow the real cycle network: OSM
   bicycle route relations (LCN/RCN/NCN, the Dutch and Belgian knooppunten) and cycle tracks, lanes and cycle
   streets are laid on the SUMO net's bike lanes (cached as `cycling.json`). 70% of bike trips start and end on
@@ -2292,7 +2363,7 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
 
   | Map | Cycle routes matched | Bike-km on cycle routes (random -> cycling) | Counters | Bikes/h at 08:00 weekday |
   |---|---|---|---|---|
-  | Eindhoven | 19 (11 knooppunten) | 22% -> 34% | none keyless (NDW needs an account) | 1200 (as set) |
+  | Eindhoven | 19 (11 knooppunten) | 22% -> 34% | none keyless (NDW needs an account) | 1200 (as set; since 2026-11-28 `auto`: 0.23 per car, ~1,000 on the twin at 17:00) |
   | Lyon | 9 | 11% -> 21% | 6 (Métropole de Lyon) | 3000 (counted 4277, capped) |
   | New York | 14 | 49% -> 70% | 1 (NYC DOT, 8th Ave) | 300, 107 of them entering on 8th Ave |
   | Sydney | 8 | 13% -> 45% | 13 (City of Sydney) | 1503 |
@@ -2315,7 +2386,10 @@ python -m tools.ship_mesh build/ships                           # the ship meshe
 - **Interaction.** The participant's car is mirrored into SUMO each tick (`moveToXY`), so SUMO vehicles brake
   for it, queue behind it and yield to it.
 - **Level of detail.** SUMO simulates the whole map; a SUMO vehicle exists in CARLA only within
-  `simulation.lod_radius_m` (250 m) of a participant and is removed beyond 280 m.
+  `simulation.lod_radius_m` (250 m) of a participant and is removed beyond 280 m. A drone pilot's camera looks far
+  beyond that from 50 m up: the ground point its gimbal ray meets (30-220 m ahead, `drones.look_points`) counts as
+  a participant too, for SUMO's vehicles, the parked cars and the frame log, and a bot pilot's crowd is planned
+  along its flight and where its camera will look (`drones.path_points`).
 
 ### Smooth traffic and clip QA
 
@@ -2349,10 +2423,25 @@ in a world built from OpenDRIVE: they have no OpenDRIVE id, so they cannot be li
 - each signalled lane's light is **drawn in the world** at its stop line (a pole with a lamp, right of the
   lane), coloured from SUMO, for lights near a participant; the drawing shows in every camera, so the driver
   sees it. On CARLA 1.0 with the street content (`map.scenery.street_props`), the heads are the country's: in the
-  Netherlands the black-and-white banded pole with a car head (300 mm lenses on a yellow back plate) or, over a cycle
-  lane, the cyclist head; the UK's and Japan's (horizontal) car heads on CARLA's pole; the lit lens is the mesh's
-  own. On eindhoven_centre all 148 heads were Dutch (70 for cyclists; lin5080, CARLA 1.0 -nullrhi). CARLA 0.9.16 and
-  servers without the content keep CARLA's pole and backboard;
+  Netherlands the black-and-white banded pole with a car head (200 mm lenses on a yellow back plate) or, over a cycle
+  lane, the cyclist head (200 mm lenses with a bicycle in each); the UK's car head (200 mm) and Japan's (300 mm,
+  horizontal) on their own poles. The lit aspect is drawn on the mesh's own lens: a **round** lens (six thick debug
+  lines whose rectangles' corners lie on its circle; until 2026-11-28 one square line, which showed as a flat
+  rectangle), and on a cyclist or pedestrian lens only the **pictogram**, lit on the black mask over the lens as the
+  real LED heads do (`coupledcarla/signalfaces.py`; the meshes carry the same pictograms, faint when unlit). A server
+  whose content predates the 200 mm car heads spawns the older 300 mm ones with their own lens positions. On
+  eindhoven_centre all 148 heads were Dutch (70 for cyclists; lin5080, CARLA 1.0 -nullrhi). CARLA 0.9.16 and servers
+  without the content keep CARLA's pole and backboard, with the same round lit lens;
+- **stop lines before the crosswalks** (`traffic.stop_lines`, default true; `coupledcarla/stoplines.py`): SUMO
+  stopped a vehicle that must wait with its front at the end of its lane, and the nets have no crossings, so a car
+  waiting at a red light stood on the zebra painted across the approach (the Eindhoven twin clip, 2026-11-28). Each
+  approach lane where a waiting car would stand on a crosswalk now gets a SUMO stop line (`<stopOffset>`) 1 m before
+  it (and before the next one back while the car would cover that), followed back over SUMO's short edges in front
+  of a signal; the heads stand there and the participants' next-light distance ends there. Crosswalks: the
+  OpenDRIVE's crosswalk objects (twins, towns) or OSM's crossing nodes (maps from OSM). The trial's net gets them at
+  start (no rebuild). `python tools/stopline_check.py maps/*` lists, per map, where a waiting car would stand on a
+  crosswalk without and with them (2026-11-28: on 9 twins 2,161 → 29 approach lanes, 936 → 12 at signals; on the
+  21 OSM maps 4,100 → 145; the rest have no room for a car between the crosswalk and the junction before it);
 - each participant's **next light** (id, distance, state) comes from the lane their SUMO twin is on; it drives
   the autopilot, the HUD, the per-frame log (`next_tl*` columns) and a `next_light` event whenever it changes.
 
@@ -2763,6 +2852,8 @@ coupledcarla/
   canopy.py          tree heights from Meta/WRI's 1 m canopy height map
   meshes10.py        CARLA 1.0's mesh choices for scenery.py
   crowdpeds.py       the pedestrian crowd calibrated with CROWD per country (speeds, crossings, gaps, places)
+  crowdtraffic.py    the place's vehicle mix, cyclists and density from CROWD; its models (data/place_vehicles.json)
+  warmup.py          SUMO's demand as if it had run 600 s: streets busy at t = 0
   parking.py         parked cars at the kerbs and on car parks
   ndwsigns.py        the Dutch national traffic sign register (NDW) and Rijkswaterstaat's speed limits
   season.py          leaf state by date and place; lit street lamps on CARLA 1.0
@@ -2804,6 +2895,8 @@ coupledcarla/
   bridge/            SUMO <-> CARLA bridge, vendored from CARLA 0.9.16 (MIT) with fixes (batching,
                      level of detail, traffic lights, offsets, TM port); util/netconvert_carla.py
   signals.py         SUMO traffic lights drawn in CARLA, next light per participant
+  signalfaces.py     a lit lens drawn round, cyclist and pedestrian pictograms (debug lines and the head meshes)
+  stoplines.py       SUMO stop lines before the crosswalks at junctions (lane stopOffset)
   signalplan.py      a programme per junction: controllers matched to the city's signals, Dutch timings
   signaldata.py      real signal data: phase logs replayed (programme or exact), live feeds through TraCI
   inputs/            keyboard, G25 wheel (steering_wheel.py), autopilot
@@ -2817,7 +2910,9 @@ experiments/         eindhoven_centre.yaml, eindhoven_crossing.yaml and eindhove
 viewer/              index.html (three.js trial viewer), data/ (demo trials)
 tools/               test_cities.py, test_towns.py, run_coupled_test.sh, mesh_catalog.py, plot_maps.py, viewer_shots.py,
                      render_twin_buildings.py, counts_check.py, scenery_check.py, snap_scenery.py,
-                     crowdpeds_check.py, crowd_table.py, speeds_check.py, signal_check.py, signal_heads.py
+                     crowdpeds_check.py, crowd_table.py, crowd_traffic.py (CROWD -> data/crowd_traffic.json),
+                     traffic_seen.py (vehicles and walkers in a clip camera's view), traffic_mix_check.py (a clip's
+                     SUMO traffic without CARLA), speeds_check.py, signal_check.py, signal_heads.py
 docs/                city_tests.md, town_tests.md, make_a_map.md (the map maker, step by step), street_photos.md, signals.md, img/
 make_map.bat, make_map.sh, "Make a map.command"   double-click launchers of the map maker (Windows, Linux, macOS)
 tests/               unit tests (pytest; no CARLA needed), run by GitHub Actions

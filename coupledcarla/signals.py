@@ -6,17 +6,22 @@ red. SUMO is therefore the only source of truth for signals here:
 - each approach's signal stands at its stop line, coloured from SUMO, for lights near a participant. Style "head"
   (simulation.traffic_lights.style): a signal head on a pole at the kerb (CARLA 0.9.16's traffic-light backboard
   and pole meshes, spawned once), one per group of an approach's lanes that always show the same colour, its
-  active lamp drawn as a short thick debug line, 0.2 m square in the world (one draw call per head and redraw). Where the meshes are missing
-  (another CARLA version) the head is drawn: a dark box on a dark line. Style "marker": as before, a line pole
-  with a big glowing point per signalled lane;
+  active lamp drawn as a round lens of debug lines (signalfaces.py: a disc of six thick lines; until 2026-11-28 a
+  single square line, which showed as a flat rectangle). Where the meshes are missing (another CARLA version) the
+  head is drawn: a dark box on a dark line. Style "marker": a line pole with a big glowing disc per signalled lane;
+- the heads stand at the stop line, which is before the crosswalk where one crosses the approach (stoplines.py:
+  SUMO's lane stopOffset), not at the end of SUMO's lane;
 - next_light() gives a participant's next light (id, distance, state) from its SUMO twin, for the autopilot,
   the log and the HUD.
 
 On CARLA 1.0 with the CoupledCarla street content (streetlook.py, data/street_props.json) the heads are the
-region's own (region: "NL", "UK", "JP"): the Dutch black-and-white banded pole with a car head (three 300 mm lenses
-on a yellow back plate) or, over a cycle lane, the cyclist head; the UK's and Japan's car heads (Japan's horizontal)
-on CARLA's pole. The lit lens is drawn on the mesh's own lens (its centre from street_props.json). Where the server
-lacks the content (CARLA 0.9.16, a 1.0 package without it) CARLA's pole and backboard as before.
+region's own (region: "NL", "UK", "JP"): the Dutch black-and-white banded pole with a car head (three 200 mm lenses
+on a yellow back plate) or, over a cycle lane, the cyclist head (200 mm lenses with a bicycle in each); the UK's car
+head (200 mm) and Japan's (300 mm, horizontal) on their own poles. The lit lens is drawn on the mesh's own lens (its
+centre and diameter from street_props.json): a round disc, or on a pictogram lens (cyclist, pedestrian) the lit
+pictogram (signalfaces.py). A server whose content predates a head mesh (street_props.json "replaces": the 300 mm
+NL/UK car heads before 2026-11-28) spawns the older mesh with its own lens positions. Where the server lacks the
+content (CARLA 0.9.16, a 1.0 package without it) CARLA's pole and backboard as before.
 
 Debug colours go through look.debug_colour: CARLA 0.9.16 shows a debug channel of 1 as about 200 of 255 and
 saturates from 3, so the old (0, 255, 0) was a blinding square with a bloom halo.
@@ -27,6 +32,8 @@ import carla
 import traci
 
 from . import look
+from . import signalfaces
+from . import stoplines
 
 COLOURS = {"G": carla.Color(0, 255, 0), "g": carla.Color(0, 255, 0), "y": carla.Color(255, 190, 0),
            "Y": carla.Color(255, 190, 0), "r": carla.Color(255, 0, 0), "R": carla.Color(255, 0, 0),
@@ -45,35 +52,50 @@ POLE_LEN, POLE_BASE = 6.2, 0.47          # the pole mesh's length and its foot a
 HEAD_Z = 2.6                             # the backboard's pivot above the road; its centre is 0.13 m lower
 LAMP_DZ = (0.33, 0.08, -0.17)            # top, middle, bottom lamp from the backboard's centre (by eye)
 LAMP_FRONT = 0.28                        # in front of the pole, on the backboard's face (its local +y)
-LAMP_SIZE = 0.2                          # the lit lamp: a 0.2 x 0.2 m square in the world (a thick debug line;
+LAMP_SIZE = 0.2                          # the lit lamp: a 0.2 m round lens in the world (thick debug lines;
                                          # a debug point keeps its size on screen, so far lamps were big blobs)
 
 
 # regional heads (CARLA 1.0 street content): the head's origin (its pole's axis, at the back plate) this high above the
 # road, so a car head's plate (1.44 m) spans 2.0-3.5 m on the 3.6 m pole and a cyclist head's (1.14 m) 1.9-3.0 m
 REGION_HEAD_Z = {"car": 2.75, "bike": 2.45, "ped": 2.3}
-REGION_LAMP = {"car": 0.24, "bike": 0.16, "ped": 0.16}      # the lit square (m), inside the lens and its visor
-LENS_FRONT = 0.03                                          # drawn this far in front of the lens (m)
+LENS_D = {"car": 0.30, "bike": 0.20, "ped": 0.20}          # lens diameter (m) of a manifest entry without lens_d
+LENS_FRONT = signalfaces.LIT_FRONT                         # the lit lens this far in front of the mesh's lens (m)
+
+
+def _head_style(head, pole, mode):
+    lenses = [tuple(v) for v in head["lenses"]]
+    return {"pole": pole, "head": head["path"], "head_z": REGION_HEAD_Z[mode], "lenses": lenses,
+            "lens_d": float(head.get("lens_d") or LENS_D[mode]),
+            "faces": list(head.get("faces") or signalfaces.faces_for(mode, len(lenses))), "mode": mode}
 
 
 def regional_style(region, mode, props=None):
     """How a region's head of a mode looks on CARLA 1.0: {"pole": mesh path or None (CARLA's), "head": mesh path,
-    "head_z", "lenses": [(x, y, z) of each lens from the head's origin, red first], "lamp": lit square (m)}, or None
-    (no such head: CARLA's). props: streetlook.props()."""
+    "head_z", "lenses": [(x, y, z) of each lens from the head's origin, red first], "lens_d": lens diameter (m),
+    "faces": [pictogram key or None per lens], "mode", "alt": the style of the mesh it replaces (a server whose
+    content predates it) or None}, or None (no such head: CARLA's). props: streetlook.props()."""
     if not region:
         return None
     if props is None:
         from . import streetlook
         props = streetlook.props()
-    name = {"bike": "SignalBike", "ped": "SignalPed"}.get(mode, "SignalCar")
-    head = props.get(f"SM_CC_{region}_{name}")
+
+    def of(role):           # by region and role, not name: a head's mesh name says its lens size
+        return next((v for _k, v in sorted(props.items()) if v.get("region") == region and v.get("role") == role),
+                    None)
+    mode = mode if mode in ("bike", "ped") else "car"
+    head = of(f"signal_{mode}")
     if not head and mode != "car":          # no cyclist head in this region: the car head
-        head, mode = props.get(f"SM_CC_{region}_SignalCar"), "car"
+        head, mode = of("signal_car"), "car"
     if not head or not head.get("lenses"):
         return None
-    pole = props.get(f"SM_CC_{region}_SignalPole")
-    return {"pole": pole["path"] if pole else None, "head": head["path"], "head_z": REGION_HEAD_Z[mode],
-            "lenses": [tuple(v) for v in head["lenses"]], "lamp": REGION_LAMP[mode], "mode": mode}
+    pole = of("signal_pole")
+    pole = pole["path"] if pole else None
+    st = _head_style(head, pole, mode)
+    old = head.get("replaces")
+    st["alt"] = _head_style(old, pole, mode) if old and old.get("lenses") else None
+    return st
 
 
 def regional_points(x, y, z, travel_yaw, style, ground=None):
@@ -133,10 +155,11 @@ def head_points(x, y, z, travel_yaw, ground=None):
 
 
 def lamp_segment(lamp, yaw, size=LAMP_SIZE):
-    """The ends of the short thick debug line that draws a lit lamp at `lamp` (x, y, z) on a backboard turned to
-    `yaw`: across the face, so the line's thickness gives a lamp of size x size metres. draw_point is no use for
-    it: CARLA draws a point at a constant size on the screen (Unreal's batched points), so a lamp 100 m away
-    showed as a glowing block as big as a car."""
+    """The ends of a debug line `size` long across a backboard turned to `yaw`, centred at `lamp` (x, y, z): one
+    thick line of this kind drew the lit lamp as a size x size square until 2026-11-28 (a flat rectangle on the
+    screen); signalfaces.disc_lines now draws it round from several. draw_point is no use for a lamp: CARLA draws
+    a point at a constant size on the screen (Unreal's batched points), so a lamp 100 m away showed as a glowing
+    block as big as a car."""
     r = math.radians(yaw)
     ux, uy = math.cos(r) * size / 2, math.sin(r) * size / 2      # the backboard's local x: along its face
     x, y, z = lamp
@@ -203,12 +226,14 @@ def head_spot(k, groups, by_index, place, on_road):
 
 class Signals:
     def __init__(self, world, net, offset, radius=120.0, every=5, step=0.02, debug=None, style="head",
-                 lefthand=False, log=print, surface=None, region=None):
+                 lefthand=False, log=print, surface=None, region=None, stop_offsets=None):
         """net: the sumolib net SUMO runs (map.net.xml); offset: the bridge's SUMO->CARLA shift; debug: where to
         draw (the runner passes the side connection's, see side.py), else world.debug; style: "head" or
         "marker" (or "none": no drawing, next_light only); lefthand: the kerb is on the left of the lanes; surface:
         placement.GroundSurface of the scenery's ground tiles (the poles stand on them); region: "NL", "UK", "JP"
-        (streetlook.region) for the region's heads on a CARLA 1.0 server with the street content, None: CARLA's."""
+        (streetlook.region) for the region's heads on a CARLA 1.0 server with the street content, None: CARLA's;
+        stop_offsets: {lane id: m} the net's stop lines before the lanes' ends (stoplines.read_offsets of the net
+        SUMO runs): the heads stand there and next_light() measures to them."""
         self.debug = world.debug if debug is None else debug
         cmap = world.get_map()
         self.surface = surface
@@ -226,7 +251,8 @@ class Signals:
         self.head_modes = []    # per head "car" or "bike" (its lanes are cyclists' only)
         self.region = region
         self.styles = []        # per head its regional_style once spawned, else None (CARLA's head)
-        self.lanes = {}   # SUMO lane id -> [(tls_id, [link indices], lane length, {edges the links lead to})]
+        self.stop_offsets = dict(stop_offsets or {})
+        self.lanes = {}   # SUMO lane id -> [(tls_id, [link indices], stop line's position, {edges the links lead to})]
         self.actors = []
         approaches = {}   # edge id -> {lane index: (lane, [(tls, link index)])}
         for tls in traci.trafficlight.getIDList():
@@ -240,8 +266,8 @@ class Signals:
                     lane = net.getLane(lane_id)
                 except KeyError:
                     continue
-                self.lanes.setdefault(lane_id, []).append(
-                    (tls, idxs, lane.getLength(), {out_edge.get(i) for i in idxs}))
+                stop_at = lane.getLength() - self.stop_offsets.get(lane_id, 0.0)     # the stop line (stoplines.py)
+                self.lanes.setdefault(lane_id, []).append((tls, idxs, stop_at, {out_edge.get(i) for i in idxs}))
                 entry = approaches.setdefault(lane.getEdge().getID(), {}).setdefault(lane.getIndex(), (lane, []))
                 entry[1].extend((tls, i) for i in idxs)
 
@@ -253,26 +279,38 @@ class Signals:
         def place(lane, kerb, out=0.0):
             """The stop line's end on the lane's kerb side (kerb True) or its other side, 0.6 m (+ out) beyond the
             lane; where that is on a lane of CARLA's map (a cycle lane beyond, or a junction's turning lanes,
-            which flare out past the stop line), further out and up to 5 m back from the stop line."""
-            shape = lane.getShape()
-            (x0, y0), (x1, y1) = shape[-2], shape[-1]
-            d = math.hypot(x1 - x0, y1 - y0) or 1.0
-            ux, uy = (x1 - x0) / d, (y1 - y0) / d
-            rx, ry = uy, -ux                                # unit vector to the right of travel (SUMO)
+            which flare out past the stop line), further out and up to 5 m back from the stop line. The stop line
+            is the lane's end, or its stop offset before it (stoplines.py: before the crosswalk; on the lane
+            before when the offset is longer than the lane)."""
+            off = self.stop_offsets.get(lane.getID(), 0.0)
+            chain, cur, total = [lane.getShape()], lane, lane.getLength()
+            while total < off + 6.0 and len(chain) < 6:
+                try:
+                    inc = cur.getIncoming()
+                except AttributeError:
+                    break
+                if not inc:
+                    break
+                cur = inc[0]
+                chain.append(cur.getShape())
+                total += cur.getLength()
             sign = 1 if kerb != lefthand else -1
             first = None
-            for back, extra in head_candidates(kerb, min(5.0, lane.getLength() - 1.0)):
+            for back, extra in head_candidates(kerb, min(5.0, total - off - 1.0)):
+                x1, y1, ux, uy = stoplines.point_back(chain, off + back)
+                rx, ry = uy, -ux                            # unit vector to the right of travel (SUMO)
                 side = (lane.getWidth() / 2 + 0.6 + out + extra) * sign
-                sx, sy = x1 - ux * back + rx * side, y1 - uy * back + ry * side
+                sx, sy = x1 + rx * side, y1 + ry * side
                 loc = carla.Location(x=sx - offset[0], y=-(sy - offset[1]))
-                first = first or loc
+                if first is None:
+                    first = (loc, ux, uy)
                 if not on_road(loc):
                     break
             else:
-                loc = first
+                loc, ux, uy = first
             wp = cmap.get_waypoint(loc, project_to_road=True, lane_type=carla.LaneType.Any)
             loc.z = wp.transform.location.z if wp is not None else 0.0      # the road's height (elevation)
-            yaw = math.degrees(math.atan2(-(y1 - y0), x1 - x0))           # CARLA yaw of travel (y flipped)
+            yaw = math.degrees(math.atan2(-uy, ux))                       # CARLA yaw of travel (y flipped)
             return loc, yaw
 
         def add(links, loc, yaw, mode="car"):
@@ -311,14 +349,23 @@ class Signals:
         except (RuntimeError, IndexError):
             return False
         self.styles = [None] * len(self.heads)
+        self._have, self._missing = set(), set()       # head meshes this server has spawned / lacks
         regional = self.region is not None
         for h, (tls, idxs, loc, yaw) in enumerate(self.heads):
             st = regional_style(self.region, self.head_modes[h]) if regional else None
+            if st is not None and st["head"] in self._missing and st.get("alt"):
+                st = st["alt"]
             if st is not None:
                 ok = self._spawn_regional(world, bp, h, loc, yaw, st)
+                if ok is None and st.get("alt"):      # content older than this head: the mesh it replaces
+                    self._missing.add(st["head"])
+                    ok = self._spawn_regional(world, bp, h, loc, yaw, st["alt"])
+                    if ok:
+                        log(f"traffic lights: no {st['head'].rsplit('.', 1)[-1]} on this server; its older "
+                            f"{st['alt']['head'].rsplit('.', 1)[-1]} (re-import the street props)")
                 if ok:
                     continue
-                if ok is None:          # the server lacks the content: CARLA's heads from here on
+                if ok is None and not self._have:     # the server lacks the content: CARLA's heads from here on
                     log(f"traffic lights: no {self.region} signal meshes on this server; CARLA's heads")
                     regional = False
             p = head_points(loc.x, loc.y, loc.z, yaw, self._ground(loc))
@@ -340,7 +387,7 @@ class Signals:
 
     def _spawn_regional(self, world, bp, h, loc, yaw, st):
         """The region's pole and head at head h: True; False when one did not spawn here (blocked: CARLA's head);
-        None when the server has no such mesh (no regional head spawned yet)."""
+        None when the server seems to lack the head mesh (it never spawned on this server)."""
         p = regional_points(loc.x, loc.y, loc.z, yaw, st, self._ground(loc))
         parts = [(st["head"], 1.0, p["head"], p["yaw"])]
         if st["pole"]:
@@ -356,10 +403,11 @@ class Signals:
             if a is None:
                 for b in spawned:
                     b.destroy()
-                return None if not any(s is not None for s in self.styles) else False
+                return False if st["head"] in getattr(self, "_have", ()) else None
             spawned.append(a)
         self.actors += spawned
         self.styles[h] = st
+        getattr(self, "_have", set()).add(st["head"])
         return True
 
     def _ground(self, loc):
@@ -430,19 +478,16 @@ class Signals:
             if self.style == "marker":
                 self.debug.draw_line(loc, loc + carla.Location(z=3.0), thickness=0.08,
                                      color=carla.Color(40, 40, 40), life_time=self.life)
-                a, b = lamp_segment((loc.x, loc.y, loc.z + 3.3), yaw + 90.0, 0.35)     # world-sized, not a
-                self.debug.draw_line(carla.Location(*a), carla.Location(*b), thickness=0.35,  # screen-sized point
-                                     color=COLOURS.get(st, COLOURS["o"]), life_time=self.life)
+                self._lit((loc.x, loc.y, loc.z + 3.3), yaw + 90.0, 0.35, None,    # world-sized, not a
+                          COLOURS.get(st, COLOURS["o"]))                          # screen-sized point
                 continue
             rst = self.styles[h] if h < len(self.styles) else None
             if rst is not None:     # the region's head: its own lens lit
                 p = regional_points(loc.x, loc.y, loc.z, yaw, rst)
                 lens = lens_of(lamp_row(st), len(rst["lenses"]))
                 if lens is not None:
-                    a, b = lamp_segment(p["lamps"][lens], p["yaw"], rst["lamp"])
-                    self.debug.draw_line(carla.Location(*a), carla.Location(*b), thickness=rst["lamp"],
-                                         color=carla.Color(*look.debug_colour(LAMP_RGB[lamp_row(st)])),
-                                         life_time=self.life)
+                    self._lit(p["lamps"][lens], p["yaw"], rst["lens_d"], rst["faces"][lens],
+                              carla.Color(*look.debug_colour(LAMP_RGB[lamp_row(st)])))
                 continue
             p = head_points(loc.x, loc.y, loc.z, yaw)
             if not self.meshes:     # no meshes on this server: a dark pole and housing, drawn
@@ -453,9 +498,14 @@ class Signals:
                                     life_time=self.life)
             row = lamp_row(st)
             if row is not None:
-                a, b = lamp_segment(p["lamps"][row], p["yaw"])
-                self.debug.draw_line(carla.Location(*a), carla.Location(*b), thickness=LAMP_SIZE,
-                                     color=carla.Color(*look.debug_colour(LAMP_RGB[row])), life_time=self.life)
+                self._lit(p["lamps"][row], p["yaw"], LAMP_SIZE, None, carla.Color(*look.debug_colour(LAMP_RGB[row])))
+
+    def _lit(self, centre, face_yaw, diameter, face, colour):
+        """A lit lens at centre on a face turned to face_yaw: a round disc of thick lines, or its lit pictogram
+        (signalfaces.lit_lines)."""
+        for a, b, t in signalfaces.lit_lines(centre, face_yaw, diameter, face):
+            self.debug.draw_line(carla.Location(*a), carla.Location(*b), thickness=t, color=colour,
+                                 life_time=self.life)
 
     def next_light(self, sumo_vehicle_id):
         """(tls id, distance m, state char) of the light at the end of the vehicle's SUMO lane, or None.

@@ -201,6 +201,8 @@ DEFAULTS = {
         "cyclist_red_running": "auto",   # a quarter of the cyclists ride on through red when clear: auto = in the
                                      # Netherlands only (SWOV's observations; drivermix.py)
         "seed": 42,
+        "stop_lines": True,          # vehicles wait before a crosswalk at a junction, not on it: SUMO stop lines
+                                     # (lane stopOffset) before the map's crosswalks (stoplines.py)
         "crop_radius_m": "auto",     # SUMO runs only the roads within this distance of the participants' starts,
                                      # the map's demand cut to them (sumocrop.py); "auto": 1500 m on maps of 25 km2
                                      # or more (city twins), else the whole map; 0: always the whole map
@@ -209,8 +211,26 @@ DEFAULTS = {
         "counts": "auto",            # "auto": fit the cars to open traffic counts where they cover the map
                                      # (NYC DOT, DfT, Lyon, Montevideo, Auckland, Portland, VTrans) with SUMO's
                                      # routeSampler, topped up to cars_per_hour; false: random trips only
-        "bikes_per_hour": 1200,
-        "buses_per_hour": 12,        # random bus trips, only on maps without OSM bus lines
+        "bikes_per_hour": "auto",    # bikes entering per hour, or "auto": the car stream x CROWD's bicycles per
+                                     # motor vehicle of the place (crowdtraffic.py; 1200 without CROWD); open bike
+                                     # counters still set it where they reach (traffic.cycling.counts)
+        "buses_per_hour": "auto",    # random bus trips, only on maps without OSM bus lines; "auto": the car stream x
+                                     # CROWD's buses per motor vehicle of the place (12 without CROWD)
+        "warmup_s": "auto",          # the streets as if SUMO had run this long before t = 0 (warmup.py; "auto":
+                                     # 600 s; 0: SUMO starts empty, as before 2026-11-28)
+        "crowd": {                   # the place's traffic from the CROWD dashcam dataset (coupledcarla/crowdtraffic.py)
+            "enabled": True,         # mix, cyclists and density of the place; false: car_types and the rates only
+            "mix": True,             # the car stream: cars, taxis, motorcycles/scooters, vans, lorries in CROWD's
+                                     # shares, models per region (data/place_vehicles.json), plus service vehicles
+            "density": True,         # cars_per_hour "auto" x (place's motor vehicles per minute / median CROWD
+            "density_power": 0.5,    # locality's) ** density_power, clipped to density_range
+            "density_range": [0.7, 1.4],
+            "prior_min": 120.0,      # a locality's rates lean on its country's as if this many minutes of footage
+            "van_share": 0.7,        # of CROWD's trucks (COCO's class also takes vans and pickups): vans
+            "service_share": 0.004,  # ambulances, police cars, fire engines in the car stream (not in CROWD)
+            "bike_flow": 1.0,        # bikes_per_hour auto = car stream x bicycles per motor vehicle x this
+            "night": "auto",         # night rates from 20:00 to 06:00 (simulation.time); true / false
+        },
         "bus_min_distance_m": 1000,  # ... each at least this long (CARLA towns: 300, they are small)
         "public_transport": {        # the map's real bus lines (map.transit): at their GTFS frequency for the
             "enabled": True,         # trial's local hour (simulation.time, else 08:00 on a weekday), else the OSM
