@@ -162,6 +162,13 @@
    0.0,
    0.1
   ],
+  "LensWhite": [
+   0.07,
+   0.07,
+   0.065,
+   0.0,
+   0.1
+  ],
   "PoleBlack": [
    0.015,
    0.015,
@@ -3752,6 +3759,59 @@
     "ped_walk"
    ]
   },
+  "SM_CC_NL_SignalBus": {
+   "path": "/Game/CoupledCarla/Street/NL/TrafficLight/SM_CC_NL_SignalBus.SM_CC_NL_SignalBus",
+   "region": "NL",
+   "folder": "TrafficLight",
+   "role": "signal_bus",
+   "ext": [
+    0.31,
+    0.198,
+    0.57
+   ],
+   "off": [
+    0.0,
+    0.255,
+    0.0
+   ],
+   "triangles": 284,
+   "slots": [
+    "LensWhite",
+    "SignalBlack",
+    "SignalYellow"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "public-transport bar signal (OV-licht): white horizontal bar, dot, vertical bar",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "lenses": [
+    [
+     0.0,
+     0.295,
+     0.26
+    ],
+    [
+     0.0,
+     0.295,
+     0.0
+    ],
+    [
+     0.0,
+     0.295,
+     -0.26
+    ]
+   ],
+   "plate": [
+    0.62,
+    1.14
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    "bar_stop",
+    "bar_dot",
+    "bar_go"
+   ]
+  },
   "SM_CC_NL_SharkTeeth_3": {
    "path": "/Game/CoupledCarla/Street/NL/RoadLine/SM_CC_NL_SharkTeeth_3.SM_CC_NL_SharkTeeth_3",
    "region": "NL",
@@ -5634,6 +5694,53 @@
      null
     ]
    }
+  },
+  "SM_CC_UK_SignalPed": {
+   "path": "/Game/CoupledCarla/Street/UK/TrafficLight/SM_CC_UK_SignalPed.SM_CC_UK_SignalPed",
+   "region": "UK",
+   "folder": "TrafficLight",
+   "role": "signal_ped",
+   "ext": [
+    0.16,
+    0.198,
+    0.29
+   ],
+   "off": [
+    0.0,
+    0.255,
+    0.0
+   ],
+   "triangles": 248,
+   "slots": [
+    "LensGreen",
+    "LensRed",
+    "SignalBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "far-side pedestrian head: red standing, green walking figure",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "lenses": [
+    [
+     0.0,
+     0.295,
+     0.13
+    ],
+    [
+     0.0,
+     0.295,
+     -0.13
+    ]
+   ],
+   "plate": [
+    0.32,
+    0.58
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    "ped_stand",
+    "ped_walk"
+   ]
   },
   "SM_CC_JP_LampGooseneck8": {
    "path": "/Game/CoupledCarla/Street/JP/Pole/SM_CC_JP_LampGooseneck8.SM_CC_JP_LampGooseneck8",
@@ -12993,6 +13100,129 @@
     null,
     null,
     null
+   ]
+  },
+  "SM_CC_JP_SignalPed": {
+   "path": "/Game/CoupledCarla/Street/JP/TrafficLight/SM_CC_JP_SignalPed.SM_CC_JP_SignalPed",
+   "region": "JP",
+   "folder": "TrafficLight",
+   "role": "signal_ped",
+   "ext": [
+    0.185,
+    0.198,
+    0.34
+   ],
+   "off": [
+    0.0,
+    0.255,
+    0.0
+   ],
+   "triangles": 248,
+   "slots": [
+    "LensGreen",
+    "LensRed",
+    "SignalBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "pedestrian head: red standing, blue-green walking figure",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "lenses": [
+    [
+     0.0,
+     0.295,
+     0.155
+    ],
+    [
+     0.0,
+     0.295,
+     -0.155
+    ]
+   ],
+   "plate": [
+    0.37,
+    0.68
+   ],
+   "lens_d": 0.25,
+   "faces": [
+    "ped_stand",
+    "ped_walk"
+   ]
+  },
+  "SM_CC_Any_SignalPole": {
+   "path": "/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPole.SM_CC_Any_SignalPole",
+   "region": "Any",
+   "folder": "TrafficLight",
+   "role": "signal_pole",
+   "ext": [
+    0.057,
+    0.057,
+    1.525
+   ],
+   "off": [
+    0.0,
+    0.0,
+    1.525
+   ],
+   "triangles": 128,
+   "slots": [
+    "Anthracite"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "top": [
+    0.0,
+    0.0,
+    3.0
+   ]
+  },
+  "SM_CC_Any_SignalPed": {
+   "path": "/Game/CoupledCarla/Street/Any/TrafficLight/SM_CC_Any_SignalPed.SM_CC_Any_SignalPed",
+   "region": "Any",
+   "folder": "TrafficLight",
+   "role": "signal_ped",
+   "ext": [
+    0.16,
+    0.198,
+    0.29
+   ],
+   "off": [
+    0.0,
+    0.255,
+    0.0
+   ],
+   "triangles": 248,
+   "slots": [
+    "LensGreen",
+    "LensRed",
+    "SignalBlack"
+   ],
+   "fallback": null,
+   "decal": false,
+   "note": "generic pedestrian head: red standing, green walking figure",
+   "licence": "procedural, coupled-carla (MIT): tools/street_props.py",
+   "lenses": [
+    [
+     0.0,
+     0.295,
+     0.13
+    ],
+    [
+     0.0,
+     0.295,
+     -0.13
+    ]
+   ],
+   "plate": [
+    0.32,
+    0.58
+   ],
+   "lens_d": 0.2,
+   "faces": [
+    "ped_stand",
+    "ped_walk"
    ]
   }
  }

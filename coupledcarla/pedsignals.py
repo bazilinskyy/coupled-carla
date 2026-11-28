@@ -8,6 +8,8 @@ Now:
   stream that crosses its path there shows red: the SUMO links whose stop line lies within NEAR_M of the crossing
   and whose lane runs across the crossing line. Gap acceptance still applies on top (turning vehicles), and SUMO
   vehicles still yield to walkers on the road (yielding.py). A crossing with no such stream is unsignalised.
+- crossing_heads: where the pedestrian signal heads of those crossings stand (both ends, on the kerb, facing across);
+  signals.py spawns and lights them by the same rule (walk while every crossing stream is red);
 - scramble_programs: junctions with a scramble crossing in OSM (`crossing:scramble=yes`, Shibuya's) get an extra
   phase in which every vehicle stream is red (SCRAMBLE_S long), appended to each programme of the SUMO traffic
   light nearest to the tagged crossings; walkers then cross while it lasts, in any direction.
@@ -66,6 +68,59 @@ def net_links(net, offset):
                 continue
             (x0, y0), (x1, y1) = shape[-2], shape[-1]
             out.append((tls.getID(), idx, (x1 - offset[0], offset[1] - y1), (x1 - x0, -(y1 - y0))))
+    return out
+
+
+HEAD_BEYOND_M = 0.6     # a pedestrian head's pole this far beyond the road's edge at the crossing's end
+HEAD_REACH_M = 25.0     # a crossing's end is looked for this far from its middle
+HEAD_APART_M = 1.5      # two heads facing the same way closer than this are one
+
+
+def crossing_heads(polygons, links, on_road, near=NEAR_M, step=0.25):
+    """Where the pedestrian heads of the signalised crossings stand: [(x, y, travel yaw (deg), [(tls, index)])] in
+    CARLA coordinates, two per crossing, one at each end on the kerb (HEAD_BEYOND_M past where the crossing's axis
+    leaves the road for a strip at least that wide: a narrow median is passed over), each facing across the crossing towards the people waiting at the other end, as the far-side
+    heads of Dutch, British and Japanese crossings do (travel yaw: the direction the head's lenses face away from,
+    signals.regional_points' convention). A crossing (a polygon [(x, y)] in CARLA coordinates: the map's crosswalks,
+    stoplines.crossings with y flipped) is signalised when a signalised link (net_links) controls it (crossing_links);
+    its axis runs across the nearest such link's lane. on_road(x, y): a driving or cycling lane of the map is there."""
+    out = []
+    for poly in polygons:
+        if len(poly) < 3:
+            continue
+        cx = sum(p[0] for p in poly) / len(poly)
+        cy = sum(p[1] for p in poly) / len(poly)
+        cand = sorted(((math.hypot(x - cx, y - cy), (tls, i, (x, y), d)) for tls, i, (x, y), d in links
+                       if math.hypot(x - cx, y - cy) <= near), key=lambda t: t[0])
+        if not cand:
+            continue
+        dx, dy = cand[0][1][3]
+        L = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / L, dx / L                       # the crossing's axis: across the nearest stream's lane
+        a = (cx - nx * HEAD_REACH_M, cy - ny * HEAD_REACH_M)
+        b = (cx + nx * HEAD_REACH_M, cy + ny * HEAD_REACH_M)
+        ctl = crossing_links([c[1] for c in cand], a, b, near)
+        if not ctl:
+            continue
+        def off(t, sgn):
+            return not on_road(cx + sgn * nx * t, cy + sgn * ny * t)
+        if off(0.0, 1.0):                             # the crossing's middle is not on a road: not a road crossing
+            continue
+        for sgn in (1.0, -1.0):
+            t, edge = step, None
+            while t <= HEAD_REACH_M:                  # the first strip off the road wide enough for the pole
+                if off(t, sgn) and off(t + HEAD_BEYOND_M / 2, sgn) and off(t + HEAD_BEYOND_M, sgn):
+                    edge = t
+                    break
+                t += step
+            if edge is None:                          # never leaves the road
+                continue
+            hx, hy = cx + sgn * nx * (edge + HEAD_BEYOND_M), cy + sgn * ny * (edge + HEAD_BEYOND_M)
+            yaw = math.degrees(math.atan2(sgn * ny, sgn * nx))      # lenses face back across (-sgn * axis)
+            if any(math.hypot(hx - x, hy - y) < HEAD_APART_M and abs((yaw - w + 180) % 360 - 180) < 45
+                   for x, y, w, _ in out):
+                continue
+            out.append((hx, hy, yaw, sorted(set(ctl))))
     return out
 
 

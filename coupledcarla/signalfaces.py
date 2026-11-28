@@ -10,7 +10,8 @@ user: "traffic lights show an unrealistic rectangle for the lights"). Now:
 - a plain lens (car heads) is lit as a round disc: DISC_ANGLES give the union of six thick lines across the face,
   rectangles whose corners lie on the lens's circle (a 24-cornered disc, LIT_FILL of the lens's diameter, inside
   the visor), so the lit aspect is as round and as big as the lens (disc_lines);
-- a pictogram lens (Dutch cyclist heads: a bicycle; pedestrian heads: a standing red and a walking green figure)
+- a pictogram lens (Dutch cyclist heads: a bicycle; pedestrian heads: a standing red and a walking green figure;
+  Dutch bus signals: white bars)
   lights only its pictogram, in thick strokes on the dark lens, as the real heads' LEDs behind a black mask do
   (pictogram_lines). The head meshes (tools/street_props.py) carry the same pictograms (PICTOGRAMS) on a black mask
   disc in the lens's colour, so the unlit lens shows the faint symbol and the lit one the bright symbol on top of it.
@@ -47,14 +48,24 @@ PED_STAND = [("dot", (0.0, 0.62), 0.14), ("seg", (0.0, 0.44), (0.0, -0.12), 0.30
 PED_WALK = [("dot", (0.06, 0.62), 0.14), ("seg", (0.04, 0.44), (-0.02, -0.10), 0.26),
             ("seg", (-0.02, -0.10), (-0.36, -0.80), 0.13), ("seg", (-0.02, -0.10), (0.30, -0.80), 0.13),
             ("seg", (0.02, 0.38), (-0.32, -0.02), 0.10), ("seg", (0.04, 0.38), (0.34, 0.04), 0.10)]
-PICTOGRAMS = {"bike": BICYCLE, "ped_stand": PED_STAND, "ped_walk": PED_WALK}
+# Dutch public-transport signals (OV-lichten, RVV 1990 art. 71): white bars on black, a horizontal bar "stop", a
+# dot "stop unless you cannot" (the amber), a vertical bar "go"
+BAR_STOP = [("seg", (-0.62, 0.0), (0.62, 0.0), 0.24)]
+BAR_DOT = [("dot", (0.0, 0.0), 0.24)]
+BAR_GO = [("seg", (0.0, -0.62), (0.0, 0.62), 0.24)]
+PICTOGRAMS = {"bike": BICYCLE, "ped_stand": PED_STAND, "ped_walk": PED_WALK, "bar_stop": BAR_STOP, "bar_dot": BAR_DOT,
+              "bar_go": BAR_GO}
+BAR_RGB = (255, 248, 230)               # the bar signals' white (every aspect)
 
 
 def faces_for(mode, n_lenses):
     """The pictogram of each lens of a head (None: a plain lens): cyclist heads a bicycle in every lens, pedestrian
-    heads (two lenses) a standing then a walking figure, car heads none."""
+    heads (two lenses) a standing then a walking figure, bus heads (three lenses) the Dutch bar signal's horizontal
+    bar, dot and vertical bar, car heads none."""
     if mode == "bike":
         return ["bike"] * n_lenses
+    if mode == "bus" and n_lenses == 3:
+        return ["bar_stop", "bar_dot", "bar_go"]
     if mode == "ped" and n_lenses == 2:
         return ["ped_stand", "ped_walk"]
     return [None] * n_lenses

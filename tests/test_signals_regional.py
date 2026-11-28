@@ -56,7 +56,7 @@ def test_lane_mode():
     lane = lambda allowed: types.SimpleNamespace(allows=lambda c: c in allowed)    # noqa: E731
     assert signals.lane_mode(lane({"bicycle"})) == "bike"
     assert signals.lane_mode(lane({"bicycle", "passenger"})) == "car"
-    assert signals.lane_mode(lane({"bus", "bicycle"})) == "car"
+    assert signals.lane_mode(lane({"bus", "bicycle"})) == "bus"          # a bus lane cyclists may use
     assert signals.lane_mode(object()) == "car"
 
 
@@ -130,7 +130,7 @@ def test_older_content_spawns_the_head_it_replaces(carla_stub):
     assert [st["head"].rsplit(".", 1)[-1] for st in s.styles] == ["SM_CC_NL_SignalBike", "SM_CC_NL_SignalCar",
                                                                    "SM_CC_NL_SignalCar"]
     assert s.styles[1]["lens_d"] == pytest.approx(0.30) and s.styles[1]["lenses"][0][2] == pytest.approx(0.36)
-    assert sum("older" in m for m in msgs) == 1
+    assert sum("instead" in m for m in msgs) == 1
 
 
 def test_no_content_keeps_carlas_heads(carla_stub):
@@ -142,3 +142,75 @@ def test_no_content_keeps_carlas_heads(carla_stub):
     assert any("no NL signal meshes" in m for m in msgs)
     s = _sig(None, ["car"])
     assert s._spawn_heads(w, log=msgs.append) and s.styles == [None]
+
+
+def test_pedestrian_and_bus_styles():
+    for region, name in (("NL", "SM_CC_NL_SignalPed"), ("UK", "SM_CC_UK_SignalPed"), ("JP", "SM_CC_JP_SignalPed"),
+                         (None, "SM_CC_Any_SignalPed"), ("US", "SM_CC_Any_SignalPed")):
+        st = signals.regional_style(region, "ped")
+        assert st["head"].endswith(name) and st["mode"] == "ped" and st["faces"] == ["ped_stand", "ped_walk"]
+    assert signals.regional_style(None, "ped")["pole"].endswith("SM_CC_Any_SignalPole")
+    bus = signals.regional_style("NL", "bus")
+    assert bus["head"].endswith("SM_CC_NL_SignalBus") and bus["faces"] == ["bar_stop", "bar_dot", "bar_go"]
+    assert bus["alt"]["head"].endswith("SM_CC_NL_SignalCar200")               # content without the bus head
+    assert bus["alt"]["alt"]["head"].endswith("SM_CC_NL_SignalCar")           # ... nor the 200 mm car head
+    assert signals.regional_style("UK", "bus")["head"].endswith("SM_CC_UK_SignalCar200")    # no UK bus head
+    assert signals.regional_style(None, "bus") is None
+
+
+def test_bus_head_on_older_content_falls_back_through_the_chain(carla_stub):
+    w = _World({"SM_CC_NL_SignalPole", "SM_CC_NL_SignalCar"})
+    s = _sig("NL", ["bus", "car"])
+    assert s._spawn_heads(w, log=lambda m: None)
+    assert [st["head"].rsplit(".", 1)[-1] for st in s.styles] == ["SM_CC_NL_SignalCar", "SM_CC_NL_SignalCar"]
+    assert s.styles[0]["mode"] == "car"                 # lit in red, amber, green on the car head
+
+
+def test_lane_mode_bus():
+    lane = lambda allowed: types.SimpleNamespace(allows=lambda c: c in allowed)    # noqa: E731
+    assert signals.lane_mode(lane({"bus", "taxi", "emergency"})) == "bus"
+    assert signals.lane_mode(lane({"bus", "passenger"})) == "car"
+
+
+def test_hide_the_levels_own_lights_near_our_heads(carla_stub, monkeypatch):
+    L = signals.carla.Location
+
+    class Light:
+        def __init__(self, x, y):
+            self.loc = L(x, y, 5.0)
+
+        def get_location(self):
+            return self.loc
+
+        def get_transform(self):
+            return types.SimpleNamespace(location=self.loc)
+
+    class Actors(list):
+        def filter(self, pattern):
+            return Actors(self)
+
+    class World:
+        def __init__(self):
+            self.lights = Actors([Light(10.0, 0.0), Light(500.0, 0.0)])
+            self.disabled = None
+
+        def get_actors(self):
+            return self.lights
+
+        def get_environment_objects(self, label):
+            objs = [(1, L(10.0, 0.0, 5.0)), (2, L(10.1, 0.05, 5.0)), (3, L(500.0, 0.0, 5.0)), (4, L(14.0, 0.0, 0.0))]
+            return [types.SimpleNamespace(id=i + 10 * (label == "Poles"), transform=types.SimpleNamespace(location=l))
+                    for i, l in objs]
+
+        def enable_environment_objects(self, ids, enable):
+            self.disabled = (set(ids), enable)
+
+    monkeypatch.setattr(signals.carla, "CityObjectLabel",
+                        types.SimpleNamespace(TrafficLight="TrafficLight", Poles="Poles"), raising=False)
+    s = _sig("NL", ["car"])
+    s.heads = [("tl", [0], L(20.0, 3.0, 0.0), 0.0)]
+    s.ped_heads = []
+    w = World()
+    assert s._hide_level_lights(w, log=lambda m: None) == 1           # the light by our head, not the far one
+    assert w.disabled == ({1, 2, 11, 12}, False)                       # its mesh objects only; actors untouched
+    assert len(w.lights) == 2

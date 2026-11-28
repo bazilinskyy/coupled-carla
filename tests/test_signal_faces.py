@@ -79,7 +79,8 @@ def test_head_meshes_carry_lens_sizes_and_pictograms():
     meshes = json.loads((ROOT / "coupledcarla" / "data" / "street_props.json").read_text())["meshes"]
     heads = {(v["region"], v["role"]): (k, v) for k, v in meshes.items() if v["role"].startswith("signal_")
              and v["role"] != "signal_pole"}
-    assert len(heads) == sum(1 for v in meshes.values() if v["role"] in ("signal_car", "signal_bike", "signal_ped"))
+    assert len(heads) == sum(1 for v in meshes.values() if v["role"] in ("signal_car", "signal_bike", "signal_ped",
+                                                                           "signal_bus"))
     for (region, role), (name, h) in heads.items():
         assert len(h["faces"]) == len(h["lenses"]), name
         pitch = abs(h["lenses"][0][2] - h["lenses"][1][2]) or abs(h["lenses"][0][0] - h["lenses"][1][0])
