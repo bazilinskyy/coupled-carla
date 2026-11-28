@@ -2366,6 +2366,12 @@ traffic:
 The trial log says which place and mix it used and the realised mix of the spawned crowd ("walker looks: ...").
 `python tools/walker_looks_check.py logs/<experiment>/<stamp>_trial0` counts every walker of a trial by group
 against the target; `--place tokyo_shibuya --carla 1.0` samples offline; `--table` prints the table below.
+Measured on CARLA 1.0 (lin5080, `-nullrhi`, 150 s drives, 2026-11-28): the Shibuya twin's trial spawned 34
+walkers, 91 % East Asian against a 94 % target (2 stood in by a walker that also passes for the group, 1
+white); the Eindhoven twin's 50 walkers were 76 % white (target 70 %), 6 % East Asian (5 %), with its 10 %
+Middle Eastern / North African share stood in by Latin American and mixed walkers (12 % and 6 %). Offline, 5,000
+walkers on 1.0's catalogue meet every place's target within 1 percentage point by the group they were drawn
+for (`tests/test_walkerlooks.py` requires 2 points).
 
 **Target mix per place** (share of the people on the street, %; v = visitors):
 
