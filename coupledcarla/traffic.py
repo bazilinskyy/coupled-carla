@@ -78,12 +78,19 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
             "    " + drivers.bike_red_runner(bp, tc["car_following"]) + "\n" for bp in tc["bike_types"]) +
             "</additional>\n")
         additional.append("variants.add.xml")
-    try:     # scramble crossings: an all-pedestrian phase in their signal programmes (pedsignals.py)
+    try:     # busy and scramble crossings: one light per junction, an all-pedestrian phase (pedsignals.py)
         from . import pedsignals
-        scramble = pedsignals.prepare(map_dir, sumo_net, work, log)
+        x_net, scramble = pedsignals.prepare(map_dir, sumo_net, work, log, cfg)
+        if x_net:
+            sumo_net = x_net
+            from .signalplan import tls_states_additional
+            if "tls_states.add.xml" in additional:      # the record of the lights: the new net's ids
+                tls_states_additional(x_net, work)
         if scramble:
             additional.append(scramble)
     except Exception as err:  # noqa: BLE001 - a refinement: never fail the trial for it
+        import traceback
+        traceback.print_exc()
         log(f"scramble crossings: not used ({type(err).__name__}: {err})")
     pc = tc.get("public_transport") or {}
     pt = None

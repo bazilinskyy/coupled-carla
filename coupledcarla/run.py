@@ -637,6 +637,13 @@ def run_trial(cfg, trial_idx, args, control=None, dashboard=None):
             if hasattr(crowd, "signals"):     # cross at signals with the light (pedsignals.py)
                 from .pedsignals import PedSignals
                 crowd.signals = PedSignals.from_sumo(sumo.net, BridgeHelper.offset)
+            if hasattr(crowd, "start_crossings"):     # crowds at busy and scramble crossings (scramble.py)
+                crowd.start_crossings(
+                    tc, mdir, geo, [(c.x, c.y) for c in crowd_centres], queue=carla_sim.queue,
+                    on_spawn=lambda ids: carla_sim._kinds.update({i: False for i in ids}),   # bicycles: no SUMO twin
+                    viewers=lambda: [r.camera for r in (film.rigs if film is not None else [])     # what is
+                                     if getattr(r, "camera", None) is not None] + list(focus_actors),   # in view
+                    log=log)
         # Controls and light states of the host's participants, agents and crowd go with the tick's batch (one
         # call per tick; on CARLA 1.0 several separate ones stall the tick, see side.py).
         queue = carla_sim.queue
