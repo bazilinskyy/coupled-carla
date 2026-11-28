@@ -161,6 +161,8 @@ def prepare(cfg, map_dir, work, duration_s, log=print):
         log(f"cars: {cars_per_hour:.0f}/h x {ct['density']:.2f} (CROWD density of the place) = "
             f"{cars_per_hour * ct['density']:.0f}/h")
         cars_per_hour *= ct["density"]
+    if ct is not None:      # the bike window keeps this ratio around the drivers (bikewindow.py)
+        cfg["traffic"]["_bikes_per_motor"] = round(ct["bikes_per_motor"], 4)
     if tc.get("bikes_per_hour") == "auto":     # CROWD's bicycles per motor vehicle of the place x the car stream
         bph = cars_per_hour * ct["bikes_per_motor"] * float(cs.get("bike_flow", 1.0)) if ct is not None else 1200
         cfg["traffic"]["bikes_per_hour"] = tc["bikes_per_hour"] = round(bph)

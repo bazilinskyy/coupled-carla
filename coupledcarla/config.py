@@ -250,6 +250,13 @@ DEFAULTS = {
             "max_bikes_per_hour": 3000,   # cap on the counted demand (a cyclist in CARLA costs ~3 ms per tick)
             "dock_weight": 2.0,      # bike edges within 30 m of a shared-bike dock (GBFS, gbfs.py) draw 1 + this
                                      # times the trip starts and ends; 0: off
+            "window": {              # cyclists where a driver sees them (coupledcarla/bikewindow.py): SUMO bikes
+                "enabled": "auto",   # added on the cycle tracks ahead whenever the drivers' windows hold fewer than
+                "ahead_m": 250.0, "behind_m": 30.0, "band_m": 40.0,    # the place's bikes per motor vehicle
+                "radius_m": 150.0, "spawn_min_m": 70.0, "check_s": 2.0,   # (CROWD) x the motor vehicles there; "auto":
+                "max_bikes": 40, "drop_m": 320.0, "track_weight": 3.0,   # on when a participant drives
+                "ratio": "auto",
+            },
             "weather": "auto",       # "auto": fewer cyclists in rain (the hour's and the 3 hours before, from the
                                      # weather or Open-Meteo; Wessel 2020, nightlights.bike_rain_factor); false: off
         },
